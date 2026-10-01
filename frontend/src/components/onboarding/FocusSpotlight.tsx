@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { OwnerActivationStepId } from '../../onboarding/steps';
-import { ONBOARDING_TARGETS, onboardingStepNumber, type OnboardingJourneyId } from '../../onboarding/steps';
+import { ONBOARDING_TARGETS, type OnboardingJourneyId } from '../../onboarding/steps';
 import OnboardingStepCard from './OnboardingStepCard';
 import './FocusSpotlight.css';
 
@@ -141,11 +141,13 @@ const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
 
   const journeyId: OnboardingJourneyId =
     step === 'createGrove' ? 'createGrove' : boundaryFocus === 'search' ? 'locatePlace' : 'drawBoundary';
-  const label = t(`spotlight.${journeyId === 'createGrove' ? 'createGrove' : journeyId}.title`);
-  const cardWidth = Math.min(360, window.innerWidth - 32);
+  const cueKey = journeyId === 'createGrove' ? 'createGrove' : journeyId;
+  const label = t(`spotlight.${cueKey}.cue`);
+  const cardWidth = Math.min(352, window.innerWidth - 32);
   const cardLeft = Math.min(Math.max(16, rect.left), window.innerWidth - cardWidth - 16);
   const roomBelow = window.innerHeight - (rect.top + rect.height);
-  const placeBelow = roomBelow > 220 || rect.top < 200;
+  const placeBelow = roomBelow > 88 || rect.top < 160;
+  const arrowX = Math.min(cardWidth - 18, Math.max(18, rect.left + rect.width / 2 - cardLeft));
 
   return createPortal(
     <div className="focus-spotlight">
@@ -178,16 +180,13 @@ const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
         aria-label={label}
       />
       <OnboardingStepCard
-        step={onboardingStepNumber(journeyId)}
-        title={label}
-        body={t(
-          `spotlight.${journeyId === 'createGrove' ? 'createGrove' : journeyId}.body`
-        )}
-        className="nav-coach-card"
+        line={label}
+        point={placeBelow ? 'up' : 'down'}
+        arrowX={arrowX}
         style={
           placeBelow
-            ? { top: rect.top + rect.height + 18, left: cardLeft, width: cardWidth, zIndex: 12002 }
-            : { bottom: window.innerHeight - rect.top + 18, left: cardLeft, width: cardWidth, zIndex: 12002 }
+            ? { top: rect.top + rect.height + 14, left: cardLeft, width: cardWidth, zIndex: 12002 }
+            : { bottom: window.innerHeight - rect.top + 14, left: cardLeft, width: cardWidth, zIndex: 12002 }
         }
       />
     </div>,

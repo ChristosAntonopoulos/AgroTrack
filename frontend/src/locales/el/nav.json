@@ -26,9 +26,12 @@
     "userFeedback": "Σχόλια χρηστών",
     "feedback": "Πες μας",
     "settings": "Ρυθμίσεις",
+    "help": "Βοήθεια",
     "thisHarvest": "Συγκομιδή",
     "myOil": "Το λάδι μου",
-    "chronologio": "Ιστορικό"
+    "chronologio": "Ιστορικό",
+    "more": "Περισσότερα",
+    "inbox": "Εισερχόμενα"
   },
   "breadcrumb": {
     "new": "Νέο",

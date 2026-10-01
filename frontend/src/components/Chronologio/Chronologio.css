@@ -2482,9 +2482,16 @@
   gap: 0;
   width: 100%;
   padding: 22px 24px 20px;
-  border: 1px solid var(--border-soft, var(--color-border));
+  border: 1px solid var(--card-edge, var(--border-default));
   border-radius: 20px;
-  background: var(--surface-1, var(--color-surface));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--olive-soft, #e7efe0) 72%, transparent),
+      transparent 3.75rem
+    ),
+    var(--surface-1, var(--color-surface));
+  box-shadow: var(--shadow-card);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -2991,9 +2998,20 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 .chronologio-event-card.is-weather-tile {
   height: 100%;
   padding: 0.85rem 0.9rem 0.8rem;
+  border-color: color-mix(in srgb, var(--field-accent, var(--event-weather)) 42%, var(--border-default, var(--color-border)));
   background:
-    linear-gradient(160deg, color-mix(in srgb, var(--field-accent, var(--olive-primary, #536b3f)) 14%, transparent), transparent 58%),
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--field-accent, var(--olive-primary, #536b3f)) 16%, transparent),
+      transparent 58%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--event-weather-soft) 80%, transparent),
+      transparent 3rem
+    ),
     var(--surface-1, var(--color-surface));
+  box-shadow: var(--shadow-card);
 }
 .chronologio-event-card.is-weather-tile.is-selected {
   border-color: color-mix(in srgb, var(--field-accent, var(--olive-primary, #536b3f)) 55%, var(--color-border));
@@ -3558,9 +3576,15 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   width: 100%;
   min-height: 48px;
   padding: 0.95rem 1rem 0.9rem 1.1rem;
-  border: 1px solid var(--border-subtle, var(--color-border));
+  border: 1px solid color-mix(in srgb, var(--event-accent) 40%, var(--border-default, var(--color-border)));
   border-radius: 16px;
-  background: var(--surface-1, var(--color-surface));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--event-accent-soft) 92%, transparent),
+      transparent 3.25rem
+    ),
+    var(--surface-1, var(--color-surface));
   box-shadow: var(--shadow-card);
   color: inherit;
   text-align: left;
@@ -3572,21 +3596,26 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 .chronologio-event-card::before {
   content: "";
   position: absolute;
-  inset: 14px auto 14px 0;
-  width: 2px;
+  inset: 12px auto 12px 0;
+  width: 3px;
   border-radius: 0 2px 2px 0;
-  background: color-mix(in srgb, var(--event-accent) 55%, var(--border-default, var(--color-border)));
+  background: var(--event-accent);
 }
 .chronologio-event-card:hover {
   transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--event-accent) 45%, var(--color-border));
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.12));
+  border-color: color-mix(in srgb, var(--event-accent) 58%, var(--border-default, var(--color-border)));
+  box-shadow: var(--shadow-card-hover, var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.12)));
 }
 .chronologio-event-card.is-selected {
-  border-color: color-mix(in srgb, var(--event-accent) 50%, var(--color-border));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--event-accent) 28%, transparent);
+  border-color: color-mix(in srgb, var(--event-accent) 65%, var(--border-default, var(--color-border)));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--event-accent) 30%, transparent),
+    var(--shadow-card);
 }
-.chronologio-event-card.is-compact { padding: 0.55rem 0.8rem 0.5rem 0.9rem; box-shadow: none; }
+.chronologio-event-card.is-compact {
+  padding: 0.55rem 0.8rem 0.5rem 0.9rem;
+  box-shadow: var(--shadow-card);
+}
 .chronologio-event-card--work.is-compact .chronologio-card-summary { display: none; }
 .chronologio-event-card--work.is-compact .chronologio-card-title {
   font-size: 0.95rem;
@@ -3597,8 +3626,14 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   height: 32px;
 }
 .chronologio-event-card--observation.is-compact {
-  background: color-mix(in srgb, var(--surface-1, var(--color-surface)) 72%, transparent);
-  border-color: transparent;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--event-accent-soft) 92%, transparent),
+      transparent 2.75rem
+    ),
+    var(--surface-1, var(--color-surface));
+  border-color: color-mix(in srgb, var(--event-accent) 40%, var(--border-default, var(--color-border)));
 }
 .chronologio-event-card--observation.is-compact .chronologio-card-title {
   font-size: 0.92rem;
@@ -3612,8 +3647,9 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
 .chronologio-event-card--harvest {
   padding: 1.15rem 1.2rem 1.05rem 1.25rem;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--event-harvest-soft) 72%, transparent), transparent 3rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--event-harvest-soft) 88%, transparent), transparent 3.5rem),
     var(--surface-1, var(--color-surface));
+  border-color: color-mix(in srgb, var(--event-harvest) 48%, var(--border-default, var(--color-border)));
   box-shadow: 0 10px 24px color-mix(in srgb, var(--event-harvest) 14%, transparent);
 }
 .chronologio-event-card--harvest .chronologio-card-title {
@@ -4636,9 +4672,16 @@ html:not([data-theme='dark']) .chrono-season-track-bar i.is-now { background: #1
   gap: 0.75rem;
 }
 .chrono-month-chapter {
-  border: 1px solid var(--border-soft, var(--color-border));
+  border: 1px solid color-mix(in srgb, var(--olive-primary, #536b3f) 32%, var(--border-default, var(--color-border)));
   border-radius: 16px;
-  background: var(--surface-1, var(--color-surface));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--olive-soft, #e7efe0) 65%, transparent),
+      transparent 3rem
+    ),
+    var(--surface-1, var(--color-surface));
+  box-shadow: var(--shadow-card);
 }
 .chrono-month-chapter.is-current {
   border-color: color-mix(in srgb, var(--olive-primary, #536b3f) 45%, var(--color-border));

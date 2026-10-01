@@ -85,6 +85,11 @@
     padding-bottom: calc(var(--spacing-md) + var(--bottom-nav-height) + var(--safe-bottom));
   }
 
+  .main-content.is-more-open {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .app-canvas {
     height: calc(100dvh - var(--header-height) - var(--safe-top) - var(--bottom-nav-height) - var(--safe-bottom));
     margin-bottom: calc(-1 * (100dvh - var(--header-height) - var(--safe-top) - var(--bottom-nav-height) - var(--safe-bottom)));

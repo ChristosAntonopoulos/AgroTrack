@@ -53,74 +53,94 @@
     }
   },
   "firstObservation": {
-    "title": "Start History with a note",
-    "body": "Your grove details are ready. Post a first observation — we prepared a warm starter message you can send as-is or edit.",
-    "cta": "Save a note",
-    "prefill": "My first observation in the grove — Chronologio begins here."
+    "title": "Write the first note",
+    "body": "One short note starts History for this grove.",
+    "cta": "Write the note",
+    "prefill": "My first observation in the grove — History begins here."
   },
   "spatial": {
-    "kicker": "Preparing your grove",
-    "title": "Gathering your field data",
-    "body": "Boundary saved. We are building a picture of this grove for you.",
-    "bodyNamed": "“{{name}}” is on the map. We are building its weather, satellite and field picture.",
-    "firstDataHint": "Weather usually arrives first; satellite and the grove profile follow. We open the welcome when the first pack is ready so the map already has something to show.",
+    "kicker": "Just before History",
+    "title": "Getting its first page ready",
+    "titleNamed": "Building “{{name}}”",
+    "body": "The boundary is in. We are bringing the weather and how the trees look.",
+    "bodyNamed": "“{{name}}” is on the map. Weather, trees from above, and the place itself are on the way.",
+    "firstDataHint": "When this is ready, you write a short note and History begins.",
     "area": "Area",
     "slope": "Slope",
     "satellite": "Satellite",
-    "waiting": "Working…",
+    "waiting": "On its way…",
+    "stayHere": "A moment — nothing to tap yet.",
+    "retrying": "Something stalled. We’re trying again.",
     "ready": "Ready",
+    "beats": {
+      "weather0": "Rain, heat and wind for this grove…",
+      "weather1": "Reading today’s weather here…",
+      "satellite0": "Looking at these trees from above…",
+      "satellite1": "Waiting for a clear pass…",
+      "personalized0": "Measuring this boundary’s area…",
+      "personalized1": "Reading the slope of this grove…",
+      "personalized2": "Looking at the soil under these trees…"
+    },
     "failed": "Could not load yet",
     "retry": "Try again",
     "openMapAnyway": "Continue anyway",
     "continueAnyway": "Continue anyway",
     "successTitle": "Your grove data is ready",
-    "successBody": "Continue to field details, then add your first observation.",
+    "successBody": "Next you write a short note and History begins.",
     "openChronologio": "Open History",
     "stay": "Stay here",
     "stages": {
       "weather": {
-        "title": "Weather for this grove",
-        "body": "Temperature, rain and wind around your trees."
+        "title": "Weather here",
+        "body": "Rain, heat and wind around the trees."
       },
       "satellite": {
-        "title": "Satellite view",
-        "body": "Greenness and recent clear images over the boundary."
+        "title": "Trees from above",
+        "body": "How green they look, when the sky is clear."
       },
       "personalized": {
-        "title": "Your grove profile",
-        "body": "Area, slope and soil notes tailored to this place."
+        "title": "This place",
+        "body": "Area, slope and soil of this grove."
       }
     }
   },
   "welcome": {
-    "kicker": "Welcome",
+    "kicker": "Welcome in",
     "groveFallback": "your grove",
-    "title": "“{{grove}}” is ready for its story",
-    "titleNamed": "{{name}}, “{{grove}}” is ready for its story",
-    "body": "The shape is saved. Next you will see the grove, then History for the first note.",
-    "pointWeather": "Live weather sits under the map",
-    "pointSatellite": "Satellite layers are ready when the sky is clear",
-    "pointMap": "Your όρια define what Oleachron watches",
-    "openMap": "Continue to my grove",
-    "openGrove": "Open History"
+    "title": "“{{grove}}” is ready",
+    "titleNamed": "{{name}}, “{{grove}}” is ready",
+    "body": "Have a look on the map. When you’re ready, we open History.",
+    "pointWeather": "Its weather is already here",
+    "pointSatellite": "The trees show when the sky is clear",
+    "pointMap": "What you write stays in its story",
+    "openMap": "Open the map",
+    "openGrove": "Open the map"
+  },
+  "mapExplore": {
+    "caption": "Look around — layers and weather are yours.",
+    "cta": "Continue to History"
   },
   "coach": {
     "kicker": "Your move",
     "fieldsCard": {
       "title": "Open Fields",
-      "body": "Tap Fields. That is where a grove begins."
+      "body": "Tap Fields. That is where a grove begins.",
+      "cue": "Tap Fields to start."
     },
     "createField": {
       "title": "Create your grove",
-      "body": "Tap + and give it a name you will recognise."
+      "body": "Tap + and give it a name you will recognise.",
+      "cue": "Tap here and name the grove."
     },
     "homeButton": {
       "title": "This brings you home",
-      "body": "The mark opens the launcher. Tap it — History is the next stop."
+      "body": "The mark opens the launcher. Tap it — History is the next stop.",
+      "cue": "This mark brings you home."
     },
     "historyCard": {
       "title": "Open History",
-      "body": "Tap History and leave the first note for this grove."
+      "body": "Tap History — then leave the first note.",
+      "cue": "Tap History — then leave the first note."
     }
   },
   "settings": {

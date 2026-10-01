@@ -15,7 +15,6 @@ import ChronologioMonthView from './ChronologioMonthView';
 import ChronologioPeekDrawer from './ChronologioPeekDrawer';
 import type { ChronologioPeekTarget } from './ChronologioPeekDrawer';
 import ChronologioDateRail from './ChronologioDateRail';
-import ChronologioCompare from './ChronologioCompare';
 import TodaySummary from './TodaySummary';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import { allDaySummaries } from '../../harvestCampaign/totals';
@@ -110,8 +109,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const [yearSummaries, setYearSummaries] = useState<ChronologioPeriodSummary[]>([]);
   const [glanceYears, setGlanceYears] = useState<ChronologioPeriodSummary[]>([]);
   const [monthSummaries, setMonthSummaries] = useState<ChronologioMonthSummary[]>([]);
-  const [compareLeftMonths, setCompareLeftMonths] = useState<ChronologioMonthSummary[]>([]);
-  const [compareRightMonths, setCompareRightMonths] = useState<ChronologioMonthSummary[]>([]);
   const [monthEntries, setMonthEntries] = useState<ChronologioEntry[]>([]);
   const [yearEntries, setYearEntries] = useState<ChronologioEntry[]>([]);
   const [journalHasMore, setJournalHasMore] = useState(false);
@@ -294,7 +291,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const isLiveJournalMonth = living.monthYear === nowYear && living.month === nowMonth;
   const harvestTab = living.filters.category === 'harvest';
   const showTodaySummary =
-    living.zoom === 'month' && isLiveJournalMonth && !living.compareOpen && !harvestTab;
+    living.zoom === 'month' && isLiveJournalMonth && !harvestTab;
 
   const fetchJournalPage = useCallback(
     async (offset: number) => {
@@ -340,7 +337,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         if (cancelled) return;
         setYearSummaries(years);
 
-        if (living.zoom === 'year' || living.compareOpen) {
+        if (living.zoom === 'year') {
           const months = await fetchMonths(living.periodYear);
           if (cancelled) return;
           setMonthSummaries(months);
@@ -423,11 +420,10 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     fetchYears,
     fieldMode,
     living.axis,
-    living.compareOpen,
     living.filters.category,
     living.filters.fieldId,
     living.filters.lifecycleYear,
-    living.zoom === 'year' || living.compareOpen ? living.periodYear : 0,
+    living.zoom === 'year' ? living.periodYear : 0,
     living.zoom,
     loadErrorMessage,
     reloadToken,
@@ -452,35 +448,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
       setJournalLoadingMore(false);
     }
   }, [fetchJournalPage, journalHasMore, journalLoadingMore, living.zoom, monthEntries.length]);
-
-  useEffect(() => {
-    if (!living.compareOpen || !living.compareYears) {
-      setCompareLeftMonths([]);
-      setCompareRightMonths([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const [l, r] = await Promise.all([
-          fetchMonths(living.compareYears![0]),
-          fetchMonths(living.compareYears![1]),
-        ]);
-        if (!cancelled) {
-          setCompareLeftMonths(l);
-          setCompareRightMonths(r);
-        }
-      } catch {
-        if (!cancelled) {
-          setCompareLeftMonths([]);
-          setCompareRightMonths([]);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchMonths, living.compareOpen, living.compareYears]);
 
   useEffect(() => {
     const onSaved = () => setReloadToken((n) => n + 1);
@@ -848,28 +815,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     living.setSelectedEntry(null);
   }, [living]);
 
-  const availableCompareYears = useMemo(() => {
-    const fromSummaries = yearSummaries.map((y) => y.periodYear);
-    if (fromSummaries.length) return fromSummaries;
-    const y = living.periodYear;
-    return [y - 1, y, y + 1];
-  }, [living.periodYear, yearSummaries]);
-
-  const compareLeft = useMemo(
-    () =>
-      living.compareYears
-        ? yearSummaries.find((y) => y.periodYear === living.compareYears![0]) || null
-        : null,
-    [living.compareYears, yearSummaries]
-  );
-  const compareRight = useMemo(
-    () =>
-      living.compareYears
-        ? yearSummaries.find((y) => y.periodYear === living.compareYears![1]) || null
-        : null,
-    [living.compareYears, yearSummaries]
-  );
-
   const noStory =
     !loading && !error && yearSummaries.length === 0 && monthEntries.length === 0;
   const empty = noStory && !showTodaySummary;
@@ -882,7 +827,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const starterNeedsBoundary = Boolean(starterGrove && !fieldHasBoundary(starterGrove));
   const starterName = fieldName || starterGrove?.name || '';
   const showStarterEmpty =
-    booted && !error && !living.compareOpen && !refreshing && noStory && Boolean(starterGrove);
+    booted && !error && !refreshing && noStory && Boolean(starterGrove);
 
   const cta =
     noStory && starterGrove ? (
@@ -1144,12 +1089,10 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         focusDate={living.focusDate}
         periodYear={living.periodYear}
         axis={living.axis}
-        compareOpen={living.compareOpen}
         embedded={embedded}
         onBack={embedded || !fieldId ? undefined : () => navigate(`/fields/${fieldId}`)}
         onSetZoom={living.setZoom}
         onSetFilters={living.setFilters}
-        onCompareToggle={() => living.setCompareOpen(!living.compareOpen)}
         onJumpToDate={(isoDate) => living.jumpToDate(isoDate)}
       />
 
@@ -1182,26 +1125,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         />
       ) : null}
 
-      {booted && !error && living.compareOpen && living.compareYears ? (
-        <ChronologioCompare
-          left={compareLeft}
-          right={compareRight}
-          leftMonths={compareLeftMonths}
-          rightMonths={compareRightMonths}
-          leftYear={living.compareYears[0]}
-          rightYear={living.compareYears[1]}
-          availableYears={availableCompareYears}
-          numberLocale={numberLocale}
-          fieldNames={(scopedFieldId ? fields.filter((field) => field.id === scopedFieldId) : fields).map(
-            (field) => friendlyFieldLabel(field.name)
-          )}
-          onChangeYears={living.setCompare}
-          onOpenMonth={living.openComparedMonth}
-          onClose={() => living.setCompareOpen(false)}
-        />
-      ) : null}
-
-      {showStarterEmpty || (booted && !error && !living.compareOpen && empty && !refreshing) ? (
+      {showStarterEmpty || (booted && !error && empty && !refreshing) ? (
         <EmptyState
           icon={<BookOpen size={28} />}
           title={
@@ -1224,7 +1148,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         />
       ) : null}
 
-      {booted && !error && !living.compareOpen && !showStarterEmpty && (!empty || refreshing) ? (
+      {booted && !error && !showStarterEmpty && (!empty || refreshing) ? (
         <div
           className={`chronologio-layout chrono-living-layout${living.zoom !== 'years' && yearSummaries.length >= 5 ? ' has-date-rail' : ''}${panelBusy ? ' is-refreshing' : ''}`}
           aria-busy={panelBusy || undefined}
@@ -1353,7 +1277,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         </div>
       ) : null}
 
-      {showReturnToday && !loading && !error && !living.compareOpen ? (
+      {showReturnToday && !loading && !error ? (
         <button type="button" className="chrono-return-today" onClick={returnToToday}>
           <ArrowUp size={14} aria-hidden />
           {t('chronologio:living.returnToday')}

@@ -72,6 +72,7 @@
       "sacks_one": "{{count}} σακί σήμερα",
       "sacks_other": "{{count}} σακιά σήμερα",
       "oilEmpty": "Χωρίς λάδι ακόμη",
+      "oilFree": "{{amount}} ελεύθερα",
       "oilLitres": "{{count}} L",
       "oilLine": "{{litres}} L · {{tins}} τενεκέδες",
       "tins_one": "{{count}} τενεκές",

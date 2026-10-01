@@ -26,7 +26,7 @@ export function OilStockHero({ summary, closed = [], onOpenHome, onOpenHolds }: 
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
   const locale = i18n.language;
-  const physical = summary.physical;
+  const available = summary.available;
 
   const homeHeld = sumHouseholdPack(visibleHouseholdCommitments(summary.openCommitments, closed));
   const thirdParty = summary.openCommitments.filter((c) => !isHouseholdCommitment(c));
@@ -35,7 +35,7 @@ export function OilStockHero({ summary, closed = [], onOpenHome, onOpenHolds }: 
   const homeTins = tinCount(homeHeld);
   const hasHome = homeTins > 0 || homeHeld.bulkLitres > 0.05;
 
-  const packLine = formatHeroStock(physical, locale, {
+  const packLine = formatHeroStock(available, locale, {
     tins: (count) => t('hero.tins', { count }),
     bulkPlus: (amount) => t('hero.bulkPlus', { amount }),
     bulkOnly: (amount) => t('hero.bulkOnly', { amount }),
@@ -59,7 +59,7 @@ export function OilStockHero({ summary, closed = [], onOpenHome, onOpenHolds }: 
     <View style={styles.heroCompact}>
       <Text style={styles.heroEyebrow}>{t('hero.eyebrow')}</Text>
       <Text style={styles.heroTotal}>
-        {t('hero.approxTotal', { amount: formatOilNumber(physical.litres || 0, locale) })}
+        {t('hero.approxTotal', { amount: formatOilNumber(available.litres || 0, locale) })}
       </Text>
       <Text style={styles.heroPackLine}>{packLine}</Text>
 

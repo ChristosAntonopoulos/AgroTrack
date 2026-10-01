@@ -512,6 +512,8 @@ export const updateOil = (
       | 'acidity'
       | 'note'
       | 'date'
+      | 'cellarOwnerUserId'
+      | 'cellarAllocations'
       | 'soldLitres'
       | 'soldTin16'
       | 'soldTin17'

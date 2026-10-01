@@ -8,6 +8,8 @@ const OwnerActivationHost: React.FC = () => {
   const { visible, spotlightStep, skipStep, guideBeat } = useOwnerActivation();
 
   if (!visible || guideBeat) return null;
+  // Naming is its own screen. A dim around the form hides the choices.
+  if (spotlightStep === 'createGrove') return null;
 
   return (
     <>
@@ -15,9 +17,7 @@ const OwnerActivationHost: React.FC = () => {
       {spotlightStep ? (
         <FocusSpotlight
           step={spotlightStep}
-          onSkip={
-            spotlightStep === 'createGrove' ? undefined : () => skipStep(spotlightStep)
-          }
+          onSkip={() => skipStep(spotlightStep)}
         />
       ) : null}
     </>

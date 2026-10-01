@@ -297,7 +297,7 @@ const CaptureSheet: React.FC<Props> = ({
           body: body.trim(),
           fieldId,
           pinned: false,
-          occurredAt,
+          occurredAt: new Date().toISOString(),
           mediaUrls,
         });
         onSaved({
@@ -782,19 +782,23 @@ const CaptureSheet: React.FC<Props> = ({
                 </>
               ) : null}
 
-              <FormDateField
-                label={t('capture:dateLabel')}
-                value={toDateKey(occurredAt)}
-                onValueChange={(ymd) => setOccurredAt(applyDateKey(occurredAt, ymd))}
-              />
-              {context.dateNeedsChoice ? (
-                <Text style={[styles.hint, { color: colors.textSecondary }]}>
-                  {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
-                </Text>
-              ) : context.dateDefaultedToToday ? (
-                <Text style={[styles.hint, { color: colors.textSecondary }]}>
-                  {t('chronologio:captureDateUsesToday')}
-                </Text>
+              {step !== 'observation' ? (
+                <>
+                  <FormDateField
+                    label={t('capture:dateLabel')}
+                    value={toDateKey(occurredAt)}
+                    onValueChange={(ymd) => setOccurredAt(applyDateKey(occurredAt, ymd))}
+                  />
+                  {context.dateNeedsChoice ? (
+                    <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                      {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
+                    </Text>
+                  ) : context.dateDefaultedToToday ? (
+                    <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                      {t('chronologio:captureDateUsesToday')}
+                    </Text>
+                  ) : null}
+                </>
               ) : null}
 
               {(step === 'observation' || step === 'harvest') && (

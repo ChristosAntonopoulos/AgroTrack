@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
-import { onboardingStepNumber, type GuideTargetId } from '../../onboarding/steps';
+import type { GuideTargetId } from '../../onboarding/steps';
 import OnboardingStepCard from './OnboardingStepCard';
 import './NavCoach.css';
 
@@ -67,11 +67,29 @@ const NavCoach: React.FC = () => {
   };
   const holeBottom = hole.top + hole.height;
   const holeRight = hole.left + hole.width;
-  const welcome = beat === 'fieldsNav';
-  const step = onboardingStepNumber(beat);
-  const placeBelow = hole.top < window.innerHeight * 0.42 || holeBottom + 220 < window.innerHeight;
-  const cardWidth = Math.min(360, window.innerWidth - 32);
+  const bottomChrome =
+    typeof window !== 'undefined'
+      ? Number.parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue('--bottom-nav-height')
+        ) || 0
+      : 0;
+  const safeBottom =
+    typeof window !== 'undefined'
+      ? Number.parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')
+        ) || 0
+      : 0;
+  const dockClearance = bottomChrome + safeBottom;
+  const usableBottom = window.innerHeight - dockClearance - 12;
+  const placeBelow = holeBottom + 88 < usableBottom || hole.top < 140;
+  const cardWidth = Math.min(352, window.innerWidth - 32);
   const cardLeft = Math.min(Math.max(16, hole.left), window.innerWidth - cardWidth - 16);
+  const belowTop = Math.min(holeBottom + 14, Math.max(16, usableBottom - 72));
+  const aboveBottom = Math.max(dockClearance + 16, window.innerHeight - hole.top + 14);
+  const arrowX = Math.min(
+    cardWidth - 18,
+    Math.max(18, hole.left + hole.width / 2 - cardLeft)
+  );
 
   return createPortal(
     <div className="nav-coach" role="dialog" aria-label={t(`coach.${beat}.title`)}>
@@ -90,16 +108,13 @@ const NavCoach: React.FC = () => {
         }}
       />
       <OnboardingStepCard
-        step={step}
-        title={t(`coach.${beat}.title`)}
-        body={t(`coach.${beat}.body`)}
-        className={welcome ? 'nav-coach-card nav-coach-card--welcome' : 'nav-coach-card'}
+        line={t(`coach.${beat}.cue`)}
+        point={placeBelow ? 'up' : 'down'}
+        arrowX={arrowX}
         style={
-          welcome
-            ? undefined
-            : placeBelow
-              ? { top: holeBottom + 16, left: cardLeft, width: cardWidth }
-              : { bottom: window.innerHeight - hole.top + 16, left: cardLeft, width: cardWidth }
+          placeBelow
+            ? { top: belowTop, left: cardLeft, width: cardWidth }
+            : { bottom: aboveBottom, left: cardLeft, width: cardWidth }
         }
       />
     </div>,

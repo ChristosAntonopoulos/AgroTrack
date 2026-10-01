@@ -59,9 +59,10 @@ html[data-harvest-mode='paused']:not([data-theme='dark']) {
   --surface-selected: #e8e4d0;
   --surface-popover: #fffcf8;
 
-  --border-subtle: color-mix(in srgb, #ddd2c3 72%, #fff9f2);
-  --border-default: #ddd2c3;
-  --border-strong: #cfc2b0;
+  --border-subtle: #D4C2A6;
+  --border-default: #C4AE90;
+  --border-strong: #A88B66;
+  --card-edge: #C09A6C;
 
   --text-primary: #2f2a23;
   --text-secondary: #7b7367;
@@ -101,13 +102,13 @@ html[data-harvest-mode='paused']:not([data-theme='dark']) {
   --color-lifecycle-high-bg: #f3e6d0;
 
   --shadow-card:
-    0 1px 1px rgba(47, 42, 35, 0.05),
-    0 1px 3px rgba(47, 42, 35, 0.05);
+    0 1px 2px rgba(47, 42, 35, 0.07),
+    0 8px 18px rgba(47, 42, 35, 0.08);
   --shadow-floating: 0 8px 24px rgba(47, 42, 35, 0.14);
   --shadow-overlay: -12px 0 40px rgba(47, 42, 35, 0.22);
   --shadow-card-hover:
-    0 2px 4px rgba(47, 42, 35, 0.06),
-    0 8px 18px rgba(47, 42, 35, 0.07);
+    0 2px 4px rgba(47, 42, 35, 0.08),
+    0 10px 22px rgba(47, 42, 35, 0.1);
   --shadow-sm: 0 1px 2px rgba(47, 42, 35, 0.07);
   --shadow-md: var(--shadow-card);
   --shadow-lg: var(--shadow-floating);
@@ -131,9 +132,10 @@ html[data-harvest-mode='paused'][data-theme='dark'] {
   --surface-popover: #2d241d;
   --olive-pale: rgba(141, 138, 83, 0.14);
 
-  --border-subtle: rgba(242, 235, 221, 0.08);
-  --border-default: #43372d;
-  --border-strong: #5a4b3e;
+  --border-subtle: rgba(242, 235, 221, 0.18);
+  --border-default: #5C4A3C;
+  --border-strong: #7D6756;
+  --card-edge: #8C7360;
 
   --text-primary: #f2ebdd;
   --text-secondary: #b6aa9b;

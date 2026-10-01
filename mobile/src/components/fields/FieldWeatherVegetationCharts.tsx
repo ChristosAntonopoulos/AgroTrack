@@ -29,10 +29,14 @@ type VegetationPoint = {
   ndmi?: number;
 };
 
+type ChartFocus = 'all' | 'vegetation' | 'weather';
+
 type Props = {
   fieldId: string;
-  /** Compact = map-tab embed (shorter ranges default, less chrome). */
+  /** Compact = shorter ranges default, less chrome. */
   compact?: boolean;
+  /** Which chart group to show. */
+  focus?: ChartFocus;
 };
 
 const rangeStart = (range: HistoryRange): Date => {
@@ -88,15 +92,22 @@ const aggregateWeather = (snapshots: DailyWeatherSnapshot[], range: HistoryRange
 };
 
 /** Weather + vegetation history — same data as web FieldWeatherVegetationCharts. */
-const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, compact = false }) => {
+const FieldWeatherVegetationCharts: React.FC<Props> = ({
+  fieldId,
+  compact = false,
+  focus = 'all',
+}) => {
   const { colors } = useTheme();
-  const { t } = useTranslation(['chronologio', 'common']);
+  const { t } = useTranslation(['chronologio', 'common', 'fields']);
   const [snapshots, setSnapshots] = useState<DailyWeatherSnapshot[]>([]);
   const [observations, setObservations] = useState<FieldSatelliteObservation[]>([]);
   const [range, setRange] = useState<HistoryRange>(compact ? '90d' : '1y');
   const [loading, setLoading] = useState(true);
+  const showWeather = focus === 'all' || focus === 'weather';
+  const showVegetation = focus === 'all' || focus === 'vegetation';
   const gathering =
-    snapshots.length < 60 || observations.filter((item) => item.isUsable).length < 6;
+    (showWeather && snapshots.length < 60) ||
+    (showVegetation && observations.filter((item) => item.isUsable).length < 6);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,17 +174,24 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, compact = fals
     );
   }
 
+  const sectionTitle =
+    focus === 'vegetation'
+      ? t('fields:page.tabVegetation')
+      : focus === 'weather'
+        ? t('fields:page.tabWeather')
+        : compact
+          ? t('fields:weather.seeCharts', { defaultValue: 'Weather & vegetation' })
+          : t('chronologio:weatherVegetation.kicker');
+
+  const emptyWeather = showWeather && weatherPoints.length === 0;
+  const emptyVegetation = showVegetation && vegetationPoints.length === 0;
+  const nothingToShow =
+    (showWeather ? weatherPoints.length === 0 : true) &&
+    (showVegetation ? vegetationPoints.length === 0 : true);
+
   return (
     <View style={styles.wrap}>
-      {!compact ? (
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          {t('chronologio:weatherVegetation.kicker')}
-        </Text>
-      ) : (
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          {t('fields:weather.seeCharts', { defaultValue: 'Weather & vegetation' })}
-        </Text>
-      )}
+      <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{sectionTitle}</Text>
 
       {gathering ? (
         <View style={[styles.gathering, { backgroundColor: colors.primary + '1F' }]}>
@@ -206,14 +224,22 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, compact = fals
         })}
       </View>
 
-      {weatherPoints.length === 0 && vegetationPoints.length === 0 ? (
+      {nothingToShow ? (
         <EmptyState
-          title={t('chronologio:weatherVegetation.emptyTitle')}
-          description={t('chronologio:weatherVegetation.emptyDescription')}
+          title={
+            focus === 'vegetation'
+              ? t('chronologio:weatherVegetation.vegetationEmptyTitle')
+              : t('chronologio:weatherVegetation.emptyTitle')
+          }
+          description={
+            focus === 'vegetation'
+              ? t('chronologio:weatherVegetation.vegetationEmptyDescription')
+              : t('chronologio:weatherVegetation.emptyDescription')
+          }
         />
       ) : (
         <View style={styles.charts}>
-          {weatherPoints.length > 0 ? (
+          {showWeather && weatherPoints.length > 0 ? (
             <>
               <HistoryChart
                 title={t('chronologio:weatherVegetation.temperatureTitle')}
@@ -241,7 +267,13 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, compact = fals
               ) : null}
             </>
           ) : null}
-          {vegetationPoints.length > 0 ? (
+          {showWeather && emptyWeather && focus === 'weather' ? (
+            <EmptyState
+              title={t('chronologio:weatherVegetation.emptyTitle')}
+              description={t('chronologio:weatherVegetation.emptyDescription')}
+            />
+          ) : null}
+          {showVegetation && vegetationPoints.length > 0 ? (
             <HistoryChart
               title={t('chronologio:weatherVegetation.vegetationTitle')}
               data={vegetationPoints}
@@ -251,12 +283,13 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, compact = fals
               ]}
               emptyLabel={t('chronologio:weatherVegetation.vegetationEmptyDescription')}
             />
-          ) : (
+          ) : null}
+          {showVegetation && emptyVegetation ? (
             <EmptyState
               title={t('chronologio:weatherVegetation.vegetationEmptyTitle')}
               description={t('chronologio:weatherVegetation.vegetationEmptyDescription')}
             />
-          )}
+          ) : null}
         </View>
       )}
     </View>

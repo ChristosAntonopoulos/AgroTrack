@@ -421,18 +421,61 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(h => h.FieldId)
                 .Ascending(h => h.ResultYear)));
 
+        var oilCellars = _context.GetCollection<OilCellarDocument>("oil_cellars");
+        oilCellars.Indexes.CreateOne(new CreateIndexModel<OilCellarDocument>(
+            Builders<OilCellarDocument>.IndexKeys.Ascending(c => c.OwnerPersonId),
+            new CreateIndexOptions { Unique = true, Name = "ix_oil_cellars_ownerPersonId" }));
+
         var oilLots = _context.GetCollection<OilLotDocument>("oil_lots");
+        // Batch ids are unique per cellar now. The legacy owner+batch unique index would reject a
+        // pressing split across two cellars of the same person, so it is demoted to a plain index.
+        try { oilLots.Indexes.DropOne("ix_oil_lots_owner_batch"); }
+        catch (MongoCommandException) { /* index may not exist */ }
         oilLots.Indexes.CreateOne(new CreateIndexModel<OilLotDocument>(
             Builders<OilLotDocument>.IndexKeys
                 .Ascending(l => l.OwnerUserId)
                 .Ascending(l => l.BatchId),
-            new CreateIndexOptions { Unique = true, Name = "ix_oil_lots_owner_batch" }));
+            new CreateIndexOptions { Name = "ix_oil_lots_owner_batch" }));
+        // Partial (not sparse): pre-cellar lots have no cellarId and must not collide with each other.
+        oilLots.Indexes.CreateOne(new CreateIndexModel<OilLotDocument>(
+            Builders<OilLotDocument>.IndexKeys
+                .Ascending(l => l.CellarId)
+                .Ascending(l => l.BatchId),
+            new CreateIndexOptions<OilLotDocument>
+            {
+                Unique = true,
+                Name = "ix_oil_lots_cellar_batch",
+                PartialFilterExpression = Builders<OilLotDocument>.Filter.Type(l => l.CellarId, BsonType.String)
+            }));
         oilLots.Indexes.CreateOne(new CreateIndexModel<OilLotDocument>(
             Builders<OilLotDocument>.IndexKeys
                 .Ascending(l => l.OwnerUserId)
                 .Ascending(l => l.ResultYear)
                 .Ascending(l => l.PressedOn),
             new CreateIndexOptions { Name = "ix_oil_lots_owner_year_pressed" }));
+        oilLots.Indexes.CreateOne(new CreateIndexModel<OilLotDocument>(
+            Builders<OilLotDocument>.IndexKeys.Ascending(l => l.SourcePressingId),
+            new CreateIndexOptions { Sparse = true, Name = "ix_oil_lots_sourcePressingId" }));
+
+        var oilPressings = _context.GetCollection<OilPressingDocument>("oil_pressings");
+        oilPressings.Indexes.CreateOne(new CreateIndexModel<OilPressingDocument>(
+            Builders<OilPressingDocument>.IndexKeys
+                .Ascending(p => p.RecordedByUserId)
+                .Ascending(p => p.BatchId),
+            new CreateIndexOptions { Unique = true, Name = "ix_oil_pressings_recorder_batch" }));
+        oilPressings.Indexes.CreateOne(new CreateIndexModel<OilPressingDocument>(
+            Builders<OilPressingDocument>.IndexKeys
+                .Ascending(p => p.RecordedByUserId)
+                .Ascending(p => p.ResultYear)
+                .Descending(p => p.PressedOn),
+            new CreateIndexOptions { Name = "ix_oil_pressings_recorder_year_pressed" }));
+        // Grove admins pull the pressings still waiting for a cellar split.
+        oilPressings.Indexes.CreateOne(new CreateIndexModel<OilPressingDocument>(
+            Builders<OilPressingDocument>.IndexKeys
+                .Ascending(p => p.Status)
+                .Ascending(p => p.FieldIds)
+                .Descending(p => p.PressedOn),
+            new CreateIndexOptions { Name = "ix_oil_pressings_status_fields_pressed" }));
 
         var oilCommitments = _context.GetCollection<OilCommitmentDocument>("oil_commitments");
         oilCommitments.Indexes.CreateOne(new CreateIndexModel<OilCommitmentDocument>(
@@ -440,6 +483,25 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(c => c.OwnerUserId)
                 .Descending(c => c.CreatedAt),
             new CreateIndexOptions { Name = "ix_oil_commitments_owner_created" }));
+        oilCommitments.Indexes.CreateOne(new CreateIndexModel<OilCommitmentDocument>(
+            Builders<OilCommitmentDocument>.IndexKeys
+                .Ascending(c => c.CellarId)
+                .Descending(c => c.CreatedAt),
+            new CreateIndexOptions { Sparse = true, Name = "ix_oil_commitments_cellar_created" }));
+
+        var oilShareRequests = _context.GetCollection<OilShareRequestDocument>("oil_share_requests");
+        oilShareRequests.Indexes.CreateOne(new CreateIndexModel<OilShareRequestDocument>(
+            Builders<OilShareRequestDocument>.IndexKeys
+                .Ascending(r => r.FromOwnerUserId)
+                .Ascending(r => r.Status)
+                .Descending(r => r.CreatedAt),
+            new CreateIndexOptions { Name = "ix_oil_share_requests_from_status" }));
+        oilShareRequests.Indexes.CreateOne(new CreateIndexModel<OilShareRequestDocument>(
+            Builders<OilShareRequestDocument>.IndexKeys
+                .Ascending(r => r.ToUserId)
+                .Ascending(r => r.Status)
+                .Descending(r => r.CreatedAt),
+            new CreateIndexOptions { Name = "ix_oil_share_requests_to_status" }));
 
         var stockMovements = _context.GetCollection<StockMovementDocument>("stock_movements");
         stockMovements.Indexes.CreateOne(new CreateIndexModel<StockMovementDocument>(
@@ -447,6 +509,19 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(m => m.OwnerUserId)
                 .Descending(m => m.OccurredOn),
             new CreateIndexOptions { Name = "ix_stock_movements_owner_occurred" }));
+        stockMovements.Indexes.CreateOne(new CreateIndexModel<StockMovementDocument>(
+            Builders<StockMovementDocument>.IndexKeys
+                .Ascending(m => m.CellarId)
+                .Descending(m => m.OccurredOn),
+            new CreateIndexOptions { Sparse = true, Name = "ix_stock_movements_cellar_occurred" }));
+        // Both legs of a transfer share one id, so the pair can be read back together.
+        stockMovements.Indexes.CreateOne(new CreateIndexModel<StockMovementDocument>(
+            Builders<StockMovementDocument>.IndexKeys.Ascending(m => m.TransferId),
+            new CreateIndexOptions { Sparse = true, Name = "ix_stock_movements_transferId" }));
+        // An undo points back at what it undid, so a movement can be shown as already reversed.
+        stockMovements.Indexes.CreateOne(new CreateIndexModel<StockMovementDocument>(
+            Builders<StockMovementDocument>.IndexKeys.Ascending(m => m.ReversalOfMovementId),
+            new CreateIndexOptions { Sparse = true, Name = "ix_stock_movements_reversalOf" }));
 
         var feedback = _context.GetCollection<UserFeedbackDocument>("user_feedback");
         feedback.Indexes.CreateOne(new CreateIndexModel<UserFeedbackDocument>(

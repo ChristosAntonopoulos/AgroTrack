@@ -191,6 +191,7 @@ export const HarvestMillSheet: React.FC<
     <HarvestFormPager
       current={0}
       total={1}
+      accent="mill"
       title={editing ? t('fields:harvestCampaign.dayActivity.editMill') : t('fields:harvestCampaign.millKg.prompt')}
       nextLabel={
         editing
@@ -287,7 +288,7 @@ export const HarvestMillSheet: React.FC<
             setAdjustShares(true);
           }}
         >
-          <Text style={{ color: colors.eventHarvest, fontWeight: '700' }}>
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>
             {adjustShares
               ? t('fields:harvestCampaign.shared.editingShares')
               : t('fields:harvestCampaign.shared.adjustShares')}

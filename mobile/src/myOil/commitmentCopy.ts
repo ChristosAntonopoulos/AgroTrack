@@ -107,6 +107,15 @@ export const commitmentStoryKey = (c: OilCommitment): CommitmentStoryKey => {
 export const deliverButtonKey = (c: OilCommitment): 'markDelivered' | 'theyTookIt' =>
   c.isSale || c.derivedStatus === 'pending_delivery' ? 'markDelivered' : 'theyTookIt';
 
+/** A reservation is either still standing, finished, or called off. Nothing in between. */
+export type HoldState = 'active' | 'completed' | 'cancelled';
+
+export const holdState = (c: Pick<OilCommitment, 'cancelled' | 'derivedStatus'>): HoldState => {
+  if (c.cancelled || c.derivedStatus === 'cancelled') return 'cancelled';
+  if (c.derivedStatus === 'delivered') return 'completed';
+  return 'active';
+};
+
 /** Human timeline verbs — not technical event kinds. */
 export const movementActionKey = (kind: string): string => {
   switch (kind) {
@@ -127,6 +136,10 @@ export const movementActionKey = (kind: string): string => {
       return 'homeUse';
     case 'gifted':
       return 'gifted';
+    case 'shared_out':
+      return 'sharedOut';
+    case 'shared_in':
+      return 'sharedIn';
     case 'consumed':
       return 'consumed';
     case 'correction':
@@ -171,6 +184,37 @@ export const groupMovementsByDay = (
   });
 };
 
-export type OilStockTab = 'overview' | 'stock' | 'others' | 'lots';
+/** Stock = what you have; holds = what you promised; movements = what happened. */
+export type OilStockTab = 'stock' | 'holds' | 'movements';
 export type CommitmentFilter = 'all' | 'held' | 'pending' | 'delivered';
-export type PackFilter = 'all' | 'tin16' | 'tin17' | 'bulk';
+
+/** Movements a farmer may undo — everything they could have simply mistyped. */
+const REVERSIBLE_KINDS = new Set([
+  'gifted',
+  'sold',
+  'consumed',
+  'home_use',
+  'correction',
+  'returned',
+  'shared_out',
+]);
+
+export const canReverseMovement = (m: StockMovement): boolean =>
+  !m.reversalOfMovementId && REVERSIBLE_KINDS.has(m.kind);
+
+/** Ids that already carry an undo, so the button is not offered twice. */
+export const undoneMovementIds = (movements: StockMovement[]): Set<string> =>
+  new Set(
+    movements
+      .map((m) => m.reversalOfMovementId)
+      .filter((id): id is string => Boolean(id))
+  );
+
+/** Needs-now: waiting pickup or unpaid sale holds (not household). */
+export const needsNowCommitments = (open: OilCommitment[]): OilCommitment[] =>
+  open.filter((c) => {
+    if (isHouseholdCommitment(c) || c.cancelled) return false;
+    if (c.derivedStatus === 'pending_delivery') return true;
+    if (c.isSale && (c.amount == null || c.amount <= 0) && !c.financialTransactionId) return true;
+    return false;
+  });

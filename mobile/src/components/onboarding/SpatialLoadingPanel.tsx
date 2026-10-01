@@ -1,5 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  Modal,
+  Animated,
+  Easing,
+  ActivityIndicator,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,22 +28,29 @@ import { spacing } from '../../theme';
 type Props = {
   fieldId: string;
   fieldName: string;
-  /** Hold each step so the welcome feels like a moment, not a flash. */
-  ceremony?: boolean;
 };
 
 const STAGES = ['weather', 'satellite', 'personalized'] as const;
+type StageId = (typeof STAGES)[number];
+
+const STAGE_BEATS: Record<StageId, number> = {
+  weather: 2,
+  satellite: 2,
+  personalized: 3,
+};
+
 const POLL_MS = 2500;
 const MIN_STAGE_MS = 900;
-const CEREMONY_BEAT_MS = 1100;
+const BEAT_MS = 2800;
+/** Soft-accept satellite as “started” so welcome isn’t blocked forever by imagery lag. */
 const SATELLITE_SOFT_MS = 22000;
 const MAX_WAIT_MS = 90000;
 
-const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName, ceremony = false }) => {
+const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
   const { t } = useTranslation('onboarding');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
-  const { completion, markFieldsDirty, skipStep, beginDetailsLesson } = useOwnerActivation();
+  const { completion, markFieldsDirty, beginDetailsLesson } = useOwnerActivation();
 
   const [flags, setFlags] = useState<FirstDataFlags>({
     weather: false,
@@ -47,6 +63,10 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName, ceremony = f
   const [satelliteSoft, setSatelliteSoft] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [beat, setBeat] = useState(0);
+  const [creep, setCreep] = useState(0);
+  const [autoRetried, setAutoRetried] = useState(false);
+  const sheen = useRef(new Animated.Value(0)).current;
 
   const effectiveFlags: FirstDataFlags = {
     ...flags,
@@ -96,30 +116,69 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName, ceremony = f
     return () => clearTimeout(id);
   }, [attempt]);
 
+  // Advance stage UI as real data arrives (with a short minimum beat).
   useEffect(() => {
-    if (ceremony) {
-      if (revealed >= STAGES.length) return;
-      const id = setTimeout(() => setRevealed((n) => Math.min(n + 1, STAGES.length)), CEREMONY_BEAT_MS);
-      return () => clearTimeout(id);
-    }
     if (revealed >= readyCount) return;
     const id = setTimeout(() => setRevealed((n) => Math.min(n + 1, readyCount)), MIN_STAGE_MS);
     return () => clearTimeout(id);
-  }, [ceremony, revealed, readyCount]);
+  }, [revealed, readyCount]);
+
+  // Keep the active row moving so the last stage does not look frozen.
+  useEffect(() => {
+    if (showWelcome || allReady) return;
+    setBeat(0);
+    setCreep(0);
+    const started = Date.now();
+    const beatId = setInterval(() => setBeat((n) => n + 1), BEAT_MS);
+    const creepId = setInterval(() => {
+      setCreep(Math.min(0.22, (Date.now() - started) / 50000));
+    }, 200);
+    return () => {
+      clearInterval(beatId);
+      clearInterval(creepId);
+    };
+  }, [revealed, showWelcome, allReady]);
 
   useEffect(() => {
-    if (ceremony) {
-      if (showWelcome || revealed < STAGES.length) return;
-      const id = setTimeout(() => setShowWelcome(true), 400);
-      return () => clearTimeout(id);
+    if (showWelcome || allReady) {
+      sheen.stopAnimation();
+      return;
     }
+    sheen.setValue(0);
+    const loop = Animated.loop(
+      Animated.timing(sheen, {
+        toValue: 1,
+        duration: 1500,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [revealed, showWelcome, allReady, sheen]);
+
+  useEffect(() => {
+    if (!failed || showWelcome || autoRetried) return;
+    const id = setTimeout(() => {
+      setAutoRetried(true);
+      setShowWelcome(false);
+      setRevealed(0);
+      setSatelliteSoft(false);
+      setFlags({ weather: false, satellite: false, personalized: false, failed: false });
+      setAttempt((n) => n + 1);
+      void kickoffFieldFirstData(fieldId).then(() => markFieldsDirty());
+    }, 4000);
+    return () => clearTimeout(id);
+  }, [failed, showWelcome, autoRetried, fieldId, markFieldsDirty]);
+
+  useEffect(() => {
     if (!canWelcome || showWelcome) return;
     if (revealed < Math.min(readyCount, STAGES.length) && !timedOut && !failed) return;
     const id = setTimeout(() => setShowWelcome(true), 500);
     return () => clearTimeout(id);
-  }, [ceremony, canWelcome, showWelcome, revealed, readyCount, timedOut, failed]);
+  }, [canWelcome, showWelcome, revealed, readyCount, timedOut, failed]);
 
-  if (!ceremony && !completion.drawBoundary) return null;
+  if (!completion.drawBoundary) return null;
 
   const firstName = user?.firstName?.trim();
   const displayName = fieldName.trim() || t('welcome.groveFallback');
@@ -127,112 +186,94 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName, ceremony = f
   const continueToDetails = () => {
     beginDetailsLesson();
     markFieldsDirty();
-    navigation.replace('FieldDetail', { fieldId, mode: 'details' });
+    navigation.replace('FieldDetail', { fieldId, mode: 'vegetation' });
   };
 
   const stageState = (index: number): 'pending' | 'active' | 'done' => {
     if (index < revealed) return 'done';
-    if (index === revealed && !allReady) return 'active';
     if (allReady) return 'done';
+    if (index === revealed) return 'active';
     return 'pending';
   };
 
-  const iconFor = (id: (typeof STAGES)[number], done: boolean) => {
-    if (done) return <Ionicons name="checkmark" size={18} color="#fff" />;
+  const activePhrase = (id: StageId) => {
+    const index = beat % STAGE_BEATS[id];
+    return t(`spatial.beats.${id}${index}`);
+  };
+
+  const fill = allReady ? 100 : Math.round(Math.min(0.96, (revealed + creep) / STAGES.length) * 100);
+
+  const iconFor = (id: StageId, state: 'pending' | 'active' | 'done') => {
+    if (state === 'done') return <Ionicons name="checkmark" size={18} color="#fff" />;
+    if (state === 'active') return <ActivityIndicator size="small" color="#2f5d38" />;
     if (id === 'weather') return <Ionicons name="partly-sunny-outline" size={20} color="#2f5d38" />;
     if (id === 'satellite') return <Ionicons name="globe-outline" size={20} color="#2f5d38" />;
     return <Ionicons name="leaf-outline" size={20} color="#2f5d38" />;
   };
 
+  const sheenX = sheen.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-40, 280],
+  });
+
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={() => skipStep('loadData')}>
+    <Modal visible transparent animationType="fade" onRequestClose={() => undefined}>
       <View style={styles.root}>
         <View style={styles.backdrop} />
         <View style={styles.card}>
+          <Text style={styles.title}>
+            {showWelcome
+              ? firstName
+                ? t('welcome.titleNamed', { name: firstName, grove: displayName })
+                : t('welcome.title', { grove: displayName })
+              : t('spatial.titleNamed', { name: displayName })}
+          </Text>
+
           {!showWelcome ? (
             <>
-              <Text style={styles.kicker}>{t('spatial.kicker')}</Text>
-              <Text style={styles.title}>{t('spatial.title')}</Text>
-              <Text style={styles.body}>{t('spatial.bodyNamed', { name: displayName })}</Text>
-              <Text style={styles.hint}>{t('spatial.firstDataHint')}</Text>
+              <Text style={styles.lead}>{t('spatial.bodyNamed', { name: displayName })}</Text>
 
-              {STAGES.map((id, index) => {
-                const state = stageState(index);
-                return (
-                  <View
-                    key={id}
-                    style={[
-                      styles.stage,
-                      state === 'active' ? styles.stageActive : null,
-                      state === 'pending' ? styles.stagePending : null,
-                    ]}
-                  >
-                    <View style={[styles.stageIcon, state === 'done' ? styles.stageIconDone : null]}>
-                      {iconFor(id, state === 'done')}
+              <View style={styles.stages}>
+                {STAGES.map((id, index) => {
+                  const state = stageState(index);
+                  return (
+                    <View
+                      key={id}
+                      style={[
+                        styles.stage,
+                        state === 'active' ? styles.stageActive : null,
+                        state === 'pending' ? styles.stagePending : null,
+                        state === 'done' ? styles.stageDone : null,
+                      ]}
+                    >
+                      {state === 'active' ? (
+                        <Animated.View
+                          pointerEvents="none"
+                          style={[styles.sheen, { transform: [{ translateX: sheenX }] }]}
+                        />
+                      ) : null}
+                      <View style={[styles.stageIcon, state === 'done' ? styles.stageIconDone : null]}>
+                        {iconFor(id, state)}
+                      </View>
+                      <View style={styles.stageCopy}>
+                        <Text style={styles.stageTitle}>{t(`spatial.stages.${id}.title`)}</Text>
+                        {state === 'active' ? (
+                          <Text style={styles.stageBeat}>{activePhrase(id)}</Text>
+                        ) : null}
+                      </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.stageTitle}>{t(`spatial.stages.${id}.title`)}</Text>
-                      <Text style={styles.stageBody}>{t(`spatial.stages.${id}.body`)}</Text>
-                    </View>
-                    <Text style={styles.stageStatus}>
-                      {state === 'done'
-                        ? t('spatial.ready')
-                        : state === 'active'
-                          ? t('spatial.waiting')
-                          : '·'}
-                    </Text>
-                  </View>
-                );
-              })}
+                  );
+                })}
+              </View>
 
-              {failed ? (
-                <Pressable
-                  style={styles.btn}
-                  onPress={() => {
-                    setShowWelcome(false);
-                    setRevealed(0);
-                    setSatelliteSoft(false);
-                    setFlags({
-                      weather: false,
-                      satellite: false,
-                      personalized: false,
-                      failed: false,
-                    });
-                    setAttempt((n) => n + 1);
-                    void kickoffFieldFirstData(fieldId).finally(() => markFieldsDirty());
-                  }}
-                >
-                  <Text style={styles.btnText}>{t('spatial.retry')}</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  onPress={() => {
-                    skipStep('loadData');
-                    continueToDetails();
-                  }}
-                  hitSlop={8}
-                >
-                  <Text style={styles.skip}>{t('spotlight.skip')}</Text>
-                </Pressable>
-              )}
+              <View style={styles.track} accessibilityRole="progressbar">
+                <View style={[styles.trackFill, { width: `${fill}%` }]} />
+              </View>
+              <Text style={styles.hold}>{failed ? t('spatial.retrying') : t('spatial.stayHere')}</Text>
             </>
           ) : (
             <>
-              <View style={styles.welcomeMark}>
-                <Ionicons name="leaf-outline" size={28} color="#2f5d38" />
-              </View>
-              <Text style={styles.kicker}>{t('welcome.kicker')}</Text>
-              <Text style={styles.title}>
-                {firstName
-                  ? t('welcome.titleNamed', { name: firstName, grove: displayName })
-                  : t('welcome.title', { grove: displayName })}
-              </Text>
-              <Text style={styles.body}>{t('welcome.body')}</Text>
-              <View style={styles.points}>
-                <Text style={styles.point}>✓ {t('welcome.pointWeather')}</Text>
-                <Text style={styles.point}>✓ {t('welcome.pointSatellite')}</Text>
-                <Text style={styles.point}>✓ {t('welcome.pointMap')}</Text>
-              </View>
+              <Text style={styles.lead}>{t('welcome.body')}</Text>
               <Pressable style={styles.btn} onPress={continueToDetails}>
                 <Text style={styles.btnText}>{t('welcome.openMap')}</Text>
               </Pressable>
@@ -256,71 +297,86 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#fffdf8',
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(34, 40, 31, 0.14)',
-    padding: 20,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
     gap: 8,
-  },
-  kicker: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: '#2f5d38',
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
+    letterSpacing: -0.4,
     color: '#1e261c',
     lineHeight: 28,
-  },
-  body: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#3d4a38',
     marginBottom: 2,
   },
-  hint: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#4a5746',
-    marginBottom: 8,
+  lead: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#3d4a38',
+    marginBottom: 10,
   },
+  stages: { gap: 8, marginBottom: 6 },
   stage: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     borderRadius: 12,
     backgroundColor: 'rgba(30, 50, 36, 0.04)',
-    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    overflow: 'hidden',
   },
   stageActive: {
-    backgroundColor: 'rgba(47, 93, 56, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(47, 93, 56, 0.28)',
+    backgroundColor: 'rgba(47, 93, 56, 0.1)',
+    borderColor: 'rgba(47, 93, 56, 0.35)',
+  },
+  stageDone: {
+    backgroundColor: 'rgba(47, 93, 56, 0.08)',
   },
   stagePending: { opacity: 0.55 },
+  sheen: {
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
+    width: '40%',
+    height: 3,
+    borderRadius: 99,
+    backgroundColor: '#2f5d38',
+  },
   stageIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(47, 93, 56, 0.12)',
   },
   stageIconDone: { backgroundColor: '#2f5d38' },
+  stageCopy: { flex: 1, gap: 2, minWidth: 0 },
   stageTitle: { fontSize: 14, fontWeight: '700', color: '#1e261c' },
-  stageBody: { fontSize: 12, lineHeight: 16, color: '#4a5746', marginTop: 2 },
-  stageStatus: { fontSize: 11, fontWeight: '700', color: '#2f5d38' },
-  skip: {
-    marginTop: spacing.sm,
-    textAlign: 'center',
+  stageBeat: { fontSize: 12, lineHeight: 16, color: '#4a5746' },
+  track: {
+    height: 6,
+    marginTop: 8,
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(47, 93, 56, 0.12)',
+  },
+  trackFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#2f5d38',
+  },
+  hold: {
+    marginTop: 10,
     fontSize: 14,
-    fontWeight: '700',
-    color: '#2f5d38',
+    lineHeight: 20,
+    color: '#3d4a38',
   },
   btn: {
     marginTop: spacing.sm,
@@ -330,17 +386,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2f5d38',
   },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  welcomeMark: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(47, 93, 56, 0.12)',
-    marginBottom: 4,
-  },
-  points: { gap: 6, marginVertical: 8 },
-  point: { fontSize: 13, color: '#3d4a38', fontWeight: '600' },
 });
 
 export default SpatialLoadingPanel;

@@ -9,13 +9,18 @@
   "themes": {
     "system": "Automatic",
     "light": "Light",
-    "dark": "Dark"
+    "dark": "Dark",
+    "sun": "Sun"
   },
   "themeHints": {
     "system": "Uses your phone’s appearance setting",
     "light": "Always light",
-    "dark": "Always dark"
+    "dark": "Always dark",
+    "sun": "High-contrast white for outdoor glare"
   },
+  "brightField": "Bright field",
+  "brightFieldHint": "Switch to the white outdoor look when the sun is strong",
+  "brightFieldUnavailable": "This phone cannot read outdoor brightness",
   "language": "Language",
   "dateFormat": "Date format",
   "startup": "Open app on",

@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { aggregateManagedPeople, presetLabelKey } from '../people/aggregatePeople';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import { getFieldService, getPartnerService, isMockMode } from '../services/serviceFactory';
-import { SavedContact } from '../services/partnerService';
+import { rememberPartnerFieldId, rememberedPartnerFieldId, SavedContact } from '../services/partnerService';
 import {
   FieldInvite,
   ManagedContact,
@@ -22,8 +22,6 @@ import {
   fieldPeopleService,
 } from '../services/fieldPeopleService';
 import './PeoplePage.css';
-
-type Tab = 'people' | 'invites' | 'contacts';
 
 const emptyManaged = (): ManagedPeople => ({
   people: [],
@@ -48,6 +46,9 @@ const dayCount = (iso?: string) => {
   return Math.round(diff / 86400000);
 };
 
+const reachEmail = (value?: string) => (value || '').trim().toLowerCase();
+const reachPhone = (value?: string) => (value || '').replace(/[^\d]/g, '');
+
 const PartnersPage: React.FC = () => {
   const { t } = useTranslation(['partners', 'common']);
   const { user } = useAuth();
@@ -55,7 +56,6 @@ const PartnersPage: React.FC = () => {
   const fieldId = params.get('fieldId') || '';
   const [data, setData] = useState<ManagedPeople>(emptyManaged);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>('people');
   const [query, setQuery] = useState('');
   const [inviting, setInviting] = useState(false);
   const [inviteSeed, setInviteSeed] = useState<{ name?: string; email?: string; phone?: string }>({});
@@ -123,6 +123,15 @@ const PartnersPage: React.FC = () => {
   const selected = fields.find((field) => field.id === fieldId) || null;
   const needle = query.trim().toLowerCase();
 
+  useEffect(() => {
+    if (loading || fields.length === 0 || selected) return;
+    const remembered = rememberedPartnerFieldId();
+    const next = fields.some((field) => field.id === remembered) ? remembered : fields[0].id;
+    const nextParams = new URLSearchParams(params);
+    nextParams.set('fieldId', next);
+    setSearchParams(nextParams, { replace: true });
+  }, [loading, fields, selected, params, setSearchParams]);
+
   const people = useMemo(() => {
     return data.people
       .map((person) => ({
@@ -152,17 +161,6 @@ const PartnersPage: React.FC = () => {
     [data.pendingInvites, fieldId, needle]
   );
 
-  const inviteGroups = useMemo(() => {
-    const groups = new Map<string, FieldInvite[]>();
-    invites.forEach((invite) => {
-      const key = (invite.email || invite.phone || invite.displayName || invite.id).trim().toLowerCase();
-      const rows = groups.get(key) || [];
-      rows.push(invite);
-      groups.set(key, rows);
-    });
-    return [...groups.entries()].map(([key, rows]) => ({ key, rows }));
-  }, [invites]);
-
   const contacts = useMemo(
     () =>
       data.contacts.filter((contact) => {
@@ -174,10 +172,26 @@ const PartnersPage: React.FC = () => {
   );
 
   const onFieldChange = (nextId: string) => {
+    if (nextId) rememberPartnerFieldId(nextId);
     const next = new URLSearchParams(params);
     if (nextId) next.set('fieldId', nextId);
     else next.delete('fieldId');
     setSearchParams(next, { replace: true });
+  };
+
+  const onThisGrove = (contact: ManagedContact) => {
+    const email = reachEmail(contact.email);
+    const phone = reachPhone(contact.phone);
+    const members = data.people.filter((person) =>
+      person.memberships.some((membership) => membership.fieldId === fieldId)
+    );
+    if (contact.linkedUserId && members.some((person) => person.userId === contact.linkedUserId)) return true;
+    if (email && members.some((person) => reachEmail(person.email) === email)) return true;
+    return data.pendingInvites.some((invite) => {
+      if (invite.fieldId !== fieldId) return false;
+      if (email && reachEmail(invite.email) === email) return true;
+      return Boolean(phone) && reachPhone(invite.phone) === phone;
+    });
   };
 
   const refresh = () => setTick((value) => value + 1);
@@ -240,28 +254,26 @@ const PartnersPage: React.FC = () => {
       <div className="people-page">
         <header className="people-header">
           <div>
-            <h1 className="people-title">{t('partners:peoplePage.title')}</h1>
-            <p className="people-subtitle">{t('partners:peoplePage.subtitle')}</p>
-            <ul className="people-stats">
-              <li>
-                <strong>{data.people.length}</strong> {t('partners:peoplePage.statPeople')}
-              </li>
-              <li>
-                <strong>{fields.length}</strong> {t('partners:peoplePage.statFields')}
-              </li>
-              <li>
-                <strong>{data.pendingInvites.length}</strong> {t('partners:peoplePage.statInvites')}
-              </li>
-            </ul>
+            {fields.length > 1 ? (
+              <select
+                className="people-grove-select"
+                aria-label={t('partners:peoplePage.switchGrove')}
+                value={selected?.id || ''}
+                onChange={(event) => onFieldChange(event.target.value)}
+              >
+                {fields.map((field) => (
+                  <option key={field.id} value={field.id}>
+                    {friendlyFieldLabel(field.name)}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <h1 className="people-title">
+                {selected ? friendlyFieldLabel(selected.name) : t('partners:peoplePage.title')}
+              </h1>
+            )}
+            <p className="people-subtitle">{t('partners:peoplePage.focusLead')}</p>
           </div>
-          <Button
-            variant="primary"
-            icon={<Plus size={18} aria-hidden />}
-            onClick={() => openInvite()}
-            disabled={fields.length === 0}
-          >
-            {t('partners:peoplePage.invite')}
-          </Button>
         </header>
 
         {!loading && fields.length === 0 ? (
@@ -270,309 +282,173 @@ const PartnersPage: React.FC = () => {
             <Link to="/fields/new">{t('partners:appAccessAddField')}</Link>
           </p>
         ) : null}
-        {!loading && fields.length > 0 ? (
-          <div className="people-toolbar">
-            <label className="people-label">
-              {t('partners:peoplePage.view')}
-              <select
-                className="people-select"
-                value={fieldId}
-                onChange={(event) => onFieldChange(event.target.value)}
-              >
-                <option value="">{t('partners:allFields')}</option>
-                <optgroup label={t('partners:peoplePage.myGroves')}>
-                  {fields.map((field) => (
-                    <option key={field.id} value={field.id}>
-                      {friendlyFieldLabel(field.name)}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </label>
-            <label className="people-label">
-              {t('partners:peoplePage.search')}
-              <input
-                className="people-input"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t('partners:peoplePage.search')}
-              />
-            </label>
-          </div>
+        {!loading && selected && (data.people.length > 0 || data.pendingInvites.length > 0 || data.contacts.length > 0) ? (
+          <input
+            className="people-input people-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('partners:peoplePage.search')}
+            aria-label={t('partners:peoplePage.search')}
+          />
         ) : null}
-
-        <div className="people-tabs" role="tablist">
-          {([
-            ['people', t('partners:peoplePage.tabs.people', { count: people.length })],
-            ['invites', t('partners:peoplePage.tabs.invites', { count: invites.length })],
-            ['contacts', t('partners:peoplePage.tabs.contacts', { count: contacts.length })],
-          ] as const).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              className={`people-tab${tab === id ? ' is-on' : ''}`}
-              onClick={() => setTab(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
 
         {notice ? <p className="people-note">{notice}</p> : null}
         {loading ? <LoadingSpinner className="page-inline-loading" /> : null}
 
-        {!loading && tab === 'people' && selected ? (
-          <section>
-            <h2 className="people-grove-title">{friendlyFieldLabel(selected.name)}</h2>
-            <p className="people-note">{t('partners:peoplePage.groveLead')}</p>
-            <p className="people-owner-kicker">{t('partners:peoplePage.owner')}</p>
-            <article className="people-owner">
-              <div className="people-owner-top">
+        {!loading && selected ? (
+          <div className="people-split">
+            <section className="people-block" aria-labelledby="people-on-grove">
+              <div className="people-block-head">
+                <h2 id="people-on-grove">{t('partners:peoplePage.onThisGrove')}</h2>
+                <Button variant="primary" size="sm" icon={<Plus size={16} aria-hidden />} onClick={() => openInvite()}>
+                  {t('partners:peoplePage.addPerson')}
+                </Button>
+              </div>
+              <p className="people-note">{t('partners:peoplePage.appLead')}</p>
+              <div className="people-row">
                 <span className="people-avatar" aria-hidden>
                   {initials(selected.ownerDisplayName || selected.ownerEmail || '?')}
                 </span>
-                <div className="people-identity">
-                  <h2>{selected.ownerDisplayName || selected.ownerEmail}</h2>
-                  <p className="people-meta">
-                    {t('partners:peoplePage.owner')} · {t('partners:peoplePage.fullAccess')}
-                  </p>
-                </div>
-                <details className="people-menu">
-                  <summary aria-label={t('partners:moreActions')}>⋯</summary>
-                  <div className="people-menu-panel">
-                    <button type="button" onClick={() => setNotice(t('partners:peoplePage.transferLater'))}>
-                      {t('partners:peoplePage.transfer')}
-                    </button>
+                <div className="people-row-main">
+                  <strong>{selected.ownerDisplayName || selected.ownerEmail}</strong>
+                  <div className="people-row-meta">
+                    <span>{t('partners:peoplePage.owner')}</span>
                   </div>
-                </details>
+                </div>
               </div>
-            </article>
-            <div className="people-section-head">
-              <h2 className="people-section-label">{t('partners:peoplePage.withAccess')}</h2>
-              <Button variant="outline" size="sm" onClick={() => openInvite()} icon={<Plus size={16} aria-hidden />}>
-                {t('partners:peoplePage.invite')}
-              </Button>
-            </div>
-            {people.length === 0 ? <p className="people-empty">{t('partners:peoplePage.emptyPeople')}</p> : null}
-            {people.map((person) =>
-              person.memberships.map((membership) => (
-                <div className="people-member-row" key={`${person.userId}-${membership.fieldId}`}>
-                  <div>
-                    <strong>{person.displayName || person.email}</strong>
-                    <div className="people-badge">
-                      {relationshipLabel(membership.relationship)} ·{' '}
-                      {presetLabel(membership.accessPreset, membership.modules)}
-                    </div>
-                  </div>
-                  <details className="people-menu">
-                    <summary aria-label={t('partners:moreActions')}>⋯</summary>
-                    <div className="people-menu-panel">
-                      <button type="button" onClick={() => setEditing({ person, membership })}>
-                        {t('partners:peoplePage.manage')}
-                      </button>
-                      {person.email ? (
-                        <button type="button" onClick={() => window.location.assign(`mailto:${person.email}`)}>
-                          {t('partners:peoplePage.sendEmail')}
-                        </button>
-                      ) : null}
-                      <button type="button" className="is-danger" onClick={() => removeAccess(person, membership)}>
-                        {t('partners:peoplePage.removeOn', { field: friendlyFieldLabel(membership.fieldName) })}
-                      </button>
-                    </div>
-                  </details>
-                </div>
-              ))
-            )}
-          </section>
-        ) : null}
 
-        {!loading && tab === 'people' && !selected ? (
-          <div className="people-list">
-            {people.length === 0 ? <p className="people-empty">{t('partners:peoplePage.emptyPeople')}</p> : null}
-            {people.map((person) => (
-              <article className="people-card" key={person.userId || person.email || person.displayName}>
-                <div className="people-card-top">
-                  <span className="people-avatar" aria-hidden>
-                    {initials(person.displayName || person.email || '?')}
-                  </span>
-                  <div className="people-identity">
-                    <h2>{person.displayName || person.email}</h2>
-                    {person.email ? <p className="people-meta">{person.email}</p> : null}
-                  </div>
-                  <details className="people-menu">
-                    <summary aria-label={t('partners:moreActions')}>⋯</summary>
-                    <div className="people-menu-panel">
-                      {person.memberships.map((membership) => (
-                        <button
-                          key={`edit-${membership.fieldId}`}
-                          type="button"
-                          onClick={() => setEditing({ person, membership })}
-                        >
-                          {t('partners:peoplePage.editOn', { field: friendlyFieldLabel(membership.fieldName) })}
+              {people.map((person) =>
+                person.memberships.map((membership) => (
+                  <div className="people-row" key={`${person.userId}-${membership.fieldId}`}>
+                    <span className="people-avatar" aria-hidden>
+                      {initials(person.displayName || person.email || '?')}
+                    </span>
+                    <div className="people-row-main">
+                      <strong>{person.displayName || person.email}</strong>
+                      <div className="people-row-meta">
+                        <span>
+                          {relationshipLabel(membership.relationship)} · {presetLabel(membership.accessPreset, membership.modules)}
+                        </span>
+                      </div>
+                    </div>
+                    <details className="people-menu">
+                      <summary aria-label={t('partners:moreActions')}>⋯</summary>
+                      <div className="people-menu-panel">
+                        <button type="button" onClick={() => setEditing({ person, membership })}>
+                          {t('partners:peoplePage.manage')}
                         </button>
-                      ))}
-                      {person.email ? (
-                        <button type="button" onClick={() => window.location.assign(`mailto:${person.email}`)}>
-                          {t('partners:peoplePage.sendEmail')}
-                        </button>
-                      ) : null}
-                      {person.memberships.map((membership) => (
-                        <button
-                          key={`remove-${membership.fieldId}`}
-                          type="button"
-                          className="is-danger"
-                          onClick={() => void removeAccess(person, membership)}
-                        >
+                        {person.email ? (
+                          <button type="button" onClick={() => window.location.assign(`mailto:${person.email}`)}>
+                            {t('partners:peoplePage.sendEmail')}
+                          </button>
+                        ) : null}
+                        <button type="button" className="is-danger" onClick={() => removeAccess(person, membership)}>
                           {t('partners:peoplePage.removeOn', { field: friendlyFieldLabel(membership.fieldName) })}
                         </button>
-                      ))}
-                    </div>
-                  </details>
-                </div>
-                <p className="people-access-count">
-                  {t('partners:peoplePage.accessCount', { count: person.memberships.length })}
-                </p>
-                <ul className="people-field-rows">
-                  {person.memberships.map((membership) => (
-                    <li key={membership.fieldId} className="people-field-row">
-                      <span className="people-field-name">
-                        <span className="people-dot" aria-hidden />
-                        {friendlyFieldLabel(membership.fieldName)}
-                      </span>
-                      <span className="people-field-access">
-                        {relationshipLabel(membership.relationship)} · {presetLabel(membership.accessPreset, membership.modules)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <details className="people-details">
-                  <summary>{t('partners:peoplePage.details')}</summary>
-                  {person.memberships.map((membership) => (
-                    <div key={`mods-${membership.fieldId}`}>
-                      <p className="people-meta">{friendlyFieldLabel(membership.fieldName)}</p>
-                      <ul className="people-module-list">
-                        {membership.modules.map((module) => (
-                          <li key={module}>{t(`partners:peoplePage.modules.${module}`, { defaultValue: module })}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </details>
-                <div className="people-card-foot">
-                  <button
-                    type="button"
-                    className="people-text-button"
-                    onClick={() => setEditing({ person, membership: person.memberships[0] })}
-                  >
-                    {t('partners:peoplePage.manage')}
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : null}
+                      </div>
+                    </details>
+                  </div>
+                ))
+              )}
 
-        {!loading && tab === 'invites' ? (
-          <div className="people-list">
-            {inviteGroups.length === 0 ? <p className="people-empty">{t('partners:peoplePage.emptyInvites')}</p> : null}
-            {inviteGroups.map((group) => {
-              const first = group.rows[0];
-              const sent = dayCount(first.createdAt);
-              return (
-                <article className="people-card" key={group.key}>
-                  <div className="people-invite-top">
-                    <div className="people-identity">
-                      <h2>{first.displayName || first.email || first.phone}</h2>
-                      {first.email && first.displayName ? <p className="people-meta">{first.email}</p> : null}
-                      {sent != null ? (
-                        <p className="people-meta">{t('partners:peoplePage.sentAgo', { count: Math.abs(sent) })}</p>
-                      ) : null}
+              {invites.map((invite) => {
+                const left = dayCount(invite.expiresAt);
+                const who = invite.displayName || invite.email || invite.phone || t('partners:peoplePage.thisPerson');
+                return (
+                  <div className="people-row" key={invite.id}>
+                    <span className="people-avatar" aria-hidden>
+                      {initials(who)}
+                    </span>
+                    <div className="people-row-main">
+                      <strong>{who}</strong>
+                      <div className="people-row-meta">
+                        <span className="people-kind is-invite">{t('partners:peoplePage.kindInvite')}</span>
+                        <span>
+                          {relationshipLabel(invite.role)} · {presetLabel(invite.accessLevel, invite.modules)}
+                          {/^expired$/i.test(invite.status)
+                            ? ` · ${t('partners:peoplePage.expired')}`
+                            : left != null
+                              ? ` · ${t('partners:peoplePage.expiresIn', { count: Math.max(left, 0) })}`
+                              : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="people-row-actions">
+                      <button type="button" className="people-text-button" onClick={() => void copyLink(invite)}>
+                        {t('partners:peoplePage.copyLink')}
+                      </button>
+                      <button
+                        type="button"
+                        className="people-text-button"
+                        onClick={() => void fieldPeopleService.resendInvite(invite.fieldId, invite.id).then(refresh)}
+                      >
+                        {t('partners:peoplePage.resend')}
+                      </button>
+                      <button type="button" className="people-text-button is-danger" onClick={() => cancelInvite(invite)}>
+                        {t('partners:peoplePage.cancelInvite')}
+                      </button>
                     </div>
                   </div>
-                  <ul className="people-field-rows">
-                    {group.rows.map((invite) => {
-                      const left = dayCount(invite.expiresAt);
-                      return (
-                        <li key={invite.id} className="people-field-row">
-                          <span className="people-field-name">
-                            <span className="people-dot" aria-hidden />
-                            {friendlyFieldLabel(invite.fieldName)}
-                          </span>
-                          <span className="people-field-access">
-                            {relationshipLabel(invite.role)} · {presetLabel(invite.accessLevel, invite.modules)}
-                            {/^expired$/i.test(invite.status)
-                              ? ` · ${t('partners:peoplePage.expired')}`
-                              : left != null
-                                ? ` · ${t('partners:peoplePage.expiresIn', { count: Math.max(left, 0) })}`
-                                : ''}
-                          </span>
-                          <span className="people-invite-actions">
-                            <button type="button" className="people-text-button" onClick={() => void copyLink(invite)}>
-                              {t('partners:peoplePage.copyLink')}
-                            </button>
-                            <button
-                              type="button"
-                              className="people-text-button"
-                              onClick={() => void fieldPeopleService.resendInvite(invite.fieldId, invite.id).then(refresh)}
-                            >
-                              {t('partners:peoplePage.resend')}
-                            </button>
-                            <button type="button" className="people-text-button is-danger" onClick={() => cancelInvite(invite)}>
-                              {t('partners:peoplePage.cancelInvite')}
-                            </button>
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </article>
-              );
-            })}
-          </div>
-        ) : null}
+                );
+              })}
 
-        {!loading && tab === 'contacts' ? (
-          <section>
-            <p className="people-note">{t('partners:peoplePage.contactsLead')}</p>
-            <div className="people-section-head">
-              <span />
-              <Button variant="outline" size="sm" onClick={() => setAddingContact(true)} icon={<Plus size={16} aria-hidden />}>
-                {t('partners:addContact')}
-              </Button>
-            </div>
-            <div className="people-list">
-              {contacts.length === 0 ? <p className="people-empty">{t('partners:peoplePage.emptyContacts')}</p> : null}
-              {contacts.map((contact) => (
-                <article className="people-card" key={contact.id}>
-                  <h2>{contact.displayName}</h2>
-                  {contact.phone ? <p className="people-meta">{contact.phone}</p> : null}
-                  {contact.email ? <p className="people-meta">{contact.email}</p> : null}
-                  {contact.notes ? <p className="people-meta">{contact.notes}</p> : null}
-                  <div className="people-invite-actions">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        openInvite({
-                          name: contact.displayName,
-                          email: contact.email,
-                          phone: contact.phone,
-                        })
-                      }
-                      disabled={fields.length === 0}
-                    >
-                      {t('partners:peoplePage.inviteContact')}
-                    </Button>
-                    <button type="button" className="people-text-button" onClick={() => setEditingContact(contact)}>
-                      {t('partners:peoplePage.editContact')}
-                    </button>
+              {people.length === 0 && invites.length === 0 ? (
+                <p className="people-empty-slot">{needle ? t('partners:peoplePage.noMatch') : t('partners:peoplePage.emptyGrove')}</p>
+              ) : null}
+            </section>
+
+            <section className="people-block" aria-labelledby="people-notebook">
+              <div className="people-block-head">
+                <h2 id="people-notebook">{t('partners:peoplePage.yourContacts')}</h2>
+                <Button variant="outline" size="sm" onClick={() => setAddingContact(true)} icon={<Plus size={16} aria-hidden />}>
+                  {t('partners:peoplePage.notebookAdd')}
+                </Button>
+              </div>
+              <p className="people-note">{t('partners:peoplePage.contactsConnect')}</p>
+              {contacts.length === 0 ? (
+                <p className="people-empty-slot">{needle ? t('partners:peoplePage.noMatch') : t('partners:peoplePage.emptyContactsShort')}</p>
+              ) : null}
+              {contacts.map((contact) => {
+                const here = onThisGrove(contact);
+                const reach = contact.email || contact.phone;
+                return (
+                  <div className="people-row" key={contact.id}>
+                    <span className="people-avatar" aria-hidden>
+                      {initials(contact.displayName || '?')}
+                    </span>
+                    <div className="people-row-main">
+                      <strong>{contact.displayName}</strong>
+                      <div className="people-row-meta">
+                        {reach ? <span>{reach}</span> : <span>{t('partners:peoplePage.kindContact')}</span>}
+                      </div>
+                    </div>
+                    <div className="people-row-actions">
+                      {here ? (
+                        <span className="people-here">{t('partners:peoplePage.alreadyHere')}</span>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            openInvite({
+                              name: contact.displayName,
+                              email: contact.email,
+                              phone: contact.phone,
+                            })
+                          }
+                        >
+                          {t('partners:peoplePage.giveAccess')}
+                        </Button>
+                      )}
+                      <button type="button" className="people-text-button" onClick={() => setEditingContact(contact)}>
+                        {t('partners:peoplePage.editContact')}
+                      </button>
+                    </div>
                   </div>
-                </article>
-              ))}
-            </div>
-          </section>
+                );
+              })}
+            </section>
+          </div>
         ) : null}
 
         {inviting ? (
@@ -586,7 +462,6 @@ const PartnersPage: React.FC = () => {
             initialPhone={inviteSeed.phone}
             onClose={() => setInviting(false)}
             onSent={() => {
-              setTab('invites');
               setNotice(t('partners:peoplePage.invitedNotice'));
               refresh();
             }}

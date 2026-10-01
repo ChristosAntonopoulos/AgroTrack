@@ -35,8 +35,6 @@ type Props = {
   onSent: () => void;
 };
 
-const STEPS = 5;
-
 const looksLikeEmail = (value: string) => value.includes('@');
 const looksLikePhone = (value: string) => !looksLikeEmail(value) && /\d{6,}/.test(value.replace(/\s/g, ''));
 
@@ -53,7 +51,11 @@ const InvitePersonSheet: React.FC<Props> = ({
   onSent,
 }) => {
   const { t } = useTranslation(['partners', 'common']);
-  const [step, setStep] = useState(1);
+  const knownPerson = Boolean(initialEmail || initialPhone);
+  const skipGrove = fields.length <= 1;
+  const stepOrder = skipGrove ? [1, 3, 4, 5] : [1, 2, 3, 4, 5];
+  const openingStep = knownPerson ? (skipGrove ? 3 : 2) : 1;
+  const [step, setStep] = useState(openingStep);
   const [mode, setMode] = useState<WhoMode>(
     initialEmail || initialPhone || initialName ? 'new' : contacts.length > 0 ? 'search' : 'new'
   );
@@ -76,11 +78,11 @@ const InvitePersonSheet: React.FC<Props> = ({
 
   useEffect(() => {
     if (!open) return;
-    setStep(1);
+    setStep(openingStep);
     setAttempted(false);
     setError('');
     setSuccessHint('');
-  }, [open]);
+  }, [open, openingStep]);
 
   const typedEmail = email.trim() || (looksLikeEmail(query) ? query.trim() : '');
   const typedPhone = phone.trim() || (looksLikePhone(query) ? query.trim() : '');
@@ -164,9 +166,21 @@ const InvitePersonSheet: React.FC<Props> = ({
     if (step === 1) {
       if (typedEmail) setEmail(typedEmail);
       if (typedPhone) setPhone(typedPhone);
-      setFieldIds((current) => current.filter((id) => !takenFieldIds.has(id)));
+      setFieldIds((current) => {
+        const kept = current.filter((id) => !takenFieldIds.has(id));
+        if (skipGrove && kept.length === 0 && fields[0] && !takenFieldIds.has(fields[0].id)) {
+          return [fields[0].id];
+        }
+        return kept;
+      });
     }
-    setStep((value) => value + 1);
+    const next = stepOrder[stepOrder.indexOf(step) + 1];
+    if (next) setStep(next);
+  };
+
+  const goBack = () => {
+    const prev = stepOrder[stepOrder.indexOf(step) - 1];
+    if (prev) setStep(prev);
   };
 
   const send = async () => {
@@ -205,6 +219,8 @@ const InvitePersonSheet: React.FC<Props> = ({
     }
   };
 
+  const stepPos = Math.max(0, stepOrder.indexOf(step));
+  const lastStep = stepOrder[stepOrder.length - 1];
   const selectedFields = fields.filter((field) => fieldIds.includes(field.id) && !takenFieldIds.has(field.id));
   const who = name.trim() || typedEmail || typedPhone;
   const selectedContact = contacts.find((contact) => contact.id === selectedContactId) || null;
@@ -214,7 +230,7 @@ const InvitePersonSheet: React.FC<Props> = ({
     <PartnersSheet
       open={open}
       size={step >= 4 ? 'lg' : 'md'}
-      kicker={t('partners:peoplePage.inviteStep', { step, total: STEPS })}
+      kicker={t('partners:peoplePage.inviteStep', { step: stepPos + 1, total: stepOrder.length })}
       title={t(`partners:peoplePage.steps.${step}.title`)}
       subtitle={t(`partners:peoplePage.steps.${step}.hint`)}
       onClose={onClose}
@@ -228,14 +244,14 @@ const InvitePersonSheet: React.FC<Props> = ({
           </div>
         ) : (
         <div className="invite-footer">
-          {step > 1 ? (
-            <Button variant="ghost" onClick={() => setStep((value) => value - 1)} disabled={sending}>
+          {stepPos > 0 ? (
+            <Button variant="ghost" onClick={goBack} disabled={sending}>
               {t('common:back')}
             </Button>
           ) : (
             <span className="invite-footer-spacer" />
           )}
-          {step < STEPS ? (
+          {step !== lastStep ? (
             <Button variant="primary" onClick={goNext} disabled={sending}>
               {t('common:next')}
             </Button>
@@ -262,20 +278,19 @@ const InvitePersonSheet: React.FC<Props> = ({
 
       {!successHint ? (
       <>
-      <div className="invite-progress" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS} aria-valuenow={step}>
-        {Array.from({ length: STEPS }, (_, index) => {
-          const number = index + 1;
-          const state = number === step ? 'is-on' : number < step ? 'is-done' : '';
+      <div className="invite-progress" role="progressbar" aria-valuemin={1} aria-valuemax={stepOrder.length} aria-valuenow={stepPos + 1}>
+        {stepOrder.map((number, index) => {
+          const state = number === step ? 'is-on' : index < stepPos ? 'is-done' : '';
           return (
             <button
               key={number}
               type="button"
               className={`invite-progress-seg ${state}`.trim()}
-              aria-label={t('partners:peoplePage.inviteStep', { step: number, total: STEPS })}
+              aria-label={t('partners:peoplePage.inviteStep', { step: index + 1, total: stepOrder.length })}
               aria-current={number === step ? 'step' : undefined}
-              disabled={number > step}
+              disabled={index > stepPos}
               onClick={() => {
-                if (number < step) setStep(number);
+                if (index < stepPos) setStep(number);
               }}
             />
           );

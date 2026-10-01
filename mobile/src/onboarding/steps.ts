@@ -24,8 +24,8 @@ export type OwnerActivationPersisted = {
   awaitingFirstObservation: boolean;
   firstObservationDoneAt: string | null;
   /**
-   * Game-like navigation lesson after the grove exists.
-   * linger = quiet moment on field details, home = pulse the launcher mark, history = pulse Ιστορικό.
+   * Soft navigation lesson after the grove exists.
+   * linger = free map look-around, history = pulse Ιστορικό.
    */
   navCoachPhase: NavCoachPhase | null;
 };

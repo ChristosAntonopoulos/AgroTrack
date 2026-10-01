@@ -12,9 +12,9 @@ import { useHarvestCampaignOptional } from '../context/HarvestCampaignContext';
 import { useTasks } from '../hooks/useTasks';
 import { openHarvestCampaign } from '../navigation/intents';
 import type { RootStackParamList } from '../navigation/types';
-import { getFieldService, getPartnerService } from '../services/serviceFactory';
+import { getFieldService } from '../services/serviceFactory';
 import { oilStockService } from '../services/oilStockService';
-import { photoService } from '../services/photoService';
+import { formatOilLitres } from '../myOil/formatOilPack';
 import { isActiveFieldTask } from '../services/fieldWorkService';
 import { radii, spacing, typography } from '../theme';
 import { athensCalendarDateKey } from '../utils/athensDate';
@@ -45,8 +45,8 @@ type CardModel = {
   helper: string;
   status: string;
   statusKind: StatusKind;
-  oilLead?: string;
-  oilRest?: string;
+  /** Harvest season is open — the card itself should stand out. */
+  live?: boolean;
   onPress: () => void;
 };
 
@@ -68,11 +68,6 @@ const groupShadow: ViewStyle = {
   elevation: 1,
 };
 
-const formatCount = (value: number, language: string) =>
-  new Intl.NumberFormat(language.startsWith('el') ? 'el-GR' : 'en-US', {
-    maximumFractionDigits: 0,
-  }).format(Math.round(value));
-
 const LauncherScreen: React.FC = () => {
   const { t, i18n } = useTranslation('nav');
   const { colors, isDark, fontScaleMultiplier: scale } = useTheme();
@@ -81,10 +76,7 @@ const LauncherScreen: React.FC = () => {
   const harvest = useHarvestCampaignOptional();
   const { tasks, loading } = useTasks();
   const [fieldCount, setFieldCount] = useState<number | null>(null);
-  const [oilLitres, setOilLitres] = useState<number | null>(null);
-  const [oilTins, setOilTins] = useState(0);
-  const [photoCount, setPhotoCount] = useState<number | null>(null);
-  const [partnerCount, setPartnerCount] = useState<number | null>(null);
+  const [oilFreeLitres, setOilFreeLitres] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,28 +93,10 @@ const LauncherScreen: React.FC = () => {
     oilStockService
       .getSummary()
       .then((summary) => {
-        if (cancelled) return;
-        setOilLitres(summary.physical.litres);
-        setOilTins(summary.physical.tin16 + summary.physical.tin17);
+        if (!cancelled) setOilFreeLitres(summary.available.litres);
       })
       .catch(() => {
-        if (!cancelled) setOilLitres(null);
-      });
-    photoService
-      .query({ page: 1, pageSize: 1 })
-      .then((list) => {
-        if (!cancelled) setPhotoCount(list.totalCount);
-      })
-      .catch(() => {
-        if (!cancelled) setPhotoCount(null);
-      });
-    getPartnerService()
-      .getContacts()
-      .then((contacts) => {
-        if (!cancelled) setPartnerCount(contacts.length);
-      })
-      .catch(() => {
-        if (!cancelled) setPartnerCount(null);
+        if (!cancelled) setOilFreeLitres(null);
       });
     return () => {
       cancelled = true;
@@ -166,14 +140,9 @@ const LauncherScreen: React.FC = () => {
       icon: 'leaf-outline',
       motif: 'leaf-outline',
       title: t('fields'),
-      helper: t('launcher.helpers.fields'),
-      status:
-        fieldCount == null
-          ? ' '
-          : fieldCount === 0
-            ? t('launcher.status.fieldsEmpty')
-            : t('launcher.fields', { count: fieldCount }),
-      statusKind: fieldCount == null ? 'none' : 'value',
+      helper: fieldCount == null ? '' : t('launcher.fields', { count: fieldCount }),
+      status: '',
+      statusKind: 'none',
       onPress: () =>
         navigation.navigate('Main', { screen: 'Fields', params: { screen: 'FieldsHome' } }),
     });
@@ -182,7 +151,7 @@ const LauncherScreen: React.FC = () => {
       icon: 'checkmark-circle-outline',
       motif: 'checkmark-circle-outline',
       title: t('tasks'),
-      helper: t('launcher.helpers.tasks'),
+      helper: '',
       status: loading
         ? ' '
         : openTasks.length === 0
@@ -206,13 +175,14 @@ const LauncherScreen: React.FC = () => {
       icon: 'basket-outline',
       motif: 'basket-outline',
       title: t('launcher.modules.harvest'),
-      helper: t('launcher.helpers.harvest'),
+      helper: '',
+      live: Boolean(harvest?.isLive),
       status: harvest?.isLive
         ? sacksToday > 0
           ? t('launcher.status.sacks', { count: sacksToday })
           : t('launcher.status.inProgress')
-        : t('launcher.status.harvestIdle'),
-      statusKind: harvest?.isLive ? 'production' : 'idle',
+        : '',
+      statusKind: harvest?.isLive ? 'production' : 'none',
       onPress: () => openHarvestCampaign(navigation),
     });
     push(
@@ -222,21 +192,14 @@ const LauncherScreen: React.FC = () => {
             icon: 'water-outline',
             motif: 'water-outline',
             title: t('myOil'),
-            helper: t('launcher.helpers.myOil'),
+            helper: '',
             status:
-              oilLitres == null || oilLitres > 0 || oilTins > 0
+              oilFreeLitres == null
                 ? ''
-                : t('launcher.status.oilEmpty'),
-            statusKind:
-              oilLitres == null ? 'none' : oilLitres > 0 || oilTins > 0 ? 'oil' : 'value',
-            oilLead:
-              oilLitres != null && (oilLitres > 0 || oilTins > 0)
-                ? `${formatCount(oilLitres, i18n.language)} L`
-                : undefined,
-            oilRest:
-              oilLitres != null && oilTins > 0
-                ? ` · ${t('launcher.status.tins', { count: oilTins })}`
-                : undefined,
+                : t('launcher.status.oilFree', {
+                    amount: formatOilLitres(oilFreeLitres, i18n.language),
+                  }),
+            statusKind: oilFreeLitres == null ? 'none' : 'oil',
             onPress: () => navigation.navigate('MyOil'),
           }
         : null
@@ -249,8 +212,8 @@ const LauncherScreen: React.FC = () => {
             motif: 'receipt-outline',
             title: t('launcher.modules.money'),
             helper: t('launcher.helpers.money'),
-            status: t('launcher.status.money'),
-            statusKind: 'neutral',
+            status: '',
+            statusKind: 'none',
             onPress: () => navigation.navigate('Money'),
           }
         : null
@@ -260,14 +223,9 @@ const LauncherScreen: React.FC = () => {
       icon: 'images-outline',
       motif: 'images-outline',
       title: t('photos'),
-      helper: t('launcher.helpers.photos'),
-      status:
-        photoCount == null
-          ? ' '
-          : photoCount === 0
-            ? t('launcher.status.photosEmpty')
-            : t('launcher.status.photos', { count: photoCount }),
-      statusKind: photoCount == null ? 'none' : 'value',
+      helper: '',
+      status: '',
+      statusKind: 'none',
       onPress: () => navigation.navigate('Photos'),
     });
     push({
@@ -275,14 +233,9 @@ const LauncherScreen: React.FC = () => {
       icon: 'people-outline',
       motif: 'people-outline',
       title: t('partners'),
-      helper: t('launcher.helpers.partners'),
-      status:
-        partnerCount == null
-          ? ' '
-          : partnerCount === 0
-            ? t('launcher.status.partnersEmpty')
-            : t('launcher.status.partners', { count: partnerCount }),
-      statusKind: partnerCount == null ? 'none' : 'value',
+      helper: '',
+      status: '',
+      statusKind: 'none',
       onPress: () => navigation.navigate('Partners'),
     });
     return items;
@@ -293,12 +246,9 @@ const LauncherScreen: React.FC = () => {
     harvest?.isLive,
     loading,
     navigation,
-    oilLitres,
-    oilTins,
+    oilFreeLitres,
     openTasks.length,
     overdue,
-    partnerCount,
-    photoCount,
     sacksToday,
     tasksNeedAttention,
     t,
@@ -377,17 +327,24 @@ const LauncherScreen: React.FC = () => {
           const pressable = (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={[card.title, card.helper, card.oilLead, card.oilRest, card.status]
+              accessibilityLabel={[card.title, card.helper, card.status]
                 .filter((part) => part && part.trim())
                 .join('. ')}
               onPress={card.onPress}
               style={({ pressed }) => [
                 styles.cardShell,
                 coachId ? styles.cardInSlot : null,
+                card.live ? styles.cardLive : null,
                 !isDark && cardShadow,
                 {
-                  backgroundColor: pressed ? pressedSurface : colors.surfaceElevated,
-                  borderColor: colors.border,
+                  backgroundColor: pressed
+                    ? pressedSurface
+                    : card.live
+                      ? isDark
+                        ? 'rgba(180, 138, 71, 0.18)'
+                        : '#FBF6EC'
+                      : colors.surfaceElevated,
+                  borderColor: card.live ? goldInk : colors.border,
                   transform: [{ scale: pressed ? 0.98 : 1 }],
                 },
               ]}
@@ -399,23 +356,34 @@ const LauncherScreen: React.FC = () => {
                 <Ionicons name={card.icon} size={18} color={gold ? goldInk : iconInk} />
               </View>
               <Text
-                style={[styles.cardTitle, { color: colors.textPrimary, fontSize: 18 * scale, lineHeight: 22 * scale }]}
+                style={[
+                  styles.cardTitle,
+                  {
+                    color: card.live ? goldInk : colors.textPrimary,
+                    fontSize: 18 * scale,
+                    lineHeight: 22 * scale,
+                  },
+                ]}
                 numberOfLines={1}
               >
                 {card.title}
               </Text>
-              <Text
-                style={[styles.helper, { color: colors.textSecondary, fontSize: 13 * scale, lineHeight: 16 * scale }]}
-                numberOfLines={1}
-              >
-                {card.helper}
-              </Text>
+              {card.helper ? (
+                <Text
+                  style={[styles.helper, { color: colors.textSecondary, fontSize: 13 * scale, lineHeight: 16 * scale }]}
+                  numberOfLines={1}
+                >
+                  {card.helper}
+                </Text>
+              ) : null}
               {showStatus ? (
                 <View style={styles.statusBlock}>
                   {card.statusKind === 'oil' ? (
-                    <Text numberOfLines={1} style={[styles.status, { fontSize: 15 * scale, lineHeight: 19 * scale }]}>
-                      <Text style={{ color: oliveInk }}>{card.oilLead}</Text>
-                      {card.oilRest ? <Text style={{ color: colors.textPrimary }}>{card.oilRest}</Text> : null}
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.status, { color: oliveInk, fontSize: 15 * scale, lineHeight: 19 * scale }]}
+                    >
+                      {card.status}
                     </Text>
                   ) : capsule ? (
                     <View style={[styles.capsule, { backgroundColor: capsule.bg }]}>
@@ -553,6 +521,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: spacing.sm,
     paddingVertical: 10,
+  },
+  cardLive: {
+    borderWidth: 1.5,
   },
   motifClip: {
     ...StyleSheet.absoluteFillObject,

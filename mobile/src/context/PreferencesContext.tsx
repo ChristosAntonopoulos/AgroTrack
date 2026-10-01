@@ -19,6 +19,8 @@ export type DateFormatPref = 'dd/MM/yyyy' | 'yyyy-MM-dd' | 'medium';
 interface PreferencesContextType {
   language: AppLanguage;
   themeMode: ThemeMode;
+  /** Prefer white field palette when ambient light is strong (device-local). */
+  brightFieldAuto: boolean;
   fontScale: FontScale;
   largeControls: boolean;
   fullTutorialSeen: boolean;
@@ -27,6 +29,7 @@ interface PreferencesContextType {
   notificationPrefs: NotificationDevicePreferences;
   setLanguage: (lang: AppLanguage) => Promise<void>;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
+  setBrightFieldAuto: (enabled: boolean) => Promise<void>;
   setFontScale: (scale: FontScale) => Promise<void>;
   setLargeControls: (enabled: boolean) => Promise<void>;
   setDefaultView: (view: DefaultStartView) => Promise<void>;
@@ -42,6 +45,7 @@ const PreferencesContext = createContext<PreferencesContextType | undefined>(und
 
 const LANG_KEY = '@Oleachron_language';
 const THEME_KEY = '@Oleachron_theme';
+const BRIGHT_FIELD_KEY = '@Oleachron_bright_field_auto';
 const FONT_SCALE_KEY = '@Oleachron_font_scale';
 const LARGE_CONTROLS_KEY = '@Oleachron_large_controls';
 const FULL_TUTORIAL_SEEN_KEY = '@Oleachron_full_tutorial_seen';
@@ -53,6 +57,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
   const { user } = useAuth();
   const [language, setLanguageState] = useState<AppLanguage>('el');
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
+  const [brightFieldAuto, setBrightFieldAutoState] = useState(true);
   const [fontScale, setFontScaleState] = useState<FontScale>('default');
   const [largeControls, setLargeControlsState] = useState(false);
   const [fullTutorialSeen, setFullTutorialSeen] = useState(false);
@@ -69,6 +74,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
         const [
           storedLang,
           storedTheme,
+          storedBrightField,
           storedFont,
           storedLarge,
           storedFullTut,
@@ -78,6 +84,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
         ] = await Promise.all([
           AsyncStorage.getItem(LANG_KEY),
           AsyncStorage.getItem(THEME_KEY),
+          AsyncStorage.getItem(BRIGHT_FIELD_KEY),
           AsyncStorage.getItem(FONT_SCALE_KEY),
           AsyncStorage.getItem(LARGE_CONTROLS_KEY),
           AsyncStorage.getItem(FULL_TUTORIAL_SEEN_KEY),
@@ -91,8 +98,19 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
           setLanguageState('el');
           await AsyncStorage.setItem(LANG_KEY, 'el');
         }
-        if (storedTheme === 'system' || storedTheme === 'light' || storedTheme === 'dark') {
+        if (
+          storedTheme === 'system' ||
+          storedTheme === 'light' ||
+          storedTheme === 'dark' ||
+          storedTheme === 'sun'
+        ) {
           setThemeModeState(storedTheme);
+        }
+        // Default on when nothing is stored.
+        if (storedBrightField === 'false') {
+          setBrightFieldAutoState(false);
+        } else {
+          setBrightFieldAutoState(true);
         }
         if (storedFont === 'default' || storedFont === 'large' || storedFont === 'xl') {
           setFontScaleState(storedFont);
@@ -187,6 +205,11 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
     await AsyncStorage.setItem(THEME_KEY, mode);
   };
 
+  const setBrightFieldAuto = async (enabled: boolean) => {
+    setBrightFieldAutoState(enabled);
+    await AsyncStorage.setItem(BRIGHT_FIELD_KEY, enabled ? 'true' : 'false');
+  };
+
   const setFontScale = async (scale: FontScale) => {
     setFontScaleState(scale);
     await AsyncStorage.setItem(FONT_SCALE_KEY, scale);
@@ -238,8 +261,10 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
     () => ({
       language,
       themeMode,
+      brightFieldAuto,
       setLanguage,
       setThemeMode,
+      setBrightFieldAuto,
       isReady,
       fontScale,
       largeControls,
@@ -259,6 +284,7 @@ export const PreferencesProvider: React.FC<{ children: ReactNode }> = ({ childre
     [
       language,
       themeMode,
+      brightFieldAuto,
       isReady,
       fontScale,
       largeControls,

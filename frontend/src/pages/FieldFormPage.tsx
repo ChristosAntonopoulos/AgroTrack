@@ -360,11 +360,12 @@ const FieldFormPage: React.FC = () => {
     ];
   };
 
-  const nameForm = (mode: 'create' | 'edit') => (
+  const nameForm = (mode: 'create' | 'edit', hidePrompt = false) => (
     <BasicFieldDetailsStep
       formData={formData}
       fieldId={draftFieldId || id}
       mode={mode}
+      hidePrompt={hidePrompt}
       onChange={handleChange}
     />
   );
@@ -373,25 +374,58 @@ const FieldFormPage: React.FC = () => {
     return <LoadingSpinner fullScreen />;
   }
 
+  const onNameStep = !isActiveEdit && createScreen === 'name' && editFocus !== 'boundary';
+
   const pageTitle = isActiveEdit
     ? t('fields:form.editTitle')
     : isEdit
       ? t('fields:form.editTitle')
-      : isFirstGrove
-        ? t('fields:createGrove.firstTitle')
-        : t('fields:createGrove.title');
+      : onNameStep
+        ? t('fields:createGrove.nameHeading')
+        : isFirstGrove
+          ? t('fields:createGrove.firstTitle')
+          : t('fields:createGrove.title');
 
   const pageSubtitle = isActiveEdit
     ? t('fields:form.editSubtitle')
-    : t('fields:createGrove.subtitle');
+    : onNameStep
+      ? null
+      : t('fields:createGrove.subtitle');
 
   const showCreateChrome = !isActiveEdit;
   const showNameStep = !isActiveEdit && createScreen === 'name' && editFocus !== 'boundary';
   const showBoundaryEditor = editFocus === 'boundary' || (!isActiveEdit && createScreen === 'boundary');
+  const boundaryStage = showBoundaryEditor && finishingFirstBoundary;
+
+  const setupLevel = showCreateChrome ? (
+    <GroveSetupLevel
+      levels={setupLevels()}
+      canSelect={(key) => {
+        if (key === 'name') return true;
+        if (key === 'boundary') return Boolean(draftFieldId) && nameValid;
+        if (key === 'details') return Boolean(draftFieldId && fieldStatus === 'Active');
+        return false;
+      }}
+      onSelect={(key) => {
+        if (key === 'name') {
+          setCreateScreen('name');
+          if (draftFieldId) leaveClean(`/fields/${draftFieldId}/edit`);
+          return;
+        }
+        if (key === 'boundary' && draftFieldId && nameValid) {
+          leaveClean(`/fields/${draftFieldId}/edit?focus=boundary`);
+          return;
+        }
+        if (key === 'details' && draftFieldId) {
+          leaveClean(`/fields/${draftFieldId}/edit?focus=details`);
+        }
+      }}
+    />
+  ) : null;
 
   return (
     <PageContainer>
-      <div className="field-form-page">
+      <div className={`field-form-page${boundaryStage ? ' is-boundary-stage' : ''}`}>
         <Breadcrumbs />
         <header className="field-form-header">
           <div className="field-form-title-row">
@@ -409,32 +443,8 @@ const FieldFormPage: React.FC = () => {
           {pageSubtitle ? <p className="field-form-subtitle">{pageSubtitle}</p> : null}
         </header>
 
-        <div className={`field-form-stage${showCreateChrome ? ' has-setup-rail' : ''}`}>
-          {showCreateChrome ? (
-            <GroveSetupLevel
-              levels={setupLevels()}
-              canSelect={(key) => {
-                if (key === 'name') return true;
-                if (key === 'boundary') return Boolean(draftFieldId) && nameValid;
-                if (key === 'details') return Boolean(draftFieldId && fieldStatus === 'Active');
-                return false;
-              }}
-              onSelect={(key) => {
-                if (key === 'name') {
-                  setCreateScreen('name');
-                  if (draftFieldId) leaveClean(`/fields/${draftFieldId}/edit`);
-                  return;
-                }
-                if (key === 'boundary' && draftFieldId && nameValid) {
-                  leaveClean(`/fields/${draftFieldId}/edit?focus=boundary`);
-                  return;
-                }
-                if (key === 'details' && draftFieldId) {
-                  leaveClean(`/fields/${draftFieldId}/edit?focus=details`);
-                }
-              }}
-            />
-          ) : null}
+        <div className={`field-form-stage${showCreateChrome && !boundaryStage ? ' has-setup-rail' : ''}`}>
+          {boundaryStage ? null : setupLevel}
 
           <div className="field-form-stage-main">
         {error && <div className="field-form-error">{error}</div>}
@@ -442,7 +452,7 @@ const FieldFormPage: React.FC = () => {
         <Card className="field-form-card">
           {showNameStep ? (
             <>
-              {nameForm('create')}
+              {nameForm('create', true)}
               <div
                 className="field-form-nav grove-create-nav"
                 data-onboarding-target={ONBOARDING_TARGETS.createCta}
@@ -519,6 +529,7 @@ const FieldFormPage: React.FC = () => {
                 activationGuide={Boolean(
                   activation?.eligible && !activation.completion.drawBoundary
                 )}
+                setupRail={boundaryStage ? setupLevel : undefined}
               />
               {!finishingFirstBoundary ? (
                 <div className="field-form-nav">

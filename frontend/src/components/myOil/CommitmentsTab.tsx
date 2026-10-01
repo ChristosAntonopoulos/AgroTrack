@@ -5,7 +5,7 @@ import Button from '../Common/Button';
 import RightDrawer from '../Common/RightDrawer';
 import { formatOilPack } from '../../myOil/formatOilPack';
 import {
-  deliverButtonKey,
+  holdState,
   isHouseholdCommitment,
   type CommitmentFilter,
 } from '../../myOil/commitmentCopy';
@@ -48,43 +48,25 @@ export function CommitmentsTab({
   const [detail, setDetail] = useState<OilCommitment | null>(null);
   const detailDrawer = useDrawerPresence(detail);
 
-  const delivered = useMemo(
-    () =>
-      closed.length
-        ? closed
-        : [...open, ...closed].filter((c) => c.derivedStatus === 'delivered' || c.cancelled),
-    [open, closed]
+  // One list, deduped: the summary carries the live ones, the closed set the rest.
+  const all = useMemo(() => {
+    const seen = new Set<string>();
+    return [...open, ...closed].filter((c) => (seen.has(c.id) ? false : seen.add(c.id)));
+  }, [open, closed]);
+
+  const filtered = useMemo(
+    () => (filter === 'all' ? all : all.filter((c) => holdState(c) === filter)),
+    [filter, all]
   );
 
-  const filtered = useMemo(() => {
-    if (filter === 'all') {
-      const openIds = new Set(open.map((c) => c.id));
-      const takenHome = delivered.filter(
-        (c) => isHouseholdCommitment(c) && !c.cancelled && c.derivedStatus === 'delivered' && !openIds.has(c.id)
-      );
-      return [...open, ...takenHome];
-    }
-    if (filter === 'held') return open.filter((c) => c.derivedStatus === 'reserved');
-    if (filter === 'pending') return open.filter((c) => c.derivedStatus === 'pending_delivery');
-    return delivered;
-  }, [filter, open, delivered]);
-
   const statusFor = (c: OilCommitment) => {
-    if (c.cancelled) return t('commitments.cancelled');
-    if (isHouseholdCommitment(c) && c.derivedStatus === 'delivered') return t('story.atHome');
-    if (c.derivedStatus === 'delivered') return t('commitments.delivered');
-    if (c.derivedStatus === 'pending_delivery') {
-      return c.isSale ? t('commitments.statusPaid') : t('commitments.statusWaiting');
-    }
-    if (c.isSale && (c.amount == null || c.amount <= 0) && !c.financialTransactionId) {
-      return t('commitments.statusUnpaid');
-    }
-    if (c.promisedFor) return t('commitments.statusForDate', { date: formatDate(c.promisedFor) });
-    return t('commitments.statusHeld');
+    const state = holdState(c);
+    if (state === 'completed' && isHouseholdCommitment(c)) return t('story.atHome');
+    return t(`holds.state.${state}`);
   };
 
   const packOf = (c: OilCommitment) =>
-    c.derivedStatus === 'delivered' || c.cancelled ? c.requested : c.remaining;
+    holdState(c) === 'active' ? c.remaining : c.requested;
 
   const lotLines = (c: OilCommitment) =>
     c.allocations
@@ -101,7 +83,7 @@ export function CommitmentsTab({
   return (
     <div>
       <div className="my-oil-chips" role="tablist">
-        {(['all', 'held', 'pending', 'delivered'] as CommitmentFilter[]).map((f) => (
+        {(['all', 'active', 'completed', 'cancelled'] as CommitmentFilter[]).map((f) => (
           <button
             key={f}
             type="button"
@@ -117,11 +99,11 @@ export function CommitmentsTab({
         <section className="my-oil-panel">
           <div className="my-oil-empty">
             <p className="my-oil-empty__title">
-              {filter === 'delivered'
+              {filter === 'completed'
                 ? t('commitments.emptyDeliveredTitle')
                 : t('commitments.emptyTitle')}
             </p>
-            {filter !== 'delivered' ? (
+            {filter === 'all' || filter === 'active' ? (
               <>
                 <p className="my-oil-empty__body">{t('commitments.emptyBody')}</p>
                 <div style={{ marginTop: '0.75rem' }}>
@@ -154,12 +136,17 @@ export function CommitmentsTab({
                 </p>
               ) : null}
               <div className="my-oil-waiting__actions">
-                {c.derivedStatus !== 'delivered' && !c.cancelled ? (
-                  <Button variant="primary" size="sm" disabled={busy} onClick={() => onDeliver(c)}>
-                    {t(deliverButtonKey(c))}
-                  </Button>
+                {holdState(c) === 'active' ? (
+                  <>
+                    <Button variant="primary" size="sm" disabled={busy} onClick={() => onDeliver(c)}>
+                      {t('actions.delivered')}
+                    </Button>
+                    <Button variant="secondary" size="sm" disabled={busy} onClick={() => onCancel(c)}>
+                      {t('actions.cancelHold')}
+                    </Button>
+                  </>
                 ) : null}
-                <Button variant="secondary" size="sm" onClick={() => setDetail(c)}>
+                <Button variant="ghost" size="sm" onClick={() => setDetail(c)}>
                   {t('commitments.details')}
                 </Button>
               </div>
@@ -182,7 +169,7 @@ export function CommitmentsTab({
               <Button variant="secondary" onClick={() => setDetail(null)}>
                 {t('cancel')}
               </Button>
-              {active.derivedStatus !== 'delivered' && !active.cancelled ? (
+              {holdState(active) === 'active' ? (
                 <Button
                   variant="primary"
                   disabled={busy}
@@ -191,7 +178,7 @@ export function CommitmentsTab({
                     onDeliver(active);
                   }}
                 >
-                  {t(deliverButtonKey(active))}
+                  {t('actions.delivered')}
                 </Button>
               ) : null}
             </>
@@ -225,7 +212,26 @@ export function CommitmentsTab({
               {active.isSale && active.amount != null ? (
                 <div>
                   <dt>{t('commitments.payment')}</dt>
-                  <dd>{t('commitments.paidAmount', { amount: active.amount })}</dd>
+                  <dd>
+                    {t('commitments.paidAmount', { amount: active.amount })}
+                    {active.financialTransactionId ? (
+                      <>
+                        {' · '}
+                        <a href={`/money?tx=${encodeURIComponent(active.financialTransactionId)}`}>
+                          {t('seeIncome')}
+                        </a>
+                      </>
+                    ) : null}
+                  </dd>
+                </div>
+              ) : active.financialTransactionId ? (
+                <div>
+                  <dt>{t('commitments.payment')}</dt>
+                  <dd>
+                    <a href={`/money?tx=${encodeURIComponent(active.financialTransactionId)}`}>
+                      {t('seeIncome')}
+                    </a>
+                  </dd>
                 </div>
               ) : null}
               {active.notes?.trim() ? (
@@ -245,7 +251,7 @@ export function CommitmentsTab({
                 </ul>
               </>
             ) : null}
-            {active.derivedStatus === 'reserved' && !active.cancelled ? (
+            {holdState(active) === 'active' ? (
               <button
                 type="button"
                 className="my-oil-linkish"
@@ -254,7 +260,7 @@ export function CommitmentsTab({
                   onCancel(active);
                 }}
               >
-                {t('commitments.cancelHold')}
+                {t('actions.cancelHold')}
               </button>
             ) : null}
           </div>

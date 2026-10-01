@@ -21,15 +21,15 @@ type Props = {
   onManageHome: () => void;
 };
 
-/** Physical stock: 16L, 17L, bulk, and home allocation. */
+/** Stock on hand: 16L, 17L, bulk, and home allocation. */
 export function StockTab({ summary, closed = [], packLabels, onSetAside, onManageHome }: Props) {
   const { t, i18n } = useTranslation('myOil');
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
   const locale = i18n.language;
-  const { physical, available } = summary;
-  const held16 = Math.max(0, physical.tin16 - available.tin16);
-  const held17 = Math.max(0, physical.tin17 - available.tin17);
+  const { onHand, held, available } = summary;
+  const held16 = held.tin16;
+  const held17 = held.tin17;
 
   const packLine = formatHeroStock(available, locale, {
     tins: (count) => t('hero.tins', { count }),
@@ -53,7 +53,7 @@ export function StockTab({ summary, closed = [], packLabels, onSetAside, onManag
       </View>
 
       <View style={styles.stockGrid}>
-        {(physical.tin16 > 0 || available.tin16 > 0) && (
+        {(onHand.tin16 > 0 || available.tin16 > 0) && (
           <View style={styles.stockCard}>
             <Text style={styles.stockCardLabel}>{t('warehouse.pack16')}</Text>
             <Text style={styles.stockCardValue}>{available.tin16}</Text>
@@ -65,7 +65,7 @@ export function StockTab({ summary, closed = [], packLabels, onSetAside, onManag
             ) : null}
           </View>
         )}
-        {(physical.tin17 > 0 || available.tin17 > 0) && (
+        {(onHand.tin17 > 0 || available.tin17 > 0) && (
           <View style={styles.stockCard}>
             <Text style={styles.stockCardLabel}>{t('warehouse.pack17')}</Text>
             <Text style={styles.stockCardValue}>{available.tin17}</Text>
@@ -79,7 +79,7 @@ export function StockTab({ summary, closed = [], packLabels, onSetAside, onManag
         )}
       </View>
 
-      {(physical.bulkLitres > 0.05 || available.bulkLitres > 0.05) && (
+      {(onHand.bulkLitres > 0.05 || available.bulkLitres > 0.05) && (
         <View style={styles.stockBulk}>
           <View style={styles.stockBulkIcon}>
             <Ionicons name="water-outline" size={18} color={colors.accentGold} />

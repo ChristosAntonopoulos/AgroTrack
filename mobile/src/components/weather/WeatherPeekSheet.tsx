@@ -93,7 +93,7 @@ const WeatherPeekSheet: React.FC<Props> = ({
       <Pressable
         onPress={() => {
           onClose();
-          navigation.navigate('FieldWeatherVegetation', { fieldId: selected.id });
+          navigation.navigate('FieldDetail', { fieldId: selected.id, mode: 'weather' });
         }}
         style={[
           styles.footerBtn,

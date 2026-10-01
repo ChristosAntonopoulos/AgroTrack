@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import Button from '../../components/ui/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
-import { radii, spacing } from '../../theme';
+import { createElevation, radii, spacing } from '../../theme';
 import { HarvestSegmentedControl } from '../components/HarvestSegmentedControl';
 import { HarvestSheetShell } from '../components/HarvestSheetShell';
 import { unconfirmedSacks } from '../storage';
@@ -65,8 +65,8 @@ export const HarvestMillLinkSheet: React.FC<
               styles.row,
               {
                 minHeight: tapMin,
-                borderColor: checked ? colors.oliveBorder : colors.borderLight,
-                backgroundColor: checked ? colors.primaryLight : colors.surface,
+                backgroundColor: checked ? colors.primaryLight : colors.surfaceElevated,
+                ...createElevation(colors, 'sm'),
               },
             ]}
           >
@@ -98,11 +98,9 @@ export const HarvestMillLinkSheet: React.FC<
         />
       ) : (
         <View style={{ gap: 8 }}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-            {t('fields:harvestCampaign.millKg.linkModeTitle')}
-          </Text>
           <HarvestSegmentedControl
             value={linkMode}
+            label={t('fields:harvestCampaign.millKg.linkModeTitle')}
             ariaLabel={t('fields:harvestCampaign.millKg.linkTitle')}
             onChange={(next) => {
               setLinkMode(next);
@@ -126,7 +124,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

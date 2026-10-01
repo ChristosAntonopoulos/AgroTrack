@@ -823,9 +823,9 @@
   overflow: hidden;
   border-radius: 12px;
   background: var(--photo-surface);
-  border: 1px solid var(--photo-border-soft);
+  border: 1px solid var(--card-edge, var(--photo-border));
   isolation: isolate;
-  box-shadow: 0 1px 0 color-mix(in srgb, #000 6%, transparent);
+  box-shadow: var(--shadow-card);
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
   animation: photo-hub-fade-in 320ms ease both;
 }

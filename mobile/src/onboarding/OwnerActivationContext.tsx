@@ -61,14 +61,17 @@ type OwnerActivationContextValue = {
   spatialStatus: SpatialReadiness;
   spotlightStep: OwnerActivationStepId | null;
   setSpotlightScreen: (screen: 'create' | 'boundary' | 'spatial' | null) => void;
-  /** Soft post-spatial guide: details → home → History → first observation. */
+  /** Soft post-spatial guide: free map look → History → first observation. */
   awaitingFirstObservation: boolean;
+  navCoachPhase: NavCoachPhase | null;
   /** The control the grower should tap next. Null while a form or a quiet pause owns the screen. */
   guideBeat: GuideTargetId | null;
   guideRect: GuideRect | null;
   reportGuideTarget: (id: GuideTargetId, rect: Omit<GuideRect, 'id'>) => void;
-  /** After spatial welcome: land on field details, then teach home → History. */
+  /** After spatial welcome: free map look-around, then History. */
   beginDetailsLesson: () => void;
+  /** Grower chose to leave the map and continue to History coaching. */
+  continueToHistory: () => void;
   refresh: () => Promise<void>;
   skipStep: (step: OwnerActivationStepId) => void;
   dismiss: () => void;
@@ -109,7 +112,6 @@ export const OwnerActivationProvider: React.FC<{
   const [guideRect, setGuideRect] = useState<GuideRect | null>(null);
   const persistedRef = useRef(persisted);
   persistedRef.current = persisted;
-  const lingerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasUnlocked = useRef(false);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshSeq = useRef(0);
@@ -323,7 +325,6 @@ export const OwnerActivationProvider: React.FC<{
       return null;
     }
 
-    if (persisted.navCoachPhase === 'home') return 'homeButton';
     if (persisted.navCoachPhase === 'history' && routeName === 'Launcher') return 'historyCard';
     return null;
   }, [
@@ -337,21 +338,24 @@ export const OwnerActivationProvider: React.FC<{
     routeName,
   ]);
 
-  const setNavCoachPhase = useCallback(
-    (phase: NavCoachPhase | null) => {
-      const current = persistedRef.current;
-      if (current.navCoachPhase === phase) return;
-      persist({ ...current, navCoachPhase: phase });
-    },
-    [persist]
-  );
-
   const beginDetailsLesson = useCallback(() => {
     const current = persistedRef.current;
     if (current.firstObservationDoneAt) return;
     persist({
       ...current,
       navCoachPhase: 'linger',
+      forceShow: false,
+      laterSnoozedAt: null,
+    });
+    setCelebrating(false);
+  }, [persist]);
+
+  const continueToHistory = useCallback(() => {
+    const current = persistedRef.current;
+    if (current.firstObservationDoneAt) return;
+    persist({
+      ...current,
+      navCoachPhase: 'history',
       forceShow: false,
       laterSnoozedAt: null,
     });
@@ -371,44 +375,20 @@ export const OwnerActivationProvider: React.FC<{
     setCelebrating(false);
   }, [persist]);
 
-  useEffect(() => {
-    const onDetails = persisted.navCoachPhase === 'linger' && routeName === 'FieldDetail';
-    if (!onDetails) {
-      if (lingerTimer.current) {
-        clearTimeout(lingerTimer.current);
-        lingerTimer.current = null;
-      }
-      return;
-    }
-    if (lingerTimer.current) return;
-    lingerTimer.current = setTimeout(() => {
-      lingerTimer.current = null;
-      setNavCoachPhase('home');
-    }, 5000);
-  }, [persisted.navCoachPhase, routeName, setNavCoachPhase]);
-
-  useEffect(() => {
-    return () => {
-      if (lingerTimer.current) clearTimeout(lingerTimer.current);
-    };
-  }, []);
-
+  // If they leave the field during free map look-around, take them to History coaching.
   useEffect(() => {
     if (persisted.navCoachPhase !== 'linger') return;
-    if (routeName === 'Launcher') setNavCoachPhase('history');
+    if (routeName === 'FieldDetail' && routeMode !== 'chronologio') return;
     if (
       routeName === 'ChronologioTab' ||
       routeName === 'Chronologio' ||
       (routeName === 'FieldDetail' && routeMode === 'chronologio')
     ) {
       arriveAtHistory();
+      return;
     }
-  }, [persisted.navCoachPhase, routeName, routeMode, setNavCoachPhase, arriveAtHistory]);
-
-  useEffect(() => {
-    if (persisted.navCoachPhase !== 'home' || routeName !== 'Launcher') return;
-    setNavCoachPhase('history');
-  }, [persisted.navCoachPhase, routeName, setNavCoachPhase]);
+    continueToHistory();
+  }, [persisted.navCoachPhase, routeName, routeMode, continueToHistory, arriveAtHistory]);
 
   useEffect(() => {
     if (persisted.navCoachPhase !== 'history') return;
@@ -532,7 +512,7 @@ export const OwnerActivationProvider: React.FC<{
       if (step === 'loadData' && primaryField) {
         nav.navigate('FieldDetail', {
           fieldId: primaryField.id,
-          mode: 'map',
+          mode: 'vegetation',
           activation: 'spatial',
         });
         return;
@@ -614,10 +594,12 @@ export const OwnerActivationProvider: React.FC<{
       spotlightStep,
       setSpotlightScreen,
       awaitingFirstObservation: persisted.awaitingFirstObservation,
+      navCoachPhase: persisted.navCoachPhase,
       guideBeat,
       guideRect: guideRect && guideBeat && guideRect.id === guideBeat ? guideRect : null,
       reportGuideTarget,
       beginDetailsLesson,
+      continueToHistory,
       refresh,
       skipStep,
       dismiss,
@@ -642,6 +624,7 @@ export const OwnerActivationProvider: React.FC<{
       persisted.checklistCollapsed,
       persisted.skippedSteps,
       persisted.awaitingFirstObservation,
+      persisted.navCoachPhase,
       guideBeat,
       guideRect,
       primaryField,
@@ -662,6 +645,7 @@ export const OwnerActivationProvider: React.FC<{
       markFieldsDirty,
       beginFirstObservationGuide,
       beginDetailsLesson,
+      continueToHistory,
       reportGuideTarget,
       completeFirstObservation,
     ]

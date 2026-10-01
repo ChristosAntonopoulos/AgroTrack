@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { radii, spacing, typography } from '../../theme';
+import { createElevation, harvestFormAccent, radii, spacing, typography } from '../../theme';
 import { millKgNeedingOil, pendingSackTotal } from '../chain';
 import { HARVEST_ACTION_ICONS, HARVEST_HOME_ACTIONS } from '../harvestActions';
 import type { HarvestCampaign, HarvestCaptureKind } from '../types';
@@ -11,6 +11,14 @@ import { HarvestSheetShell } from '../components/HarvestSheetShell';
 import { HarvestStepRail, type HarvestPathStep } from '../components/HarvestStepRail';
 
 const PRODUCTION: HarvestCaptureKind[] = ['sacks', 'mill', 'oil'];
+
+const accentFor = (kind: HarvestCaptureKind) => {
+  if (kind === 'sacks') return harvestFormAccent.sacks;
+  if (kind === 'mill') return harvestFormAccent.mill;
+  if (kind === 'oil') return harvestFormAccent.oil;
+  if (kind === 'people') return harvestFormAccent.people;
+  return harvestFormAccent.default;
+};
 
 export const HarvestAddMenu: React.FC<{
   campaign: HarvestCampaign;
@@ -67,40 +75,43 @@ export const HarvestAddMenu: React.FC<{
     pathFacts.mill = t('harvestCampaign.flow.fruitLine', { kg: Math.round(openMillKg) });
   }
 
-  const row = (kind: HarvestCaptureKind) => (
-    <Pressable
-      key={kind}
-      onPress={() => onPick(kind)}
-      style={({ pressed }) => [
-        styles.row,
-        {
-          minHeight: Math.max(64, tapMin + 16),
-          backgroundColor: colors.surface,
-          borderColor: colors.borderLight,
-          opacity: pressed ? 0.9 : 1,
-        },
-      ]}
-    >
-      <View style={[styles.iconWell, { backgroundColor: colors.eventHarvestSoft }]}>
-        <Ionicons name={HARVEST_ACTION_ICONS[kind]} size={22} color={colors.eventHarvest} />
-      </View>
-      <View style={styles.copy}>
-        <Text
-          style={[styles.title, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}
-          numberOfLines={1}
-        >
-          {titleOf(kind)}
-        </Text>
-        <Text
-          style={[styles.hint, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}
-          numberOfLines={2}
-        >
-          {hintOf(kind)}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-    </Pressable>
-  );
+  const row = (kind: HarvestCaptureKind) => {
+    const tone = accentFor(kind);
+    return (
+      <Pressable
+        key={kind}
+        onPress={() => onPick(kind)}
+        style={({ pressed }) => [
+          styles.row,
+          {
+            minHeight: Math.max(64, tapMin + 16),
+            backgroundColor: colors.surfaceElevated,
+            borderColor: colors.border,
+            opacity: pressed ? 0.9 : 1,
+          },
+        ]}
+      >
+        <View style={[styles.iconWell, { backgroundColor: tone.soft }]}>
+          <Ionicons name={HARVEST_ACTION_ICONS[kind]} size={22} color={tone.strong} />
+        </View>
+        <View style={styles.copy}>
+          <Text
+            style={[styles.title, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}
+            numberOfLines={1}
+          >
+            {titleOf(kind)}
+          </Text>
+          <Text
+            style={[styles.hint, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}
+            numberOfLines={2}
+          >
+            {hintOf(kind)}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+      </Pressable>
+    );
+  };
 
   return (
     <HarvestSheetShell>
@@ -113,8 +124,9 @@ export const HarvestAddMenu: React.FC<{
             style={[
               styles.pathCard,
               {
-                borderColor: colors.eventHarvest,
-                backgroundColor: colors.eventHarvestSoft,
+                backgroundColor: colors.surfaceElevated,
+                borderColor: colors.border,
+                ...createElevation(colors, 'sm'),
               },
             ]}
           >
@@ -144,8 +156,8 @@ const styles = StyleSheet.create({
   list: { gap: spacing.sm },
   section: { fontSize: 13, fontWeight: '700', marginBottom: spacing.sm, letterSpacing: 0.2 },
   pathCard: {
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 18,
+    borderWidth: 1,
     paddingVertical: 14,
     paddingHorizontal: 8,
     marginBottom: spacing.sm,
@@ -154,8 +166,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.xl,
+    borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
@@ -167,6 +179,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   copy: { flex: 1, gap: 2 },
-  title: { fontWeight: '650' as '600', letterSpacing: -0.2 },
+  title: { fontWeight: '700', letterSpacing: -0.2 },
   hint: { ...typography.styles.caption, lineHeight: 17 },
 });

@@ -53,12 +53,16 @@ type OwnerActivationContextValue = {
   spatialStatus: SpatialReadiness;
   spotlightRoute: SpotlightRoute;
   spotlightStep: OwnerActivationStepId | null;
-  /** Soft post-spatial guide: details → home → History → first observation. */
+  /** Soft post-spatial guide: map linger → History → first observation. */
   awaitingFirstObservation: boolean;
+  /** Free map look-around after spatial load. */
+  navCoachPhase: NavCoachPhase | null;
   /** The control the grower should use next. */
   guideBeat: GuideTargetId | null;
-  /** After spatial welcome: land on field details, then teach home → History. */
+  /** After spatial welcome: land on the map, then guide to History. */
   beginDetailsLesson: () => void;
+  /** Grower is done looking — take them to History. */
+  continueToHistory: () => void;
   /** Grower opened History during the navigation lesson. */
   completeHistoryStep: () => void;
   refresh: () => Promise<void>;
@@ -102,7 +106,6 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
   const pollRef = useRef<number | undefined>(undefined);
   const persistedRef = useRef(persisted);
   persistedRef.current = persisted;
-  const lingerTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (!userId) {
@@ -331,7 +334,6 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       return 'fieldsNav';
     }
 
-    if (persisted.navCoachPhase === 'home') return 'homeButton';
     if (persisted.navCoachPhase === 'history') return 'historyNav';
     return null;
   }, [
@@ -366,6 +368,18 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
     setCelebrating(false);
   }, [persist]);
 
+  const continueToHistory = useCallback(() => {
+    const current = persistedRef.current;
+    if (current.firstObservationDoneAt) return;
+    persist({
+      ...current,
+      navCoachPhase: 'history',
+      forceShow: false,
+      laterSnoozedAt: null,
+    });
+    setCelebrating(false);
+  }, [persist]);
+
   const completeHistoryStep = useCallback(() => {
     const current = persistedRef.current;
     if (current.navCoachPhase !== 'history' || current.firstObservationDoneAt) return;
@@ -379,44 +393,24 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
     setCelebrating(false);
   }, [persist]);
 
-  useEffect(() => {
-    const waiting = persisted.navCoachPhase === 'linger' && onFieldDetail;
-    if (!waiting) {
-      if (lingerTimer.current) {
-        window.clearTimeout(lingerTimer.current);
-        lingerTimer.current = undefined;
-      }
-      return;
-    }
-    if (lingerTimer.current) return;
-    lingerTimer.current = window.setTimeout(() => {
-      lingerTimer.current = undefined;
-      setNavCoachPhase('home');
-    }, 5000);
-  }, [persisted.navCoachPhase, onFieldDetail, setNavCoachPhase]);
-
-  useEffect(() => {
-    return () => {
-      if (lingerTimer.current) window.clearTimeout(lingerTimer.current);
-    };
-  }, []);
-
+  // If they leave the field during free map look-around, take them to History.
   useEffect(() => {
     if (persisted.navCoachPhase !== 'linger' || onFieldDetail) return;
     if (location.pathname === '/chronologio') completeHistoryStep();
-    else setNavCoachPhase('history');
+    else continueToHistory();
   }, [
     persisted.navCoachPhase,
     onFieldDetail,
     location.pathname,
     completeHistoryStep,
-    setNavCoachPhase,
+    continueToHistory,
   ]);
 
+  // Opening History while guided completes that step and locks the first note.
   useEffect(() => {
-    if (persisted.navCoachPhase !== 'home' || onFieldDetail) return;
-    setNavCoachPhase('history');
-  }, [persisted.navCoachPhase, onFieldDetail, setNavCoachPhase]);
+    if (persisted.navCoachPhase !== 'history') return;
+    if (location.pathname === '/chronologio') completeHistoryStep();
+  }, [persisted.navCoachPhase, location.pathname, completeHistoryStep]);
 
   const snoozeLater = useCallback(() => {
     persist({
@@ -568,8 +562,10 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       spotlightRoute,
       spotlightStep,
       awaitingFirstObservation: persisted.awaitingFirstObservation,
+      navCoachPhase: persisted.navCoachPhase,
       guideBeat,
       beginDetailsLesson,
+      continueToHistory,
       completeHistoryStep,
       refresh,
       skipStep,
@@ -594,6 +590,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       persisted.checklistCollapsed,
       persisted.skippedSteps,
       persisted.awaitingFirstObservation,
+      persisted.navCoachPhase,
       guideBeat,
       primaryField,
       completion,
@@ -614,6 +611,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       markFieldsDirty,
       beginFirstObservationGuide,
       beginDetailsLesson,
+      continueToHistory,
       completeHistoryStep,
       completeFirstObservation,
     ]

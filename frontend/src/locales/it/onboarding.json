@@ -1,6 +1,11 @@
 {
   "checklist": {
     "title": "Configura il tuo oliveto",
+    "short": {
+      "createGrove": "Nome",
+      "drawBoundary": "Confine",
+      "loadData": "Pronto"
+    },
     "progress": "{{done}} di {{total}}",
     "collapse": "Nascondi",
     "expand": "Mostra setup",
@@ -33,15 +38,18 @@
     "skip": "Più tardi",
     "createGrove": {
       "title": "Come lo chiamiamo?",
-      "body": "Scrivi il nome dentro il campo. Poi troviamo dov’è."
+      "body": "Scrivi il nome dentro il campo. Poi troviamo dov’è.",
+      "cue": "Scrivi il nome e continua."
     },
     "locatePlace": {
       "title": "Cerca il luogo",
-      "body": "Scrivi paese o zona e scegli dalla lista. Poi disegni il confine sulla mappa."
+      "body": "Scrivi paese o zona e scegli dalla lista. Poi disegni il confine sulla mappa.",
+      "cue": "Scrivi il paese e sceglilo."
     },
     "drawBoundary": {
       "title": "Disegna i confini",
-      "body": "Tocca 3–6 punti intorno all’oliveto. Quando la forma è giusta, continua sulla Cronologia."
+      "body": "Tocca 3–6 punti intorno all’oliveto. Quando la forma è giusta, continua sulla Cronologia.",
+      "cue": "Tocca gli angoli sulla mappa."
     },
     "firstObservation": {
       "title": "Registra la prima nota",
@@ -49,32 +57,33 @@
     }
   },
   "firstObservation": {
-    "title": "Inizia la Cronologia con una nota",
-    "body": "I dettagli dell'oliveto sono pronti. Pubblica una prima osservazione — abbiamo preparato un messaggio di benvenuto che puoi inviare così com'è o modificare.",
-    "cta": "Salva una nota",
+    "title": "Scrivi la prima nota",
+    "body": "Una nota breve avvia la Cronologia di questo oliveto.",
+    "cta": "Scrivi la nota",
     "prefill": "La mia prima osservazione nell'oliveto — qui inizia la Cronologia."
   },
   "spatial": {
     "kicker": "Poco prima della Cronologia",
     "title": "Prepariamo la sua prima pagina",
+    "titleNamed": "Prepariamo “{{name}}”",
     "body": "Il confine c’è. Portiamo il meteo e come appaiono gli alberi.",
-    "bodyNamed": "“{{name}}” ha un confine. Portiamo il meteo e come appaiono gli alberi.",
+    "bodyNamed": "“{{name}}” è sulla mappa. Arrivano meteo, alberi dall’alto e il luogo stesso.",
     "firstDataHint": "Quando è pronto, scrivi una nota breve e la Cronologia inizia.",
     "area": "Area",
     "slope": "Pendenza",
     "satellite": "Satellite",
     "waiting": "In arrivo…",
-    "stayHere": "Resta qui. Non devi toccare nulla.",
+    "stayHere": "Un momento — non toccare nulla ancora.",
     "retrying": "Qualcosa si è fermato. Riproviamo.",
     "ready": "Pronto",
     "beats": {
-      "weather0": "Portiamo il meteo…",
-      "weather1": "Pioggia, caldo, vento…",
-      "satellite0": "Guardiamo gli alberi dall’alto…",
-      "satellite1": "Aspettiamo un cielo sereno…",
-      "personalized0": "Misuriamo la superficie…",
-      "personalized1": "Leggiamo la pendenza…",
-      "personalized2": "Guardiamo il suolo…"
+      "weather0": "Pioggia, caldo e vento per questo oliveto…",
+      "weather1": "Leggiamo il meteo qui…",
+      "satellite0": "Guardiamo questi alberi dall’alto…",
+      "satellite1": "Aspettiamo un passaggio chiaro…",
+      "personalized0": "Misuriamo l’area di questo confine…",
+      "personalized1": "Leggiamo la pendenza di questo oliveto…",
+      "personalized2": "Guardiamo il suolo sotto questi alberi…"
     },
     "failed": "Non ancora caricato",
     "retry": "Riprova",
@@ -86,15 +95,15 @@
     "stay": "Resta qui",
     "stages": {
       "weather": {
-        "title": "Il meteo",
+        "title": "Meteo qui",
         "body": "Pioggia, caldo e vento intorno agli alberi."
       },
       "satellite": {
-        "title": "Gli alberi dall’alto",
+        "title": "Alberi dall’alto",
         "body": "Quanto sono verdi, quando il cielo è sereno."
       },
       "personalized": {
-        "title": "Il luogo",
+        "title": "Questo luogo",
         "body": "Superficie, pendenza e suolo di questo oliveto."
       }
     }
@@ -104,31 +113,36 @@
     "groveFallback": "il tuo oliveto",
     "title": "“{{grove}}” è pronto",
     "titleNamed": "{{name}}, “{{grove}}” è pronto",
-    "body": "Dai un’occhiata. Tra un momento ti mostro come torni a casa e apri la Cronologia.",
-    "pointWeather": "Il suo meteo è già qui",
-    "pointSatellite": "Gli alberi si vedono a cielo sereno",
-    "pointMap": "Quello che scrivi resta nella sua storia",
-    "openMap": "Andiamo a vederlo",
-    "openGrove": "Andiamo a vederlo"
+    "body": "Dai un’occhiata sulla mappa. Quando sei pronto, apriamo la Cronologia.",
+    "openMap": "Apri la mappa",
+    "openGrove": "Apri la mappa"
+  },
+  "mapExplore": {
+    "caption": "Guarda intorno — livelli e meteo sono tuoi.",
+    "cta": "Continua alla Cronologia"
   },
   "coach": {
     "progress": "{{current}} di {{total}}",
     "team": "Dal team di Oleachron",
     "fieldsNav": {
       "title": "Benvenuto",
-      "body": "In circa un minuto il tuo oliveto è sulla mappa. Tocca Campi nel menu e iniziamo."
+      "body": "In circa un minuto il tuo oliveto è sulla mappa. Tocca Campi nel menu e iniziamo.",
+      "cue": "Tocca Campi per iniziare."
     },
     "createField": {
       "title": "Un nome tutto suo",
-      "body": "Tocca il pulsante e scrivi come lo chiami. Puoi cambiarlo quando vuoi."
+      "body": "Tocca il pulsante e scrivi come lo chiami. Puoi cambiarlo quando vuoi.",
+      "cue": "Tocca qui e dai un nome."
     },
     "homeButton": {
       "title": "Sai sempre come tornare",
-      "body": "Il logo in alto a sinistra ti riporta a casa. È così che ti muovi in Oleachron."
+      "body": "Il logo in alto a sinistra ti riporta a casa. È così che ti muovi in Oleachron.",
+      "cue": "Questo logo ti riporta all’inizio."
     },
     "historyNav": {
       "title": "La storia inizia con due parole",
-      "body": "Tocca Cronologia e lascia una nota breve. È la prima pagina dell’oliveto."
+      "body": "Tocca Cronologia e lascia una nota breve. È la prima pagina dell’oliveto.",
+      "cue": "Tocca Cronologia — poi lascia la prima nota."
     }
   },
   "settings": {

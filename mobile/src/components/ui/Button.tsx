@@ -45,9 +45,9 @@ const Button: React.FC<ButtonProps> = ({
     switch (variant) {
       case 'primary':
         return {
-          backgroundColor: touchableDisabled ? colors.gray300 : colors.primary,
+          backgroundColor: touchableDisabled ? colors.primaryLight : colors.primary,
           borderColor: 'transparent',
-          textColor: colors.onOlive,
+          textColor: touchableDisabled ? colors.textSecondary : colors.onOlive,
         };
       case 'secondary':
         return {

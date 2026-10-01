@@ -135,10 +135,8 @@ export type LivingState = {
   zoom: ChronologioZoom;
   axis: ChronologioAxis;
   focusDate: string;
-  compareYears: [number, number] | null;
   filters: LivingFilters;
   selectedEntryId: string | null;
-  compareOpen: boolean;
 };
 
 export const emptyPeriodSummary = (): ChronologioPeriodSummary => ({

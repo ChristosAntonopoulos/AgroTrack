@@ -1,5 +1,7 @@
 {
   "sections": {
+    "primary": "Principale",
+    "secondary": "Altro",
     "command": "Centro di comando",
     "work": "Lavoro",
     "operations": "Operazioni",
@@ -26,9 +28,12 @@
     "userFeedback": "Feedback utenti",
     "feedback": "Feedback",
     "settings": "Impostazioni",
+    "help": "Aiuto",
     "thisHarvest": "Questa stagione",
     "myOil": "Il mio olio",
-    "chronologio": "Cronologia"
+    "chronologio": "Cronologia",
+    "more": "Altro",
+    "inbox": "Posta in arrivo"
   },
   "breadcrumb": {
     "new": "Nuovo",

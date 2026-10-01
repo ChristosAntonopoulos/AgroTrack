@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { spacing } from '../../theme';
 
-export type FieldTab = 'overview' | 'map' | 'chronologio' | 'details';
+export type FieldTab = 'vegetation' | 'weather' | 'details';
 
-export const FIELD_PAGE_TABS: FieldTab[] = ['overview', 'map', 'chronologio', 'details'];
+export const FIELD_PAGE_TABS: FieldTab[] = ['vegetation', 'weather', 'details'];
 
 type Props = {
   tab: FieldTab;
@@ -14,22 +14,20 @@ type Props = {
   tabs?: FieldTab[];
 };
 
-/** Segmented field tabs — same visual language as web FieldLocalNavigation. */
+/** Segmented field tabs — vegetation, weather, details. */
 const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange, tabs = FIELD_PAGE_TABS }) => {
   const { t } = useTranslation('fields');
   const { colors, tapMin } = useTheme();
 
   const labels: Record<FieldTab, string> = {
-    overview: t('detail.overview'),
-    map: t('page.mapData'),
-    chronologio: t('detail.timeline'),
+    vegetation: t('page.tabVegetation'),
+    weather: t('page.tabWeather'),
     details: t('page.tabDetails', { defaultValue: t('page.details') }),
   };
 
   const titles: Record<FieldTab, string> = {
-    overview: t('detail.overview'),
-    map: t('page.mapDataFull', { defaultValue: t('page.mapData') }),
-    chronologio: t('detail.timeline'),
+    vegetation: t('page.tabVegetation'),
+    weather: t('page.tabWeather'),
     details: t('page.details'),
   };
 

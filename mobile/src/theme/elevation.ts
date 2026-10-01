@@ -7,7 +7,7 @@ export const createElevation = (colors: AppColors, level: ShadowLevel) => {
   const shadowColor = colors.shadow;
   const configs = {
     flat: { offset: { width: 0, height: 0 }, opacity: 0, radius: 0, elevation: 0 },
-    sm: { offset: { width: 0, height: 2 }, opacity: 0.05, radius: 8, elevation: 1 },
+    sm: { offset: { width: 0, height: 2 }, opacity: 0.08, radius: 8, elevation: 2 },
     raised: { offset: { width: 0, height: 2 }, opacity: 0.06, radius: 8, elevation: 2 },
     md: { offset: { width: 0, height: 4 }, opacity: 0.08, radius: 12, elevation: 3 },
     floating: { offset: { width: 0, height: 8 }, opacity: 0.12, radius: 20, elevation: 8 },

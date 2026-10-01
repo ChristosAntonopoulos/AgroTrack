@@ -19,9 +19,11 @@ import './MobileBottomNav.css';
 
 interface MobileBottomNavProps {
   onMoreClick: () => void;
+  /** When true, More is the active destination (More panel open). */
+  moreOpen?: boolean;
 }
 
-const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick }) => {
+const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick, moreOpen = false }) => {
   const { t } = useTranslation(['nav', 'common']);
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
@@ -70,12 +72,14 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick }) => {
   const harvestPage = location.pathname === '/harvest' || location.pathname.startsWith('/harvest/');
   if (harvest?.isLive && harvestPage) return null;
 
-  const primaryActive = primaryItems.some((item) => isNavActive(location.pathname, item.path));
+  const primaryActive =
+    !moreOpen && primaryItems.some((item) => isNavActive(location.pathname, item.path));
+  const moreActive = moreOpen || !primaryActive;
 
   return (
     <nav className="mobile-bottom-nav" aria-label={t('common:mobileNav', { defaultValue: 'Primary navigation' })}>
       {primaryItems.map((item) => {
-        const active = isNavActive(location.pathname, item.path);
+        const active = !moreOpen && isNavActive(location.pathname, item.path);
         return (
           <Link
             key={item.path}
@@ -97,8 +101,9 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick }) => {
       })}
       <button
         type="button"
-        className={`mobile-bottom-nav-item mobile-bottom-nav-more ${!primaryActive ? 'active' : ''}`}
+        className={`mobile-bottom-nav-item mobile-bottom-nav-more ${moreActive ? 'active' : ''}`}
         onClick={onMoreClick}
+        aria-pressed={moreOpen}
         aria-label={t('common:moreNav', { defaultValue: 'More' })}
       >
         <span className="mobile-bottom-nav-icon">

@@ -7,6 +7,10 @@ namespace OliveLifecycle.Core.Entities;
 /// </summary>
 public class OilCommitment : BaseEntity
 {
+    /// <summary>Cellar the promised oil leaves from.</summary>
+    public string CellarId { get; set; } = string.Empty;
+
+    /// <summary>Read-only mirror of the cellar owner, kept for one release while clients migrate.</summary>
     public string OwnerUserId { get; set; } = string.Empty;
     public string? ContactId { get; set; }
     public string CounterpartyName { get; set; } = string.Empty;

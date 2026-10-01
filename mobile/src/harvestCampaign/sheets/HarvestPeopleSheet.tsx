@@ -38,6 +38,7 @@ export const HarvestPeopleSheet: React.FC<
     <HarvestFormPager
       current={0}
       total={1}
+      accent="people"
       title={editing ? t('fields:harvestCampaign.dayActivity.editPeople') : t('fields:harvestCampaign.people.prompt')}
       nextLabel={
         editing
@@ -70,6 +71,7 @@ export const HarvestPeopleSheet: React.FC<
       />
       <HarvestSegmentedControl
         value={hours}
+        label={t('fields:harvestCampaign.people.hoursPrompt')}
         ariaLabel={t('fields:harvestCampaign.people.hoursPrompt')}
         onChange={setHours}
         options={(['half', 'full', 'other', 'skip'] as const).map((choice) => ({

@@ -6,13 +6,13 @@ export const HARVEST_ACTION_ICONS: Record<
   HarvestCaptureKind,
   ComponentProps<typeof Ionicons>['name']
 > = {
-  sacks: 'bag-handle-outline',
-  mill: 'scale-outline',
-  oil: 'water-outline',
-  people: 'people-outline',
-  expense: 'wallet-outline',
-  income: 'cash-outline',
-  note: 'camera-outline',
+  sacks: 'bag',
+  mill: 'leaf',
+  oil: 'water',
+  people: 'people',
+  expense: 'wallet',
+  income: 'cash',
+  note: 'camera',
 };
 
 export const HARVEST_HOME_ACTIONS: HarvestCaptureKind[] = [

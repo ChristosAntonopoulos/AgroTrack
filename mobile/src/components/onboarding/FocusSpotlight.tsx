@@ -33,19 +33,10 @@ const FocusSpotlight: React.FC<Props> = ({
       : isLocate
         ? t('spotlight.locatePlace.title')
         : t('spotlight.drawBoundary.title');
-  const body =
-    step === 'createGrove'
-      ? isCreateColor
-        ? t('spotlight.createColor.body')
-        : t('spotlight.createGrove.body')
-      : isLocate
-        ? t('spotlight.locatePlace.body')
-        : t('spotlight.drawBoundary.body');
 
   return (
     <View style={styles.card} accessibilityRole="summary">
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.body}>{body}</Text>
       {onSkip ? (
         <Pressable onPress={onSkip} hitSlop={8}>
           <Text style={styles.skip}>{t('spotlight.skip')}</Text>

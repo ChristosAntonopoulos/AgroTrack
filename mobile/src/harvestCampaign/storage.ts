@@ -511,6 +511,7 @@ export const updateOil = (
       | 'acidity'
       | 'note'
       | 'date'
+      | 'cellarOwnerUserId'
     >
   >
 ): HarvestCampaign => ({

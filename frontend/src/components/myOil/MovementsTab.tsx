@@ -11,10 +11,16 @@ import {
   Pencil,
   Sprout,
   Truck,
+  Undo2,
   type LucideIcon,
 } from 'lucide-react';
 import { formatOilNumber, formatOilPack } from '../../myOil/formatOilPack';
-import { groupMovementsByDay, movementActionKey } from '../../myOil/commitmentCopy';
+import {
+  canReverseMovement,
+  groupMovementsByDay,
+  movementActionKey,
+  undoneMovementIds,
+} from '../../myOil/commitmentCopy';
 import { OilSectionHeader } from './OilStockChrome';
 import type { OilLot, StockMovement } from '../../services/oilStockService';
 
@@ -31,6 +37,9 @@ type Props = {
   packLabels: PackLabels;
   preview?: boolean;
   onSeeAll?: () => void;
+  busy?: boolean;
+  /** Omitted on the stock-tab preview, where undo would be too easy to hit by accident. */
+  onReverse?: (m: StockMovement) => void;
 };
 
 const ACTION_ICON: Record<string, LucideIcon> = {
@@ -54,12 +63,13 @@ export function MovementsTab({
   packLabels,
   preview,
   onSeeAll,
+  busy,
+  onReverse,
 }: Props) {
   const { t, i18n } = useTranslation(['myOil', 'common']);
 
-  const filtered = useMemo(() => movements, [movements]);
-
-  const shown = preview ? filtered.slice(0, 4) : filtered;
+  const undone = useMemo(() => undoneMovementIds(movements), [movements]);
+  const shown = preview ? movements.slice(0, 3) : movements;
 
   const groups = useMemo(
     () =>
@@ -148,6 +158,21 @@ export function MovementsTab({
                       </div>
                     ) : null}
                     {detail ? <div className="my-oil-timeline__detail">{detail}</div> : null}
+                    {m.reversalOfMovementId ? (
+                      <div className="my-oil-timeline__detail">{t('timeline.isUndo')}</div>
+                    ) : undone.has(m.id) ? (
+                      <div className="my-oil-timeline__detail">{t('timeline.wasUndone')}</div>
+                    ) : onReverse && canReverseMovement(m) ? (
+                      <button
+                        type="button"
+                        className="my-oil-linkish my-oil-timeline__undo"
+                        disabled={busy}
+                        onClick={() => onReverse(m)}
+                      >
+                        <Undo2 size={13} strokeWidth={1.8} aria-hidden />
+                        {t('timeline.undo')}
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               );

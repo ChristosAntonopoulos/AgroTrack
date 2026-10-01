@@ -16,7 +16,7 @@ import type {
 } from '../types';
 import { formatHarvestOilAmountLabel, readOilTinCounts } from '../utils/harvestCalculations';
 import { HARVEST_ACTION_ICONS } from '../harvestActions';
-import { radii, spacing } from '../../theme';
+import { createElevation, radii, spacing } from '../../theme';
 
 export type DayActivityKind = 'sack' | 'mill' | 'oil' | 'people';
 
@@ -48,6 +48,14 @@ type RowProps = {
   onMenu: () => void;
 };
 
+/** Round ugly share fractions in notes: μερίδιο 54.701.../95.16... → 54.7/95.2 */
+const tidyLine = (line: string) =>
+  line.replace(/μερίδιο\s+(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)/gi, (_m, a: string, b: string) => {
+    const left = Math.round(Number(a) * 10) / 10;
+    const right = Math.round(Number(b) * 10) / 10;
+    return `μερίδιο ${left}/${right}`;
+  });
+
 const ActivityRow: React.FC<RowProps> = ({
   icon,
   kindLabel,
@@ -66,7 +74,7 @@ const ActivityRow: React.FC<RowProps> = ({
     <View
       style={[
         styles.row,
-        { backgroundColor: colors.surface, borderColor: colors.borderLight },
+        { backgroundColor: colors.surfaceElevated, ...createElevation(colors, 'sm') },
       ]}
     >
       <View style={styles.rowTop}>
@@ -90,17 +98,17 @@ const ActivityRow: React.FC<RowProps> = ({
         <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
         {fields && fields.length > 0 ? <FieldNameRow fields={fields} /> : null}
         {fieldLine ? (
-          <Text style={[styles.field, { color: colors.textSecondary }]}>{fieldLine}</Text>
+          <Text style={[styles.field, { color: colors.textSecondary }]}>{tidyLine(fieldLine)}</Text>
         ) : null}
         {lines?.map((line, index) => (
           <Text key={`${index}-${line}`} style={[styles.meta, { color: colors.textSecondary }]}>
-            {line}
+            {tidyLine(line)}
           </Text>
         ))}
         {status ? (
-          <View style={[styles.badge, { backgroundColor: colors.surfaceMuted }]}>
-            <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
-            <Text style={[styles.badgeText, { color: colors.textSecondary }]}>{status}</Text>
+          <View style={[styles.badge, { backgroundColor: colors.primaryLight }]}>
+            <Ionicons name="time-outline" size={12} color={colors.primary} />
+            <Text style={[styles.badgeText, { color: colors.primary }]}>{status}</Text>
           </View>
         ) : null}
       </Pressable>
@@ -114,10 +122,11 @@ export const HarvestDayActivity: React.FC<Props> = ({
   fieldOf,
   onEdit,
   onRemove,
+  onAdd,
   allowedKinds,
 }) => {
   const { t, i18n } = useTranslation(['fields', 'common']);
-  const { colors } = useTheme();
+  const { colors, tapMin } = useTheme();
   const [filter, setFilter] = useState<DayActivityKind | null>(null);
 
   useEffect(() => {
@@ -207,8 +216,8 @@ export const HarvestDayActivity: React.FC<Props> = ({
         style={({ pressed }) => [
           styles.chip,
           {
-            borderColor: selected ? colors.oliveBorder : colors.borderLight,
-            backgroundColor: selected ? colors.primaryLight : colors.surface,
+            borderColor: selected ? colors.eventHarvest : colors.oliveBorder,
+            backgroundColor: selected ? colors.eventHarvestSoft : colors.surfaceElevated,
             opacity: pressed ? 0.85 : 1,
           },
         ]}
@@ -224,43 +233,108 @@ export const HarvestDayActivity: React.FC<Props> = ({
 
   const show = (kind: DayActivityKind) => filter == null || filter === kind;
 
+  const guideKinds: {
+    kind: DayActivityKind;
+    capture: HarvestCaptureKind;
+    icon: React.ComponentProps<typeof Ionicons>['name'];
+    label: string;
+  }[] = [
+    {
+      kind: 'sack',
+      capture: 'sacks',
+      icon: HARVEST_ACTION_ICONS.sacks,
+      label: t('harvestCampaign.pipeline.sacks'),
+    },
+    {
+      kind: 'mill',
+      capture: 'mill',
+      icon: HARVEST_ACTION_ICONS.mill,
+      label: t('harvestCampaign.pipeline.fruit'),
+    },
+    {
+      kind: 'oil',
+      capture: 'oil',
+      icon: HARVEST_ACTION_ICONS.oil,
+      label: t('harvestCampaign.pipeline.oil'),
+    },
+    {
+      kind: 'people',
+      capture: 'people',
+      icon: HARVEST_ACTION_ICONS.people,
+      label: t('harvestCampaign.dayActivity.short.people'),
+    },
+  ].filter((item) => !allowedKinds || allowedKinds.includes(item.capture));
+
   return (
     <View style={styles.section}>
-      <Text style={[styles.kicker, { color: colors.textTertiary }]}>
-        {t('harvestCampaign.dayActivity.recorded')}
-      </Text>
-
-      {!empty ? <View style={styles.chips}>
-        {chip(
-          'sack',
-          'sacks',
-          t('harvestCampaign.dayActivity.short.sacks'),
-          sackCount > 0 ? String(sackCount) : '—',
-          sackCount
-        )}
-        {chip(
-          'mill',
-          'mill',
-          t('harvestCampaign.dayActivity.short.mill'),
-          kgLabel(millKg),
-          millKg
-        )}
-        {chip('oil', 'oil', t('harvestCampaign.dayActivity.short.oil'), kgLabel(oilKg), oilKg)}
-        {chip(
-          'people',
-          'people',
-          t('harvestCampaign.dayActivity.short.people'),
-          peopleCount > 0 ? String(peopleCount) : '—',
-          peopleCount
-        )}
-      </View> : null}
-
       {empty ? (
-        <Text style={[styles.empty, { color: colors.textSecondary }]}>
-          {t('harvestCampaign.dayActivity.empty')}
-        </Text>
+        <View
+        style={[
+          styles.guide,
+          {
+            backgroundColor: colors.surfaceElevated,
+            ...createElevation(colors, 'sm'),
+          },
+        ]}
+        >
+          <Text style={[styles.guideTitle, { color: colors.textPrimary }]}>
+            {t('harvestCampaign.dayGuide.title')}
+          </Text>
+          <View style={styles.guideGrid}>
+            {guideKinds.map((item) => (
+              <Pressable
+                key={item.kind}
+                onPress={() => onAdd(item.kind)}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+                style={({ pressed }) => [
+                  styles.guideTile,
+                  {
+                    minHeight: Math.max(72, tapMin + 24),
+                    backgroundColor: colors.surface,
+                    ...createElevation(colors, 'sm'),
+                    opacity: pressed ? 0.88 : 1,
+                  },
+                ]}
+              >
+                <View style={[styles.guideIcon, { backgroundColor: colors.primaryLight }]}>
+                  <Ionicons name={item.icon} size={22} color={colors.primary} />
+                </View>
+                <Text style={[styles.guideLabel, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
       ) : (
-        <View style={styles.list}>
+        <>
+          <View style={styles.chips}>
+            {chip(
+              'sack',
+              'sacks',
+              t('harvestCampaign.dayActivity.short.sacks'),
+              sackCount > 0 ? String(sackCount) : '—',
+              sackCount
+            )}
+            {chip(
+              'mill',
+              'mill',
+              t('harvestCampaign.dayActivity.short.mill'),
+              kgLabel(millKg),
+              millKg
+            )}
+            {chip('oil', 'oil', t('harvestCampaign.dayActivity.short.oil'), kgLabel(oilKg), oilKg)}
+            {chip(
+              'people',
+              'people',
+              t('harvestCampaign.dayActivity.short.people'),
+              peopleCount > 0 ? String(peopleCount) : '—',
+              peopleCount
+            )}
+          </View>
+
+          <View style={styles.list}>
           {show('sack')
             ? day.sacks.map((entry) => (
                 <ActivityRow
@@ -372,7 +446,8 @@ export const HarvestDayActivity: React.FC<Props> = ({
                 />
               ))
             : null}
-        </View>
+          </View>
+        </>
       )}
     </View>
   );
@@ -382,12 +457,6 @@ const styles = StyleSheet.create({
   section: {
     gap: spacing.sm,
     marginTop: spacing.sm,
-  },
-  kicker: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
   },
   chips: {
     flexDirection: 'row',
@@ -399,24 +468,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: radii.full,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
   },
   chipText: {
     fontSize: 13,
     fontWeight: '700',
   },
-  empty: {
-    fontSize: 15,
-    lineHeight: 22,
+  guide: {
+    borderRadius: radii.card,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  guideTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  guideGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  guideTile: {
+    width: '47%',
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    borderRadius: radii.lg,
+  },
+  guideIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guideLabel: {
+    fontSize: 14,
+    fontWeight: '800',
   },
   list: {
     gap: spacing.sm,
     marginTop: spacing.xs,
   },
   row: {
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,

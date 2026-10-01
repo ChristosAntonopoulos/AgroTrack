@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Check } from 'lucide-react';
 import { CreateFieldDto } from '../../services/fieldService';
 import FieldColorPicker from './FieldColorPicker';
 
@@ -9,6 +10,8 @@ interface Props {
   formData: CreateFieldDto;
   fieldId?: string | null;
   mode?: Mode;
+  /** Page heading already asks the question. */
+  hidePrompt?: boolean;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
   onColorChange?: (color: string) => void;
 }
@@ -18,6 +21,7 @@ const BasicFieldDetailsStep: React.FC<Props> = ({
   formData,
   fieldId,
   mode = 'create',
+  hidePrompt = false,
   onChange,
   onColorChange,
 }) => {
@@ -27,7 +31,6 @@ const BasicFieldDetailsStep: React.FC<Props> = ({
     return (
       <div className="field-form-panel" data-onboarding-target="grove-color">
         <h2>{t('createGrove.colorHeading')}</h2>
-        <p className="field-form-panel-desc">{t('createGrove.colorHelper')}</p>
         <FieldColorPicker
           value={formData.color}
           fieldId={fieldId}
@@ -76,9 +79,15 @@ const BasicFieldDetailsStep: React.FC<Props> = ({
     return (
       <div className="field-form-panel">
         <div className="grove-name-box" data-onboarding-target="grove-name">
-          <label htmlFor="name" className="grove-name-prompt">
-            {t('createGrove.nameHeading')}
-          </label>
+          {hidePrompt ? (
+            <label htmlFor="name" className="grove-name-label-sr">
+              {t('createGrove.nameHeading')}
+            </label>
+          ) : (
+            <label htmlFor="name" className="grove-name-prompt">
+              {t('createGrove.nameHeading')}
+            </label>
+          )}
           <div className="grove-name-field">{nameInput}</div>
           {suggestions.length > 0 ? (
             <div
@@ -96,6 +105,7 @@ const BasicFieldDetailsStep: React.FC<Props> = ({
                     aria-pressed={selected}
                     onClick={() => applySuggestion(suggestion)}
                   >
+                    {selected ? <Check size={14} strokeWidth={3} aria-hidden /> : null}
                     {suggestion}
                   </button>
                 );

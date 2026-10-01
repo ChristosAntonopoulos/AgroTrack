@@ -28,6 +28,10 @@ export const getSeasonBounds = (seasonStartYear: number): SeasonBounds => {
 export const formatSeasonLabel = (seasonStartYear: number): string =>
   `${seasonStartYear}/${seasonStartYear + 1}`;
 
+/** Compact season for chrome: 2026/27 */
+export const formatSeasonShortLabel = (seasonStartYear: number): string =>
+  `${seasonStartYear}/${String(seasonStartYear + 1).slice(-2)}`;
+
 export const formatSeasonRange = (seasonStartYear: number, locale = 'el-GR'): string => {
   const { from, to } = getSeasonBounds(seasonStartYear);
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };

@@ -120,7 +120,7 @@ const WeatherMonthFieldMap: React.FC<Props> = ({ fieldId, opening, closing }) =>
   );
 
   const openMap = () => {
-    navigation.navigate('FieldDetail', { fieldId, mode: 'map' });
+    navigation.navigate('FieldDetail', { fieldId, mode: 'vegetation' });
   };
 
   if (!left && !right) {

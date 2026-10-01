@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -8,17 +9,19 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import EmptyState from '../components/Common/EmptyState';
 import { OilStockTabs } from '../components/myOil/OilStockTabs';
 import { OilStockHero } from '../components/myOil/OilStockHero';
-import { OilStockActivityBar, OilStockPageHeader } from '../components/myOil/OilStockChrome';
-import {
-  OilForOthersSummary,
-  OilHouseholdAside,
-  OilInventorySummary,
-  OilPendingSection,
-} from '../components/myOil/OilOverviewSections';
+import { OilStockPageHeader } from '../components/myOil/OilStockChrome';
+import { OilPendingSection } from '../components/myOil/OilOverviewSections';
+import { OilPendingPressings } from '../components/myOil/OilPendingPressings';
+import { OilByGroveSection } from '../components/myOil/OilByGroveSection';
+import { OilShareRequestsSection } from '../components/myOil/OilShareRequestsSection';
 import { CommitmentsTab } from '../components/myOil/CommitmentsTab';
-import { LotsTab } from '../components/myOil/LotsTab';
 import { MovementsTab } from '../components/myOil/MovementsTab';
-import { GiveOilSheet, type GiveOilSaveInput } from '../components/myOil/GiveOilSheet';
+import { StockCountSheet } from '../components/myOil/StockCountSheet';
+import {
+  GiveOilSheet,
+  type GiveOilIntent,
+  type GiveOilSaveInput,
+} from '../components/myOil/GiveOilSheet';
 import { FillTinsDrawer } from '../components/myOil/FillTinsDrawer';
 import { useAuth } from '../context/AuthContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
@@ -26,45 +29,67 @@ import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { getFieldService } from '../services/serviceFactory';
 import {
   oilStockService,
+  type OilCellarCandidate,
   type OilCommitment,
   type OilLot,
+  type OilPressing,
+  type OilShareRequest,
   type OilStockSummary,
   type StockMovement,
 } from '../services/oilStockService';
 import { migrateLocalOilPackingOnce } from '../myOil/syncOilLots';
 import { formatOilNumber, formatOilPack } from '../myOil/formatOilPack';
-import { tinCount, type OilStockTab, type PackFilter, isHouseholdCommitment } from '../myOil/commitmentCopy';
+import {
+  holdState,
+  needsNowCommitments,
+  tinCount,
+  type OilStockTab,
+} from '../myOil/commitmentCopy';
+import {
+  isEmptyDelta,
+  newestLotId,
+  planLotDrain,
+  stockCountDeltas,
+  type PackDelta,
+} from '../myOil/stockCount';
+import { groupLotsByGrove } from '../myOil/groupLotsByGrove';
 import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import { clampPackInput, emptyOilPackInput, packLitresOf, type OilPackInput } from '../myOil/packInput';
 import { fieldLabelMap } from '../utils/fieldLabels';
 import { useDrawerPresence } from '../hooks/useDrawerPresence';
+import { harvestPath, moneyPath } from '../navigation/intents';
 import './MyOilPage.css';
 
 const MyOilPage: React.FC = () => {
   const { t, i18n } = useTranslation(['myOil', 'common']);
   const { user } = useAuth();
   const pageGuard = useModulePageGuard({ module: 'money' });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusFieldId = (searchParams.get('field') || searchParams.get('fieldId') || '').trim() || null;
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [summary, setSummary] = useState<OilStockSummary | null>(null);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [closedCommitments, setClosedCommitments] = useState<OilCommitment[]>([]);
+  const [shareInbox, setShareInbox] = useState<OilShareRequest[]>([]);
+  const [pendingPressings, setPendingPressings] = useState<OilPressing[]>([]);
   const [fieldNames, setFieldNames] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<OilStockTab>('overview');
-  const [packFilter, setPackFilter] = useState<PackFilter>('all');
+  const [tab, setTab] = useState<OilStockTab>('stock');
   const [showGive, setShowGive] = useState(false);
   const [giveWho, setGiveWho] = useState<'someone' | 'home' | 'unnamed'>('someone');
+  const [giveIntent, setGiveIntent] = useState<GiveOilIntent>('hold');
+  const [platformPeople, setPlatformPeople] = useState<OilCellarCandidate[]>([]);
   const [showFill, setShowFill] = useState(false);
   const [fillLot, setFillLot] = useState<OilLot | null>(null);
-  const [adjustLot, setAdjustLot] = useState<OilLot | null>(null);
-  const [adjustKind, setAdjustKind] = useState('home_use');
+  const [showCount, setShowCount] = useState(false);
   const [partialFor, setPartialFor] = useState<OilCommitment | null>(null);
   const [partialPack, setPartialPack] = useState<OilPackInput>(emptyOilPackInput());
   const [busy, setBusy] = useState(false);
   const giveDrawer = useDrawerPresence(showGive || null);
   const fillDrawer = useDrawerPresence(showFill || null);
+  const countDrawer = useDrawerPresence(showCount || null);
   const partialDrawer = useDrawerPresence(partialFor);
-  const adjustDrawer = useDrawerPresence(adjustLot);
 
   const seasonStart = agriculturalYearFor(new Date());
   const seasonLabel = `${seasonStart}/${String(seasonStart + 1).slice(-2)}`;
@@ -85,18 +110,20 @@ const MyOilPage: React.FC = () => {
     setError(false);
     try {
       await migrateLocalOilPackingOnce(user.userId);
-      const [next, moves, fields, allCommitments] = await Promise.all([
+      const [next, moves, fields, allCommitments, shareRequests, pending] = await Promise.all([
         oilStockService.getSummary(),
         oilStockService.listMovements(80),
         getFieldService().getFields().catch(() => []),
         oilStockService.listCommitments(false).catch(() => [] as OilCommitment[]),
+        oilStockService.listShareRequests(true).catch(() => [] as OilShareRequest[]),
+        oilStockService.listPendingPressings().catch(() => [] as OilPressing[]),
       ]);
       setSummary(next);
       setMovements(moves);
       setFieldNames(fieldLabelMap(fields));
-      setClosedCommitments(
-        allCommitments.filter((c) => c.derivedStatus === 'delivered' || c.cancelled)
-      );
+      setClosedCommitments(allCommitments.filter((c) => holdState(c) !== 'active'));
+      setShareInbox(shareRequests.filter((r) => r.isIncoming && r.status === 'pending'));
+      setPendingPressings(pending);
     } catch {
       setError(true);
     } finally {
@@ -114,21 +141,34 @@ const MyOilPage: React.FC = () => {
     return () => window.removeEventListener(CAPTURE_SAVED_EVENT, onSaved);
   }, [reload]);
 
+  useEffect(() => {
+    if (!focusFieldId) return;
+    const el = document.querySelector('.my-oil-grove-card.is-focus');
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [focusFieldId, summary, loading]);
+
   const formatDate = (iso: string) => {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  const deliverFully = async (commitment: OilCommitment) => {
-    setBusy(true);
-    try {
-      await oilStockService.deliver(commitment.id);
-      await reload();
-    } finally {
-      setBusy(false);
-    }
-  };
+  /** Every mutation follows the same shape: lock the page, call, reload. */
+  const run = useCallback(
+    async (action: () => Promise<unknown>) => {
+      setBusy(true);
+      try {
+        await action();
+        await reload();
+      } finally {
+        setBusy(false);
+      }
+    },
+    [reload]
+  );
+
+  const deliverFully = (commitment: OilCommitment) =>
+    run(() => oilStockService.deliver(commitment.id));
 
   const onDeliverTap = (commitment: OilCommitment) => {
     const rem = commitment.remaining;
@@ -140,13 +180,20 @@ const MyOilPage: React.FC = () => {
     void deliverFully(commitment);
   };
 
-  const saveGive = async (input: GiveOilSaveInput) => {
-    setBusy(true);
-    try {
-      if (input.forHome && input.alreadyDelivered && summary?.lots.length) {
+  const saveGive = (input: GiveOilSaveInput) =>
+    run(async () => {
+      if (input.toUserId) {
+        const fieldIds = Array.from(
+          new Set((summary?.lots || []).flatMap((l) => l.fieldIds || []).filter(Boolean))
+        );
+        await oilStockService.transferToUser({
+          toUserId: input.toUserId,
+          requested: input.requested,
+          fieldIds: fieldIds.length ? fieldIds : undefined,
+        });
+      } else if (input.forHome && input.alreadyDelivered && summary?.lots.length) {
         const lot =
-          summary.lots.find((l) => l.available.tin16 + l.available.tin17 + l.available.bulkLitres > 0.05) ||
-          summary.lots[0];
+          summary.lots.find((l) => l.available.litres > 0.05) || summary.lots[0];
         await oilStockService.adjust({
           oilLotId: lot.id,
           kind: 'home_use',
@@ -154,31 +201,99 @@ const MyOilPage: React.FC = () => {
         });
       } else {
         await oilStockService.createCommitment({
+          contactId: input.contactId,
           counterpartyName: input.counterpartyName,
           requested: input.requested,
           isSale: input.isSale,
-          amount: input.isSale && input.alreadyPaid ? input.amount : input.amount,
+          amount: input.isSale && input.alreadyPaid ? input.amount : undefined,
           alreadyDelivered: input.alreadyDelivered,
         });
       }
       setShowGive(false);
-      await reload();
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
-  const openGive = (who: 'someone' | 'home' | 'unnamed' = 'someone') => {
+  const openGive = (intent: GiveOilIntent, who: 'someone' | 'home' | 'unnamed' = 'someone') => {
+    setGiveIntent(intent);
     setGiveWho(who);
     setShowGive(true);
   };
 
-  const openAdjust = (kind: string) => {
-    const lot = summary?.lots.find((l) => l.available.litres > 0.05) || summary?.lots[0] || null;
-    if (!lot) return;
-    setAdjustKind(kind);
-    setAdjustLot(lot);
+  useEffect(() => {
+    if (!showGive) return;
+    const fieldIds = Array.from(
+      new Set((summary?.lots || []).flatMap((l) => l.fieldIds || []).filter(Boolean))
+    );
+    if (fieldIds.length === 0) {
+      setPlatformPeople([]);
+      return;
+    }
+    let cancelled = false;
+    void oilStockService
+      .listCellarCandidates(fieldIds)
+      .then((rows) => {
+        if (!cancelled) setPlatformPeople((rows || []).filter((r) => !r.isYou));
+      })
+      .catch(() => {
+        if (!cancelled) setPlatformPeople([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showGive, summary?.lots]);
+
+  /** A count becomes at most two corrections: one for oil found, one for oil missing. */
+  const saveCount = (actual: PackDelta, reason: string) =>
+    run(async () => {
+      const lots = summary?.lots || [];
+      const { add, remove } = stockCountDeltas(summary!.onHand, actual);
+      const notes = reason || t('count.defaultReason');
+
+      for (const slice of planLotDrain(lots, remove)) {
+        await oilStockService.adjust({
+          oilLotId: slice.oilLotId,
+          kind: 'correction',
+          remove: true,
+          pack: slice.pack,
+          notes,
+        });
+      }
+
+      const target = newestLotId(lots);
+      if (!isEmptyDelta(add) && target) {
+        await oilStockService.adjust({ oilLotId: target, kind: 'correction', pack: add, notes });
+      }
+
+      setShowCount(false);
+    });
+
+  const clearFieldFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('field');
+    next.delete('fieldId');
+    setSearchParams(next, { replace: true });
   };
+
+  const waitingAll = summary?.openCommitments || [];
+  const needsNow = needsNowCommitments(waitingAll);
+  const hasStock =
+    !!summary &&
+    (summary.onHand.litres > 0.05 ||
+      summary.lots.length > 0 ||
+      summary.delivered.litres > 0.05 ||
+      waitingAll.length > 0);
+
+  const groveGroups = useMemo(() => {
+    const all = groupLotsByGrove(summary?.lots || []);
+    if (!focusFieldId) return all;
+    const filtered = all.filter(
+      (g) => g.primaryFieldId === focusFieldId || g.fieldIds.includes(focusFieldId)
+    );
+    return filtered.length > 0 ? filtered : all;
+  }, [summary?.lots, focusFieldId]);
+
+  const focusFieldName = focusFieldId
+    ? fieldNames[focusFieldId] || focusFieldId
+    : null;
 
   if (pageGuard.loading) {
     return (
@@ -190,20 +305,6 @@ const MyOilPage: React.FC = () => {
     );
   }
 
-  const waitingAll = summary?.openCommitments || [];
-  const waiting = waitingAll.filter((c) => !isHouseholdCommitment(c));
-  const hasStock =
-    !!summary &&
-    (summary.physical.litres > 0.05 ||
-      summary.lots.length > 0 ||
-      summary.delivered.litres > 0.05 ||
-      waitingAll.length > 0);
-
-  const goLotsFiltered = (kind: 'tin16' | 'tin17' | 'bulk') => {
-    setPackFilter(kind);
-    setTab('lots');
-  };
-
   return (
     <PageContainer maxWidth="full" padding="none">
       <div className="my-oil-page">
@@ -213,22 +314,9 @@ const MyOilPage: React.FC = () => {
         <div className="my-oil-tabbar">
           <OilStockTabs
             active={tab}
-            onChange={(next) => {
-              setTab(next);
-              if (next !== 'lots') setPackFilter('all');
-            }}
+            onChange={setTab}
+            counts={{ holds: waitingAll.length }}
           />
-          {!loading && hasStock ? (
-            <Button
-              variant="primary"
-              size="sm"
-              className="my-oil-hold-cta"
-              disabled={busy}
-              onClick={() => openGive('someone')}
-            >
-              {t('actions.hold')}
-            </Button>
-          ) : null}
         </div>
 
         {loading ? (
@@ -242,65 +330,89 @@ const MyOilPage: React.FC = () => {
               </Button>
             }
           />
-        ) : !hasStock ? (
-          <EmptyState title={t('empty')} description={t('emptyHint')} />
+        ) : !hasStock && shareInbox.length === 0 && pendingPressings.length === 0 ? (
+          <EmptyState
+            title={t('empty')}
+            description={t('emptyHint')}
+            action={
+              <Button variant="primary" as={Link} to={harvestPath()}>
+                {t('emptyCta')}
+              </Button>
+            }
+          />
         ) : (
           <>
-            {tab === 'overview' ? (
+            {tab === 'stock' ? (
               <>
-                <OilStockActivityBar
-                  summary={summary!}
-                  closed={closedCommitments}
-                  waiting={waiting}
-                  latestMove={movements[0] || null}
-                  packLabels={packLabels}
-                  formatDate={formatDate}
-                />
-                <OilStockHero
-                  summary={summary!}
-                  closed={closedCommitments}
-                  busy={busy}
-                  onGive={() => openGive('someone')}
-                  onFill={() => {
-                    setFillLot(null);
-                    setShowFill(true);
-                  }}
-                  onCorrect={() => openAdjust('correction')}
-                  onHomeUse={() => openGive('home')}
-                  onLoss={() => openAdjust('consumed')}
-                />
-
-                <div className="my-oil-overview-grid">
-                  <OilInventorySummary summary={summary!} onSelectPack={goLotsFiltered} />
-                  <OilHouseholdAside
+                {hasStock ? (
+                  <OilStockHero
                     summary={summary!}
-                    closed={closedCommitments}
-                    packLabels={packLabels}
-                    onSetAside={() => openGive('home')}
-                    onOpenHolds={() => setTab('others')}
+                    busy={busy}
+                    onGive={() => openGive('give')}
+                    onSell={() => openGive('sell')}
+                    onHold={() => openGive('hold')}
+                    onFill={() => {
+                      setFillLot(null);
+                      setShowFill(true);
+                    }}
+                    onCount={() => setShowCount(true)}
                   />
-                </div>
+                ) : null}
 
-                {waiting.length > 0 ? (
+                <OilShareRequestsSection
+                  requests={shareInbox}
+                  busy={busy}
+                  packLabels={packLabels}
+                  onAccept={(r) => void run(() => oilStockService.acceptShareRequest(r.id))}
+                  onReject={(r) => void run(() => oilStockService.rejectShareRequest(r.id))}
+                />
+
+                <OilPendingPressings
+                  pressings={pendingPressings}
+                  fieldNames={fieldNames}
+                  busy={busy}
+                  onAllocate={(pressing, allocations) =>
+                    void run(() => oilStockService.allocatePressing(pressing.id, allocations))
+                  }
+                />
+
+                {hasStock && needsNow.length > 0 ? (
                   <OilPendingSection
-                    waiting={waiting}
+                    waiting={needsNow}
                     busy={busy}
                     packLabels={packLabels}
                     onDeliver={onDeliverTap}
-                    onDetails={() => setTab('others')}
+                    onDetails={() => setTab('holds')}
                     formatDate={formatDate}
                   />
                 ) : null}
 
-                <OilForOthersSummary
-                  summary={summary!}
+                {focusFieldName ? (
+                  <div className="my-oil-field-filter">
+                    <span>{t('byGrove.filtered', { name: focusFieldName })}</span>
+                    <button type="button" className="my-oil-linkish" onClick={clearFieldFilter}>
+                      {t('byGrove.clearFilter')}
+                    </button>
+                  </div>
+                ) : null}
+
+                <OilByGroveSection
+                  groups={groveGroups}
+                  fieldNames={fieldNames}
                   packLabels={packLabels}
-                  onSeeAll={() => setTab('others')}
-                  onOpen={() => setTab('others')}
-                  formatDate={formatDate}
+                  focusFieldId={focusFieldId}
+                  onSelectGrove={(group) => {
+                    if (group.primaryFieldId) {
+                      setSearchParams({ field: group.primaryFieldId }, { replace: true });
+                    }
+                  }}
+                  onFillLot={(lot) => {
+                    setFillLot(lot);
+                    setShowFill(true);
+                  }}
                 />
 
-                <div className="my-oil-overview-grid my-oil-overview-grid--lower">
+                {movements.length > 0 ? (
                   <section className="my-oil-panel">
                     <MovementsTab
                       movements={movements}
@@ -311,30 +423,16 @@ const MyOilPage: React.FC = () => {
                       onSeeAll={() => setTab('movements')}
                     />
                   </section>
-                  <section className="my-oil-panel">
-                    <LotsTab
-                      lots={summary!.lots}
-                      fieldNames={fieldNames}
-                      packLabels={packLabels}
-                      busy={busy}
-                      formatDate={formatDate}
-                      preview
-                      onSeeAll={() => setTab('lots')}
-                      onFill={(lot) => {
-                        setFillLot(lot);
-                        setShowFill(true);
-                      }}
-                      onAdjust={(lot, kind) => {
-                        setAdjustKind(kind);
-                        setAdjustLot(lot);
-                      }}
-                    />
-                  </section>
-                </div>
+                ) : null}
+
+                <nav className="my-oil-quick-links" aria-label={t('quickLinks.aria')}>
+                  <Link to={harvestPath()}>{t('quickLinks.harvest')}</Link>
+                  <Link to={moneyPath()}>{t('quickLinks.money')}</Link>
+                </nav>
               </>
             ) : null}
 
-            {tab === 'others' ? (
+            {tab === 'holds' ? (
               <CommitmentsTab
                 open={waitingAll}
                 closed={closedCommitments}
@@ -344,33 +442,8 @@ const MyOilPage: React.FC = () => {
                 packLabels={packLabels}
                 formatDate={formatDate}
                 onDeliver={onDeliverTap}
-                onCancel={(c) => {
-                  setBusy(true);
-                  void oilStockService
-                    .cancelCommitment(c.id)
-                    .then(() => reload())
-                    .finally(() => setBusy(false));
-                }}
-                onGive={() => openGive('someone')}
-              />
-            ) : null}
-
-            {tab === 'lots' ? (
-              <LotsTab
-                lots={summary!.lots}
-                fieldNames={fieldNames}
-                packLabels={packLabels}
-                packFilter={packFilter}
-                busy={busy}
-                formatDate={formatDate}
-                onFill={(lot) => {
-                  setFillLot(lot);
-                  setShowFill(true);
-                }}
-                onAdjust={(lot, kind) => {
-                  setAdjustKind(kind);
-                  setAdjustLot(lot);
-                }}
+                onCancel={(c) => void run(() => oilStockService.cancelCommitment(c.id))}
+                onGive={() => openGive('hold')}
               />
             ) : null}
 
@@ -380,16 +453,12 @@ const MyOilPage: React.FC = () => {
                 lots={summary!.lots}
                 fieldNames={fieldNames}
                 packLabels={packLabels}
+                busy={busy}
+                onReverse={(m) => void run(() => oilStockService.reverseMovement(m.id))}
               />
             ) : null}
           </>
         )}
-
-        <div className="my-oil-sticky-cta">
-          <Button variant="primary" onClick={() => openGive('someone')} disabled={busy || !hasStock}>
-            {t('actions.give')}
-          </Button>
-        </div>
       </div>
 
       {giveDrawer.mounted ? (
@@ -398,6 +467,8 @@ const MyOilPage: React.FC = () => {
           available={summary?.available}
           busy={busy}
           initialWho={giveWho}
+          initialIntent={giveIntent}
+          platformPeople={platformPeople}
           onClose={() => setShowGive(false)}
           onSave={saveGive}
         />
@@ -415,16 +486,22 @@ const MyOilPage: React.FC = () => {
             setFillLot(null);
           }}
           onSave={async (lotId, add16, add17) => {
-            setBusy(true);
-            try {
+            await run(async () => {
               await oilStockService.repack(lotId, add16, add17);
               setShowFill(false);
               setFillLot(null);
-              await reload();
-            } finally {
-              setBusy(false);
-            }
+            });
           }}
+        />
+      ) : null}
+
+      {countDrawer.mounted && summary ? (
+        <StockCountSheet
+          open={countDrawer.open}
+          expected={summary.onHand}
+          busy={busy}
+          onClose={() => setShowCount(false)}
+          onSave={saveCount}
         />
       ) : null}
 
@@ -445,31 +522,7 @@ const MyOilPage: React.FC = () => {
           onDeliverPartial={() => {
             const c = partialDrawer.value!;
             setPartialFor(null);
-            setBusy(true);
-            void oilStockService
-              .deliver(c.id, partialPack)
-              .then(() => reload())
-              .finally(() => setBusy(false));
-          }}
-        />
-      ) : null}
-
-      {adjustDrawer.mounted && adjustDrawer.value ? (
-        <AdjustSheet
-          open={adjustDrawer.open}
-          lot={adjustDrawer.value}
-          kind={adjustKind}
-          busy={busy}
-          onClose={() => setAdjustLot(null)}
-          onSave={async (kind, pack) => {
-            setBusy(true);
-            try {
-              await oilStockService.adjust({ oilLotId: adjustDrawer.value!.id, kind, pack });
-              setAdjustLot(null);
-              await reload();
-            } finally {
-              setBusy(false);
-            }
+            void run(() => oilStockService.deliver(c.id, partialPack));
           }}
         />
       ) : null}
@@ -583,112 +636,6 @@ const DeliverSheet: React.FC<{
             />
           </div>
         ) : null}
-      </div>
-    </RightDrawer>
-  );
-};
-
-const AdjustSheet: React.FC<{
-  open: boolean;
-  lot: OilLot;
-  kind: string;
-  busy: boolean;
-  onClose: () => void;
-  onSave: (kind: string, pack: OilPackInput) => Promise<void>;
-}> = ({ open, lot, kind: initialKind, busy, onClose, onSave }) => {
-  const { t } = useTranslation(['myOil', 'common']);
-  const [kind, setKind] = useState(initialKind);
-  const [pack, setPack] = useState<OilPackInput>(emptyOilPackInput());
-  const additive = kind === 'correction' || kind === 'returned';
-
-  return (
-    <RightDrawer
-      open={open}
-      onClose={() => {
-        if (!busy) onClose();
-      }}
-      size="md"
-      title={t('adjustSheet.title')}
-      closeDisabled={busy}
-      closeLabel={t('common:close', { defaultValue: 'Κλείσιμο' })}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={busy}>
-            {t('sheet.cancel')}
-          </Button>
-          <Button
-            variant="primary"
-            disabled={busy || packLitresOf(pack) <= 0.05}
-            onClick={() => void onSave(kind, pack)}
-          >
-            {t('adjustSheet.save')}
-          </Button>
-        </>
-      }
-    >
-      <div className="my-oil-flow">
-        <div className="my-oil-field">
-          <label htmlFor="adjust-kind">{t('adjustSheet.kind')}</label>
-          <select id="adjust-kind" value={kind} onChange={(e) => setKind(e.target.value)}>
-            <option value="gifted">{t('adjustSheet.gifted')}</option>
-            <option value="home_use">{t('adjustSheet.home_use')}</option>
-            <option value="consumed">{t('adjustSheet.consumed')}</option>
-            <option value="correction">{t('adjustSheet.correction')}</option>
-            <option value="returned">{t('adjustSheet.returned')}</option>
-          </select>
-        </div>
-        <div className="my-oil-field">
-          <label htmlFor="adjust-tin16">{t('sheet.tin16')}</label>
-          <input
-            id="adjust-tin16"
-            type="number"
-            min={0}
-            value={pack.tin16 || ''}
-            onChange={(e) =>
-              setPack(
-                clampPackInput(
-                  { ...pack, tin16: Number(e.target.value) || 0 },
-                  additive ? undefined : lot.available
-                )
-              )
-            }
-          />
-        </div>
-        <div className="my-oil-field">
-          <label htmlFor="adjust-tin17">{t('sheet.tin17')}</label>
-          <input
-            id="adjust-tin17"
-            type="number"
-            min={0}
-            value={pack.tin17 || ''}
-            onChange={(e) =>
-              setPack(
-                clampPackInput(
-                  { ...pack, tin17: Number(e.target.value) || 0 },
-                  additive ? undefined : lot.available
-                )
-              )
-            }
-          />
-        </div>
-        <div className="my-oil-field">
-          <label htmlFor="adjust-bulk">{t('sheet.bulk')}</label>
-          <input
-            id="adjust-bulk"
-            type="number"
-            min={0}
-            step="0.1"
-            value={pack.bulkLitres || ''}
-            onChange={(e) =>
-              setPack(
-                clampPackInput(
-                  { ...pack, bulkLitres: Number(e.target.value) || 0 },
-                  additive ? undefined : lot.available
-                )
-              )
-            }
-          />
-        </div>
       </div>
     </RightDrawer>
   );

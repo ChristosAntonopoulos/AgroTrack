@@ -66,13 +66,19 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
         styles.chip,
         {
           minHeight: tapMin,
-          borderColor: selected ? colors.eventHarvest : colors.borderLight,
-          backgroundColor: selected ? colors.eventHarvestSoft : colors.surface,
+          backgroundColor: selected ? colors.primaryLight : colors.surfaceElevated,
+          borderColor: selected ? colors.primary : colors.border,
+          borderWidth: selected ? 1.5 : 1,
         },
       ]}
     >
       <FieldColorMark color={color} fieldId={id || undefined} hollow={!id} size={10} />
-      <Text style={{ color: selected ? colors.eventHarvest : colors.textPrimary, fontWeight: selected ? '800' : '600' }}>
+      <Text
+        style={{
+          color: selected ? colors.primaryDark : colors.textPrimary,
+          fontWeight: selected ? '800' : '600',
+        }}
+      >
         {label}
       </Text>
     </Pressable>
@@ -86,13 +92,21 @@ export const HarvestFieldPicker: React.FC<HarvestFieldPickerProps> = (props) => 
         <Text style={[styles.label, { color: colors.textPrimary }]}>{props.sectionLabel}</Text>
       ) : null}
       {showGuessCard ? (
-        <View style={[styles.guess, { borderColor: colors.eventHarvest, backgroundColor: colors.eventHarvestSoft }]}>
+        <View
+          style={[
+            styles.guess,
+            {
+              backgroundColor: colors.primaryLight,
+              borderColor: colors.primary,
+            },
+          ]}
+        >
           <FieldColorMark color={guessed.color} fieldId={guessed.id} size={12} />
           <Text style={{ color: colors.textPrimary, flex: 1, fontWeight: '600' }}>
             {t('harvestCampaign.sacks.nearField', { field: friendlyFieldLabel(guessed.name) })}
           </Text>
           <Pressable onPress={() => setManual(true)} hitSlop={8}>
-            <Text style={{ color: colors.eventHarvest, fontWeight: '700' }}>
+            <Text style={{ color: colors.primaryDark, fontWeight: '700' }}>
               {t('harvestCampaign.sacks.changeField')}
             </Text>
           </Pressable>
@@ -139,13 +153,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderWidth: 1,
     borderRadius: radii.full,
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
   },
   guess: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderRadius: radii.lg,
     padding: spacing.md,
     gap: spacing.xs,

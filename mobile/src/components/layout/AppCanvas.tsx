@@ -24,9 +24,22 @@ type Props = {
 };
 
 const AppCanvas: React.FC<Props> = ({ opacity = 1, settle = false }) => {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, isSun } = useTheme();
   const harvest = useHarvestCampaignOptional();
   const harvestLive = Boolean(harvest?.isLive);
+
+  // Flat white behind sun palette — parchment art washes out in glare.
+  if (isSun) {
+    return (
+      <View
+        pointerEvents="none"
+        style={[styles.root, { backgroundColor: colors.background }]}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
+    );
+  }
+
   const source = harvestLive
     ? isDark
       ? harvestCanvasDark

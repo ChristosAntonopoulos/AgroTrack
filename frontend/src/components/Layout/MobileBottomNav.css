@@ -69,7 +69,7 @@
 }
 
 .mobile-bottom-nav-label {
-  font-size: calc(0.65rem * var(--font-scale, 1));
+  font-size: calc(0.75rem * var(--font-scale, 1));
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;

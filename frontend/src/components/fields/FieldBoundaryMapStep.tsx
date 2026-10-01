@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MapContainer, TileLayer, Polygon, Marker, useMap, useMapEvents } from 'react-leaflet';
 import MapWheelZoom from '../maps/MapWheelZoom';
 import L from 'leaflet';
@@ -49,6 +50,8 @@ interface Props {
   continueLoading?: boolean;
   /** First-run: locate via search, then auto-start marking when a place is chosen. */
   activationGuide?: boolean;
+  /** Grove steps, drawn on the map when the boundary fills the screen. */
+  setupRail?: React.ReactNode;
 }
 
 type DrawPhase = 'locate' | 'drawing' | 'done';
@@ -107,6 +110,21 @@ const MapZoomWatcher: React.FC<{ onZoom: (zoom: number) => void }> = ({ onZoom }
   return null;
 };
 
+const FitStage: React.FC = () => {
+  const map = useMap();
+  useEffect(() => {
+    const fit = () => map.invalidateSize();
+    fit();
+    const id = window.setTimeout(fit, 60);
+    window.addEventListener('resize', fit);
+    return () => {
+      window.clearTimeout(id);
+      window.removeEventListener('resize', fit);
+    };
+  }, [map]);
+  return null;
+};
+
 const TapCorners: React.FC<{
   enabled: boolean;
   onAdd: (corner: Corner) => void;
@@ -141,6 +159,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   onContinue,
   continueLoading = false,
   activationGuide = false,
+  setupRail,
 }) => {
   const { t, i18n } = useTranslation('fields');
   const locale = normalizeLocale(i18n.language);
@@ -345,10 +364,243 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
         : t('addField.boundaryCoachDone');
 
   const canDragCorners = phase === 'drawing' || phase === 'done';
+  const stage = Boolean(onContinue);
+  const sheetLine =
+    phase === 'locate'
+      ? t('addField.boundarySheet.locate')
+      : phase === 'drawing'
+        ? corners.length < 3
+          ? t('addField.boundarySheet.corners', { count: corners.length })
+          : t('addField.boundarySheet.ready')
+        : liveAreaLabel
+          ? t('addField.boundaryAreaExplained', { area: liveAreaLabel })
+          : t('addField.boundarySheet.saved');
+
+  const searchTools = (
+    <div
+      className={`boundary-search-block boundary-search-block--typeahead${stage ? ' is-in-stage' : ''}`}
+      data-onboarding-target="boundary-search"
+    >
+      <div className="boundary-toolbar boundary-toolbar--typeahead">
+        <div className="boundary-typeahead">
+          <LocationSearchField
+            value={search}
+            hideHint
+            embed
+            onChange={(next) => {
+              setSearch(next.locationText);
+              if (
+                next.latitude != null &&
+                next.longitude != null &&
+                Number.isFinite(next.latitude) &&
+                Number.isFinite(next.longitude)
+              ) {
+                applyPlace(next.locationText, next.latitude, next.longitude);
+              } else if (!next.locationText.trim()) {
+                showGreece();
+              } else {
+                setLocationStatus('idle');
+              }
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          className="btn btn-secondary boundary-tool-btn boundary-locate-btn"
+          onClick={() => void handleCurrentLocation()}
+          aria-label={t('addField.useCurrentLocation')}
+        >
+          <LocateFixed size={18} aria-hidden />
+          {stage ? null : <span>{t('addField.useCurrentLocation')}</span>}
+        </button>
+      </div>
+    </div>
+  );
+
+  const stageView = (
+    <div
+      className={`field-boundary-step is-handoff is-stage${phase === 'done' ? ' is-ready' : ''}`}
+      data-onboarding-boundary-phase={phase}
+      data-onboarding-located={locationStatus === 'found' || hasCoords(latitude, longitude) ? 'true' : 'false'}
+    >
+      <div
+        className={`field-boundary-map${phase === 'drawing' ? ' is-drawing' : ''}`}
+        data-onboarding-target="boundary-map"
+      >
+        <MapContainer
+          center={center}
+          zoom={Math.min(mapZoom, MAP_MAX_ZOOM)}
+          minZoom={MAP_MIN_ZOOM}
+          maxZoom={MAP_MAX_ZOOM}
+          scrollWheelZoom
+          style={{ height: '100%', width: '100%' }}
+        >
+          <MapWheelZoom />
+          <FitStage />
+          {mapLayer === 'satellite' ? (
+            <>
+              <TileLayer
+                attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
+                url={SATELLITE_TILE}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              />
+              <TileLayer
+                attribution=""
+                url={SATELLITE_PLACES_TILE}
+                opacity={0.92}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              />
+              <TileLayer
+                attribution=""
+                url={SATELLITE_LABELS_TILE}
+                opacity={0.65}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              />
+            </>
+          ) : (
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url={STREET_TILE}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+            />
+          )}
+          <MapViewUpdater center={center} zoom={mapZoom} />
+          <MapZoomWatcher onZoom={setLiveZoom} />
+          <TapCorners enabled={phase === 'drawing' && !zoomTooLow} onAdd={addCorner} />
+          {previewPath.length >= 2 && !closedPath ? (
+            <Polygon
+              positions={previewPath}
+              pathOptions={{
+                ...FIELD_POLYGON_STYLE,
+                dashArray: '6 8',
+                fillOpacity: 0.08,
+              }}
+            />
+          ) : null}
+          {closedPath ? <Polygon positions={closedPath} pathOptions={FIELD_POLYGON_STYLE} /> : null}
+          {corners.map((corner, index) => (
+            <Marker
+              key={`corner-${index}`}
+              position={[corner.lat, corner.lng]}
+              icon={cornerIcon(index)}
+              draggable={canDragCorners}
+              eventHandlers={{
+                click(e) {
+                  L.DomEvent.stopPropagation(e.originalEvent);
+                },
+                dragend(e) {
+                  const { lat, lng } = e.target.getLatLng();
+                  moveCorner(index, { lat, lng });
+                },
+              }}
+              title={`${index + 1}`}
+            />
+          ))}
+        </MapContainer>
+
+        <div className="boundary-stage-top">
+          {setupRail}
+          {searchTools}
+          {locationStatus === 'missing' && search.trim() ? (
+            <p className="boundary-location-status" role="status">
+              {t('addField.locationNotFound')}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="boundary-map-overlays">
+          <div className="boundary-layer-toggle" role="group" aria-label={t('addField.mapLayerAria')}>
+            <button
+              type="button"
+              className={`boundary-layer-btn ${mapLayer === 'satellite' ? 'active' : ''}`}
+              onClick={() => setMapLayer('satellite')}
+            >
+              {t('mapLayerSatellite')}
+            </button>
+            <button
+              type="button"
+              className={`boundary-layer-btn ${mapLayer === 'street' ? 'active' : ''}`}
+              onClick={() => setMapLayer('street')}
+            >
+              {t('mapLayerStreet')}
+            </button>
+          </div>
+        </div>
+
+        <div className="boundary-stage-sheet" role="region" aria-label={sheetLine}>
+          <p className="boundary-stage-line">{sheetLine}</p>
+          {drawError || (zoomTooLow && phase !== 'done') ? (
+            <p className="boundary-location-status field-boundary-error" role="alert">
+              {drawError || t('addField.boundaryValidation.zoomTooLow')}
+            </p>
+          ) : null}
+          <div className="boundary-stage-actions">
+            {corners.length > 0 && phase === 'drawing' ? (
+              <button
+                type="button"
+                className="boundary-sheet-icon"
+                onClick={undoCorner}
+                aria-label={t('addField.boundaryUndo')}
+              >
+                <Undo2 size={18} aria-hidden />
+              </button>
+            ) : null}
+            {corners.length > 0 ? (
+              <button
+                type="button"
+                className="boundary-sheet-icon"
+                onClick={clearCorners}
+                aria-label={phase === 'done' ? t('addField.boundaryRedraw') : t('addField.boundaryClear')}
+              >
+                <Trash2 size={18} aria-hidden />
+              </button>
+            ) : null}
+            {phase === 'done' ? (
+              <button
+                type="button"
+                className="boundary-sheet-primary"
+                onClick={onContinue}
+                disabled={continueLoading}
+                data-onboarding-target="boundary-save"
+              >
+                {t('addField.continueToChronologio')}
+              </button>
+            ) : phase === 'locate' ? (
+              <button
+                type="button"
+                className="boundary-sheet-primary"
+                onClick={startDrawing}
+                disabled={zoomTooLow}
+              >
+                <Crosshair size={18} aria-hidden />
+                {t('addField.boundaryStartMarking')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="boundary-sheet-primary"
+                onClick={finishShape}
+                disabled={corners.length < 3 || zoomTooLow}
+              >
+                <Check size={18} aria-hidden />
+                {t('addField.boundaryFinish')}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (stage) return createPortal(stageView, document.body);
 
   return (
     <div
-      className={`field-form-panel field-boundary-step${onContinue ? ' is-handoff' : ''}${phase === 'done' ? ' is-ready' : ''}`}
+      className={`field-form-panel field-boundary-step${phase === 'done' ? ' is-ready' : ''}`}
       data-onboarding-boundary-phase={phase}
       data-onboarding-located={locationStatus === 'found' || hasCoords(latitude, longitude) ? 'true' : 'false'}
     >

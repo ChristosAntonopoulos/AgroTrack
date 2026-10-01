@@ -1,0 +1,186 @@
+.more-menu-panel {
+  position: fixed;
+  top: calc(var(--header-height) + var(--safe-top));
+  left: 0;
+  right: 0;
+  bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
+  z-index: var(--z-fixed);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-xl);
+  padding-left: calc(var(--spacing-md) + var(--safe-left));
+  padding-right: calc(var(--spacing-md) + var(--safe-right));
+  background: var(--bg-page);
+}
+
+.more-menu-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.more-menu-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.more-menu-title-block {
+  min-width: 0;
+  flex: 1;
+}
+
+.more-menu-title {
+  margin: 0;
+  font-size: calc(1.25rem * var(--font-scale, 1));
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--text-primary, var(--color-text-primary));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.more-menu-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: calc(0.8125rem * var(--font-scale, 1));
+  line-height: 1.35;
+  color: var(--text-secondary, var(--color-text-secondary));
+}
+
+.more-menu-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.more-menu-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--olive-soft, rgba(83, 109, 66, 0.14));
+  color: var(--olive-primary);
+  font-size: calc(0.875rem * var(--font-scale, 1));
+  font-weight: 700;
+}
+
+.more-menu-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.more-menu-section-title {
+  margin: 0 0 var(--spacing-sm);
+  padding: 0 2px;
+  font-size: calc(0.75rem * var(--font-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-muted, var(--color-text-muted));
+}
+
+.more-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--radius-xl, 16px);
+  background: var(--bg-elevated, var(--surface-popover, #fff));
+  overflow: hidden;
+}
+
+.more-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  width: 100%;
+  min-height: max(var(--tap-min, 44px), 52px);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: none;
+  background: transparent;
+  color: var(--text-primary, var(--color-text-primary));
+  text-decoration: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.more-menu-item.has-divider {
+  border-bottom: 1px solid var(--border-subtle, var(--color-border));
+}
+
+.more-menu-item:active {
+  opacity: var(--press-opacity, 0.75);
+}
+
+.more-menu-item.is-active {
+  color: var(--olive-primary);
+}
+
+.more-menu-item.is-active .more-menu-item-icon {
+  color: var(--olive-primary);
+}
+
+.more-menu-item-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+  flex: 1;
+}
+
+.more-menu-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex-shrink: 0;
+  color: var(--olive-primary);
+}
+
+.more-menu-item-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.more-menu-item-label {
+  font-size: calc(1rem * var(--font-scale, 1));
+  font-weight: 500;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.more-menu-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted, var(--color-text-muted));
+}
+
+.more-menu-footer {
+  padding: var(--spacing-sm) 2px var(--spacing-md);
+}
+
+.more-menu-logout {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--color-error);
+  font: inherit;
+  font-size: calc(0.9375rem * var(--font-scale, 1));
+  font-weight: 600;
+  min-height: var(--tap-min, 44px);
+  padding: var(--spacing-sm) 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.more-menu-logout:active {
+  opacity: var(--press-opacity, 0.75);
+}

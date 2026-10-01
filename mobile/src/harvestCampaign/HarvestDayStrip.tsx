@@ -3,16 +3,13 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { shiftAthensDateKey } from '../utils/athensDate';
-import { radii, spacing, typography } from '../theme';
+import { appFonts, createElevation, radii, spacing } from '../theme';
 import type { HarvestDaySummary } from './totals';
 import { harvestWorkingDayHasActivity } from './workingDay';
-import { HarvestCard } from './components/HarvestCard';
 
 type Props = {
   selectedDay: string;
   today: string;
-  dayNumber: number;
   stripRows: HarvestDaySummary[];
   canPrev: boolean;
   canNext: boolean;
@@ -28,7 +25,6 @@ const CHIP_STRIDE = CHIP_WIDTH + CHIP_GAP;
 const HarvestDayStrip: React.FC<Props> = ({
   selectedDay,
   today,
-  dayNumber,
   stripRows,
   canPrev,
   canNext,
@@ -37,8 +33,7 @@ const HarvestDayStrip: React.FC<Props> = ({
   onShift,
 }) => {
   const { t } = useTranslation('fields');
-  const { colors, fontScaleMultiplier } = useTheme();
-  const yesterday = shiftAthensDateKey(today, -1);
+  const { colors, fontScaleMultiplier: scale } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const viewportWidth = useRef(0);
 
@@ -52,73 +47,86 @@ const HarvestDayStrip: React.FC<Props> = ({
   useEffect(() => {
     centerSelected();
   }, [centerSelected]);
-  const title = new Date(`${selectedDay}T12:00:00`).toLocaleDateString(locale, {
+
+  const weekday = new Date(`${selectedDay}T12:00:00`).toLocaleDateString(locale, {
     weekday: 'long',
+  });
+  const dayMonth = new Date(`${selectedDay}T12:00:00`).toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
   });
-  const relative =
-    selectedDay === today
-      ? t('harvestCampaign.dayNav.today')
-      : selectedDay === yesterday
-        ? t('harvestCampaign.dayNav.yesterday')
-        : null;
 
   return (
     <View accessibilityLabel={t('harvestCampaign.dayNav.label')} style={styles.wrap}>
-      <HarvestCard tone="hero" compact>
-        <View style={styles.mastheadRow}>
-          <Pressable
-            onPress={() => onShift(-1)}
-            disabled={!canPrev}
-            hitSlop={12}
-            accessibilityLabel={t('harvestCampaign.dayNav.prev')}
+      <View
+        style={[
+          styles.masthead,
+          {
+            backgroundColor: colors.surfaceElevated,
+            ...createElevation(colors, 'sm'),
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => onShift(-1)}
+          disabled={!canPrev}
+          hitSlop={12}
+          accessibilityLabel={t('harvestCampaign.dayNav.prev')}
+          style={[
+            styles.chevron,
+            {
+              opacity: canPrev ? 1 : 0.3,
+              backgroundColor: colors.primaryLight,
+            },
+          ]}
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.primaryDark} />
+        </Pressable>
+
+        <View style={styles.copy} accessibilityRole="header">
+          <Text
             style={[
-              styles.chevron,
+              styles.weekday,
               {
-                minWidth: 40,
-                minHeight: 40,
-                opacity: canPrev ? 1 : 0.35,
-                backgroundColor: colors.surfaceMuted,
+                color: colors.primaryDark,
+                fontSize: 12 * scale,
               },
             ]}
+            numberOfLines={1}
           >
-            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
-          </Pressable>
-          <View style={styles.copy}>
-            <Text
-              style={[
-                styles.title,
-                { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier },
-              ]}
-              numberOfLines={1}
-            >
-              {title}
-            </Text>
-            <Text style={[styles.sub, { color: colors.textTertiary }]}>
-              {t('harvestCampaign.home.day', { day: dayNumber })}
-              {relative ? ` · ${relative}` : ''}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => onShift(1)}
-            disabled={!canNext}
-            hitSlop={12}
-            accessibilityLabel={t('harvestCampaign.dayNav.next')}
+            {weekday}
+          </Text>
+          <Text
             style={[
-              styles.chevron,
+              styles.dayMonth,
               {
-                minWidth: 40,
-                minHeight: 40,
-                opacity: canNext ? 1 : 0.35,
-                backgroundColor: colors.surfaceMuted,
+                color: colors.textPrimary,
+                fontSize: 20 * scale,
+                lineHeight: 24 * scale,
               },
             ]}
+            numberOfLines={1}
           >
-            <Ionicons name="chevron-forward" size={20} color={colors.textPrimary} />
-          </Pressable>
+            {dayMonth}
+          </Text>
         </View>
-      </HarvestCard>
+
+        <Pressable
+          onPress={() => onShift(1)}
+          disabled={!canNext}
+          hitSlop={12}
+          accessibilityLabel={t('harvestCampaign.dayNav.next')}
+          style={[
+            styles.chevron,
+            {
+              opacity: canNext ? 1 : 0.3,
+              backgroundColor: colors.primaryLight,
+            },
+          ]}
+        >
+          <Ionicons name="chevron-forward" size={18} color={colors.primaryDark} />
+        </Pressable>
+      </View>
 
       {stripRows.length > 0 ? (
         <ScrollView
@@ -135,7 +143,7 @@ const HarvestDayStrip: React.FC<Props> = ({
             const selected = row.date === selectedDay;
             const active = harvestWorkingDayHasActivity(row);
             const dayNum = Number(row.date.slice(-2));
-            const weekday = new Date(`${row.date}T12:00:00`)
+            const chipWeekday = new Date(`${row.date}T12:00:00`)
               .toLocaleDateString(locale, { weekday: 'narrow' })
               .toUpperCase();
             return (
@@ -147,18 +155,31 @@ const HarvestDayStrip: React.FC<Props> = ({
                 style={[
                   styles.chip,
                   {
-                    borderColor: selected ? colors.oliveBorder : colors.borderLight,
-                    backgroundColor: selected ? colors.primaryLight : colors.surface,
+                    borderColor: selected ? colors.primary : 'transparent',
+                    backgroundColor: selected
+                      ? colors.primaryLight
+                      : colors.surfaceElevated,
+                    borderWidth: selected ? 1.5 : 0,
+                    ...(selected ? {} : createElevation(colors, 'sm')),
                   },
                 ]}
               >
-                <Text style={[styles.weekday, { color: colors.textTertiary }]}>{weekday}</Text>
+                <Text
+                  style={[
+                    styles.chipWeekday,
+                    {
+                      color: selected ? colors.primaryDark : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  {chipWeekday}
+                </Text>
                 <Text
                   style={[
                     styles.dayNum,
                     {
-                      color: selected ? colors.primary : colors.textPrimary,
-                      fontSize: 16 * fontScaleMultiplier,
+                      color: selected ? colors.primaryDark : colors.textPrimary,
+                      fontSize: 17 * scale,
                     },
                   ]}
                 >
@@ -171,7 +192,7 @@ const HarvestDayStrip: React.FC<Props> = ({
                       backgroundColor: active
                         ? colors.primary
                         : row.date === today
-                          ? colors.warning
+                          ? colors.eventHarvest
                           : 'transparent',
                     },
                   ]}
@@ -187,31 +208,60 @@ const HarvestDayStrip: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
-  mastheadRow: {
+  masthead: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    borderRadius: radii.card,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 12,
   },
   chevron: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radii.full,
   },
-  copy: { flex: 1, gap: 2, alignItems: 'center' },
-  title: { fontWeight: '750' as '700', letterSpacing: -0.3, textAlign: 'center' },
-  sub: { ...typography.styles.caption, textAlign: 'center' },
+  copy: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+    minWidth: 0,
+  },
+  weekday: {
+    fontFamily: appFonts.semibold,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'capitalize',
+    textAlign: 'center',
+  },
+  dayMonth: {
+    fontFamily: appFonts.bold,
+    fontWeight: '800',
+    letterSpacing: -0.35,
+    textAlign: 'center',
+  },
   strip: { gap: CHIP_GAP, paddingVertical: 4, paddingHorizontal: 2 },
   chip: {
     width: CHIP_WIDTH,
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
     alignItems: 'center',
     gap: 4,
   },
-  weekday: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
-  dayNum: { fontWeight: '800', fontVariant: ['tabular-nums'] },
+  chipWeekday: {
+    fontSize: 11,
+    fontFamily: appFonts.bold,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  dayNum: {
+    fontFamily: appFonts.bold,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
   dot: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
 });
 

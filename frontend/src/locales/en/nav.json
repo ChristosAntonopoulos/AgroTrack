@@ -26,9 +26,12 @@
     "userFeedback": "User feedback",
     "feedback": "Feedback",
     "settings": "Settings",
+    "help": "Help",
     "thisHarvest": "Harvest",
     "myOil": "My oil",
-    "chronologio": "History"
+    "chronologio": "History",
+    "more": "More",
+    "inbox": "Inbox"
   },
   "breadcrumb": {
     "new": "New",

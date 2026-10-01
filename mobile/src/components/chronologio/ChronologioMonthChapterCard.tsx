@@ -13,6 +13,7 @@ import {
   type MonthChapterFocus,
 } from '../../chronologio/monthPresentation';
 import { createElevation, motion, radii } from '../../theme';
+import { hexToRgba } from '../../utils/hexToRgba';
 
 type Props = {
   summary: ChronologioMonthSummary;
@@ -165,10 +166,14 @@ const ChronologioMonthChapterCard: React.FC<Props> = ({
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-          borderColor: isCurrent ? colors.oliveBorder : colors.borderLight,
+          backgroundColor: pressed
+            ? colors.surfaceMuted
+            : hexToRgba(colors.primary, isCurrent ? 0.14 : 0.08),
+          borderColor: isCurrent
+            ? hexToRgba(colors.primary, 0.55)
+            : hexToRgba(colors.primary, 0.36),
           opacity: pressed ? motion.pressOpacity : empty ? 0.88 : 1,
-          ...createElevation(colors, 'flat'),
+          ...createElevation(colors, 'sm'),
         },
       ]}
       accessibilityRole="button"
@@ -262,7 +267,7 @@ const ChronologioMonthChapterCard: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderRadius: radii.card,
     paddingVertical: 14,
     paddingHorizontal: 14,
@@ -277,10 +282,10 @@ const styles = StyleSheet.create({
     left: 0,
     top: 14,
     bottom: 14,
-    width: 2,
+    width: 3,
     borderTopRightRadius: 2,
     borderBottomRightRadius: 2,
-    opacity: 0.9,
+    opacity: 1,
   },
   header: {
     flexDirection: 'row',

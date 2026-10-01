@@ -40,10 +40,12 @@ import MoneyCategoryBreakdown from '../components/money/MoneyCategoryBreakdown';
 import MoneyExpandableSection from '../components/money/MoneyExpandableSection';
 import TransactionSection from '../components/money/TransactionSection';
 import MoneyTransactionDrawer from '../components/money/MoneyTransactionDrawer';
+import UnsoldOilStock from '../components/money/UnsoldOilStock';
 import { formatRelatedHarvestLabel } from '../finance/relatedHarvestLabel';
 import { downloadTextFile, moneyLedgerCsv } from '../finance/moneyExport';
 import { unassignedFieldLabel } from '../finance/display';
 import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
+import { oilStockService, type OilStockSummary } from '../services/oilStockService';
 import '../components/money/Money.css';
 
 type KindFilter = 'all' | 'income' | 'expense' | 'draft';
@@ -82,6 +84,7 @@ const MoneyPage: React.FC = () => {
   const [nextPage, setNextPage] = useState(2);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [oilStock, setOilStock] = useState<OilStockSummary | null>(null);
 
   const patch = (next: Record<string, string | null | undefined>) => {
     setSearchParams(
@@ -132,7 +135,7 @@ const MoneyPage: React.FC = () => {
         setShowingCachedData(!isDeviceOnline());
 
         const summaryFieldId = fieldId === UNASSIGNED_FIELD_QUERY ? undefined : fieldId || undefined;
-        const [yearSummary, ledger] = await Promise.all([
+        const [yearSummary, ledger, cellar] = await Promise.all([
           getFinancialSummaryService()
             .getYear(year, summaryFieldId, i18n.language)
             .then((result) => ({ ok: true as const, result }))
@@ -144,6 +147,9 @@ const MoneyPage: React.FC = () => {
             ...listParams(),
             page: 1,
           }),
+          oilStockService
+            .getSummary(summaryFieldId ? { fieldId: summaryFieldId } : undefined)
+            .catch(() => null),
         ]);
         if (cancelled) return;
         setSummaryForbidden(!yearSummary.ok);
@@ -152,6 +158,7 @@ const MoneyPage: React.FC = () => {
             ? overlayUnassignedSummary(yearSummary.result, i18n.language)
             : yearSummary.result
         );
+        setOilStock(cellar);
         const items = ledger.items.filter((row) => {
           if (row.status === 'void') return false;
           if (fieldId === UNASSIGNED_FIELD_QUERY) return !row.fieldId;
@@ -164,6 +171,7 @@ const MoneyPage: React.FC = () => {
         if (!cancelled) {
           setFields([]);
           setSummary(null);
+          setOilStock(null);
           setTransactions([]);
           setTotalCount(0);
         }
@@ -432,7 +440,13 @@ const MoneyPage: React.FC = () => {
               fieldCount={summary.fieldResults.length || (fieldId ? 1 : 0)}
               onOpenDrafts={() => patch({ kind: 'draft' })}
             />
-            {myOilLink}
+            {!summaryForbidden &&
+            oilStock &&
+            (oilStock.onHand.litres || 0) + (oilStock.delivered.litres || 0) > 0.05 ? (
+              <UnsoldOilStock summary={oilStock} locale={i18n.language} />
+            ) : (
+              myOilLink
+            )}
             {summary.dataAvailability.hasPostedRecords ? (
               <MonthlyFinancialTrend
                 year={year}

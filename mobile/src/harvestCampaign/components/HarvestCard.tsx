@@ -34,47 +34,53 @@ export const HarvestCard: React.FC<Props> = ({
     if (tone === 'nudge') {
       return {
         backgroundColor: colors.eventHarvestSoft,
-        borderColor: colors.oliveBorder,
+        borderColor: 'transparent',
+        borderWidth: 0,
         elevation: 'sm' as const,
         accentColor: colors.eventHarvest,
       };
     }
     if (tone === 'pending') {
       return {
-        backgroundColor: colors.surface,
+        backgroundColor: colors.surfaceElevated,
         borderColor: colors.warning,
-        elevation: 'flat' as const,
+        borderWidth: 1.5,
+        elevation: 'sm' as const,
         accentColor: colors.warning,
       };
     }
     if (tone === 'done') {
       return {
-        backgroundColor: colors.surface,
-        borderColor: colors.borderLight,
-        elevation: 'flat' as const,
+        backgroundColor: colors.surfaceElevated,
+        borderColor: 'transparent',
+        borderWidth: 0,
+        elevation: 'sm' as const,
         accentColor: colors.success,
       };
     }
     if (tone === 'muted') {
       return {
         backgroundColor: colors.surfaceMuted,
-        borderColor: colors.borderLight,
+        borderColor: 'transparent',
+        borderWidth: 0,
         elevation: 'flat' as const,
         accentColor: colors.textTertiary,
       };
     }
     if (tone === 'hero') {
       return {
-        backgroundColor: colors.surface,
-        borderColor: colors.borderLight,
+        backgroundColor: colors.surfaceElevated,
+        borderColor: 'transparent',
+        borderWidth: 0,
         elevation: 'sm' as const,
-        accentColor: colors.eventHarvest,
+        accentColor: colors.primary,
       };
     }
     return {
-      backgroundColor: colors.surface,
-      borderColor: colors.borderLight,
-      elevation: 'flat' as const,
+      backgroundColor: colors.surfaceElevated,
+      borderColor: 'transparent',
+      borderWidth: 0,
+      elevation: 'sm' as const,
       accentColor: colors.eventHarvest,
     };
   })();
@@ -87,6 +93,7 @@ export const HarvestCard: React.FC<Props> = ({
         {
           backgroundColor: palette.backgroundColor,
           borderColor: palette.borderColor,
+          borderWidth: palette.borderWidth,
           ...createElevation(colors, palette.elevation),
         },
         style,
@@ -110,7 +117,6 @@ export const HarvestCard: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.card,
     overflow: 'hidden',
   },

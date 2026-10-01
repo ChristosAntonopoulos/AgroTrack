@@ -134,9 +134,13 @@
   "harvestExpenseHere": "Registrata in Raccolta. L'importo si cambia qui.",
   "openHarvestDay": "Apri la giornata di raccolta",
   "unsoldTitle": "Ancora invenduto",
-  "unsoldHint": "È ancora in cantina. Diventa un'entrata quando viene venduto.",
+  "unsoldHint": "È ancora nella tua cantina. Diventa un'entrata quando viene venduto.",
+  "unsoldSoldGiven": "Venduto e regalato",
+  "unsoldMeterAria": "Olio rimasto {{remaining}}, venduto e regalato {{gone}}",
   "unsoldThisYear": "Questa annata",
   "unsoldYear": "Annata {{span}}",
   "unsoldTin": "{{count}} × {{size}} L",
-  "unsoldBulk": "{{amount}} sfuso"
+  "unsoldBulk": "{{amount}} sfuso",
+  "openMyOil": "Vedi il mio olio",
+  "oilSaleInCellar": "Collegato alla cantina dell'olio"
 }

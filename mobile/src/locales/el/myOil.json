@@ -1,12 +1,12 @@
 {
-  "title": "Το λάδι μου",
-  "pageSupport": "Το λάδι στην αποθήκη σου.",
+  "title": "Η αποθήκη σου",
+  "pageSupport": "Η αποθήκη σου — όχι του ελαιώνα.",
   "seasonLabel": "Συγκομιδή {{season}}",
   "seasonHint": "",
   "activity": {
     "title": "Τώρα",
-    "available": "Αποθήκη",
-    "warehouse": "Αποθήκη",
+    "available": "Ελεύθερο",
+    "warehouse": "Ελεύθερο",
     "household": "Για το σπίτι",
     "householdEmpty": "Τίποτα ξεχωρισμένο",
     "forOthers": "Κρατήσεις",
@@ -20,14 +20,38 @@
     "nextPerson": "{{name}} · {{pack}}"
   },
   "tabs": {
-    "overview": "Επισκόπηση",
-    "stock": "Αποθήκη",
-    "others": "Κρατήσεις",
-    "lots": "Χωράφια",
+    "stock": "Απόθεμα",
+    "holds": "Κρατήσεις",
     "movements": "Κινήσεις"
   },
+  "byGrove": {
+    "title": "Ανά κτήμα",
+    "hint": "Από πού ήρθε το λάδι",
+    "shared": "Κοινό · {{names}}",
+    "unassigned": "Χωρίς κτήμα",
+    "noneFree": "Τίποτα ελεύθερο",
+    "lotCount_one": "{{count}} παρτίδα",
+    "lotCount_other": "{{count}} παρτίδες",
+    "filtered": "Εμφάνιση: {{name}}",
+    "clearFilter": "Όλα"
+  },
+  "quickLinks": {
+    "aria": "Σχετικά",
+    "harvest": "Συγκομιδή",
+    "money": "Έσοδα",
+    "details": "Λεπτομέρειες →",
+    "history": "Ιστορικό →"
+  },
+  "shareInbox": {
+    "title": "Ζητούν λάδι από την αποθήκη σου",
+    "hint": "Αποδοχή = μπαίνει στην αποθήκη τους",
+    "someone": "Κάποιος",
+    "asking": "Ζητά λάδι",
+    "accept": "Αποδοχή",
+    "reject": "Απόρριψη"
+  },
   "hero": {
-    "eyebrow": "Αποθήκη",
+    "eyebrow": "Η αποθήκη σου",
     "inCellarLine": "",
     "approxTotal": "≈ {{amount}} L",
     "available": "Αποθήκη",
@@ -56,13 +80,35 @@
     "actionsHint": ""
   },
   "actions": {
-    "give": "Δώσε ή πούλησε",
+    "give": "Δώσε / Πούλησε",
+    "hold": "Κράτησε",
     "fillTins": "Γέμισα τενεκέδες",
     "more": "Άλλες ενέργειες",
     "menuTitle": "Τι θέλεις να κάνεις;",
     "correct": "Διόρθωση",
     "homeUse": "Για το σπίτι",
-    "loss": "Απώλεια"
+    "loss": "Απώλεια",
+    "sell": "Πούλησε",
+    "count": "Μέτρηση αποθέματος",
+    "delivered": "Δόθηκαν",
+    "cancelHold": "Ακύρωση"
+  },
+  "pendingPressings": {
+    "title": "Περιμένει κατανομή",
+    "hint": "Λάδι από το λιοτρίβι χωρίς αποθήκη. Μοίρασέ το.",
+    "batch": "Παρτίδα {{batch}}",
+    "you": "Εσύ",
+    "left": "Μένουν {{amount}} L",
+    "over": "{{amount}} L πάνω από την παρτίδα",
+    "distribute": "Μοίρασε",
+    "save": "Κατανομή"
+  },
+  "holds": {
+    "state": {
+      "active": "Ενεργή",
+      "completed": "Ολοκληρώθηκε",
+      "cancelled": "Ακυρώθηκε"
+    }
   },
   "stock": {
     "title": "Αποθήκη",
@@ -213,10 +259,28 @@
     "delivered": "Παράδοση",
     "homeUse": "Για το σπίτι",
     "gifted": "Δώρο",
+    "sharedOut": "Μοιράστηκε (έξοδος)",
+    "sharedIn": "Μοιράστηκε (είσοδος)",
     "consumed": "Κατανάλωση",
     "corrected": "Διόρθωση",
     "other": "Κίνηση",
-    "bulkToTins": "{{bulk}} χύμα → {{tins}} τενεκέδες"
+    "bulkToTins": "{{bulk}} χύμα → {{tins}} τενεκέδες",
+    "undo": "Αναίρεση",
+    "isUndo": "Αναίρεση προηγούμενης κίνησης",
+    "wasUndone": "Αναιρέθηκε"
+  },
+  "count": {
+    "title": "Μέτρηση αποθέματος",
+    "subtitle": "Γράψε τι βρήκες στην αποθήκη.",
+    "expected": "Σύμφωνα με τα βιβλία",
+    "actual": "Τι μέτρησες",
+    "matches": "Συμφωνεί με τα βιβλία",
+    "surplus": "{{amount}} L περισσότερα από τα βιβλία",
+    "shortfall": "{{amount}} L λιγότερα από τα βιβλία",
+    "reason": "Γιατί;",
+    "reasonPlaceholder": "π.χ. διαρροή, λάθος καταγραφή",
+    "save": "Καταχώρηση",
+    "defaultReason": "Μέτρηση αποθέματος"
   },
   "markDelivered": "Παραδόθηκαν",
   "theyTookIt": "Το πήρε",
@@ -229,7 +293,7 @@
     "title": "Δώσε ή πούλησε",
     "subtitle": "",
     "who": "Σε ποιον;",
-    "forSomeone": "Όνομα",
+    "forSomeone": "Κάποιον",
     "forHome": "Σπίτι",
     "noName": "Χωρίς όνομα",
     "homeName": "Σπίτι",
@@ -251,6 +315,24 @@
     "no": "Όχι",
     "amount": "Ποσό €",
     "alreadyPaid": "Πληρώθηκε",
+    "intent": "Τι έγινε;",
+    "intentHold": "Κράτησε",
+    "intentHoldHint": "Μένει στην αποθήκη",
+    "intentGive": "Δώσε",
+    "intentGiveHint": "Το πήραν, χωρίς λεφτά",
+    "intentSell": "Πούλησε",
+    "intentSellHint": "Με τιμή",
+    "tookIt": "Το πήραν",
+    "stillHere": "Μένει εδώ",
+    "paid": "Πληρώθηκε",
+    "notPaid": "Όχι ακόμα",
+    "saveHold": "Κράτησε",
+    "saveGive": "Δώσε",
+    "saveSell": "Πούλησε",
+    "more": "Περισσότερα",
+    "less": "Λιγότερα",
+    "continue": "Συνέχεια",
+    "back": "Πίσω",
     "save": "Αποθήκευση",
     "cancel": "Άκυρο",
     "saving": "Αποθήκευση…"
@@ -281,11 +363,12 @@
   "repack": "Γέμισα τενεκέδες",
   "repackHint": "Το χύμα του χωραφιού γίνεται τενεκέδες.",
   "adjust": "Διόρθωση / δώρο / σπίτι",
-  "empty": "Δεν έχει καταγραφεί ακόμα λάδι στην αποθήκη.",
-  "emptyHint": "Όταν καταγράψεις λάδι στη συγκομιδή, θα εμφανιστεί εδώ.",
+  "empty": "Δεν έχει καταγραφεί ακόμα λάδι στην αποθήκη σου.",
+  "emptyHint": "Όταν μπει λάδι στην αποθήκη σου από τη συγκομιδή, θα το δεις εδώ.",
+  "emptyCta": "Καταχώρισε λάδι",
   "loading": "Φόρτωση…",
   "error": "Δεν φορτώθηκε το λάδι. Δοκίμασε ξανά.",
-  "seeMyOil": "Δες το λάδι μου",
+  "seeMyOil": "Δες την αποθήκη",
   "tin": "{{count}} × {{size}}L",
   "bulk": "{{amount}} L χύμα",
   "litres": "{{amount}} L",

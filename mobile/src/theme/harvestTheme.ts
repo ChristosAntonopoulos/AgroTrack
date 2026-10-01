@@ -1,8 +1,28 @@
 import type { AppColors } from './themes';
 
+/** Pipeline step fills — distinct process colors for outdoor readability. */
+export const harvestPipelinePalette = {
+  sacks: { bg: '#FFF1D8', icon: '#B86A21' },
+  fruit: { bg: '#E9EDDC', icon: '#53622E' },
+  oil: { bg: '#F5E7B7', icon: '#9B741C' },
+} as const;
+
+/** Form accents for harvest sheets — soft fill + strong action color. */
+export const harvestFormAccent = {
+  sacks: { soft: '#FFF1D8', strong: '#B86A21', key: 'sacks' as const },
+  mill: { soft: '#E9EDDC', strong: '#53622E', key: 'fruit' as const },
+  oil: { soft: '#F5E7B7', strong: '#9B741C', key: 'oil' as const },
+  people: { soft: '#E8ECD9', strong: '#4F5C2F', key: 'people' as const },
+  default: { soft: '#E8ECD9', strong: '#4F5C2F', key: 'default' as const },
+} as const;
+
+export type HarvestFormAccentKey = keyof typeof harvestFormAccent;
+
 /**
- * Live harvest palette — mirrors frontend/src/styles/harvest-mode.css.
- * Olive stays the action colour; wheat gold is highlight; terracotta is fruit.
+ * Live harvest palette — crisp outdoor olive + terracotta harvest accent.
+ * Base light theme already carries the field-instrument colors; this only
+ * locks harvest-specific accents while campaign is live.
+ * Callers skip this when the sun palette is active so parchment is not restored.
  */
 export const applyHarvestLivePalette = (base: AppColors, isDark: boolean): AppColors => {
   if (isDark) {
@@ -47,40 +67,44 @@ export const applyHarvestLivePalette = (base: AppColors, isDark: boolean): AppCo
 
   return {
     ...base,
-    primary: '#6b6a3c',
-    primaryDark: '#5a5933',
-    primaryActive: '#4c4b2b',
-    primaryLight: '#ede8d4',
-    oliveBorder: '#c9c4a8',
-    onOlive: '#fffdf8',
-    accentGold: '#c8a06a',
-    olive: '#6b6a3c',
-    leaf: '#6b6a3c',
-    background: '#f6f1e7',
-    backgroundLight: '#f6f1e7',
-    backgroundSidebar: '#eee4d6',
-    surface: '#fff9f2',
-    surfaceElevated: '#fffcf8',
-    surfaceMuted: '#eee4d6',
-    surface3: '#e6dcce',
-    surfaceHover: '#f3ebe0',
-    surfaceSelected: '#e8e4d0',
-    headerBackground: '#fff9f2',
-    headerAccent: '#6b6a3c',
-    headerBorder: '#ddd2c3',
-    tabBarBackground: '#fff9f2',
-    tabBarForeground: '#6b6a3c',
-    tabBarForegroundInactive: '#9a9286',
-    tabBarActivePill: '#ede8d4',
-    tabBarBorder: '#ddd2c3',
-    border: '#ddd2c3',
-    borderLight: '#ddd2c3',
-    textPrimary: '#2f2a23',
-    textSecondary: '#7b7367',
-    textTertiary: '#9a9286',
-    link: '#5a5933',
-    focusRing: '#6b6a3c',
-    eventHarvest: '#b77357',
-    eventHarvestSoft: 'rgba(183, 115, 87, 0.16)',
+    primary: '#4F5C2F',
+    primaryDark: '#35421F',
+    primaryActive: '#35421F',
+    primaryLight: '#E8ECD9',
+    oliveBorder: '#DDD8CA',
+    onOlive: '#FFFFFF',
+    accentGold: '#A67B1F',
+    olive: '#4F5C2F',
+    leaf: '#4F5C2F',
+    background: '#F6F2E8',
+    backgroundLight: '#F6F2E8',
+    backgroundSidebar: '#E8ECD9',
+    surface: '#FFFDF8',
+    surfaceElevated: '#FFFFFF',
+    surfaceMuted: '#E8ECD9',
+    surface3: '#E8ECD9',
+    surfaceHover: '#F3F0E6',
+    surfaceSelected: '#E8ECD9',
+    headerBackground: '#FFFDF8',
+    headerAccent: '#4F5C2F',
+    headerBorder: '#DDD8CA',
+    tabBarBackground: '#FFFDF8',
+    tabBarForeground: '#4F5C2F',
+    tabBarForegroundInactive: '#65675D',
+    tabBarActivePill: '#E8ECD9',
+    tabBarBorder: '#DDD8CA',
+    border: '#DDD8CA',
+    borderLight: '#E5E1D4',
+    textPrimary: '#24251F',
+    textSecondary: '#65675D',
+    textTertiary: '#8C8E83',
+    link: '#35421F',
+    focusRing: '#4F5C2F',
+    success: '#2F6B43',
+    successLight: '#E1EFE4',
+    successDark: '#245536',
+    eventHarvest: '#C7653F',
+    eventHarvestSoft: '#F4E1D7',
+    shadow: 'rgba(44, 42, 32, 0.08)',
   };
 };

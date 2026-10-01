@@ -32,6 +32,7 @@ import SatelliteDateSelector from './SatelliteDateSelector';
 import type { FieldWeather } from '../../services/geospatialService';
 import { nextOverlayIds } from '../../utils/fieldMapPresets';
 import FieldTabStatus from './FieldTabStatus';
+import MapExploreCue from '../onboarding/MapExploreCue';
 import './FieldDetailMap.css';
 
 export type FieldMapVariant = 'peek' | 'full';
@@ -248,6 +249,7 @@ const FieldDetailMap: React.FC<Props> = ({
       >
         <div className="field-detail-map-stage">
           <div className="field-detail-map-canvas">
+          <MapExploreCue />
           <MapContainer
             center={center}
             zoom={Math.min(MAP_FIT_MAX_ZOOM, MAP_MAX_ZOOM)}

@@ -5,7 +5,7 @@ export type ChronologioMobileDestination =
   | { kind: 'TaskDetail'; taskId: string }
   | { kind: 'Money'; fieldId: string; tx?: string }
   | { kind: 'Photos'; fieldId: string; photoId: string }
-  | { kind: 'HarvestCampaign'; fieldId?: string; harvestId?: string; day?: string; view?: 'today' | 'fields' | 'totals' | 'log' }
+  | { kind: 'HarvestCampaign'; fieldId?: string; harvestId?: string; day?: string; view?: 'today' | 'season' | 'fields' | 'totals' | 'log' }
   | { kind: 'FieldWeatherVegetation'; fieldId: string }
   | { kind: 'FieldDetail'; fieldId: string }
   | { kind: 'noteEdit'; noteId: string; fieldId: string }
@@ -147,7 +147,7 @@ export const chronologioMobileDestination = (entry: ChronologioEntry): Chronolog
       fieldId: fieldId || undefined,
       harvestId: harvestId || undefined,
       day,
-      view: day ? 'fields' : undefined,
+      view: day ? 'season' : undefined,
     };
   }
 

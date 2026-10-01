@@ -139,9 +139,13 @@
   "harvestExpenseHere": "Καταχωρήθηκε στη συγκομιδή. Το ποσό αλλάζει εδώ.",
   "openHarvestDay": "Άνοιγμα της ημέρας συγκομιδής",
   "unsoldTitle": "Απούλητο λάδι",
-  "unsoldHint": "Μένει στην αποθήκη. Γίνεται έσοδο όταν πουληθεί.",
+  "unsoldHint": "Μένει στην αποθήκη σου. Γίνεται έσοδο όταν πουληθεί.",
+  "unsoldSoldGiven": "Πωλημένο & δοσμένο",
+  "unsoldMeterAria": "Λάδι που μένει {{remaining}}, πωλημένο και δοσμένο {{gone}}",
   "unsoldThisYear": "Αυτή η χρονιά",
   "unsoldYear": "Χρονιά {{span}}",
   "unsoldTin": "{{count}} × {{size}} L",
-  "unsoldBulk": "{{amount}} χύμα"
+  "unsoldBulk": "{{amount}} χύμα",
+  "openMyOil": "Δες το λάδι μου",
+  "oilSaleInCellar": "Συνδεδεμένο με την αποθήκη λαδιού"
 }

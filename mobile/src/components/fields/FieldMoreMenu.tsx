@@ -117,7 +117,8 @@ const FieldMoreMenu: React.FC<Props> = ({
       key: 'weather',
       label: t('chronologio:weatherVegetation.button'),
       icon: 'partly-sunny-outline',
-      onPress: () => run(() => navigation.navigate('FieldWeatherVegetation', { fieldId: field.id })),
+      onPress: () =>
+        run(() => navigation.navigate('FieldDetail', { fieldId: field.id, mode: 'weather' })),
     });
   }
   if (canManageAccess) {

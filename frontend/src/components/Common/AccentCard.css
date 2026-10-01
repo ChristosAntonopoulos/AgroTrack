@@ -12,7 +12,7 @@
   display: block;
   width: 100%;
   text-align: left;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--card-edge, var(--border-default));
   background: var(--surface-1);
   border-radius: 16px;
   padding: 0.9rem 1rem;

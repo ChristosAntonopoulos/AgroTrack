@@ -27,6 +27,7 @@ import MoneyFieldRows from '../components/money/MoneyFieldRows';
 import MoneyCategoryBreakdown from '../components/money/MoneyCategoryBreakdown';
 import MoneyExpandableSection from '../components/money/MoneyExpandableSection';
 import OliveOilEconomicsCard from '../components/money/OliveOilEconomicsCard';
+import UnsoldOilStock from '../components/money/UnsoldOilStock';
 import MoneyTransactionRow from '../components/money/MoneyTransactionRow';
 import MoneyTransactionDrawer from '../components/money/MoneyTransactionDrawer';
 import { useAuth } from '../context/AuthContext';
@@ -42,6 +43,7 @@ import {
 import { Field } from '../services/fieldService';
 import type { FinancialTransaction } from '../services/financialTransactionService';
 import type { YearFinancialSummary } from '../services/financialSummaryService';
+import { oilStockService, type OilLot } from '../services/oilStockService';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { fieldLabelMap, friendlyFieldLabel } from '../utils/fieldLabels';
 import { overlayUnassignedSummary, UNASSIGNED_FIELD_QUERY } from '../finance/buildYearSummary';
@@ -96,6 +98,7 @@ const MoneyScreen = () => {
   const [relatedTitles, setRelatedTitles] = useState<{ task?: string; harvest?: string }>({});
   const [fieldPickerOpen, setFieldPickerOpen] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  const [oilLots, setOilLots] = useState<OilLot[]>([]);
 
   const unknown = t('money:unknownAmount');
   const locale = i18n.language;
@@ -132,7 +135,7 @@ const MoneyScreen = () => {
     );
     setFields(list);
     const summaryFieldId = fieldId === UNASSIGNED_FIELD_QUERY ? undefined : fieldId || undefined;
-    const [yearSummary, ledger] = await Promise.all([
+    const [yearSummary, ledger, cellarLots] = await Promise.all([
       getFinancialSummaryService()
         .getYear(year, summaryFieldId, locale)
         .then((result) => ({ ok: true as const, result }))
@@ -145,6 +148,9 @@ const MoneyScreen = () => {
         page: 1,
         pageSize: PAGE_SIZE,
       }),
+      oilStockService
+        .listLots(summaryFieldId ? { fieldId: summaryFieldId } : undefined)
+        .catch(() => [] as OilLot[]),
     ]);
     setSummaryForbidden(!yearSummary.ok);
     setSummary(
@@ -152,6 +158,7 @@ const MoneyScreen = () => {
         ? overlayUnassignedSummary(yearSummary.result, locale)
         : yearSummary.result
     );
+    setOilLots(cellarLots);
     const items = filterLedger(ledger.items);
     setTransactions(items);
     setTotalCount(ledger.totalCount);
@@ -472,7 +479,17 @@ const MoneyScreen = () => {
             <EmptyState title={t('money:collaboratorTitle')} description={t('money:collaboratorHint')} />
           ) : emptyYear ? (
             <>
-              {myOilLink}
+              {!summaryForbidden ? (
+                <UnsoldOilStock
+                  year={year}
+                  lots={oilLots}
+                  fieldNames={fieldNames}
+                  locale={locale}
+                  onOpenMyOil={() => navigation.navigate('MyOil')}
+                />
+              ) : (
+                myOilLink
+              )}
               <EmptyState
                 title={t('money:emptyTitle', { span })}
                 description={t('money:emptyHint')}
@@ -481,6 +498,13 @@ const MoneyScreen = () => {
             </>
           ) : summary ? (
             <>
+              <UnsoldOilStock
+                year={year}
+                lots={oilLots}
+                fieldNames={fieldNames}
+                locale={locale}
+                onOpenMyOil={() => navigation.navigate('MyOil')}
+              />
               <MoneySummaryCards
                 summary={summary}
                 locale={locale}
@@ -492,8 +516,6 @@ const MoneyScreen = () => {
                 fieldCount={trustFieldCount}
                 onOpenDrafts={() => setKind('draft')}
               />
-
-              {myOilLink}
 
               {summary.dataAvailability.hasPostedRecords ? (
                 <MoneyMonthStrip

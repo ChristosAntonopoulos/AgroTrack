@@ -3,15 +3,22 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
+import { harvestPipelinePalette } from '../../theme';
 import { HARVEST_ACTION_ICONS } from '../harvestActions';
 
 export type HarvestPathStep = 'sacks' | 'mill' | 'oil';
 
 const ORDER: HarvestPathStep[] = ['sacks', 'mill', 'oil'];
 
+const toneFor = (step: HarvestPathStep) =>
+  step === 'sacks'
+    ? harvestPipelinePalette.sacks
+    : step === 'mill'
+      ? harvestPipelinePalette.fruit
+      : harvestPipelinePalette.oil;
+
 /**
  * Sacks → fruit → oil, drawn as one connected path.
- * On the add menu every step can be opened. On a form, earlier steps read as done.
  */
 export const HarvestStepRail: React.FC<{
   current: HarvestPathStep;
@@ -24,21 +31,22 @@ export const HarvestStepRail: React.FC<{
   const { colors } = useTheme();
   const you = t('harvestCampaign.stepRail.you');
   const currentIndex = ORDER.indexOf(current);
-  const fill =
-    current === 'oil' ? '100%' : current === 'mill' ? '50%' : '12%';
+  const currentTone = toneFor(current);
+  const fill = current === 'oil' ? '100%' : current === 'mill' ? '50%' : '12%';
 
   return (
     <View style={styles.wrap} accessibilityLabel={t('harvestCampaign.stepRail.aria')}>
       <View style={styles.path}>
         <View
-          style={[styles.line, { backgroundColor: colors.borderLight }]}
+          style={[styles.line, { backgroundColor: colors.border }]}
           accessibilityElementsHidden
         >
-          <View style={[styles.lineFill, { width: fill, backgroundColor: colors.eventHarvest }]} />
+          <View style={[styles.lineFill, { width: fill, backgroundColor: currentTone.icon }]} />
         </View>
         {ORDER.map((step) => {
           const isCurrent = step === current;
           const index = ORDER.indexOf(step);
+          const tone = toneFor(step);
           const canPick = onPick != null && (enabled == null || enabled.includes(step));
           const place =
             onPick != null
@@ -60,20 +68,25 @@ export const HarvestStepRail: React.FC<{
                 styles.dot,
                 filled
                   ? {
-                      backgroundColor: colors.eventHarvest,
-                      borderColor: colors.eventHarvest,
+                      backgroundColor: tone.icon,
+                      borderColor: tone.icon,
                     }
                   : {
-                      backgroundColor: colors.surface,
-                      borderColor: place === 'later' ? colors.border : colors.eventHarvest,
+                      backgroundColor: colors.surfaceElevated,
+                      borderColor: place === 'later' ? colors.border : tone.icon,
                     },
-                filled ? { shadowColor: colors.eventHarvest } : null,
               ]}
             >
               <Ionicons
                 name={HARVEST_ACTION_ICONS[step]}
                 size={isCurrent ? 18 : 16}
-                color={filled ? colors.surface : place === 'later' ? colors.textTertiary : colors.eventHarvest}
+                color={
+                  filled
+                    ? colors.onOlive
+                    : place === 'later'
+                      ? colors.textTertiary
+                      : tone.icon
+                }
               />
             </View>
           );
@@ -86,7 +99,7 @@ export const HarvestStepRail: React.FC<{
                   {
                     color:
                       place === 'current'
-                        ? colors.eventHarvest
+                        ? tone.icon
                         : place === 'later'
                           ? colors.textTertiary
                           : colors.textPrimary,
@@ -99,7 +112,7 @@ export const HarvestStepRail: React.FC<{
               <Text
                 style={[
                   styles.fact,
-                  { color: place === 'current' ? colors.eventHarvest : colors.textSecondary },
+                  { color: place === 'current' ? tone.icon : colors.textSecondary },
                 ]}
                 numberOfLines={1}
               >
@@ -166,10 +179,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOpacity: 0.28,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 2,
   },
   name: { fontSize: 13, fontWeight: '700', textAlign: 'center', lineHeight: 16 },
   fact: { fontSize: 11, fontWeight: '600', textAlign: 'center', minHeight: 14 },

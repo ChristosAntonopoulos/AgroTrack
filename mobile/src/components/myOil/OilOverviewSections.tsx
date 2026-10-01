@@ -118,10 +118,10 @@ export function OilInventorySummary({ summary, onSelectPack }: InvProps) {
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
   const locale = i18n.language;
-  const { physical, available } = summary;
-  const held16 = Math.max(0, physical.tin16 - available.tin16);
-  const held17 = Math.max(0, physical.tin17 - available.tin17);
-  const heldBulk = Math.max(0, Math.round((physical.bulkLitres - available.bulkLitres) * 10) / 10);
+  const { onHand, held, available } = summary;
+  const held16 = held.tin16;
+  const held17 = held.tin17;
+  const heldBulk = held.bulkLitres;
 
   const warehouseLine = formatHeroStock(available, locale, {
     tins: (count) => t('hero.tins', { count }),
@@ -149,8 +149,8 @@ export function OilInventorySummary({ summary, onSelectPack }: InvProps) {
       icon: 'beaker-outline',
       free: available.tin16,
       held: held16,
-      total: physical.tin16,
-      show: physical.tin16 > 0 || available.tin16 > 0,
+      total: onHand.tin16,
+      show: onHand.tin16 > 0 || available.tin16 > 0,
     },
     {
       key: 'tin17',
@@ -160,8 +160,8 @@ export function OilInventorySummary({ summary, onSelectPack }: InvProps) {
       icon: 'beaker-outline',
       free: available.tin17,
       held: held17,
-      total: physical.tin17,
-      show: physical.tin17 > 0 || available.tin17 > 0,
+      total: onHand.tin17,
+      show: onHand.tin17 > 0 || available.tin17 > 0,
     },
     {
       key: 'bulk',
@@ -174,8 +174,8 @@ export function OilInventorySummary({ summary, onSelectPack }: InvProps) {
       icon: 'water-outline',
       free: available.bulkLitres,
       held: heldBulk,
-      total: physical.bulkLitres,
-      show: physical.bulkLitres > 0.05 || available.bulkLitres > 0.05,
+      total: onHand.bulkLitres,
+      show: onHand.bulkLitres > 0.05 || available.bulkLitres > 0.05,
     },
   ];
 

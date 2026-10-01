@@ -42,8 +42,11 @@ public static class DependencyInjection
         services.AddScoped<IFieldWorkProfileRepository, FieldWorkProfileRepository>();
         services.AddScoped<IMinistryNotificationRepository, MinistryNotificationRepository>();
         services.AddScoped<IHarvestRecordRepository, HarvestRecordRepository>();
+        services.AddScoped<IOilCellarRepository, OilCellarRepository>();
         services.AddScoped<IOilLotRepository, OilLotRepository>();
+        services.AddScoped<IOilPressingRepository, OilPressingRepository>();
         services.AddScoped<IOilCommitmentRepository, OilCommitmentRepository>();
+        services.AddScoped<IOilShareRequestRepository, OilShareRequestRepository>();
         services.AddScoped<IStockMovementRepository, StockMovementRepository>();
         services.AddScoped<IFinancialTransactionRepository, FinancialTransactionRepository>();
         services.AddScoped<IServiceCategoryRepository, ServiceCategoryRepository>();

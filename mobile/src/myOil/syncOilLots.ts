@@ -25,24 +25,45 @@ export const upsertOilLotFromEntry = async (
   if (!batchId) return;
 
   const packing = packingFromOilEntry(entry);
-  const input: UpsertOilLotInput = {
+  if (!(farmerOilLitres(entry) > 0.05) && packing.tin16 + packing.tin17 + packing.bulkLitres <= 0.05) {
+    return;
+  }
+
+  const recordIds = harvestRecordIds.length
+    ? harvestRecordIds
+    : entry.harvestRecordIds || (entry.harvestRecordId ? [entry.harvestRecordId] : []);
+  const shared = {
     batchId,
     pressedOn: new Date(`${entry.date}T12:00:00`).toISOString(),
-    harvestRecordIds: harvestRecordIds.length
-      ? harvestRecordIds
-      : entry.harvestRecordIds || (entry.harvestRecordId ? [entry.harvestRecordId] : []),
+    harvestRecordIds: recordIds,
     fieldIds: entry.fieldIds || [],
     totalAmount: entry.amount,
     unit: entry.unit,
     millKept: entry.millKept ?? 0,
     conversionFactor: entry.unit === 'kg' ? OLIVE_OIL_KG_PER_LITRE : undefined,
-    packing,
     notes: entry.note,
   };
 
-  if (!(farmerOilLitres(entry) > 0.05) && packing.tin16 + packing.tin17 + packing.bulkLitres <= 0.05) {
+  const allocations = (entry.cellarAllocations || []).filter(
+    (a) => a.cellarOwnerUserId && a.litres > 0.05
+  );
+  if (allocations.length > 0) {
+    await oilStockService.createPressing({ ...shared, allocations });
     return;
   }
+
+  // Nobody said whose cellar it is. The server either files it under the only eligible cellar or
+  // parks the ticket for the grove admin to split — it is not ours to guess.
+  if (!entry.cellarOwnerUserId) {
+    await oilStockService.createPressing({ ...shared, allocations: [] });
+    return;
+  }
+
+  const input: UpsertOilLotInput = {
+    ...shared,
+    packing,
+    cellarOwnerUserId: entry.cellarOwnerUserId,
+  };
 
   await oilStockService.upsertLot(input);
 };

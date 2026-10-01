@@ -72,6 +72,7 @@
       "sacks_one": "{{count}} sack today",
       "sacks_other": "{{count}} sacks today",
       "oilEmpty": "No oil recorded",
+      "oilFree": "{{amount}} free",
       "oilLitres": "{{count}} L",
       "oilLine": "{{litres}} L · {{tins}} tins",
       "tins_one": "{{count}} tin",

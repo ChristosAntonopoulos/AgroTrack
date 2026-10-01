@@ -15,7 +15,8 @@ export type HarvestCampaignParams = {
   fieldId?: string;
   harvestId?: string;
   day?: string;
-  view?: 'today' | 'fields' | 'totals' | 'log';
+  /** `fields` / `totals` / `log` accepted for deep links; screen maps them to today|season. */
+  view?: 'today' | 'season' | 'fields' | 'totals' | 'log';
 };
 
 export type FieldsStackParamList = {
@@ -45,8 +46,8 @@ export type RootStackParamList = {
   FieldDetail: {
     fieldId: string;
     focus?: 'harvest' | 'harvest-final' | 'money';
-    /** Local field page tab (web-aligned). Legacy `chronologio` / `overview` still accepted. */
-    mode?: 'overview' | 'map' | 'details' | 'chronologio';
+    /** Local field page tab. Legacy `map` / `overview` / `chronologio` map to vegetation. */
+    mode?: 'vegetation' | 'weather' | 'details' | 'overview' | 'map' | 'chronologio';
     /** First-run spatial loading panel. */
     activation?: 'spatial' | 'observe';
     /** Shown after the first boundary is saved. */
@@ -59,7 +60,7 @@ export type RootStackParamList = {
   ThisHarvest: undefined;
   ThisHarvestReview: undefined;
   Money: { fieldId?: string; year?: number; tx?: string } | undefined;
-  MyOil: undefined;
+  MyOil: { field?: string } | undefined;
   Photos: { fieldId?: string; photoId?: string; importNearby?: boolean } | undefined;
   Analytics: undefined;
   Reports: undefined;

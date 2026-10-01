@@ -41,7 +41,9 @@ const shareNote = (
   fieldCount: number
 ): string | undefined => {
   if (fieldCount <= 1) return base;
-  const fraction = `${weight}/${total}`;
+  const w = Math.round(weight * 10) / 10;
+  const tot = Math.round(total * 10) / 10;
+  const fraction = Number.isInteger(w) && Number.isInteger(tot) ? `${w}/${tot}` : `${w}/${tot}`;
   const shared = `κοινό λιοτριβείο · μερίδιο ${fraction}`;
   return base ? `${base} · ${shared}` : shared;
 };

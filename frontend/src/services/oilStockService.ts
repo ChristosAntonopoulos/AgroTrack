@@ -7,12 +7,25 @@ export type OilPack = {
   litres: number;
 };
 
+/** How much of a lot came from one grove. Shares across a lot sum to ~1. */
+export type OilProvenanceEntry = {
+  fieldId: string;
+  share: number;
+};
+
 export type OilLot = {
   id: string;
+  /** Cellar holding this lot. */
+  cellarId?: string;
   batchId: string;
+  cellarOwnerUserId?: string;
+  /** Pressing this lot was allocated from, when it came through the mill flow. */
+  sourcePressingId?: string | null;
   pressedOn: string;
   resultYear: number;
   harvestRecordIds: string[];
+  /** Grove shares summing to ~1. */
+  provenance: OilProvenanceEntry[];
   fieldIds: string[];
   totalAmount: number;
   unit: 'kg' | 'litres' | string;
@@ -53,7 +66,11 @@ export type OilCommitment = {
 };
 
 export type OilStockSummary = {
-  physical: OilPack;
+  /** Oil present in the cellar (packaging on hand). */
+  onHand: OilPack;
+  /** Promised + sale-pending still in cellar. */
+  held: OilPack;
+  /** Promise-only slice of held (non-sale). */
   reserved: OilPack;
   pendingDelivery: OilPack;
   available: OilPack;
@@ -71,6 +88,9 @@ export type StockMovement = {
   kind: string;
   packDelta: OilPack;
   litresDelta: number;
+  /** Shared by the two legs of one transfer (shared_out + shared_in). */
+  transferId?: string | null;
+  reversalOfMovementId?: string | null;
   notes?: string | null;
   occurredOn: string;
 };
@@ -81,12 +101,110 @@ export type UpsertOilLotInput = {
   resultYear?: number;
   harvestRecordIds?: string[];
   fieldIds?: string[];
+  /** Measured grove split. Omitted = equal shares over fieldIds. */
+  provenance?: OilProvenanceEntry[];
   totalAmount: number;
   unit: 'kg' | 'litres';
   millKept?: number;
   conversionFactor?: number;
   packing?: { tin16: number; tin17: number; bulkLitres: number };
   notes?: string;
+  /** Whose personal cellar receives this oil (Admin/Family on the grove). */
+  cellarOwnerUserId?: string;
+  sourcePressingId?: string;
+};
+
+/** One slice of a pressing going into a single person's cellar. */
+export type OilPressingAllocation = {
+  cellarOwnerUserId: string;
+  cellarId?: string;
+  litres: number;
+  oilLotId?: string | null;
+};
+
+export type OilPressing = {
+  id: string;
+  batchId: string;
+  campaignId?: string | null;
+  pressedOn: string;
+  resultYear: number;
+  totalAmount: number;
+  unit: 'kg' | 'litres' | string;
+  millKept: number;
+  conversionFactor?: number | null;
+  farmerLitres: number;
+  fieldIds: string[];
+  provenance: OilProvenanceEntry[];
+  harvestRecordIds: string[];
+  status: 'confirmed' | 'pending_allocation' | string;
+  recordedByUserId: string;
+  /** Cellars this pressing may be split between. Only filled while it awaits a split. */
+  candidates: OilCellarCandidate[];
+  notes?: string | null;
+  allocations: OilPressingAllocation[];
+  /** Lots created for the signed-in user's own cellar. */
+  lots: OilLot[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateOilPressingInput = {
+  batchId: string;
+  campaignId?: string;
+  pressedOn?: string;
+  resultYear?: number;
+  totalAmount: number;
+  unit: 'kg' | 'litres';
+  millKept?: number;
+  conversionFactor?: number;
+  fieldIds?: string[];
+  provenance?: OilProvenanceEntry[];
+  harvestRecordIds?: string[];
+  notes?: string;
+  /** Empty allocations file into the grove admin cellar (admin-first). */
+  allocations?: { cellarOwnerUserId: string; litres: number }[];
+};
+
+export type OilCellarCandidate = {
+  userId: string;
+  displayName: string;
+  role: string;
+  isYou: boolean;
+};
+
+export type OilTransfer = {
+  transferId: string;
+  fromOwnerUserId: string;
+  toUserId: string;
+  fromDisplayName: string;
+  toDisplayName: string;
+  requested: OilPack;
+  fieldIds: string[];
+  resultLotId?: string | null;
+  notes?: string | null;
+};
+
+export type OilShareSource = {
+  fromOwnerUserId: string;
+  fromDisplayName: string;
+  available: OilPack;
+  fieldIds: string[];
+};
+
+export type OilShareRequest = {
+  id: string;
+  fromOwnerUserId: string;
+  toUserId: string;
+  fromDisplayName: string;
+  toDisplayName: string;
+  requested: OilPack;
+  fieldIds: string[];
+  notes?: string | null;
+  status: string;
+  resultLotId?: string | null;
+  isIncoming: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CreateOilCommitmentInput = {
@@ -113,13 +231,42 @@ const asPack = (value: Partial<OilPack> | null | undefined): OilPack => ({
   litres: Math.max(0, Number(value?.litres) || 0),
 });
 
+const asProvenance = (
+  raw: OilProvenanceEntry[] | null | undefined,
+  fieldIds: string[]
+): OilProvenanceEntry[] => {
+  const entries = (raw || [])
+    .filter((e) => e && e.fieldId)
+    .map((e) => ({ fieldId: e.fieldId, share: Math.max(0, Number(e.share) || 0) }));
+  if (entries.length > 0) return entries;
+  // Lots recorded before grove shares existed weigh every grove the same.
+  const ids = [...new Set((fieldIds || []).filter(Boolean))];
+  if (ids.length === 0) return [];
+  return ids.map((fieldId) => ({ fieldId, share: 1 / ids.length }));
+};
+
 const asLot = (raw: OilLot): OilLot => ({
   ...raw,
+  cellarOwnerUserId: raw.cellarOwnerUserId || undefined,
   packing: asPack(raw.packing),
   reserved: asPack(raw.reserved),
   available: asPack(raw.available),
   harvestRecordIds: raw.harvestRecordIds || [],
   fieldIds: raw.fieldIds || [],
+  provenance: asProvenance(raw.provenance, raw.fieldIds || []),
+});
+
+const asPressing = (raw: OilPressing): OilPressing => ({
+  ...raw,
+  fieldIds: raw.fieldIds || [],
+  provenance: asProvenance(raw.provenance, raw.fieldIds || []),
+  harvestRecordIds: raw.harvestRecordIds || [],
+  candidates: raw.candidates || [],
+  allocations: (raw.allocations || []).map((a) => ({
+    ...a,
+    litres: Math.max(0, Number(a.litres) || 0),
+  })),
+  lots: (raw.lots || []).map(asLot),
 });
 
 const asCommitment = (raw: OilCommitment): OilCommitment => ({
@@ -133,17 +280,32 @@ const asCommitment = (raw: OilCommitment): OilCommitment => ({
   })),
 });
 
-const asSummary = (raw: OilStockSummary): OilStockSummary => ({
-  physical: asPack(raw.physical),
-  reserved: asPack(raw.reserved),
-  pendingDelivery: asPack(raw.pendingDelivery),
-  available: asPack(raw.available),
-  delivered: asPack(raw.delivered),
-  openReservationCount: raw.openReservationCount || 0,
-  pendingDeliveryCount: raw.pendingDeliveryCount || 0,
-  lots: (raw.lots || []).map(asLot),
-  openCommitments: (raw.openCommitments || []).map(asCommitment),
-});
+const asSummary = (raw: OilStockSummary): OilStockSummary => {
+  const onHand = asPack(raw.onHand);
+  const available = asPack(raw.available);
+  const reserved = asPack(raw.reserved);
+  const pendingDelivery = asPack(raw.pendingDelivery);
+  const held = asPack(
+    raw.held ?? {
+      tin16: reserved.tin16 + pendingDelivery.tin16,
+      tin17: reserved.tin17 + pendingDelivery.tin17,
+      bulkLitres: reserved.bulkLitres + pendingDelivery.bulkLitres,
+      litres: reserved.litres + pendingDelivery.litres,
+    }
+  );
+  return {
+    onHand,
+    held,
+    reserved,
+    pendingDelivery,
+    available,
+    delivered: asPack(raw.delivered),
+    openReservationCount: raw.openReservationCount || 0,
+    pendingDeliveryCount: raw.pendingDeliveryCount || 0,
+    lots: (raw.lots || []).map(asLot),
+    openCommitments: (raw.openCommitments || []).map(asCommitment),
+  };
+};
 
 export const oilStockService = {
   async getSummary(params?: { year?: number; fieldId?: string }): Promise<OilStockSummary> {
@@ -156,9 +318,41 @@ export const oilStockService = {
     return (data as OilLot[]).map(asLot);
   },
 
+  async listCellarCandidates(fieldIds: string[]): Promise<OilCellarCandidate[]> {
+    const { data } = await api.get('/api/v1/oil-lots/cellar-candidates', {
+      params: { fieldIds: fieldIds.filter(Boolean).join(',') },
+    });
+    return (data as OilCellarCandidate[]) || [];
+  },
+
   async upsertLot(input: UpsertOilLotInput): Promise<OilLot> {
     const { data } = await api.post('/api/v1/oil-lots', input);
     return asLot(data);
+  },
+
+  async listPressings(params?: { year?: number }): Promise<OilPressing[]> {
+    const { data } = await api.get('/api/v1/oil-pressings', { params });
+    return ((data as OilPressing[]) || []).map(asPressing);
+  },
+
+  /** Mill tickets still waiting for the grove admin to say who takes what. */
+  async listPendingPressings(): Promise<OilPressing[]> {
+    const { data } = await api.get('/api/v1/oil-pressings/pending');
+    return ((data as OilPressing[]) || []).map(asPressing);
+  },
+
+  /** Record one mill ticket and hand each cellar its slice in a single call. */
+  async createPressing(input: CreateOilPressingInput): Promise<OilPressing> {
+    const { data } = await api.post('/api/v1/oil-pressings', input);
+    return asPressing(data);
+  },
+
+  async allocatePressing(
+    id: string,
+    allocations: { cellarOwnerUserId: string; litres: number }[]
+  ): Promise<OilPressing> {
+    const { data } = await api.post(`/api/v1/oil-pressings/${id}/allocate`, { allocations });
+    return asPressing(data);
   },
 
   async patchPacking(
@@ -179,6 +373,8 @@ export const oilStockService = {
     oilLotId: string;
     kind: string;
     pack: { tin16: number; tin17: number; bulkLitres: number };
+    /** Correction/returned take oil out instead of putting it in (stock count found less). */
+    remove?: boolean;
     notes?: string;
     counterpartyName?: string;
   }): Promise<void> {
@@ -213,6 +409,75 @@ export const oilStockService = {
       ...m,
       packDelta: asPack(m.packDelta),
     }));
+  },
+
+  /** Undo one movement. Money posted next to a sale is left in place. */
+  async reverseMovement(id: string): Promise<StockMovement> {
+    const { data } = await api.post(`/api/v1/stock-movements/${id}/reverse`);
+    const raw = data as StockMovement;
+    return { ...raw, packDelta: asPack(raw.packDelta) };
+  },
+
+  async getShareSource(fieldIds: string[]): Promise<OilShareSource | null> {
+    const { data } = await api.get('/api/v1/oil-lots/share-source', {
+      params: { fieldIds: fieldIds.filter(Boolean).join(',') },
+    });
+    if (!data) return null;
+    const raw = data as OilShareSource;
+    return {
+      ...raw,
+      available: asPack(raw.available),
+      fieldIds: raw.fieldIds || [],
+    };
+  },
+
+  async listShareRequests(pendingOnly = true): Promise<OilShareRequest[]> {
+    const { data } = await api.get('/api/v1/oil-lots/share-requests', {
+      params: { pendingOnly },
+    });
+    return ((data as OilShareRequest[]) || []).map((r) => ({
+      ...r,
+      requested: asPack(r.requested),
+      fieldIds: r.fieldIds || [],
+    }));
+  },
+
+  async createShareRequest(input: {
+    requested: { tin16: number; tin17: number; bulkLitres: number };
+    fieldIds: string[];
+    notes?: string;
+  }): Promise<OilShareRequest> {
+    const { data } = await api.post('/api/v1/oil-lots/share-requests', input);
+    const raw = data as OilShareRequest;
+    return { ...raw, requested: asPack(raw.requested), fieldIds: raw.fieldIds || [] };
+  },
+
+  async acceptShareRequest(id: string): Promise<OilShareRequest> {
+    const { data } = await api.post(`/api/v1/oil-lots/share-requests/${id}/accept`);
+    const raw = data as OilShareRequest;
+    return { ...raw, requested: asPack(raw.requested), fieldIds: raw.fieldIds || [] };
+  },
+
+  async rejectShareRequest(id: string): Promise<OilShareRequest> {
+    const { data } = await api.post(`/api/v1/oil-lots/share-requests/${id}/reject`);
+    const raw = data as OilShareRequest;
+    return { ...raw, requested: asPack(raw.requested), fieldIds: raw.fieldIds || [] };
+  },
+
+  /** Admin pushes oil into another platform user's cellar. */
+  async transferToUser(input: {
+    toUserId: string;
+    requested: { tin16: number; tin17: number; bulkLitres: number };
+    fieldIds?: string[];
+    notes?: string;
+  }): Promise<OilTransfer> {
+    const { data } = await api.post('/api/v1/oil-lots/transfers', input);
+    const raw = data as OilTransfer;
+    return {
+      ...raw,
+      requested: asPack(raw.requested),
+      fieldIds: raw.fieldIds || [],
+    };
   },
 };
 

@@ -12,6 +12,7 @@ import {
 } from '../../chronologio/eventPresentation';
 import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayout';
 import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
+import { hexToRgba } from '../../utils/hexToRgba';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import WeatherMonthSnapshot from './WeatherMonthSnapshot';
 import HarvestDayJourney from './HarvestDayJourney';
@@ -232,10 +233,12 @@ const ChronologioEntryCard: React.FC<Props> = ({
         style={({ pressed }) => [
           styles.weatherTile,
           {
-            backgroundColor: pressed || selected ? softBg : colors.surface,
-            borderColor: selected ? fieldAccent : colors.borderLight,
+            backgroundColor: softBg,
+            borderColor: selected
+              ? fieldAccent
+              : hexToRgba(fieldAccent || categoryAccent, 0.42),
             opacity: pressed ? motion.pressOpacity : 1,
-            ...createElevation(colors, 'flat'),
+            ...createElevation(colors, 'sm'),
           },
         ]}
       >
@@ -308,12 +311,14 @@ const ChronologioEntryCard: React.FC<Props> = ({
         compact && styles.cardCompact,
         featured && styles.cardFeatured,
         {
-          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-          borderColor: colors.borderLight,
+          backgroundColor: pressed ? colors.surfaceMuted : softBg,
+          borderColor: selected
+            ? hexToRgba(categoryAccent, 0.62)
+            : hexToRgba(categoryAccent, 0.4),
           minHeight: resolvedMinHeight,
           opacity: pressed ? motion.pressOpacity : 1,
           transform: [{ scale: pressed ? motion.pressScale : 1 }],
-          ...(compact ? {} : createElevation(colors, featured ? 'sm' : 'flat')),
+          ...createElevation(colors, 'sm'),
         },
       ]}
     >
@@ -578,7 +583,7 @@ export const ChronologioWeatherCluster: React.FC<{
 const styles = StyleSheet.create({
   card: {
     borderRadius: radii.card,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 12,
     paddingLeft: 14,
@@ -602,13 +607,13 @@ const styles = StyleSheet.create({
     left: 0,
     top: 12,
     bottom: 12,
-    width: 2,
+    width: 3,
     borderTopRightRadius: 2,
     borderBottomRightRadius: 2,
-    opacity: 0.75,
+    opacity: 1,
   },
   accentMarkCompact: { top: 9, bottom: 9 },
-  accentMarkFeatured: { width: 2, top: 14, bottom: 14 },
+  accentMarkFeatured: { width: 3, top: 14, bottom: 14 },
   row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   rowCompact: { gap: 8, alignItems: 'center' },
   iconTile: { alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -672,7 +677,7 @@ const styles = StyleSheet.create({
   thumbBadgeText: { fontSize: 10, fontWeight: '700' },
   weatherTile: {
     borderRadius: radii.card,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     padding: 14,
     gap: 12,
     alignSelf: 'stretch',

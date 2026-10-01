@@ -1,18 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChevronLeft, ChevronRight, GitCompare, Plus, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, SlidersHorizontal, X } from 'lucide-react';
 import Button from '../Common/Button';
 import ChronologioViewTabs from './ChronologioViewTabs';
 import ChronologioFilterDrawer from './ChronologioFilterDrawer';
-import { useCaptureOptional } from '../../context/CaptureContext';
 import { useAuth } from '../../context/AuthContext';
 import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
 import { getHarvestCapabilities } from '../../harvestCampaign/harvestCapabilities';
 import type { Field } from '../../services/fieldService';
-import {
-  preferredCaptureTypeFromCategory,
-  resolveChronologioCaptureDate,
-} from '../../chronologio/captureContext';
 import { selectedChronologioTypes } from '../../chronologio/categorySelection';
 import {
   viewFromZoom,
@@ -40,12 +35,10 @@ type Props = {
   focusDate: string;
   periodYear: number;
   axis: ChronologioAxis;
-  compareOpen: boolean;
   embedded?: boolean;
   onBack?: () => void;
   onSetZoom: (z: ChronologioZoom) => void;
   onSetFilters: (f: Partial<LivingFilters>) => void;
-  onCompareToggle: () => void;
   onJumpToDate?: (isoDate: string) => void;
 };
 
@@ -71,30 +64,26 @@ const typeLabelKey = (category: LivingFilters['category']): string => {
 };
 
 /**
- * Chronologio page chrome: title, capture, view tabs, jump-to-date, filter drawer.
+ * Chronologio page chrome: title, view tabs, jump-to-date, filter drawer.
  */
 const ChronologioChrome: React.FC<Props> = ({
   fieldMode,
   fieldName,
-  fieldId,
   fields,
   filters,
   zoom,
   focusDate,
   periodYear,
   axis,
-  compareOpen,
   embedded = false,
   onBack,
   onSetZoom,
   onSetFilters,
-  onCompareToggle,
   onJumpToDate,
 }) => {
-  const { t, i18n } = useTranslation(['chronologio', 'capture']);
+  const { t } = useTranslation(['chronologio']);
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
-  const capture = useCaptureOptional();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const view = viewFromZoom(zoom);
 
@@ -164,23 +153,6 @@ const ChronologioChrome: React.FC<Props> = ({
     onSetFilters({ category: 'all', fieldId: '', lifecycleYear: '' });
   };
 
-  const openCapture = () => {
-    if (!capture) return;
-    const captureDate = resolveChronologioCaptureDate({
-      zoom,
-      focusDate,
-      language: i18n.language,
-    });
-    capture.openCapture({
-      fieldId: filters.fieldId || fieldId || undefined,
-      preferredType: preferredCaptureTypeFromCategory(filters.category),
-      occurredAt: captureDate.occurredAt,
-      dateDefaultedToToday: captureDate.dateDefaultedToToday,
-      dateNeedsChoice: captureDate.dateNeedsChoice,
-      periodLabel: captureDate.periodLabel,
-    });
-  };
-
   const TitleTag = embedded ? 'h2' : 'h1';
   const listedFields = fields.filter(isListedGrove);
 
@@ -203,27 +175,6 @@ const ChronologioChrome: React.FC<Props> = ({
             </p>
             {fieldMode && !embedded && fieldName ? (
               <p className="chrono-field-locked">{fieldName}</p>
-            ) : null}
-          </div>
-
-          <div className="chrono-header-actions">
-            {capture ? (
-              <button type="button" className="chrono-capture-cta" onClick={openCapture}>
-                <Plus size={18} aria-hidden />
-                {t('chronologio:captureNew')}
-              </button>
-            ) : null}
-
-            {zoom === 'years' ? (
-              <Button
-                variant="outline"
-                size="sm"
-                icon={<GitCompare size={15} />}
-                aria-pressed={compareOpen}
-                onClick={onCompareToggle}
-              >
-                {t('chronologio:living.compare')}
-              </Button>
             ) : null}
           </div>
         </div>

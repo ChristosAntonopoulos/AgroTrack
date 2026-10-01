@@ -19,6 +19,45 @@
   animation: nav-coach-pulse 1.8s ease-in-out infinite;
 }
 
+.coach-cue {
+  position: fixed;
+  z-index: 13002;
+  max-width: min(22rem, calc(100vw - 32px));
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fffdf8;
+  color: #1e261c;
+  box-shadow: 0 14px 36px rgba(8, 12, 10, 0.28);
+  pointer-events: auto;
+  animation: nav-coach-in 0.28s ease-out;
+}
+
+.coach-cue::before {
+  content: '';
+  position: absolute;
+  left: var(--cue-arrow, 28px);
+  width: 14px;
+  height: 14px;
+  background: #fffdf8;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.coach-cue.is-below::before {
+  top: -6px;
+}
+
+.coach-cue.is-above::before {
+  bottom: -6px;
+}
+
+.coach-cue-line {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
 .onboarding-step-badge {
   position: absolute;
   top: -16px;
@@ -53,6 +92,8 @@
   top: 50%;
   left: 50%;
   width: min(400px, calc(100vw - 40px));
+  max-height: min(85dvh, calc(100dvh - var(--bottom-nav-height, 0px) - var(--safe-bottom, 0px) - 48px));
+  overflow: auto;
   transform: translate(-50%, -50%);
   padding: 26px 24px 20px;
   text-align: left;
@@ -161,5 +202,28 @@
   .nav-coach-ring,
   .nav-coach-card {
     animation: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-coach-card {
+    padding: 18px 16px 14px;
+    border-radius: 18px;
+  }
+
+  .nav-coach-card h2 {
+    font-size: 1.35rem;
+  }
+
+  .nav-coach-card p {
+    font-size: 0.9375rem;
+  }
+
+  .nav-coach-card--welcome {
+    padding: 22px 18px 16px;
+  }
+
+  .nav-coach-card--welcome h2 {
+    font-size: 1.45rem;
   }
 }

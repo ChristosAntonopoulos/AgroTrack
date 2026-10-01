@@ -19,6 +19,7 @@ import {
 } from '../../chronologio/yearPresentation';
 import ChronologioSeasonTrack from './ChronologioSeasonTrack';
 import { createElevation, motion, radii } from '../../theme';
+import { hexToRgba } from '../../utils/hexToRgba';
 
 type Props = {
   summary: ChronologioPeriodSummary;
@@ -117,10 +118,13 @@ const ChronologioYearChapterCard: React.FC<Props> = ({
             ? colors.surfaceMuted
             : live
               ? colors.primaryLight
-              : colors.surface,
-          borderColor: isActive || live ? colors.oliveBorder : colors.borderLight,
+              : hexToRgba(colors.primary, 0.08),
+          borderColor:
+            isActive || live
+              ? hexToRgba(colors.primary, 0.55)
+              : hexToRgba(colors.primary, 0.36),
           opacity: pressed ? motion.pressOpacity : 1,
-          ...createElevation(colors, 'flat'),
+          ...createElevation(colors, 'sm'),
         },
       ]}
       accessibilityRole="button"
@@ -236,7 +240,7 @@ const ChronologioYearChapterCard: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderRadius: 20,
     padding: 16,
     paddingLeft: 18,
@@ -254,7 +258,7 @@ const styles = StyleSheet.create({
     width: 3,
     borderTopRightRadius: 2,
     borderBottomRightRadius: 2,
-    opacity: 0.9,
+    opacity: 1,
   },
   head: {
     flexDirection: 'row',

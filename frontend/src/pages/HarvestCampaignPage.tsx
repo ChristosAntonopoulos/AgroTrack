@@ -27,6 +27,11 @@ import {
   getFieldService,
   getHarvestService,
 } from '../services/serviceFactory';
+import {
+  oilStockService,
+  type OilShareRequest,
+  type OilShareSource,
+} from '../services/oilStockService';
 import type { Field } from '../services/fieldService';
 import type { HarvestRecord } from '../services/harvestService';
 import { CAPTURE_SAVED_EVENT, type CaptureSavedDetail } from '../capture/types';
@@ -118,6 +123,7 @@ import {
 } from '../harvestCampaign/components/HarvestDayActivity';
 import { HistoricalHarvestDayBoard } from '../harvestCampaign/components/HistoricalHarvestDayBoard';
 import HarvestOpening from '../harvestCampaign/components/HarvestOpening';
+import { HarvestShareRequestCard } from '../harvestCampaign/components/HarvestShareRequestCard';
 import {
   findPostedHarvestRecord,
   harvestRecordsForDay,
@@ -134,7 +140,7 @@ type HarvestAddPrefill = {
 };
 
 const HarvestCampaignPage: React.FC = () => {
-  const { t } = useTranslation(['fields', 'common', 'capture', 'chronologio']);
+  const { t } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'myOil']);
   const { locale } = useLocale();
   const { formatDate } = useLocaleFormatters();
   const { user } = useAuth();
@@ -162,6 +168,9 @@ const HarvestCampaignPage: React.FC = () => {
   const [prefillMillIds, setPrefillMillIds] = useState<string[]>([]);
   const [postMillId, setPostMillId] = useState<string | null>(null);
   const [sackSavedHint, setSackSavedHint] = useState<string | null>(null);
+  const [oilSavedHint, setOilSavedHint] = useState<string | null>(null);
+  const [shareSource, setShareSource] = useState<OilShareSource | null>(null);
+  const [adminShareInbox, setAdminShareInbox] = useState<OilShareRequest[]>([]);
   const [deepLinkRecord, setDeepLinkRecord] = useState<HarvestRecord | null>(null);
   const [deepLinkRecordMissing, setDeepLinkRecordMissing] = useState(false);
   const [historicalDayRecords, setHistoricalDayRecords] = useState<HarvestRecord[]>([]);
@@ -293,6 +302,43 @@ const HarvestCampaignPage: React.FC = () => {
   }, [campaign.fieldOrder, harvestableFields]);
 
   const sheetFields = selectedFields.length ? selectedFields : harvestableFields;
+  const campaignFieldIds = useMemo(
+    () => (campaign.fieldOrder.length ? campaign.fieldOrder : sheetFields.map((f) => f.id)),
+    [campaign.fieldOrder, sheetFields]
+  );
+
+  useEffect(() => {
+    if (!isLive || campaignFieldIds.length === 0) {
+      setShareSource(null);
+      setAdminShareInbox([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [source, requests] = await Promise.all([
+          oilStockService.getShareSource(campaignFieldIds).catch(() => null),
+          oilStockService.listShareRequests(true).catch(() => [] as OilShareRequest[]),
+        ]);
+        if (cancelled) return;
+        const avail = source?.available;
+        const hasFree =
+          !!avail &&
+          (avail.tin16 > 0 || avail.tin17 > 0 || avail.bulkLitres > 0.05 || avail.litres > 0.05);
+        setShareSource(hasFree && source ? source : null);
+        setAdminShareInbox(requests.filter((r) => r.isIncoming && r.status === 'pending'));
+      } catch {
+        if (!cancelled) {
+          setShareSource(null);
+          setAdminShareInbox([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLive, campaignFieldIds.join('|'), oilSavedHint]);
+
   const totals = useMemo(() => campaignTotals(campaign), [campaign]);
   const fieldRows = useMemo(
     () => fieldSummaries(campaign, campaign.fieldOrder),
@@ -843,12 +889,17 @@ const HarvestCampaignPage: React.FC = () => {
     fieldShares?: HarvestFieldShare[];
     acidity?: number;
     note?: string;
+    cellarOwnerUserId?: string;
+    cellarOwnerDisplayName?: string;
+    cellarIsYou?: boolean;
+    cellarAllocations?: { cellarOwnerUserId: string; litres: number }[];
   },
     opts?: { existingId?: string; keepOpen?: boolean }
   ) => {
     setSaving(true);
     const oilId = opts?.existingId || (editTarget?.kind === 'oil' ? editTarget.entry.id : undefined);
     if (oilId) {
+      const existing = campaign.oils.find((o) => o.id === oilId);
       patch((current) =>
         updateOil(current, oilId, {
           amount: input.amount,
@@ -864,10 +915,35 @@ const HarvestCampaignPage: React.FC = () => {
           fieldShares: input.fieldShares,
           acidity: input.acidity,
           note: input.note,
+          cellarOwnerUserId: input.cellarOwnerUserId,
+          cellarAllocations: input.cellarAllocations,
         })
       );
+      if (existing?.batchId) {
+        try {
+          const { upsertOilLotFromEntry } = await import('../myOil/syncOilLots');
+          await upsertOilLotFromEntry(
+            {
+              ...existing,
+              ...input,
+              cellarOwnerUserId: input.cellarOwnerUserId,
+              batchId: existing.batchId,
+            },
+            existing.harvestRecordIds?.length
+              ? existing.harvestRecordIds
+              : existing.harvestRecordId
+                ? [existing.harvestRecordId]
+                : []
+          );
+        } catch {
+          /* local campaign updated; cellar sync can retry */
+        }
+      }
       setSaving(false);
-      if (!opts?.keepOpen) closeSheet();
+      if (!opts?.keepOpen) {
+        announceOilCellar(input);
+        closeSheet();
+      }
       return oilId;
     }
     const related = campaign.millWeights
@@ -889,6 +965,8 @@ const HarvestCampaignPage: React.FC = () => {
       fieldShares: input.fieldShares,
       acidity: input.acidity,
       note: input.note,
+      cellarOwnerUserId: input.cellarOwnerUserId,
+      cellarAllocations: input.cellarAllocations,
       createdAt: new Date().toISOString(),
     };
     const persisted = await persistOilRecord(campaign, entry, related);
@@ -902,8 +980,29 @@ const HarvestCampaignPage: React.FC = () => {
     );
     setSaving(false);
     if (opts?.keepOpen) return entry.id;
+    announceOilCellar(input);
     closeSheet();
     return entry.id;
+  };
+
+  const announceOilCellar = (input: {
+    cellarIsYou?: boolean;
+    cellarOwnerDisplayName?: string;
+    cellarOwnerUserId?: string;
+  }) => {
+    const isYou =
+      input.cellarIsYou !== false &&
+      (!input.cellarOwnerUserId || input.cellarOwnerUserId === user?.userId);
+    if (isYou) {
+      setOilSavedHint(t('harvestCampaign.oil.cellarYou'));
+    } else {
+      setOilSavedHint(
+        t('harvestCampaign.oil.cellarAssigned', {
+          name: input.cellarOwnerDisplayName || t('harvestCampaign.oil.cellarSomeone', { defaultValue: '…' }),
+        })
+      );
+    }
+    window.setTimeout(() => setOilSavedHint(null), 5200);
   };
 
   const savePeople = async (input: {
@@ -1317,9 +1416,17 @@ const HarvestCampaignPage: React.FC = () => {
 
             {view === 'today' ? (
               <section className="hc-live-home">
-                {sackSavedHint ? (
+                {sackSavedHint || oilSavedHint ? (
                   <p className="hc-chain-toast" role="status">
-                    {sackSavedHint}
+                    {oilSavedHint || sackSavedHint}
+                    {oilSavedHint ? (
+                      <>
+                        {' · '}
+                        <Link to="/my-oil" className="hc-chain-toast__link">
+                          {t('myOil:seeCellar')}
+                        </Link>
+                      </>
+                    ) : null}
                   </p>
                 ) : null}
 
@@ -1327,6 +1434,30 @@ const HarvestCampaignPage: React.FC = () => {
                   <p className="hc-view-only-banner" role="status">
                     {t(`harvestCampaign.permissions.${harvestCaps.editRestrictionReasonKey}`)}
                   </p>
+                ) : null}
+
+                {adminShareInbox.length > 0 ? (
+                  <p className="hc-chain-toast" role="status">
+                    {t('harvestCampaign.shareRequest.adminBanner', {
+                      name: adminShareInbox[0].toDisplayName || '…',
+                      count: adminShareInbox.length,
+                    })}
+                    {' · '}
+                    <Link to="/my-oil" className="hc-chain-toast__link">
+                      {t('myOil:seeCellar')}
+                    </Link>
+                  </p>
+                ) : null}
+
+                {shareSource ? (
+                  <HarvestShareRequestCard
+                    fieldIds={campaignFieldIds}
+                    source={shareSource}
+                    onSubmitted={() => {
+                      setOilSavedHint(t('harvestCampaign.shareRequest.sent'));
+                      window.setTimeout(() => setOilSavedHint(null), 4200);
+                    }}
+                  />
                 ) : null}
 
                 <section

@@ -4,7 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { formatOilNumber, formatOilPack } from '../../myOil/formatOilPack';
-import { groupMovementsByDay, movementActionKey } from '../../myOil/commitmentCopy';
+import {
+  canReverseMovement,
+  groupMovementsByDay,
+  movementActionKey,
+  undoneMovementIds,
+} from '../../myOil/commitmentCopy';
 import { OilSectionHeader } from './OilStockChrome';
 import type { OilLot, StockMovement } from '../../services/oilStockService';
 import type { PackLabels } from './types';
@@ -17,6 +22,9 @@ type Props = {
   packLabels: PackLabels;
   preview?: boolean;
   onSeeAll?: () => void;
+  busy?: boolean;
+  /** Omitted on the stock-tab preview, where undo would be too easy to hit by accident. */
+  onReverse?: (m: StockMovement) => void;
 };
 
 const ACTION_ICON: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
@@ -40,13 +48,15 @@ export function MovementsTab({
   packLabels,
   preview,
   onSeeAll,
+  busy,
+  onReverse,
 }: Props) {
   const { t, i18n } = useTranslation(['myOil', 'common']);
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
 
-  const filtered = useMemo(() => movements, [movements]);
-  const shown = preview ? filtered.slice(0, 3) : filtered;
+  const undone = useMemo(() => undoneMovementIds(movements), [movements]);
+  const shown = preview ? movements.slice(0, 3) : movements;
 
   const groups = useMemo(
     () =>
@@ -134,6 +144,20 @@ export function MovementsTab({
                       </Text>
                     ) : null}
                     {detail ? <Text style={styles.timelineDetail}>{detail}</Text> : null}
+                    {m.reversalOfMovementId ? (
+                      <Text style={styles.timelineDetail}>{t('timeline.isUndo')}</Text>
+                    ) : undone.has(m.id) ? (
+                      <Text style={styles.timelineDetail}>{t('timeline.wasUndone')}</Text>
+                    ) : onReverse && canReverseMovement(m) ? (
+                      <Pressable
+                        disabled={busy}
+                        onPress={() => onReverse(m)}
+                        style={[styles.timelineUndo, busy && { opacity: 0.5 }]}
+                      >
+                        <Ionicons name="arrow-undo-outline" size={13} color={colors.primary} />
+                        <Text style={styles.linkishText}>{t('timeline.undo')}</Text>
+                      </Pressable>
+                    ) : null}
                   </View>
                 </View>
               );

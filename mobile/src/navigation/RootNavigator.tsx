@@ -187,7 +187,12 @@ const RootNavigator = () => {
             Chronologio: 'chronologio/:fieldId?',
             FieldWeatherVegetation: 'fields/:fieldId/weather-vegetation',
             Money: 'money',
-            MyOil: 'my-oil',
+            MyOil: {
+              path: 'my-oil',
+              parse: {
+                field: (value: string) => value || undefined,
+              },
+            },
             Photos: 'photos',
             Analytics: 'analytics',
             Reports: 'reports',

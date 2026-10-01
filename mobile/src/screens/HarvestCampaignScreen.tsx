@@ -3,13 +3,16 @@ import { View, Text, StyleSheet, Pressable, ScrollView, Alert, DeviceEventEmitte
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Button from '../components/ui/Button';
 import Sheet from '../components/ui/Sheet';
 import HarvestOpening from '../harvestCampaign/components/HarvestOpening';
+import { HarvestShareRequestCard } from '../harvestCampaign/components/HarvestShareRequestCard';
 import { HarvestStart } from '../harvestCampaign/components/HarvestStart';
-import SegmentedControl from '../components/ui/SegmentedControl';
+import { HarvestModeSwitcher } from '../harvestCampaign/components/HarvestModeSwitcher';
+import { HarvestSeasonSummary } from '../harvestCampaign/components/HarvestSeasonSummary';
+import { HarvestDaySummary } from '../harvestCampaign/components/HarvestDaySummary';
+import { HarvestCampaignHeader } from '../harvestCampaign/components/HarvestCampaignHeader';
 import { useTheme } from '../context/ThemeContext';
 import { useHarvestCampaign } from '../context/HarvestCampaignContext';
 import { useCaptureOptional } from '../context/CaptureContext';
@@ -21,12 +24,16 @@ import type { RootStackParamList } from '../navigation/types';
 import { useDock } from '../navigation/DockContext';
 import { useFields } from '../hooks/useFields';
 import { getHarvestService } from '../services/serviceFactory';
+import {
+  oilStockService,
+  type OilShareRequest,
+  type OilShareSource,
+} from '../services/oilStockService';
 import type { HarvestRecord } from '../services/harvestService';
 import { CAPTURE_SAVED_EVENT, type CaptureSavedDetail } from '../capture/types';
-import { formatSeasonLabel } from '../utils/harvestSeason';
+import { formatSeasonLabel, formatSeasonShortLabel } from '../utils/harvestSeason';
 import { athensCalendarDateKey } from '../utils/athensDate';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
-import { FieldNameRow } from '../components/fields/FieldName';
 import { formatKg } from '../utils/harvestUtils';
 import {
   addExpense,
@@ -63,7 +70,6 @@ import {
   persistSackRecord,
 } from '../harvestCampaign/persist';
 import {
-  allDaySummaries,
   campaignTotals,
   daySummary,
   harvestDayNumber,
@@ -89,7 +95,6 @@ import type {
   HarvestOilUnit,
   HarvestPeopleHours,
 } from '../harvestCampaign/types';
-import { HarvestFlowView } from '../harvestCampaign/components/HarvestFlowView';
 import { getHarvestCapabilities } from '../harvestCampaign/harvestCapabilities';
 import { harvestSeatFromFields, resolveFieldGates } from '../utils/fieldGates';
 import { useFamilyMembershipModules, useActiveFieldAccessLevel } from '../hooks/useFamilyMembershipModules';
@@ -108,7 +113,6 @@ import {
   type HarvestSheetKind,
 } from '../harvestCampaign/HarvestSheets';
 import { HarvestCard } from '../harvestCampaign/components/HarvestCard';
-import { HARVEST_ACTION_ICONS } from '../harvestCampaign/harvestActions';
 import { HistoricalHarvestDayBoard } from '../harvestCampaign/components/HistoricalHarvestDayBoard';
 import {
   campaignFromHarvestRecords,
@@ -134,7 +138,7 @@ type HarvestAddPrefill = {
 };
 
 const HarvestCampaignScreen = () => {
-  const { colors, tapMin, fontScaleMultiplier } = useTheme();
+  const { colors, tapMin } = useTheme();
   const { setAdd } = useDock();
   const { t, i18n } = useTranslation(['fields', 'common', 'chronologio']);
   const locale = i18n.language || 'en';
@@ -155,6 +159,8 @@ const HarvestCampaignScreen = () => {
   const [addPrefill, setAddPrefill] = useState<HarvestAddPrefill | null>(null);
   const [postMillId, setPostMillId] = useState<string | null>(null);
   const [sackSavedHint, setSackSavedHint] = useState<string | null>(null);
+  const [shareSource, setShareSource] = useState<OilShareSource | null>(null);
+  const [adminShareInbox, setAdminShareInbox] = useState<OilShareRequest[]>([]);
   const [deepLinkRecord, setDeepLinkRecord] = useState<HarvestRecord | null>(null);
   const [deepLinkRecordMissing, setDeepLinkRecordMissing] = useState(false);
   const [historicalDayRecords, setHistoricalDayRecords] = useState<HarvestRecord[]>([]);
@@ -166,7 +172,6 @@ const HarvestCampaignScreen = () => {
   const [sheet, setSheet] = useState<HarvestSheetKind>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(route.params?.day || null);
   const [doneBanner, setDoneBanner] = useState(campaign.status === 'closed');
-  const [expandedLogDate, setExpandedLogDate] = useState<string | null>(null);
   const [preferredFieldId, setPreferredFieldId] = useState<string | undefined>(route.params?.fieldId);
   const [editTarget, setEditTarget] = useState<DayActivityEditTarget | null>(null);
 
@@ -191,6 +196,46 @@ const HarvestCampaignScreen = () => {
     () => fields.filter((field) => field.status !== 'Draft' && field.status !== 'Archived'),
     [fields]
   );
+  const campaignFieldIds = useMemo(
+    () =>
+      campaign.fieldOrder.length > 0
+        ? campaign.fieldOrder
+        : harvestable.map((f) => f.id),
+    [campaign.fieldOrder, harvestable]
+  );
+
+  useEffect(() => {
+    if (!isLive || campaignFieldIds.length === 0) {
+      setShareSource(null);
+      setAdminShareInbox([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [source, requests] = await Promise.all([
+          oilStockService.getShareSource(campaignFieldIds).catch(() => null),
+          oilStockService.listShareRequests(true).catch(() => [] as OilShareRequest[]),
+        ]);
+        if (cancelled) return;
+        const avail = source?.available;
+        const hasFree =
+          !!avail &&
+          (avail.tin16 > 0 || avail.tin17 > 0 || avail.bulkLitres > 0.05 || avail.litres > 0.05);
+        setShareSource(hasFree && source ? source : null);
+        setAdminShareInbox(requests.filter((r) => r.isIncoming && r.status === 'pending'));
+      } catch {
+        if (!cancelled) {
+          setShareSource(null);
+          setAdminShareInbox([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLive, campaignFieldIds.join('|')]);
+
   const harvestCaps = useMemo(() => {
     const seat = harvestSeatFromFields(fields, preferredFieldId);
     if (seat) {
@@ -270,7 +315,6 @@ const HarvestCampaignScreen = () => {
   const days = harvestDayNumber(campaign, workingDay);
   const canPrevDay = workingDay > harvestStripFloor(today);
   const canNextDay = workingDay < harvestStripCeiling(today);
-  const logs = useMemo(() => allDaySummaries(campaign), [campaign]);
   const labelOf = useCallback(
     (id: string) => friendlyFieldLabel(harvestable.find((f) => f.id === id)?.name || id),
     [harvestable]
@@ -294,8 +338,12 @@ const HarvestCampaignScreen = () => {
   useEffect(() => {
     if (!isLive) return;
     const viewParam = route.params?.view;
-    if (viewParam === 'fields' || viewParam === 'today' || viewParam === 'totals' || viewParam === 'log') {
-      setView(viewParam);
+    if (!viewParam) return;
+    // Legacy deep links: fields/totals → season; log → today (records tab removed).
+    if (viewParam === 'season' || viewParam === 'fields' || viewParam === 'totals') {
+      setView('season');
+    } else if (viewParam === 'today' || viewParam === 'log') {
+      setView('today');
     }
   }, [isLive, route.params?.view]);
 
@@ -487,38 +535,45 @@ const HarvestCampaignScreen = () => {
   const openCapture = (kind: HarvestCaptureKind) => {
     const sackIds = addPrefill?.sackIds;
     const millIds = addPrefill?.millIds;
-    setAddPrefill(null);
     setEditTarget(null);
     if (kind === 'expense') {
       if (!harvestCaps.canAddExpense) return;
+      setAddPrefill(null);
       openHarvestExpense();
       return;
     }
     if (kind === 'income') {
       if (!harvestCaps.canAddIncome) return;
+      setAddPrefill(null);
       openHarvestIncome();
       return;
     }
     if (kind === 'note') {
       if (!harvestCaps.canAddNote) return;
+      setAddPrefill(null);
       openHarvestNote();
       return;
     }
-    if (kind === 'mill') {
-      if (!harvestCaps.canAddMill) return;
-      openMillCapture(sackIds);
+    if (kind === 'people') {
+      if (!harvestCaps.canAddPeople) return;
+      setAddPrefill(null);
+      setPrefillSackIds([]);
+      setPrefillMillIds([]);
+      setSheet('people');
       return;
     }
-    if (kind === 'oil') {
-      if (!harvestCaps.canAddOil) return;
-      openOilCapture(millIds);
-      return;
-    }
+    // Production path: σάκια → ελαιόκαρπος → λάδι stays open and advances.
     if (kind === 'sacks' && !harvestCaps.canAddSacks) return;
-    if (kind === 'people' && !harvestCaps.canAddPeople) return;
-    setPrefillSackIds([]);
-    setPrefillMillIds([]);
-    setSheet(kind);
+    if (kind === 'mill' && !harvestCaps.canAddMill) return;
+    if (kind === 'oil' && !harvestCaps.canAddOil) return;
+    setPrefillSackIds(sackIds ?? []);
+    setPrefillMillIds(millIds ?? []);
+    setAddPrefill({
+      preferredKind: kind,
+      sackIds,
+      millIds,
+    });
+    setSheet('produce');
   };
 
   const openDayAdd = (kind: DayActivityKind) => {
@@ -713,6 +768,7 @@ const HarvestCampaignScreen = () => {
       fieldShares?: HarvestFieldShare[];
       acidity?: number;
       note?: string;
+      cellarOwnerUserId?: string;
     },
     opts?: { existingId?: string; keepOpen?: boolean }
   ): Promise<string> => {
@@ -733,6 +789,7 @@ const HarvestCampaignScreen = () => {
           fieldShares: input.fieldShares,
           acidity: input.acidity,
           note: input.note,
+          cellarOwnerUserId: input.cellarOwnerUserId,
         })
       );
       if (!opts?.keepOpen) closeSheet();
@@ -757,6 +814,7 @@ const HarvestCampaignScreen = () => {
       extraLitres: input.extraLitres,
       acidity: input.acidity,
       note: input.note,
+      cellarOwnerUserId: input.cellarOwnerUserId,
       createdAt: new Date().toISOString(),
     };
     const persisted = await persistOilRecord(campaign, entry, related || undefined);
@@ -834,7 +892,7 @@ const HarvestCampaignScreen = () => {
     preferredFieldId,
   };
 
-  const seasonLabel = formatSeasonLabel(seasonStartYear);
+  const seasonShort = formatSeasonShortLabel(seasonStartYear);
   const liveStatus =
     campaign.status === 'paused'
       ? t('fields:harvestCampaign.status.paused')
@@ -855,41 +913,22 @@ const HarvestCampaignScreen = () => {
   }));
 
   return (
-    <ScreenLayout tabBarInset>
-      <ScreenHeader
-        dense
+    <ScreenLayout tabBarInset canvasOpacity={0.08} canvasSettle>
+      <HarvestCampaignHeader
         title={t('fields:harvestCampaign.title')}
-        subtitle={
-          isLive
-            ? t('fields:harvestCampaign.flow.seasonLine', { years: seasonLabel })
-            : seasonLabel || t('fields:harvestCampaign.opening.body')
-        }
-        action={
-          isLive ? (
-            <View style={styles.headerActions}>
-              <View style={[styles.livePill, { backgroundColor: colors.primaryLight }]}>
-                <View style={[styles.statusDot, { backgroundColor: colors.success }]} />
-                <Text style={[styles.statusText, { color: colors.textPrimary }]} numberOfLines={1}>
-                  {liveStatus}
-                </Text>
-              </View>
-            </View>
-          ) : undefined
-        }
+        season={seasonShort}
+        statusLabel={isLive ? liveStatus : undefined}
+        statusTone={campaign.status === 'paused' ? 'paused' : 'live'}
         context={
           isLive ? (
-            <SegmentedControl
-              fullWidth
-              quiet
-              ariaLabel={t('fields:harvestCampaign.nav.label')}
+            <HarvestModeSwitcher
               value={view}
               onChange={setView}
-              options={[
-                { value: 'today', label: t('fields:harvestCampaign.nav.today') },
-                { value: 'fields', label: t('fields:harvestCampaign.nav.fields') },
-                { value: 'totals', label: t('fields:harvestCampaign.nav.totals') },
-                { value: 'log', label: t('fields:harvestCampaign.nav.log') },
-              ]}
+              ariaLabel={t('fields:harvestCampaign.nav.label')}
+              todayLabel={t('fields:harvestCampaign.nav.today')}
+              todayHint={t('fields:harvestCampaign.nav.todayHint')}
+              seasonLabel={t('fields:harvestCampaign.nav.totals')}
+              seasonHint={t('fields:harvestCampaign.nav.totalsHint')}
             />
           ) : undefined
         }
@@ -1012,7 +1051,6 @@ const HarvestCampaignScreen = () => {
                   <HarvestDayStrip
                     selectedDay={workingDay}
                     today={today}
-                    dayNumber={days}
                     stripRows={stripRows}
                     canPrev={canPrevDay}
                     canNext={canNextDay}
@@ -1037,94 +1075,57 @@ const HarvestCampaignScreen = () => {
                   </View>
                 ) : null}
 
-                <HarvestCard tone="hero" compact>
-                  <Text style={[styles.overline, { color: colors.textTertiary }]}>
-                    {workingDay === today
-                      ? t('fields:harvestCampaign.dayNav.today')
-                      : t('fields:harvestCampaign.today.label')}
-                  </Text>
-
-                  {activeRow.sacks > 0 ||
-                  activeRow.officialKg > 0 ||
-                  activeRow.oilKg > 0 ||
-                  activeRow.people > 0 ? (
-                    <View style={styles.scanGrid}>
-                      {activeRow.sacks > 0 ? (
-                        <View style={styles.scanCell}>
-                          <Ionicons name={HARVEST_ACTION_ICONS.sacks} size={16} color={colors.eventHarvest} />
-                          <Text style={[styles.scanText, { color: colors.textPrimary }]}>
-                            {t('fields:harvestCampaign.today.sacksLine', { count: activeRow.sacks })}
-                          </Text>
-                        </View>
-                      ) : null}
-                      {activeRow.officialKg > 0 ? (
-                        <View style={styles.scanCell}>
-                          <Ionicons name={HARVEST_ACTION_ICONS.mill} size={16} color={colors.eventHarvest} />
-                          <Text style={[styles.scanText, { color: colors.textPrimary }]}>
-                            {t('fields:harvestCampaign.today.millLine', {
-                              kg: formatKg(activeRow.officialKg),
-                            })}
-                          </Text>
-                        </View>
-                      ) : null}
-                      {activeRow.oilKg > 0 ? (
-                        <View style={styles.scanCell}>
-                          <Ionicons name={HARVEST_ACTION_ICONS.oil} size={16} color={colors.eventHarvest} />
-                          <Text style={[styles.scanText, { color: colors.textPrimary }]}>
-                            {t('fields:harvestCampaign.today.oilLine', { kg: formatKg(activeRow.oilKg) })}
-                          </Text>
-                        </View>
-                      ) : null}
-                      {activeRow.people > 0 ? (
-                        <View style={styles.scanCell}>
-                          <Ionicons name={HARVEST_ACTION_ICONS.people} size={16} color={colors.eventHarvest} />
-                          <Text style={[styles.scanText, { color: colors.textPrimary }]}>
-                            {t('fields:harvestCampaign.today.people', { count: activeRow.people })}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  ) : (
-                    <Text style={{ color: colors.textSecondary }}>
-                      {t('fields:harvestCampaign.today.empty')}
-                    </Text>
-                  )}
-                  {activeRow.estimatedKg > 0 && activeRow.officialKg <= 0 ? (
-                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                      {t('fields:harvestCampaign.approx', {
-                        kg: formatKg(activeRow.estimatedKg),
+                {adminShareInbox.length > 0 ? (
+                  <Pressable
+                    onPress={() => navigation.navigate('MyOil')}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('fields:harvestCampaign.shareRequest.adminChip', {
+                      name: adminShareInbox[0].toDisplayName || '…',
+                      count: adminShareInbox.length,
+                    })}
+                    style={({ pressed }) => [
+                      styles.adminShareChip,
+                      {
+                        backgroundColor: colors.eventHarvestSoft,
+                        opacity: pressed ? 0.85 : 1,
+                      },
+                    ]}
+                  >
+                    <Ionicons name="water-outline" size={14} color={colors.eventHarvest} />
+                    <Text
+                      style={[styles.adminShareChipText, { color: colors.textPrimary }]}
+                      numberOfLines={1}
+                    >
+                      {t('fields:harvestCampaign.shareRequest.adminChip', {
+                        name: adminShareInbox[0].toDisplayName || '…',
+                        count: adminShareInbox.length,
                       })}
                     </Text>
-                  ) : null}
+                    <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
+                  </Pressable>
+                ) : null}
 
-                  <FieldNameRow fields={activeRow.fieldIds.map(fieldOf)} size="md" />
+                {shareSource ? (
+                  <HarvestShareRequestCard
+                    fieldIds={campaignFieldIds}
+                    source={shareSource}
+                    onSubmitted={() => setSackSavedHint(t('fields:harvestCampaign.shareRequest.sent'))}
+                  />
+                ) : null}
 
-                  {(activeRow.expenseEur > 0 || activeRow.photos > 0) && (
-                    <View style={styles.metaRow}>
-                      {activeRow.expenseEur > 0 ? (
-                        <View style={[styles.metaChip, { backgroundColor: colors.eventExpenseSoft }]}>
-                          <Ionicons name="wallet-outline" size={14} color={colors.eventExpense} />
-                          <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 12 }}>
-                            {t('fields:harvestCampaign.today.expense', {
-                              amount: activeRow.expenseEur,
-                            })}
-                          </Text>
-                        </View>
-                      ) : null}
-                      {activeRow.photos > 0 ? (
-                        <View
-                          style={[styles.metaChip, { backgroundColor: colors.eventObservationSoft }]}
-                        >
-                          <Ionicons name="camera-outline" size={14} color={colors.eventObservation} />
-                          <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 12 }}>
-                            {t('fields:harvestCampaign.today.photos', { count: activeRow.photos })}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  )}
-
-                </HarvestCard>
+                {activeRow.sacks > 0 ||
+                activeRow.officialKg > 0 ||
+                activeRow.oilKg > 0 ||
+                activeRow.people > 0 ? (
+                  <HarvestDaySummary
+                    day={activeRow}
+                    isToday={workingDay === today}
+                    fieldRefs={activeRow.fieldIds.map(fieldOf)}
+                    onAddSacks={() => openDayAdd('sack')}
+                    onAddMill={() => openDayAdd('mill')}
+                    onAddOil={() => openDayAdd('oil')}
+                  />
+                ) : null}
 
                 <HarvestDayActivity
                   campaign={campaign}
@@ -1138,255 +1139,33 @@ const HarvestCampaignScreen = () => {
               </View>
             ) : null}
 
-            {view === 'totals' ? (
-              <View style={{ gap: spacing.md }}>
-                <HarvestCard tone="hero">
-                  <Text style={[styles.overline, { color: colors.textTertiary }]}>
-                    {t('fields:harvestCampaign.nav.totals')}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.heroValue,
-                      { color: colors.textPrimary, fontSize: 36 * fontScaleMultiplier },
-                    ]}
-                  >
-                    {formatKg(totals.officialKg)}
-                    <Text style={[styles.heroUnit, { color: colors.textSecondary }]}> kg</Text>
-                  </Text>
-                  <Text style={[styles.heroNote, { color: colors.textTertiary }]}>
-                    {t('fields:harvestCampaign.dashboard.official', {
-                      kg: formatKg(totals.officialKg),
-                    })}
-                  </Text>
-                </HarvestCard>
-
-                {totals.unweighedSacks > 0 || totals.millKgWithoutOil > 0 ? (
-                  <HarvestCard tone="pending">
-                    <Text style={[styles.overline, { color: colors.textTertiary }]}>
-                      {t('fields:harvestCampaign.dashboard.needs')}
-                    </Text>
-                    {totals.unweighedSacks > 0 ? (
-                      <Pressable onPress={() => openPendingCapture('mill')} style={styles.pendingLink}>
-                        <Ionicons name="scale-outline" size={18} color={colors.warning} />
-                        <Text style={{ color: colors.warning, fontWeight: '700', flex: 1 }}>
-                          {t('fields:harvestCampaign.dashboard.unweighed', {
-                            count: totals.unweighedSacks,
-                          })}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-                      </Pressable>
-                    ) : null}
-                    {totals.millKgWithoutOil > 0 ? (
-                      <Pressable onPress={() => openPendingCapture('oil')} style={styles.pendingLink}>
-                        <Ionicons name="water-outline" size={18} color={colors.eventHarvest} />
-                        <Text style={{ color: colors.textPrimary, fontWeight: '700', flex: 1 }}>
-                          {t('fields:harvestCampaign.dashboard.needOil', {
-                            kg: formatKg(totals.millKgWithoutOil),
-                          })}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-                      </Pressable>
-                    ) : null}
-                  </HarvestCard>
-                ) : null}
-
-                <View style={styles.halfGrid}>
-                  {(
-                    [
-                      {
-                        key: 'oil',
-                        label: t('fields:harvestCampaign.actions.oil'),
-                        value: `${formatKg(totals.oilKg)} kg`,
-                      },
-                      {
-                        key: 'yield',
-                        label: t('fields:harvestCampaign.dashboard.yieldLabel'),
-                        value:
-                          totals.extractionYield != null
-                            ? `${Math.round(totals.extractionYield * 10) / 10}%`
-                            : '—',
-                      },
-                      {
-                        key: 'days',
-                        label: t('fields:harvestCampaign.dashboard.daysLabel'),
-                        value: String(totals.harvestDays),
-                      },
-                      {
-                        key: 'expense',
-                        label: t('fields:harvestCampaign.actions.expense'),
-                        value: `${totals.expenseEur} €`,
-                      },
-                    ] as const
-                  ).map((stat) => (
-                    <HarvestCard key={stat.key} style={styles.halfCardWrap}>
-                      <Text style={[styles.overline, { color: colors.textTertiary }]}>{stat.label}</Text>
-                      <Text style={[styles.halfValue, { color: colors.textPrimary }]}>{stat.value}</Text>
-                    </HarvestCard>
-                  ))}
-                  {totals.personDays > 0 ? (
-                    <HarvestCard style={styles.halfCardWrap}>
-                      <Text style={[styles.overline, { color: colors.textTertiary }]}>
-                        {t('fields:harvestCampaign.actions.people')}
-                      </Text>
-                      <Text style={[styles.halfValue, { color: colors.textPrimary }]}>
-                        {totals.personDays}
-                      </Text>
-                      <Text style={[styles.heroNote, { color: colors.textTertiary }]}>
-                        {t('fields:harvestCampaign.dashboard.personDays', {
-                          count: totals.personDays,
-                        })}
-                      </Text>
-                    </HarvestCard>
-                  ) : null}
-                </View>
-
-                {campaign.status === 'paused' ? (
-                  harvestCaps.canPause ? (
-                  <Button title={t('fields:harvestCampaign.resume')} onPress={() => void resume()} fullWidth />
-                  ) : null
-                ) : harvestCaps.canPause ? (
-                  <Button
-                    title={t('fields:harvestCampaign.pause')}
-                    variant="outline"
-                    onPress={() => {
-                      if (resolveHarvestTotalsLifecycle('pause') === 'pause') void pause();
-                    }}
-                    fullWidth
-                  />
-                ) : null}
-                {harvestCaps.canCompleteSeason ? (
-                <Button
-                  title={t('fields:harvestCampaign.stop')}
-                  variant="outline"
-                  onPress={() => {
-                    if (resolveHarvestTotalsLifecycle('stop') === 'openComplete') setSheet('complete');
-                  }}
-                  fullWidth
-                />
-                ) : null}
-              </View>
-            ) : null}
-
-            {view === 'fields' ? (
-              <View style={{ gap: spacing.md }}>
-                {campaign.fieldOrder.length === 0 ? (
-                  <HarvestCard tone="hero">
-                    <Text style={{ fontWeight: '800', color: colors.textPrimary, fontSize: 16 }}>
-                      {t('fields:harvestCampaign.fieldsEmpty.title')}
-                    </Text>
-                    <Text style={{ color: colors.textSecondary }}>
-                      {t('fields:harvestCampaign.fieldsEmpty.hint')}
-                    </Text>
-                    <Button
-                      title={t('fields:harvestCampaign.fieldsEmpty.add')}
-                      onPress={() =>
-                        void patch((current) => ({
-                          ...current,
-                          fieldOrder: harvestable.map((f) => f.id),
-                        }))
-                      }
-                      fullWidth
-                    />
-                  </HarvestCard>
-                ) : (
-                  <HarvestFlowView
-                    campaign={campaign}
-                    fields={harvestable}
-                    onMarkDone={(fieldId) => void markGroveDone(fieldId)}
-                    onOpenMill={openMillCapture}
-                    onOpenOil={openOilCapture}
-                    onAdd={() => requestAdd()}
-                  />
-                )}
-              </View>
-            ) : null}
-
-            {view === 'log' ? (
-              <View style={{ gap: spacing.md }}>
-                {logs.length === 0 ? (
-                  <HarvestCard tone="hero">
-                    <Text style={{ color: colors.textSecondary }}>
-                      {t('fields:harvestCampaign.log.empty')}
-                    </Text>
-                    {harvestCaps.captureKinds.length > 0 ? (
-                      <Button
-                        title={t('fields:harvestCampaign.home.whatAdd')}
-                        variant="outline"
-                        onPress={requestAdd}
-                        fullWidth
-                      />
-                    ) : null}
-                  </HarvestCard>
-                ) : null}
-                {logs.map((row) => {
-                  const expanded = expandedLogDate === row.date;
-                  return (
-                    <HarvestCard
-                      key={row.date}
-                      tone={row.date === workingDay ? 'nudge' : 'default'}
-                      onPress={() => setExpandedLogDate(expanded ? null : row.date)}
-                    >
-                      <View style={styles.logHeader}>
-                        <Text style={{ fontWeight: '800', color: colors.textPrimary, fontSize: 16, flex: 1 }}>
-                          {new Date(`${row.date}T12:00:00`).toLocaleDateString(locale, {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </Text>
-                        <Ionicons
-                          name={expanded ? 'chevron-up' : 'chevron-down'}
-                          size={18}
-                          color={colors.textTertiary}
-                        />
-                      </View>
-                      <Text style={{ color: colors.textSecondary }}>
-                        {row.officialKg > 0
-                          ? t('fields:harvestCampaign.log.officialLine', {
-                              kg: formatKg(row.officialKg),
-                            })
-                          : t('fields:harvestCampaign.log.sacksLine', {
-                              sacks: row.sacks,
-                              people: row.people,
-                              amount: row.expenseEur,
-                            })}
-                      </Text>
-                      {expanded ? (
-                        <View style={{ gap: 6 }}>
-                          {row.sacks > 0 ? (
-                            <Text style={{ color: colors.textSecondary }}>
-                              {t('fields:harvestCampaign.evening.sacks', { count: row.sacks })}
-                            </Text>
-                          ) : null}
-                          {row.people > 0 ? (
-                            <Text style={{ color: colors.textSecondary }}>
-                              {t('fields:harvestCampaign.evening.people', { count: row.people })}
-                            </Text>
-                          ) : null}
-                          {row.expenseEur > 0 ? (
-                            <Text style={{ color: colors.textSecondary }}>
-                              {t('fields:harvestCampaign.evening.expense', { amount: row.expenseEur })}
-                            </Text>
-                          ) : null}
-                          {row.oilKg > 0 ? (
-                            <Text style={{ color: colors.textSecondary }}>
-                              {t('fields:harvestCampaign.today.oil', { kg: formatKg(row.oilKg) })}
-                            </Text>
-                          ) : null}
-                          <Button
-                            title={t('fields:harvestCampaign.dayNav.openDay')}
-                            variant="ghost"
-                            onPress={() => {
-                              selectWorkingDay(row.date);
-                              setView('today');
-                            }}
-                          />
-                        </View>
-                      ) : null}
-                    </HarvestCard>
-                  );
-                })}
-              </View>
+            {view === 'season' ? (
+              <HarvestSeasonSummary
+                campaign={campaign}
+                fields={harvestable}
+                totals={totals}
+                onNeedsMill={() => openPendingCapture('mill')}
+                onNeedsOil={() => openPendingCapture('oil')}
+                onAddFields={() =>
+                  void patch((current) => ({
+                    ...current,
+                    fieldOrder: harvestable.map((f) => f.id),
+                  }))
+                }
+                onMarkDone={(fieldId) => void markGroveDone(fieldId)}
+                onOpenMill={openMillCapture}
+                onOpenOil={openOilCapture}
+                onAdd={() => requestAdd()}
+                canPause={harvestCaps.canPause}
+                canComplete={harvestCaps.canCompleteSeason}
+                onPause={() => {
+                  if (resolveHarvestTotalsLifecycle('pause') === 'pause') void pause();
+                }}
+                onResume={() => void resume()}
+                onStop={() => {
+                  if (resolveHarvestTotalsLifecycle('stop') === 'openComplete') setSheet('complete');
+                }}
+              />
             ) : null}
           </ScrollView>
         </>
@@ -1640,28 +1419,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  headerActions: {
+  adminShareChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radii.full,
+    minHeight: 36,
   },
-  livePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
+  adminShareChipText: {
+    flex: 1,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   dayMetrics: {
     flexDirection: 'row',
@@ -1694,14 +1464,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
     fontVariant: ['tabular-nums'],
   },
-  heroValue: {
-    fontWeight: '800',
-    letterSpacing: -0.8,
-    fontVariant: ['tabular-nums'],
-  },
-  heroUnit: { fontWeight: '650' as '600', fontSize: 18 },
-  heroNote: { ...typography.styles.caption, lineHeight: 18 },
-  heroEmpty: { ...typography.styles.body, marginVertical: 4 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   metaChip: {
     flexDirection: 'row',
@@ -1710,42 +1472,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: radii.full,
-  },
-  nudgeCaption: { ...typography.styles.caption, lineHeight: 18 },
-  sectionKicker: {
-    ...typography.styles.overline,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 4,
-  },
-  addCueInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  addCueIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  halfGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  halfCardWrap: {
-    width: '48%',
-    flexGrow: 1,
-  },
-  halfValue: { fontSize: 20, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  pendingLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 6,
-  },
-  logHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
 });
 

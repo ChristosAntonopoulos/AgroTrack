@@ -8,7 +8,8 @@ export type HarvestOilUnit = 'kg' | 'litres';
 
 export type HarvestFieldStatus = 'not_started' | 'in_progress' | 'done';
 
-export type HarvestModeView = 'today' | 'fields' | 'totals' | 'log';
+/** Live harvest chrome: everyday logging vs season overview (fields + totals). */
+export type HarvestModeView = 'today' | 'season';
 
 export type HarvestCaptureKind = 'sacks' | 'mill' | 'oil' | 'people' | 'expense' | 'income' | 'note';
 
@@ -81,6 +82,11 @@ export type HarvestOilEntry = {
   batchId?: string;
   harvestRecordId?: string;
   harvestRecordIds?: string[];
+  cellarOwnerUserId?: string;
+  cellarOwnerDisplayName?: string;
+  cellarIsYou?: boolean;
+  /** Multi-cellar split of one pressing (litres each). */
+  cellarAllocations?: { cellarOwnerUserId: string; litres: number }[];
   soldLitres?: number;
   soldTin16?: number;
   soldTin17?: number;

@@ -92,8 +92,9 @@
 }
 
 .activation-bar-step.is-current {
-  border-color: rgba(47, 93, 56, 0.45);
-  background: rgba(47, 93, 56, 0.14);
+  border-color: #2f5d38;
+  background: #2f5d38;
+  color: #fff;
 }
 
 .activation-bar-step.is-done {
@@ -133,17 +134,18 @@
 }
 
 .activation-bar-step.is-current .activation-bar-step-num {
-  background: #2f5d38;
+  background: #fff;
+  color: #2f5d38;
+}
+
+.activation-bar-step.is-current .activation-bar-step-label {
   color: #fff;
 }
 
 .activation-bar-step-label {
-  font-size: 0.78rem;
-  font-weight: 650;
+  font-size: 0.84rem;
+  font-weight: 700;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 11rem;
 }
 
 .activation-bar-tip {
@@ -247,6 +249,10 @@
     gap: 8px;
   }
 
+  .activation-bar-step {
+    min-height: var(--tap-min, 44px);
+  }
+
   .activation-bar-step-label {
     max-width: 6.5rem;
   }
@@ -254,19 +260,38 @@
   .activation-bar-brand {
     min-width: auto;
   }
+
+  .activation-bar-primary {
+    min-height: var(--tap-min, 44px);
+    width: 100%;
+  }
+
+  .activation-bar-actions {
+    margin-left: 0;
+  }
 }
 
 @media (max-width: 520px) {
-  .activation-bar-step-label {
+  .activation-bar-step:not(.is-current) .activation-bar-step-label {
     display: none;
   }
 
-  .activation-bar-step {
-    padding: 5px;
+  .activation-bar-step:not(.is-current) {
+    padding: 8px;
+    min-width: var(--tap-min, 44px);
+    justify-content: center;
   }
 
   .activation-bar-tip {
     flex: 1 1 100%;
     order: 5;
+  }
+
+  .activation-bar-copy strong {
+    font-size: 0.95rem;
+  }
+
+  .activation-bar-brand strong {
+    font-size: 0.9rem;
   }
 }

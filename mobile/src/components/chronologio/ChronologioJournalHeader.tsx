@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { motion, radii, spacing, typography } from '../../theme';
+import { motion, spacing, typography } from '../../theme';
 import HeaderIconButton from '../layout/HeaderIconButton';
 
 type Props = {
@@ -20,9 +20,6 @@ type Props = {
   canPrevPeriod?: boolean;
   canNextPeriod?: boolean;
   onPressPeriod?: () => void;
-  showToday?: boolean;
-  onPressToday?: () => void;
-  todayLabel?: string;
   filtersLabel?: string;
   onPressCapture?: () => void;
   captureLabel?: string;
@@ -45,9 +42,6 @@ const ChronologioJournalHeader: React.FC<Props> = ({
   canPrevPeriod = true,
   canNextPeriod = true,
   onPressPeriod,
-  showToday = false,
-  onPressToday,
-  todayLabel = 'Today',
   filtersLabel = 'Filters',
   onPressCapture,
   captureLabel = 'New record',
@@ -150,34 +144,6 @@ const ChronologioJournalHeader: React.FC<Props> = ({
         </View>
 
         <View style={styles.actions}>
-          {showToday && onPressToday ? (
-            <Pressable
-              onPress={onPressToday}
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel={todayLabel}
-              style={({ pressed }) => [
-                styles.todayPill,
-                {
-                  backgroundColor: colors.primaryLight,
-                  borderColor: colors.oliveBorder,
-                  opacity: pressed ? motion.pressOpacity : 1,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.todayText,
-                  {
-                    color: colors.primary,
-                    fontSize: 12 * fontScaleMultiplier,
-                  },
-                ]}
-              >
-                {todayLabel}
-              </Text>
-            </Pressable>
-          ) : null}
           {onPressCapture ? (
             <HeaderIconButton
               compact
@@ -255,17 +221,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  todayPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radii.full,
-    borderWidth: StyleSheet.hairlineWidth,
-    justifyContent: 'center',
-  },
-  todayText: {
-    fontWeight: '700',
-    letterSpacing: -0.1,
   },
 });
 

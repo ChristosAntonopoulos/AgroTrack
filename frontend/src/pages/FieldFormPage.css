@@ -1,3 +1,7 @@
+.field-form-page.is-boundary-stage {
+  display: none;
+}
+
 .field-form-page {
   width: 100%;
   max-width: 720px;
@@ -1002,6 +1006,10 @@
   margin-top: 0.55rem;
 }
 
+.grove-name-box:has(.grove-name-label-sr) .grove-name-field {
+  margin-top: 0;
+}
+
 .grove-name-box input[type='text'] {
   width: 100%;
   min-height: 52px;
@@ -1035,22 +1043,33 @@
 }
 
 .grove-name-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.65rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .grove-name-suggestions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .grove-name-suggestion {
   appearance: none;
-  border: 1px dashed var(--border-default);
-  background: transparent;
-  border-radius: 999px;
-  padding: 0.28rem 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  border: 2px solid var(--border-default);
+  background: var(--surface-1);
+  justify-content: center;
+  border-radius: 14px;
+  padding: 0.45rem 0.75rem;
   font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 550;
-  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -1061,10 +1080,9 @@
 }
 
 .grove-name-suggestion.is-selected {
-  border-style: solid;
-  border-color: var(--olive-border);
-  background: color-mix(in srgb, var(--olive-primary) 14%, transparent);
-  color: var(--text-primary);
+  border-color: var(--olive-primary, #2f5d38);
+  background: var(--olive-primary, #2f5d38);
+  color: #fff;
 }
 
 .grove-name-label-sr {
@@ -1096,7 +1114,11 @@
 }
 
 .grove-setup-level-item.is-current {
-  color: var(--link);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--olive-primary, #6f8f4e) 28%, var(--surface-1));
+  outline: 2px solid var(--olive-primary, #6f8f4e);
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem 0.28rem 0.22rem;
 }
 
 .grove-setup-level-item.is-current .grove-setup-level-mark {
@@ -1105,7 +1127,8 @@
 }
 
 .grove-setup-level-item.is-done {
-  color: var(--link);
+  color: var(--text-secondary);
+  font-weight: 550;
 }
 
 .grove-setup-level-item.is-done .grove-setup-level-mark {

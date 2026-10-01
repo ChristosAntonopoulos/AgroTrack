@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { usePreferences } from '../../context/PreferencesContext';
 import { FIELD_COLOR_PRESETS, resolveFieldColor } from '../../utils/fieldColors';
@@ -55,12 +56,17 @@ const FieldColorPicker: React.FC<Props> = ({
                 {
                   backgroundColor: color,
                   borderColor: active ? colors.textPrimary : 'transparent',
-                  minWidth: Math.max(tapMin * 0.7, 36),
-                  minHeight: Math.max(tapMin * 0.7, 36),
+                  borderWidth: active ? 3 : 0,
+                  minWidth: Math.max(tapMin, 44),
+                  minHeight: Math.max(tapMin, 44),
                   opacity: disabled ? 0.5 : 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 },
               ]}
-            />
+            >
+              {active ? <Ionicons name="checkmark" size={18} color="#fff" /> : null}
+            </Pressable>
           );
         })}
       </View>

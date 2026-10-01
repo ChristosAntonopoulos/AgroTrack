@@ -82,9 +82,7 @@ const NavCoach: React.FC = () => {
           },
         ]}
       >
-        <Text style={styles.kicker}>{t('coach.kicker')}</Text>
-        <Text style={styles.title}>{t(`coach.${beat}.title`)}</Text>
-        <Text style={styles.body}>{t(`coach.${beat}.body`)}</Text>
+        <Text style={styles.title}>{t(`coach.${beat}.cue`)}</Text>
       </View>
     </View>
   );

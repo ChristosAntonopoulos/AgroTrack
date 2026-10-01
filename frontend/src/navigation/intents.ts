@@ -86,6 +86,10 @@ export const harvestPath = (opts?: {
     ['view', opts?.view],
   ])}`;
 
+/** Personal oil cellar. Optional `field` filters the by-grove list. */
+export const myOilPath = (opts?: { field?: string }): string =>
+  `/my-oil${qs([['field', opts?.field]])}`;
+
 export const harvestReviewPath = (opts?: { season?: number }): string =>
   `/this-harvest/review${qs([['season', opts?.season]])}`;
 

@@ -13,5 +13,7 @@ public enum StockMovementKind
     Correction = 8,
     Repacked = 9,
     HomeUse = 10,
-    Returned = 11
+    Returned = 11,
+    SharedOut = 12,
+    SharedIn = 13
 }

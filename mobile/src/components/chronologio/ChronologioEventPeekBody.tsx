@@ -191,7 +191,7 @@ const ChronologioEventPeekBody: React.FC<Props> = ({ entry, numberLocale }) => {
     openHarvestCampaign(navigation, {
       day: dayKey,
       fieldId: entry.fieldId || undefined,
-      view: 'fields',
+      view: 'season',
     });
   };
 

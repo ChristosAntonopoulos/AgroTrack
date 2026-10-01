@@ -810,3 +810,226 @@
 [data-theme='dark'] .cadastre-warnings-list {
   color: var(--color-warning);
 }
+
+/* Full-screen boundary draw — map is the screen, steps sit on it, one action at the bottom. */
+.field-boundary-step.is-stage {
+  position: fixed;
+  z-index: calc(var(--z-sticky, 1020) - 1);
+  top: calc(var(--header-height, 56px) + var(--safe-top, 0px));
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-width, 0px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #141612;
+  display: flex;
+  min-height: 0;
+}
+
+.field-boundary-step.is-stage .field-boundary-map {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.boundary-stage-top {
+  position: absolute;
+  z-index: 1200;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.boundary-stage-top > * {
+  pointer-events: auto;
+}
+
+.boundary-stage-top .grove-setup-level {
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 0;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-1, #fff) 92%, transparent);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.boundary-search-block.is-in-stage {
+  margin: 0;
+  width: 100%;
+  align-self: stretch;
+}
+
+.boundary-search-block.is-in-stage .boundary-toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: 100%;
+  gap: 8px;
+}
+
+.boundary-search-block.is-in-stage .boundary-typeahead {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+.boundary-search-block.is-in-stage .location-search,
+.boundary-search-block.is-in-stage .location-search-input-wrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.boundary-search-block.is-in-stage input[type='search'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  border-radius: 14px;
+  font-size: 1rem;
+  background: color-mix(in srgb, var(--surface-1, #fff) 94%, transparent);
+}
+
+.boundary-search-block.is-in-stage .boundary-locate-btn {
+  flex: 0 0 48px;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boundary-stage-sheet {
+  position: absolute;
+  z-index: 1200;
+  left: 50%;
+  right: auto;
+  width: min(28rem, calc(100% - 24px));
+  transform: translateX(-50%);
+  bottom: 12px;
+  padding: 14px 14px 12px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface-1, #fffdf8) 94%, transparent);
+  color: var(--text-primary, #1e261c);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(16px);
+}
+
+.boundary-stage-line {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.boundary-stage-sheet .boundary-location-status {
+  margin: 0 0 8px;
+}
+
+.boundary-stage-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.boundary-sheet-icon {
+  width: 52px;
+  min-height: 52px;
+  border-radius: 14px;
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.16));
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  color: var(--text-primary, #1e261c);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.boundary-sheet-primary {
+  flex: 1;
+  min-height: 52px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--olive-primary, #3d7a4a);
+  color: var(--on-olive, #fff);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 750;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.boundary-sheet-primary:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.field-boundary-step.is-stage .boundary-map-overlays {
+  top: auto;
+  right: 12px;
+  bottom: 8.5rem;
+}
+
+.field-boundary-step.is-stage .leaflet-top.leaflet-left {
+  top: 7.5rem;
+  left: 10px;
+}
+
+.field-boundary-step.is-stage .leaflet-bottom {
+  bottom: 8.25rem;
+}
+
+@media (min-width: 900px) {
+  .boundary-stage-top {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .boundary-search-block.is-in-stage {
+    flex: 1;
+    max-width: 28rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .field-boundary-step.is-stage {
+    left: 0;
+    bottom: calc(var(--bottom-nav-height, 56px) + var(--safe-bottom, 0px));
+  }
+
+  .boundary-stage-sheet {
+    left: 12px;
+    width: auto;
+    right: 12px;
+    transform: none;
+  }
+
+  .boundary-stage-top {
+    right: 10px;
+  }
+
+  .boundary-stage-top .grove-setup-level {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

@@ -268,7 +268,7 @@ const ChronologioPeekSheet: React.FC<Props> = ({
         view: dest.view,
       });
     } else if (dest.kind === 'FieldWeatherVegetation') {
-      navigation.navigate('FieldWeatherVegetation', { fieldId: dest.fieldId });
+      navigation.navigate('FieldDetail', { fieldId: dest.fieldId, mode: 'weather' });
     } else if (dest.kind === 'FieldDetail') {
       navigation.navigate('FieldDetail', { fieldId: dest.fieldId });
     }
@@ -473,8 +473,9 @@ const ChronologioPeekSheet: React.FC<Props> = ({
         ]}
         onPress={() => {
           onClose();
-          navigation.navigate('FieldWeatherVegetation', {
+          navigation.navigate('FieldDetail', {
             fieldId: selectedWeatherReview.fieldId,
+            mode: 'weather',
           });
         }}
       >

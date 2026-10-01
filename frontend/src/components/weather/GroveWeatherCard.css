@@ -309,7 +309,7 @@
 html:not([data-theme='dark']) .grove-weather {
   --gw-ink: var(--text-primary, #22281f);
   --gw-muted: var(--text-secondary, #697065);
-  --gw-line: var(--border-default, #e3e3d9);
+  --gw-line: var(--card-edge, var(--border-default));
   background: var(--surface-1, #fffdf9);
   box-shadow: var(--shadow-card);
 }

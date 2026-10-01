@@ -18,6 +18,7 @@ export type HarvestNumberInputProps = {
   disabled?: boolean;
 };
 
+/** Large kg input — white card, dark olive focus ring, near-black digits. */
 export const HarvestNumberInput: React.FC<HarvestNumberInputProps> = ({
   label,
   value,
@@ -48,20 +49,13 @@ export const HarvestNumberInput: React.FC<HarvestNumberInputProps> = ({
         style={[
           styles.inputRow,
           {
-            backgroundColor: error
-              ? 'rgba(196, 68, 68, 0.12)'
-              : colors.eventHarvestSoft,
-            shadowColor: error ? colors.error : colors.eventHarvest,
-            shadowOpacity: focused ? 0.22 : 0,
-            shadowRadius: focused ? 6 : 0,
-            shadowOffset: { width: 0, height: 0 },
-            elevation: focused ? 2 : 0,
-            borderWidth: focused ? 2 : 0,
+            backgroundColor: colors.surfaceElevated,
+            borderWidth: 2,
             borderColor: error
               ? colors.error
               : focused
-                ? colors.eventHarvest
-                : 'transparent',
+                ? colors.primary
+                : colors.border,
           },
         ]}
       >
@@ -111,7 +105,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing.sm,
     fontSize: 34,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: -0.6,
   },
   suffix: { paddingLeft: spacing.xs, fontSize: 20, fontWeight: '700' },

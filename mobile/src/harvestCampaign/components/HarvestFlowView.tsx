@@ -14,7 +14,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { formatKg } from '../../utils/harvestUtils';
-import { radii, spacing } from '../../theme';
+import { createElevation, radii, spacing } from '../../theme';
 import {
   buildHarvestFlowGraph,
   fieldAllocationCaption,
@@ -38,13 +38,15 @@ type Props = {
   onOpenMill?: (sackIds: string[]) => void;
   onOpenOil?: (millIds: string[]) => void;
   onAdd?: () => void;
+  /** Hide the top count strip when a parent already shows the pipeline. */
+  hideSummary?: boolean;
 };
 
 const STAGE_ICON: Record<HarvestFlowNodeKind, React.ComponentProps<typeof Ionicons>['name']> = {
-  field: 'leaf-outline',
-  harvest: 'basket-outline',
+  field: 'leaf',
+  harvest: 'basket',
   mill: 'scale-outline',
-  oil: 'water-outline',
+  oil: 'water',
 };
 
 const KIND_ORDER: HarvestFlowNodeKind[] = ['field', 'harvest', 'mill', 'oil'];
@@ -68,6 +70,7 @@ export const HarvestFlowView: React.FC<Props> = ({
   onOpenMill,
   onOpenOil,
   onAdd,
+  hideSummary = false,
 }) => {
   const { t, i18n } = useTranslation('fields');
   const locale = i18n.language || 'en';
@@ -221,11 +224,16 @@ export const HarvestFlowView: React.FC<Props> = ({
   };
 
   const metricDisplay = (node: HarvestFlowNode) => {
-    const unit =
-      node.meta.metricUnit === 'sacks'
-        ? t('harvestCampaign.sacks.unit')
-        : node.meta.metricUnit || '';
-    return { value: node.meta.metric, unit };
+    if (node.meta.metricUnit === 'sacks') {
+      return { value: node.meta.metric, unit: t('harvestCampaign.sacks.unit') };
+    }
+    if (node.meta.metricUnit === 'kg') {
+      return { value: node.meta.metric, unit: t('harvestCampaign.oil.kg') };
+    }
+    if (node.meta.metricUnit === 'L') {
+      return { value: node.meta.metric, unit: t('harvestCampaign.oil.litres') };
+    }
+    return { value: node.meta.metric, unit: node.meta.metricUnit || '' };
   };
 
   const neighbors = (node: HarvestFlowNode) => {
@@ -246,9 +254,13 @@ export const HarvestFlowView: React.FC<Props> = ({
     const metric = metricDisplay(node);
     const accent =
       node.fieldIds.length === 1 ? fieldColors[node.fieldIds[0]] : colors.primary;
-    const metaLine =
-      node.kind === 'field' && node.meta.fromSummary
-        ? t('harvestCampaign.flow.daysCount', { count: Number(node.meta.fromSummary) || 0 })
+    const fieldKg =
+      node.kind === 'field' && node.meta.oliveKg && node.meta.oliveKg > 0
+        ? formatKg(node.meta.oliveKg)
+        : null;
+    const sackLine =
+      node.kind === 'field' && node.meta.sackCount
+        ? `${node.meta.sackCount} ${t('harvestCampaign.sacks.unit')}`
         : null;
 
     return (
@@ -269,35 +281,74 @@ export const HarvestFlowView: React.FC<Props> = ({
             style={[
               styles.card,
               {
-                backgroundColor: isSelected ? colors.surfaceElevated : colors.surface,
-                borderWidth: isSelected ? 2 : 1,
-                borderColor: isSelected ? accent : colors.oliveBorder,
+                backgroundColor: colors.surfaceElevated,
+                borderWidth: isSelected ? 2 : 0,
+                borderColor: isSelected ? accent : 'transparent',
+                ...(!isSelected ? createElevation(colors, 'sm') : {}),
               },
             ]}
           >
+            <View style={[styles.topStrip, { backgroundColor: accent }]} />
             {node.pending ? (
               <View style={[styles.pendingDot, { backgroundColor: colors.warning }]} />
             ) : null}
-            <View style={[styles.swatch, { backgroundColor: accent }]} />
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={2}>
               {cardTitle(node)}
             </Text>
-            {metric.value && metric.value !== '—' ? (
-              <Text
-                style={[styles.metric, { color: colors.textPrimary }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-              >
-                {metric.value}
-                {metric.unit ? <Text style={styles.unit}> {metric.unit}</Text> : null}
-              </Text>
-            ) : null}
-            {metaLine ? (
-              <Text style={[styles.meta, { color: colors.textTertiary }]} numberOfLines={1}>
-                {metaLine}
-              </Text>
-            ) : null}
+            {node.kind === 'field' ? (
+              <>
+                {fieldKg ? (
+                  <Text
+                    style={[styles.metric, { color: colors.textPrimary }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
+                    {fieldKg}
+                    <Text style={[styles.unit, { color: colors.textSecondary }]}>
+                      {` ${t('harvestCampaign.oil.kg')}`}
+                    </Text>
+                  </Text>
+                ) : metric.value && metric.value !== '—' ? (
+                  <Text
+                    style={[styles.metric, { color: colors.textPrimary }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
+                    {metric.value}
+                    {metric.unit ? (
+                      <Text style={[styles.unit, { color: colors.textSecondary }]}>
+                        {` ${metric.unit}`}
+                      </Text>
+                    ) : null}
+                  </Text>
+                ) : null}
+                {sackLine ? (
+                  <Text style={[styles.meta, { color: colors.textSecondary }]} numberOfLines={1}>
+                    {sackLine}
+                  </Text>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {metric.value && metric.value !== '—' ? (
+                  <Text
+                    style={[styles.metric, { color: colors.textPrimary }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
+                    {metric.value}
+                    {metric.unit ? (
+                      <Text style={[styles.unit, { color: colors.textSecondary }]}>
+                        {` ${metric.unit}`}
+                      </Text>
+                    ) : null}
+                  </Text>
+                ) : null}
+              </>
+            )}
           </Pressable>
         </View>
       </View>
@@ -348,19 +399,21 @@ export const HarvestFlowView: React.FC<Props> = ({
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.summary, { backgroundColor: colors.surfaceMuted }]}>
-        {summary.map((item) => (
-          <View
-            key={item.label}
-            style={[styles.summaryCell, summaryColumns === 2 ? styles.summaryHalf : styles.summaryQuarter]}
-          >
-            <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{item.value}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.textTertiary }]} numberOfLines={1}>
-              {item.label}
-            </Text>
-          </View>
-        ))}
-      </View>
+      {!hideSummary ? (
+        <View style={[styles.summary, { backgroundColor: colors.surfaceMuted }]}>
+          {summary.map((item) => (
+            <View
+              key={item.label}
+              style={[styles.summaryCell, summaryColumns === 2 ? styles.summaryHalf : styles.summaryQuarter]}
+            >
+              <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{item.value}</Text>
+              <Text style={[styles.summaryLabel, { color: colors.textTertiary }]} numberOfLines={1}>
+                {item.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       {selectedNode ? (
         <View style={styles.pathRow}>
@@ -373,11 +426,11 @@ export const HarvestFlowView: React.FC<Props> = ({
             </Text>
           </Pressable>
         </View>
-      ) : (
+      ) : !hideSummary ? (
         <Text style={[styles.hint, { color: colors.textSecondary }]} numberOfLines={2}>
           {t('harvestCampaign.flow.tapHint')}
         </Text>
-      )}
+      ) : null}
 
       {empty ? (
         <View style={styles.empty}>
@@ -418,8 +471,8 @@ export const HarvestFlowView: React.FC<Props> = ({
             return (
               <View key={kind} style={styles.layer}>
                 <View style={styles.stageHead}>
-                  <Ionicons name={STAGE_ICON[kind]} size={13} color={colors.textTertiary} />
-                  <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>
+                  <Ionicons name={STAGE_ICON[kind]} size={16} color={colors.eventHarvest} />
+                  <Text style={[styles.rowLabel, { color: colors.eventHarvest }]}>
                     {rowLabel(kind)} · {nodes.length}
                   </Text>
                 </View>
@@ -437,7 +490,7 @@ export const HarvestFlowView: React.FC<Props> = ({
         <View style={[styles.detail, { backgroundColor: colors.surface }]}>
           <View style={styles.detailHead}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.kicker, { color: colors.textTertiary }]}>
+              <Text style={[styles.kicker, { color: colors.eventHarvest }]}>
                 {rowLabel(selectedNode.kind)}
               </Text>
               <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 17 }}>
@@ -485,7 +538,7 @@ export const HarvestFlowView: React.FC<Props> = ({
             <View style={styles.detailCols}>
               {selectedNeighbors.upstream.length > 0 ? (
                 <View style={styles.detailCol}>
-                  <Text style={[styles.detailLabel, { color: colors.textTertiary }]}>
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
                     {t('harvestCampaign.flow.from')}
                   </Text>
                   {selectedNeighbors.upstream.map((n) => {
@@ -510,7 +563,7 @@ export const HarvestFlowView: React.FC<Props> = ({
               ) : null}
               {selectedNeighbors.downstream.length > 0 ? (
                 <View style={styles.detailCol}>
-                  <Text style={[styles.detailLabel, { color: colors.textTertiary }]}>
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
                     {t('harvestCampaign.flow.into')}
                   </Text>
                   {selectedNeighbors.downstream.map((n) => {
@@ -569,8 +622,8 @@ const styles = StyleSheet.create({
   },
   canvas: {
     borderRadius: 16,
-    backgroundColor: 'rgba(10, 15, 8, 0.16)',
-    paddingHorizontal: 8,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 4,
     paddingTop: 4,
     paddingBottom: 10,
   },
@@ -584,7 +637,8 @@ const styles = StyleSheet.create({
   stageHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   nodes: {
     flexDirection: 'row',
@@ -593,42 +647,41 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     width: '100%',
   },
-  nodeWrap: { width: '30.5%', minWidth: 0 },
+  nodeWrap: { width: '31%', minWidth: 112, maxWidth: 120, flexGrow: 1 },
   card: {
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 14,
     paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 9,
-    gap: 2,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 3,
     overflow: 'hidden',
-    minHeight: 76,
+    minHeight: 96,
   },
-  swatch: {
-    width: 16,
+  topStrip: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     height: 3,
-    borderRadius: 99,
-    marginBottom: 2,
-    opacity: 0.9,
   },
   pendingDot: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 5,
-    height: 5,
-    borderRadius: 3,
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   kicker: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.7,
     textTransform: 'uppercase',
   },
-  cardTitle: { fontWeight: '600', fontSize: 12, lineHeight: 15 },
+  cardTitle: { fontWeight: '700', fontSize: 13, lineHeight: 16 },
   metric: { fontWeight: '700', fontSize: 18, letterSpacing: -0.4, marginTop: 2 },
-  unit: { fontWeight: '600', fontSize: 11, opacity: 0.7 },
-  meta: { fontSize: 11, lineHeight: 14 },
+  unit: { fontWeight: '700', fontSize: 11, opacity: 1 },
+  meta: { fontSize: 12, lineHeight: 15, fontWeight: '600' },
   detail: { borderRadius: radii.xl, padding: spacing.md, gap: spacing.sm },
   detailHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   detailCols: { flexDirection: 'row', gap: spacing.md },

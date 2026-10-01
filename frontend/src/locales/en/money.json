@@ -139,9 +139,13 @@
   "harvestExpenseHere": "Recorded in Harvest. Change the amount here.",
   "openHarvestDay": "Open the harvest day",
   "unsoldTitle": "Still unsold",
-  "unsoldHint": "Still in the warehouse. It becomes income when it is sold.",
+  "unsoldHint": "Still in your cellar. It becomes income when it is sold.",
+  "unsoldSoldGiven": "Sold & given",
+  "unsoldMeterAria": "Oil left {{remaining}}, sold and given {{gone}}",
   "unsoldThisYear": "This harvest year",
   "unsoldYear": "Harvest year {{span}}",
   "unsoldTin": "{{count}} × {{size}} L",
-  "unsoldBulk": "{{amount}} bulk"
+  "unsoldBulk": "{{amount}} bulk",
+  "openMyOil": "See my oil",
+  "oilSaleInCellar": "Linked to your oil cellar"
 }

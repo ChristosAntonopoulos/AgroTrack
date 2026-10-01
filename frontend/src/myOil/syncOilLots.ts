@@ -24,25 +24,46 @@ export const upsertOilLotFromEntry = async (
   if (!batchId) return;
 
   const packing = packingFromOilEntry(entry);
-  const input: UpsertOilLotInput = {
-    batchId,
-    pressedOn: new Date(`${entry.date}T12:00:00`).toISOString(),
-    harvestRecordIds: harvestRecordIds.length
-      ? harvestRecordIds
-      : entry.harvestRecordIds || (entry.harvestRecordId ? [entry.harvestRecordId] : []),
-    fieldIds: entry.fieldIds || [],
-    totalAmount: entry.amount,
-    unit: entry.unit,
-    millKept: entry.millKept ?? 0,
-    conversionFactor: entry.unit === 'kg' ? OLIVE_OIL_KG_PER_LITRE : undefined,
-    packing,
-    notes: entry.note,
-  };
 
   // Skip empty oil
   if (!(farmerOilLitres(entry) > 0.05) && packing.tin16 + packing.tin17 + packing.bulkLitres <= 0.05) {
     return;
   }
+
+  const recordIds = harvestRecordIds.length
+    ? harvestRecordIds
+    : entry.harvestRecordIds || (entry.harvestRecordId ? [entry.harvestRecordId] : []);
+  const shared = {
+    batchId,
+    pressedOn: new Date(`${entry.date}T12:00:00`).toISOString(),
+    harvestRecordIds: recordIds,
+    fieldIds: entry.fieldIds || [],
+    totalAmount: entry.amount,
+    unit: entry.unit,
+    millKept: entry.millKept ?? 0,
+    conversionFactor: entry.unit === 'kg' ? OLIVE_OIL_KG_PER_LITRE : undefined,
+    notes: entry.note,
+  };
+
+  // A shared press is one pressing with several cellar slices, not several lots.
+  const allocations = (entry.cellarAllocations || []).filter((a) => a.cellarOwnerUserId && a.litres > 0.05);
+  if (allocations.length > 0) {
+    await oilStockService.createPressing({ ...shared, allocations });
+    return;
+  }
+
+  // Nobody said whose cellar it is. The server files it under the grove admin cellar
+  // (admin-first). Explicit splits still go through allocations above.
+  if (!entry.cellarOwnerUserId) {
+    await oilStockService.createPressing({ ...shared, allocations: [] });
+    return;
+  }
+
+  const input: UpsertOilLotInput = {
+    ...shared,
+    packing,
+    cellarOwnerUserId: entry.cellarOwnerUserId,
+  };
 
   await oilStockService.upsertLot(input);
 };

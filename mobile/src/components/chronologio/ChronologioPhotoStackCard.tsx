@@ -8,7 +8,8 @@ import { resolvePublicAssetUrl } from '../../config/env';
 import { collectChronologioImages } from '../../utils/chronologioPhotoGroups';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { resolveFieldColor } from '../../utils/fieldColors';
-import { radii, spacing, typography } from '../../theme';
+import { radii, spacing, typography, createElevation } from '../../theme';
+import { hexToRgba } from '../../utils/hexToRgba';
 
 type Props = {
   entries: ChronologioEntry[];
@@ -69,8 +70,13 @@ const ChronologioPhotoStackCard: React.FC<Props> = ({
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: colors.surface,
-          borderColor: pressed ? colors.primary : colors.border,
+          backgroundColor: pressed
+            ? colors.surfaceMuted
+            : colors.eventObservationSoft,
+          borderColor: pressed
+            ? colors.primary
+            : hexToRgba(colors.eventObservation, 0.42),
+          ...createElevation(colors, 'sm'),
         },
       ]}
     >

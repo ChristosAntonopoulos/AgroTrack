@@ -1,0 +1,41 @@
+.map-explore-cue {
+  position: absolute;
+  z-index: 800;
+  top: 12px;
+  left: 12px;
+  max-width: min(16.5rem, calc(100% - 24px));
+  padding: 12px 12px 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-1, #fffdf8) 94%, transparent);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.14));
+  box-shadow: 0 10px 28px rgba(8, 12, 10, 0.22);
+  backdrop-filter: blur(12px);
+  color: var(--text-primary, #1e261c);
+  pointer-events: auto;
+}
+
+.map-explore-cue-line {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+.map-explore-cue-cta {
+  appearance: none;
+  border: 0;
+  background: var(--olive-primary, #2f5d38);
+  color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 750;
+  border-radius: 10px;
+  min-height: 40px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.map-explore-cue-cta:hover {
+  filter: brightness(1.05);
+}

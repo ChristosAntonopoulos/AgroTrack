@@ -1,77 +1,27 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import Button from '../Common/Button';
 import { formatLitres } from '../../finance/format';
-import { harvestYearSpan } from '../../finance/harvestYear';
-import {
-  groupUnsoldOil,
-  sumUnsoldOil,
-  type UnsoldOilLot,
-} from '../../finance/unsoldOilStock';
+import type { OilStockSummary } from '../../services/oilStockService';
 import './Money.css';
 
 type Props = {
-  year: number;
-  lots: UnsoldOilLot[];
-  fieldNames: Record<string, string>;
+  summary: OilStockSummary;
   locale: string;
 };
 
-const formatWhen = (date: string, locale: string): string => {
-  const parsed = new Date(`${date}T12:00:00`);
-  if (Number.isNaN(parsed.getTime())) return date;
-  return parsed.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
-};
+/** Cellar snapshot for Money: out vs still there, then one path to storage. */
+const UnsoldOilStock: React.FC<Props> = ({ summary, locale }) => {
+  const { t } = useTranslation(['money', 'myOil']);
 
-const packLabel = (
-  lot: Pick<UnsoldOilLot, 'tin16' | 'tin17' | 'bulkLitres' | 'litres'>,
-  t: (key: string, options?: Record<string, unknown>) => string,
-  locale: string
-): string => {
-  const bits: string[] = [];
-  if (lot.tin16 > 0) bits.push(t('unsoldTin', { count: lot.tin16, size: 16 }));
-  if (lot.tin17 > 0) bits.push(t('unsoldTin', { count: lot.tin17, size: 17 }));
-  if (lot.bulkLitres > 0.05 && (lot.tin16 > 0 || lot.tin17 > 0)) {
-    bits.push(t('unsoldBulk', { amount: formatLitres(lot.bulkLitres, locale, '—') }));
-  }
-  if (bits.length === 0) return formatLitres(lot.litres, locale, '—');
-  return bits.join(' · ');
-};
+  const remaining = Math.max(0, summary.onHand?.litres || 0);
+  const gone = Math.max(0, summary.delivered?.litres || 0);
+  const gross = remaining + gone;
+  if (gross < 0.05) return null;
 
-const LotList: React.FC<{
-  lots: UnsoldOilLot[];
-  fieldNames: Record<string, string>;
-  locale: string;
-  pack: (lot: Pick<UnsoldOilLot, 'tin16' | 'tin17' | 'bulkLitres' | 'litres'>) => string;
-}> = ({ lots, fieldNames, locale, pack }) => (
-  <ul className="money-stock-list">
-    {lots.map((lot) => {
-      const where = lot.fieldIds
-        .map((id) => fieldNames[id])
-        .filter(Boolean)
-        .join(' · ');
-      return (
-        <li key={lot.id} className="money-stock-lot">
-          <div className="money-stock-lot__when">
-            <span>{formatWhen(lot.date, locale)}</span>
-            {where ? <span className="money-stock-lot__where">{where}</span> : null}
-          </div>
-          <span className="money-stock-lot__pack">{pack(lot)}</span>
-        </li>
-      );
-    })}
-  </ul>
-);
-
-const UnsoldOilStock: React.FC<Props> = ({ year, lots, fieldNames, locale }) => {
-  const { t } = useTranslation('money');
-  if (lots.length === 0) return null;
-
-  const totals = sumUnsoldOil(lots);
-  const { thisYear, otherYears } = groupUnsoldOil(lots, year);
-  const showGroups = thisYear.length > 0 && otherYears.length > 0;
-  const showPack = totals.tin16 > 0 || totals.tin17 > 0;
-  const pack = (lot: Pick<UnsoldOilLot, 'tin16' | 'tin17' | 'bulkLitres' | 'litres'>) =>
-    packLabel(lot, t, locale);
+  const remainingPct = Math.round((remaining / gross) * 100);
+  const gonePct = 100 - remainingPct;
 
   return (
     <section className="money-card money-stock" aria-label={t('unsoldTitle')}>
@@ -80,21 +30,40 @@ const UnsoldOilStock: React.FC<Props> = ({ year, lots, fieldNames, locale }) => 
           <h2>{t('unsoldTitle')}</h2>
           <p className="money-stock-kicker">{t('unsoldHint')}</p>
         </div>
-        <p className="money-stock-total">{formatLitres(totals.litres, locale, '—')}</p>
       </header>
-      {showPack ? <p className="money-stock-pack">{pack({ ...totals, litres: totals.litres })}</p> : null}
-      {thisYear.length > 0 ? (
-        <div className="money-stock-group">
-          {showGroups ? <h3>{t('unsoldThisYear')}</h3> : null}
-          <LotList lots={thisYear} fieldNames={fieldNames} locale={locale} pack={pack} />
+
+      <div
+        className="money-stock-meter"
+        role="img"
+        aria-label={t('unsoldMeterAria', {
+          remaining: formatLitres(remaining, locale, '—'),
+          gone: formatLitres(gone, locale, '—'),
+        })}
+      >
+        <div className="money-stock-meter__bar" aria-hidden>
+          <span className="money-stock-meter__gone" style={{ flexGrow: Math.max(gonePct, gone > 0 ? 1 : 0) }} />
+          <span
+            className="money-stock-meter__rest"
+            style={{ flexGrow: Math.max(remainingPct, remaining > 0 ? 1 : 0) }}
+          />
         </div>
-      ) : null}
-      {otherYears.map((group) => (
-        <div key={group.harvestYear} className="money-stock-group">
-          <h3>{t('unsoldYear', { span: harvestYearSpan(group.harvestYear) })}</h3>
-          <LotList lots={group.lots} fieldNames={fieldNames} locale={locale} pack={pack} />
-        </div>
-      ))}
+        <ul className="money-stock-meter__legend">
+          <li className="money-stock-meter__row money-stock-meter__row--gone">
+            <span className="money-stock-meter__label">{t('unsoldSoldGiven')}</span>
+            <strong className="money-stock-meter__amount">{formatLitres(gone, locale, '—')}</strong>
+          </li>
+          <li className="money-stock-meter__row money-stock-meter__row--rest">
+            <span className="money-stock-meter__label">{t('remaining')}</span>
+            <strong className="money-stock-meter__amount">
+              {formatLitres(remaining, locale, '—')}
+            </strong>
+          </li>
+        </ul>
+      </div>
+
+      <Button as={Link} to="/my-oil" variant="secondary" fullWidth>
+        {t('myOil:seeMyOil')}
+      </Button>
     </section>
   );
 };

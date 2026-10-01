@@ -3,7 +3,7 @@
   color: var(--text-primary);
   border-radius: 16px;
   box-shadow: var(--shadow-card);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--card-edge, var(--border-default));
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
@@ -20,14 +20,14 @@
 
 .card-hover:hover {
   background: var(--surface-hover);
-  border-color: var(--border-default);
+  border-color: var(--border-strong);
   transform: translateY(-1px);
   box-shadow: var(--shadow-card-hover);
 }
 
 .card-featured {
   background: var(--surface-1);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--card-edge, var(--border-default));
 }
 
 /* Card as Link */

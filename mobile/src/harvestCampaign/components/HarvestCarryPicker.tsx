@@ -4,17 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { radii, spacing } from '../../theme';
 
-const inkOn = (hex: string): string => {
-  const h = hex.replace('#', '');
-  if (!/^[0-9A-Fa-f]{6}$/.test(h)) return '#1a140c';
-  const y =
-    (parseInt(h.slice(0, 2), 16) * 299 +
-      parseInt(h.slice(2, 4), 16) * 587 +
-      parseInt(h.slice(4, 6), 16) * 114) /
-    1000;
-  return y > 160 ? '#1a140c' : '#fff';
-};
-
 export const carryColor = (colors: string[]): string | undefined => {
   const unique = [...new Set(colors.filter(Boolean))];
   return unique.length === 1 ? unique[0] : undefined;
@@ -87,7 +76,7 @@ export const HarvestCarryPicker: React.FC<{
           const on = selected.includes(item.id);
           const showGroup = Boolean(item.group) && item.group !== lastGroup;
           if (item.group) lastGroup = item.group;
-          const lead = item.colors[0] || '#c4a35a';
+          const lead = item.colors[0] || colors.primary;
           const barColors = [...new Set(item.colors.filter(Boolean))].slice(0, 3);
           const stripes = barColors.length > 0 ? barColors : [lead];
           return (
@@ -106,9 +95,9 @@ export const HarvestCarryPicker: React.FC<{
                   compact && styles.rowCompact,
                   {
                     minHeight: compact ? 46 : Math.max(56, tapMin),
-                    backgroundColor: compact || !on ? colors.surface : lead,
-                    borderColor: on ? lead : colors.border,
-                    borderWidth: on && compact ? 1 : StyleSheet.hairlineWidth,
+                    backgroundColor: colors.surfaceElevated,
+                    borderColor: on ? colors.primary : colors.border,
+                    borderWidth: on ? 1.5 : 1,
                     opacity: item.disabled ? 0.5 : pressed ? 0.88 : 1,
                   },
                 ]}
@@ -120,14 +109,14 @@ export const HarvestCarryPicker: React.FC<{
                 </View>
                 <View style={styles.copy}>
                   <Text
-                    style={[styles.title, { color: compact || !on ? colors.textPrimary : inkOn(lead) }]}
+                    style={[styles.title, { color: colors.textPrimary }]}
                     numberOfLines={1}
                   >
                     {item.title}
                   </Text>
                   {item.detail ? (
                     <Text
-                      style={[styles.detail, { color: compact || !on ? colors.textSecondary : inkOn(lead) }]}
+                      style={[styles.detail, { color: colors.textSecondary }]}
                       numberOfLines={1}
                     >
                       {item.detail}
@@ -135,13 +124,9 @@ export const HarvestCarryPicker: React.FC<{
                   ) : null}
                 </View>
                 {item.badge ? (
-                  <Text style={[styles.badge, { color: compact || !on ? colors.primary : inkOn(lead) }]}>
-                    {item.badge}
-                  </Text>
+                  <Text style={[styles.badge, { color: colors.primary }]}>{item.badge}</Text>
                 ) : null}
-                {on ? (
-                  <Ionicons name="checkmark" size={18} color={compact ? lead : inkOn(lead)} />
-                ) : null}
+                {on ? <Ionicons name="checkmark-circle" size={22} color={colors.primary} /> : null}
               </Pressable>
             </React.Fragment>
           );
@@ -181,7 +166,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.lg,
     paddingVertical: 10,
     paddingHorizontal: 10,

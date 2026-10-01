@@ -12,10 +12,8 @@ import {
   pollFieldFirstData,
   type FirstDataFlags,
 } from '../../onboarding/fieldFirstData';
-import { ONBOARDING_TARGETS, onboardingStepNumber } from '../../onboarding/steps';
-import OnboardingStepCard from './OnboardingStepCard';
+import { ONBOARDING_TARGETS } from '../../onboarding/steps';
 import './SpatialLoadingPanel.css';
-import './NavCoach.css';
 
 type Props = {
   fieldId: string;
@@ -159,7 +157,7 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
   const continueToDetails = () => {
     beginDetailsLesson();
     markFieldsDirty();
-    navigate(`/fields/${fieldId}?tab=details`, { replace: true });
+    navigate(`/fields/${fieldId}?tab=map`, { replace: true });
   };
 
   const stageState = (index: number): 'pending' | 'active' | 'done' => {
@@ -193,20 +191,17 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
       data-onboarding-target={ONBOARDING_TARGETS.spatialPanel}
     >
       <div className="grove-sequence-backdrop" />
-      <OnboardingStepCard
-        step={onboardingStepNumber('groveReady')}
-        className="nav-coach-card grove-sequence-card"
-        title={
-          showWelcome
+      <article className="grove-sequence-sheet">
+        <h2>
+          {showWelcome
             ? firstName
               ? t('welcome.titleNamed', { name: firstName, grove: displayName })
               : t('welcome.title', { grove: displayName })
-            : t('spatial.title')
-        }
-        body={showWelcome ? t('welcome.body') : t('spatial.bodyNamed', { name: displayName })}
-      >
+            : t('spatial.titleNamed', { name: displayName })}
+        </h2>
         {!showWelcome ? (
           <>
+            <p className="grove-sequence-lead">{t('spatial.bodyNamed', { name: displayName })}</p>
             <ul className="grove-sequence-stages">
               {STAGES.map((id, index) => {
                 const state = stageState(index);
@@ -217,13 +212,8 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
                     </span>
                     <div className="grove-sequence-stage-copy">
                       <strong>{t(`spatial.stages.${id}.title`)}</strong>
-                      <span>
-                        {state === 'active' ? activePhrase(id) : t(`spatial.stages.${id}.body`)}
-                      </span>
+                      {state === 'active' ? <span>{activePhrase(id)}</span> : null}
                     </div>
-                    <em className="grove-sequence-stage-status">
-                      {state === 'done' ? t('spatial.ready') : ''}
-                    </em>
                   </li>
                 );
               })}
@@ -243,17 +233,13 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
           </>
         ) : (
           <>
-            <ul className="grove-welcome-points">
-              <li>{t('welcome.pointWeather')}</li>
-              <li>{t('welcome.pointSatellite')}</li>
-              <li>{t('welcome.pointMap')}</li>
-            </ul>
+            <p className="grove-sequence-lead">{t('welcome.body')}</p>
             <button type="button" className="grove-sequence-btn" onClick={continueToDetails}>
               {t('welcome.openMap')}
             </button>
           </>
         )}
-      </OnboardingStepCard>
+      </article>
     </div>,
     document.body
   );

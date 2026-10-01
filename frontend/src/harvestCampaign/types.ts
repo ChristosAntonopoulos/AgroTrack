@@ -87,6 +87,10 @@ export type HarvestOilEntry = {
   batchId?: string;
   harvestRecordId?: string;
   harvestRecordIds?: string[];
+  /** Whose personal cellar (Το λάδι μου) this oil enters. */
+  cellarOwnerUserId?: string;
+  /** Split of the farmer's litres across cellars. Set only when the press was shared. */
+  cellarAllocations?: { cellarOwnerUserId: string; litres: number }[];
   /** Litres already sold from this lot (farmer share). */
   soldLitres?: number;
   /** Pack already sold — subtracted from stored tins / bulk on the next sale. */

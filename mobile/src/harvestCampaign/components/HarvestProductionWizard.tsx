@@ -110,10 +110,13 @@ export const HarvestProductionWizard: React.FC<{
   };
 
   const afterSave = (from: HarvestProduceStep) => {
-    const next = pending.current;
+    const next = pending.current ?? nextOf(from);
     pending.current = null;
-    if (next && enabled.includes(next) && next !== from) setStep(next);
-    else onClose();
+    if (next && enabled.includes(next) && next !== from) {
+      setStep(next);
+      return;
+    }
+    onClose();
   };
 
   const run = async (from: HarvestProduceStep, work: () => Promise<void>) => {

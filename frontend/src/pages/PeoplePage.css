@@ -1,9 +1,9 @@
 .people-page {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.1rem;
   padding-bottom: 2.5rem;
-  max-width: 880px;
+  max-width: 1040px;
 }
 
 .people-header {
@@ -38,8 +38,198 @@
 
 .people-subtitle {
   margin: 0.35rem 0 0;
-  max-width: 38rem;
+  max-width: 40rem;
   line-height: 1.45;
+}
+
+.people-kicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.people-grove-select {
+  display: block;
+  width: min(100%, 28rem);
+  margin: 0;
+  padding: 0 1.4rem 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary, inherit);
+  font: inherit;
+  font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  cursor: pointer;
+}
+
+.people-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.people-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+input.people-search {
+  align-self: flex-start;
+  width: 18rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.people-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.people-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  height: 100%;
+  padding: 1rem 1rem 0.85rem;
+  border-radius: 18px;
+  border: 1px solid var(--border-default, rgba(235, 239, 230, 0.14));
+  background: color-mix(in srgb, var(--surface-2, #272d27) 72%, var(--surface-1, #202520));
+}
+
+.people-block-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.people-block-head > div {
+  min-width: 0;
+}
+
+.people-block-head > :last-child {
+  flex: none;
+}
+
+.people-block-kicker {
+  margin: 0 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--olive-primary, #71845b);
+}
+
+.people-block h2 {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  color: var(--text-primary, inherit);
+}
+
+.people-block > .people-note {
+  margin: 0.15rem 0 0.7rem;
+  max-width: 36rem;
+  line-height: 1.4;
+}
+
+.people-empty-slot {
+  margin: 0.55rem 0 0.4rem;
+  padding: 0.95rem 0.9rem;
+  border-radius: 14px;
+  border: 1px dashed color-mix(in srgb, var(--border-strong, rgba(235, 239, 230, 0.22)) 75%, transparent);
+  background: color-mix(in srgb, var(--surface-1, #202520) 55%, transparent);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.people-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.72rem 0.15rem;
+  border-top: 1px solid color-mix(in srgb, var(--border-default, #e4e0d6) 70%, transparent);
+}
+
+@media (max-width: 820px) {
+  .people-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.people-row-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.people-row-main strong {
+  display: block;
+  color: var(--text-primary, inherit);
+  font-size: 1rem;
+}
+
+.people-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  margin-top: 0.2rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.people-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem 0.75rem;
+}
+
+.people-kind {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.08rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+.people-kind.is-user {
+  background: color-mix(in srgb, var(--olive-primary, #5c7a3a) 22%, transparent);
+  color: var(--text-primary, inherit);
+}
+
+.people-kind.is-contact {
+  background: color-mix(in srgb, var(--text-secondary, #66705f) 16%, transparent);
+  color: var(--text-primary, inherit);
+}
+
+.people-kind.is-invite {
+  background: color-mix(in srgb, var(--status-warning, #c8924e) 24%, transparent);
+  color: var(--text-primary, inherit);
+}
+
+.people-here {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
 }
 
 .people-subtitle,
@@ -300,24 +490,26 @@
 .people-menu-panel {
   position: absolute;
   right: 0;
-  top: 2.1rem;
-  z-index: 4;
-  min-width: 14rem;
+  top: 2.2rem;
+  z-index: 6;
+  min-width: 12.5rem;
   display: grid;
-  padding: 0.35rem;
-  border-radius: 12px;
-  border: 1px solid var(--color-border, #e4e0d6);
-  background: var(--surface-1, #fff);
-  box-shadow: 0 10px 30px color-mix(in srgb, #1c2418 12%, transparent);
+  padding: 0.3rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong, rgba(235, 239, 230, 0.22));
+  background: var(--surface-popover, var(--surface-3, #2e352e));
+  color: var(--text-primary, inherit);
+  box-shadow: var(--shadow-floating, 0 16px 36px rgba(0, 0, 0, 0.32));
 }
 
 .people-menu-panel button {
   text-align: left;
   border: 0;
   background: transparent;
+  color: inherit;
   font: inherit;
-  padding: 0.55rem 0.65rem;
-  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
   cursor: pointer;
 }
 
@@ -505,12 +697,33 @@
   font-size: 0.92rem;
   font-weight: 650;
   cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
-.invite-mode-btn.is-on {
+.invite-mode-btn:hover {
+  color: var(--text-primary, inherit);
+  background: color-mix(in srgb, var(--text-primary, #222) 6%, transparent);
+}
+
+.invite-mode-btn:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--olive-primary, #5c7a3a));
+  outline-offset: 2px;
+}
+
+.invite-mode-btn.is-on,
+.invite-mode-btn.is-on:hover {
   background: var(--surface-1, #fff);
   color: var(--text-primary, inherit);
-  box-shadow: 0 1px 0 color-mix(in srgb, #000 8%, transparent);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, #000 12%, transparent),
+    inset 0 0 0 1px var(--olive-border, var(--olive-primary, #5c7a3a));
+}
+
+/* surface-1 is the sheet color in dark mode, so a white-pill recipe sinks into the drawer. */
+[data-theme='dark'] .invite-mode-btn.is-on,
+[data-theme='dark'] .invite-mode-btn.is-on:hover {
+  background: color-mix(in srgb, var(--olive-primary, #71845b) 28%, var(--surface-3, #2e352e));
+  box-shadow: inset 0 0 0 1px var(--olive-border, rgba(139, 160, 112, 0.55));
 }
 
 .invite-field {

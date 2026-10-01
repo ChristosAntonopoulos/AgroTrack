@@ -19,7 +19,6 @@ import EmptyState from '../components/EmptyState';
 import ChronologioPeekSheet, {
   ChronologioPeekTarget,
 } from '../components/chronologio/ChronologioPeekSheet';
-import ChronologioComparePanel from '../components/chronologio/ChronologioComparePanel';
 import ChronologioDaysTimeline from '../components/chronologio/ChronologioDaysTimeline';
 import ChronologioJournalHeader from '../components/chronologio/ChronologioJournalHeader';
 import ChronologioZoomTabs from '../components/chronologio/ChronologioZoomTabs';
@@ -66,6 +65,10 @@ import { buildMonthWeatherView, monthSeasonStage, type MonthChapterFocus, monthF
 import { previousYearSummary } from '../chronologio/yearPresentation';
 import { daysLandingMonth } from '../chronologio/daysLanding';
 import { agriculturalYearFor } from '../chronologio/agriculturalYear';
+import {
+  readChronologioFilters,
+  writeChronologioFilters,
+} from '../chronologio/filterPreferences';
 import { apiCategoryParam, entryMatchesChronologioTypes, chronologioTypesParam, selectedChronologioTypes, CHRONOLOGIO_TYPE_IDS, type ChronologioTypeId } from '../chronologio/categorySelection';
 import { preferredCaptureTypeFromCategory, resolveChronologioCaptureDate } from '../chronologio/captureContext';
 import { useTodaySummary } from '../chronologio/useTodaySummary';
@@ -143,6 +146,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   const [filterCategory, setFilterCategory] = useState('all');
   const [lifecycleYear, setLifecycleYear] = useState<'' | 'low' | 'high'>('');
   const [filterFieldId, setFilterFieldId] = useState('');
+  const [filtersReady, setFiltersReady] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [periodYear, setPeriodYear] = useState(() => agriculturalYearFor(new Date()));
   const [monthYear, setMonthYear] = useState(nowYear);
@@ -159,15 +163,40 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   const [booted, setBooted] = useState(false);
   const bootedRef = useRef(false);
   const [reloadToken, setReloadToken] = useState(0);
-  const [compareOpen, setCompareOpen] = useState(false);
-  const [compareYears, setCompareYears] = useState<[number, number]>([nowYear - 1, nowYear]);
-  const [compareLeftMonths, setCompareLeftMonths] = useState<ChronologioMonthSummary[]>([]);
-  const [compareRightMonths, setCompareRightMonths] = useState<ChronologioMonthSummary[]>([]);
   const [headerCompact, setHeaderCompact] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState<{ year: number; month: number } | null>(null);
   const [weatherByDate, setWeatherByDate] = useState<Record<string, DayWeatherInput>>({});
   const [todayWeatherPeek, setTodayWeatherPeek] = useState(false);
   const [focusDate, setFocusDate] = useState(() => athensCalendarDateKey(new Date()));
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const stored = await readChronologioFilters();
+      if (cancelled) return;
+      if (stored.category) setFilterCategory(stored.category);
+      if (stored.lifecycleYear === 'low' || stored.lifecycleYear === 'high') {
+        setLifecycleYear(stored.lifecycleYear);
+      }
+      if (!fieldMode && stored.fieldId) setFilterFieldId(stored.fieldId);
+      setFiltersReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fieldMode]);
+
+  useEffect(() => {
+    if (!filtersReady) return;
+    void writeChronologioFilters(
+      {
+        category: filterCategory,
+        lifecycleYear,
+        fieldId: filterFieldId,
+      },
+      { preserveFieldId: fieldMode }
+    );
+  }, [fieldMode, filterCategory, filterFieldId, filtersReady, lifecycleYear]);
 
   useEffect(() => {
     if (!fieldId) {
@@ -326,8 +355,9 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   ]);
 
   useEffect(() => {
+    if (!filtersReady) return;
     void load();
-  }, [load, reloadToken]);
+  }, [filtersReady, load, reloadToken]);
 
   const loadMore = useCallback(async () => {
     if (zoom !== 'month' || loadingMore || !hasMore || loading) return;
@@ -380,40 +410,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     });
     return () => sub.remove();
   }, []);
-
-  useEffect(() => {
-    if (zoom !== 'years') setCompareOpen(false);
-  }, [zoom]);
-
-  useEffect(() => {
-    if (!compareOpen || zoom !== 'years') return;
-    let cancelled = false;
-    const svc = getChronologioService();
-    const loadSide = async (year: number) => {
-      const filters = {
-        ...summaryFilterParams,
-        year: axis === 'season' ? undefined : year,
-        season: axis === 'season' ? year : undefined,
-      };
-      return scopedFieldId
-        ? svc.getFieldMonthSummaries(scopedFieldId, filters)
-        : svc.getMyMonthSummaries(filters);
-    };
-    void Promise.all([loadSide(compareYears[0]), loadSide(compareYears[1])])
-      .then(([left, right]) => {
-        if (cancelled) return;
-        setCompareLeftMonths(left);
-        setCompareRightMonths(right);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setCompareLeftMonths([]);
-        setCompareRightMonths([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [axis, compareOpen, compareYears, scopedFieldId, summaryFilterParams, zoom]);
 
   const journalLive = monthYear === nowYear && month === nowMonth;
 
@@ -555,24 +551,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
       });
   };
 
-  const returnToToday = () => {
-    setMonthYear(nowYear);
-    setMonth(nowMonth);
-    setPeriodYear(nowYear);
-    setVisibleMonth(null);
-    setHeaderCompact(false);
-    setPeek(null);
-    setCompareOpen(false);
-    setFocusDate(athensCalendarDateKey(new Date()));
-    setZoomAndPage('month');
-  };
-
-  const availableCompareYears = useMemo(() => {
-    const fromData = years.map((y) => y.periodYear);
-    const set = new Set(fromData.length ? fromData : [nowYear, nowYear - 1]);
-    return Array.from(set).sort((a, b) => b - a);
-  }, [nowYear, years]);
-
   const selectedTypes = selectedChronologioTypes(filterCategory);
 
   const typeFilterLabel = (id: string) => {
@@ -641,7 +619,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
       };
 
   const harvestTab = filterCategory === 'harvest';
-  const showTodaySummary = zoom === 'month' && journalLive && !compareOpen && !harvestTab;
+  const showTodaySummary = zoom === 'month' && journalLive && !harvestTab;
   const today = useTodaySummary({
     enabled: showTodaySummary && booted,
     fieldId: scopedFieldId,
@@ -846,17 +824,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     zoom,
   ]);
 
-  const scrolledAwayFromToday =
-    zoom === 'month' &&
-    journalLive &&
-    visibleMonth != null &&
-    (visibleMonth.year !== nowYear || visibleMonth.month !== nowMonth);
-
-  const showReturnToday =
-    scrolledAwayFromToday ||
-    (zoom === 'month' && (monthYear !== nowYear || month !== nowMonth)) ||
-    (zoom === 'year' && periodYear !== nowYear);
-
   const jumpToYear = (year: number) => {
     setPeriodYear(year);
     setVisibleMonth(null);
@@ -944,12 +911,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
             if (zoom === 'month') setZoomAndPage('year');
             else if (zoom === 'year') setZoomAndPage('years');
           }}
-          showToday={showReturnToday}
-          onPressToday={returnToToday}
-          todayLabel={t('chronologio:today')}
           filtersLabel={t('chronologio:filters')}
-          onPressCapture={capture ? openJournalCapture : undefined}
-          captureLabel={t('chronologio:captureNew', { defaultValue: t('capture:cta') })}
         />
       )}
 
@@ -997,29 +959,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
           value={focusDate}
           onValueChange={jumpToDate}
         />
-        {zoom === 'years' && years.length >= 2 ? (
-          <TouchableOpacity
-            style={styles.toolLink}
-            onPress={() => {
-              if (!compareOpen) {
-                const yrs = availableCompareYears;
-                setCompareYears([yrs[1] ?? yrs[0] - 1, yrs[0]]);
-              }
-              setCompareOpen((v) => !v);
-            }}
-            hitSlop={8}
-          >
-            <Text
-              style={{
-                color: compareOpen ? colors.primary : colors.textTertiary,
-                fontWeight: compareOpen ? '700' : '500',
-                fontSize: 12,
-              }}
-            >
-              {t('chronologio:living.compare')}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
       </View>
 
       {filtersDirty ? (
@@ -1285,33 +1224,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                   contentContainerStyle={{ paddingBottom: spacing.lg }}
                   nestedScrollEnabled
                   directionalLockEnabled
-                  ListHeaderComponent={
-                    compareOpen ? (
-                      <ChronologioComparePanel
-                        left={years.find((y) => y.periodYear === compareYears[0]) || null}
-                        right={years.find((y) => y.periodYear === compareYears[1]) || null}
-                        leftMonths={compareLeftMonths}
-                        rightMonths={compareRightMonths}
-                        leftYear={compareYears[0]}
-                        rightYear={compareYears[1]}
-                        availableYears={availableCompareYears}
-                        numberLocale={numberLocale}
-                        fieldNames={(scopedFieldId
-                          ? fields.filter((f) => f.id === scopedFieldId)
-                          : fields
-                        ).map((f) => f.name)}
-                        onChangeYears={setCompareYears}
-                        onOpenMonth={(y, m) => {
-                          setCompareOpen(false);
-                          setMonthYear(y);
-                          setMonth(m);
-                          setPeriodYear(agriculturalYearFor(new Date(Date.UTC(y, m - 1, 15))));
-                          setZoomAndPage('month');
-                        }}
-                        onClose={() => setCompareOpen(false)}
-                      />
-                    ) : null
-                  }
                   renderItem={({ item, index }) => (
                     <ChronologioYearChapterCard
                       summary={item}
@@ -1564,12 +1476,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexGrow: 0,
     flexShrink: 0,
-  },
-  toolLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingVertical: 2,
   },
   activeFilters: {
     flexDirection: 'row',

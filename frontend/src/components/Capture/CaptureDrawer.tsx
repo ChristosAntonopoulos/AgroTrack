@@ -376,7 +376,7 @@ const CaptureDrawer: React.FC<Props> = ({
     setSubmitting(true);
     setError(null);
     try {
-      const when = fromDateTimeLocal(occurredAt);
+      const when = step === 'observation' ? new Date().toISOString() : fromDateTimeLocal(occurredAt);
       if (step === 'observation') {
         if (!body.trim() && photos.length === 0) {
           setError(t('capture:errors.observationEmpty'));
@@ -696,24 +696,28 @@ const CaptureDrawer: React.FC<Props> = ({
                     )}
                   </fieldset>
 
-                  <label className="capture-label" htmlFor="capture-occurred-at">
-                    {t('capture:dateLabel')}
-                    <input
-                      id="capture-occurred-at"
-                      type="datetime-local"
-                      value={occurredAt}
-                      onChange={(e) => {
-                        setOccurredAt(e.target.value);
-                        markDirty();
-                      }}
-                    />
-                  </label>
-                  {context.dateNeedsChoice ? (
-                    <p className="capture-hint">
-                      {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
-                    </p>
-                  ) : context.dateDefaultedToToday ? (
-                    <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
+                  {step !== 'observation' ? (
+                    <>
+                      <label className="capture-label" htmlFor="capture-occurred-at">
+                        {t('capture:dateLabel')}
+                        <input
+                          id="capture-occurred-at"
+                          type="datetime-local"
+                          value={occurredAt}
+                          onChange={(e) => {
+                            setOccurredAt(e.target.value);
+                            markDirty();
+                          }}
+                        />
+                      </label>
+                      {context.dateNeedsChoice ? (
+                        <p className="capture-hint">
+                          {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
+                        </p>
+                      ) : context.dateDefaultedToToday ? (
+                        <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
+                      ) : null}
+                    </>
                   ) : null}
 
                   {step === 'observation' ? (

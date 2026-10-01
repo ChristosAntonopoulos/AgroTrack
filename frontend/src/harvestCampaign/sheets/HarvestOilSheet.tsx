@@ -22,12 +22,18 @@ import {
   oilKgFromAmount,
   readOilTinCounts,
   settleOil,
+  OLIVE_OIL_KG_PER_LITRE,
   type HarvestOilUnit,
   type OilSplitPartKey,
 } from '../utils/harvestCalculations';
 import { isPositiveAmount, parseHarvestDecimal } from '../utils/harvestValidation';
 import type { HarvestFieldShare, HarvestOilEntry } from '../types';
 import type { HarvestFlowChrome, HarvestSheetSharedProps } from './types';
+import { useAuth } from '../../context/AuthContext';
+import { oilStockService, type OilCellarCandidate } from '../../services/oilStockService';
+import { readLastCellarOwner, writeLastCellarOwner } from '../../myOil/cellarLastChoice';
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 const OilStep: React.FC<{
   n: number;
@@ -66,10 +72,15 @@ export const HarvestOilSheet: React.FC<
       fieldShares?: HarvestFieldShare[];
       acidity?: number;
       note?: string;
+      cellarOwnerUserId?: string;
+      cellarOwnerDisplayName?: string;
+      cellarIsYou?: boolean;
+      cellarAllocations?: { cellarOwnerUserId: string; litres: number }[];
     }) => void;
   }
 > = ({ campaign, fields, locale, prefillMillIds, initial, flow, onSave, onClose }) => {
   const { t } = useTranslation('fields');
+  const { user } = useAuth();
   const editing = Boolean(initial);
   const uncovered = useMemo(() => millsNeedingOil(campaign), [campaign]);
   const defaultMillIds = useMemo(() => {
@@ -120,6 +131,14 @@ export const HarvestOilSheet: React.FC<
   );
   const [acidity, setAcidity] = useState(
     initial?.acidity != null ? String(initial.acidity) : ''
+  );
+  const [cellarOwnerUserId, setCellarOwnerUserId] = useState(initial?.cellarOwnerUserId || '');
+  const [cellarCandidates, setCellarCandidates] = useState<OilCellarCandidate[]>([]);
+  const [splitCellars, setSplitCellars] = useState(Boolean(initial?.cellarAllocations?.length));
+  const [cellarLitres, setCellarLitres] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      (initial?.cellarAllocations || []).map((a) => [a.cellarOwnerUserId, String(a.litres)])
+    )
   );
 
   const value = parseHarvestDecimal(amount);
@@ -176,6 +195,84 @@ export const HarvestOilSheet: React.FC<
     .map((id) => friendlyFieldLabel(fields.find((f) => f.id === id)?.name || id))
     .filter(Boolean);
 
+  const resolvedFieldIds = useMemo(() => {
+    const fromShares = fieldIdsFromShares(activeShares);
+    if (fromShares.length) return fromShares;
+    if (showFieldPicker) return fieldIds;
+    return fieldIdsFromShares(inferredShares);
+  }, [activeShares, showFieldPicker, fieldIds, inferredShares]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (resolvedFieldIds.length === 0) {
+        const selfId = user?.userId || '';
+        if (!cancelled) {
+          setCellarCandidates(
+            selfId
+              ? [{ userId: selfId, displayName: '', role: 'admin', isYou: true }]
+              : []
+          );
+          if (!cellarOwnerUserId && selfId) setCellarOwnerUserId(selfId);
+        }
+        return;
+      }
+      try {
+        const rows = await oilStockService.listCellarCandidates(resolvedFieldIds);
+        if (cancelled) return;
+        setCellarCandidates(rows);
+        const last = resolvedFieldIds.map(readLastCellarOwner).find(Boolean) || null;
+        // Admin-first: prefer the grove admin over last choice / "you" on new entries.
+        const preferred =
+          (initial?.cellarOwnerUserId && rows.some((r) => r.userId === initial.cellarOwnerUserId)
+            ? initial.cellarOwnerUserId
+            : null) ||
+          rows.find((r) => r.role === 'admin')?.userId ||
+          (last && rows.some((r) => r.userId === last) ? last : null) ||
+          rows.find((r) => r.isYou)?.userId ||
+          rows[0]?.userId ||
+          '';
+        setCellarOwnerUserId((prev) =>
+          prev && rows.some((r) => r.userId === prev) ? prev : preferred
+        );
+      } catch {
+        if (!cancelled) setCellarCandidates([]);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-fetch when grove set / user changes
+  }, [resolvedFieldIds.join('|'), user?.userId, initial?.cellarOwnerUserId]);
+
+  const showCellarPicker = cellarCandidates.length > 1;
+  const selectedCellar = cellarCandidates.find((c) => c.userId === cellarOwnerUserId);
+  const cellarHint =
+    selectedCellar?.isYou || (!selectedCellar && cellarCandidates.length <= 1)
+      ? t('harvestCampaign.oil.cellarYou')
+      : selectedCellar
+        ? t('harvestCampaign.oil.cellarOf', {
+            name: selectedCellar.displayName || selectedCellar.userId,
+          })
+        : null;
+
+  // A split is always expressed in litres, even when the mill ticket was weighed in kilos.
+  const farmerLitres = settlement
+    ? round1(
+        unit === 'litres'
+          ? settlement.farmerAmount
+          : settlement.farmerAmount / OLIVE_OIL_KG_PER_LITRE
+      )
+    : 0;
+  const splitEntries = cellarCandidates.map((c) => ({
+    userId: c.userId,
+    litres: Math.max(0, parseHarvestDecimal(cellarLitres[c.userId] ?? '') ?? 0),
+  }));
+  const splitTaken = splitEntries.filter((e) => e.litres > 0.05);
+  const splitRemaining = round1(farmerLitres - splitTaken.reduce((sum, e) => sum + e.litres, 0));
+  const splitValid = !splitCellars || (splitTaken.length > 0 && Math.abs(splitRemaining) <= 0.05);
+
   const toggleMill = (id: string) => {
     setMillWeightIds((prev) =>
       prev.includes(id) ? prev.filter((row) => row !== id) : [...prev, id]
@@ -183,12 +280,30 @@ export const HarvestOilSheet: React.FC<
     setAdjustShares(false);
   };
 
+  const toggleSplit = () => {
+    if (splitCellars) {
+      setSplitCellars(false);
+      return;
+    }
+
+    // Start from "the chosen cellar takes it all" so one edit is enough to share it.
+    setCellarLitres(
+      Object.fromEntries(
+        cellarCandidates.map((c) => [
+          c.userId,
+          c.userId === cellarOwnerUserId ? String(farmerLitres) : '',
+        ])
+      )
+    );
+    setSplitCellars(true);
+  };
+
   const beginAdjustShares = () => {
     setManualShares(inferredShares.map((s) => ({ ...s })));
     setAdjustShares(true);
   };
 
-  const canSaveOil = isPositiveAmount(value) && !splitBlocked;
+  const canSaveOil = isPositiveAmount(value) && !splitBlocked && splitValid;
   const commitRef = useRef<() => boolean>(() => false);
   commitRef.current = () => {
     if (!canSaveOil || value == null) return false;
@@ -208,6 +323,14 @@ export const HarvestOilSheet: React.FC<
       unit === 'litres' && settlement && settlement.bulkAmount > 0
         ? settlement.bulkAmount
         : undefined;
+    const allocations = splitCellars
+      ? splitTaken.map((e) => ({ cellarOwnerUserId: e.userId, litres: e.litres }))
+      : undefined;
+    // The biggest slice stands in for "whose oil is this" on the campaign card.
+    const primaryCellar = allocations?.length
+      ? [...allocations].sort((a, b) => b.litres - a.litres)[0].cellarOwnerUserId
+      : cellarOwnerUserId;
+    const primaryCandidate = cellarCandidates.find((c) => c.userId === primaryCellar);
     onSave({
       amount: value,
       unit,
@@ -226,7 +349,24 @@ export const HarvestOilSheet: React.FC<
       fieldShares: shares.length > 0 ? shares : undefined,
       acidity: acidity.trim() ? parseHarvestDecimal(acidity) ?? undefined : undefined,
       note: note.trim() || undefined,
+      cellarOwnerUserId: primaryCellar || undefined,
+      cellarOwnerDisplayName: primaryCandidate?.displayName,
+      cellarIsYou:
+        primaryCandidate?.isYou ||
+        (!primaryCandidate && cellarCandidates.length <= 1) ||
+        primaryCellar === user?.userId,
+      cellarAllocations: allocations,
     });
+    if (cellarOwnerUserId) {
+      writeLastCellarOwner(
+        fieldIdsFromShares(shares).length
+          ? fieldIdsFromShares(shares)
+          : showFieldPicker
+            ? fieldIds
+            : fieldIdsFromShares(inferredShares),
+        cellarOwnerUserId
+      );
+    }
     return true;
   };
 
@@ -420,20 +560,22 @@ export const HarvestOilSheet: React.FC<
               <p className="capture-hint">{t('harvestCampaign.oil.storedAllHint')}</p>
             ) : (
               <>
-                <HarvestNumberStepper
-                  label={t('harvestCampaign.oil.tin16')}
-                  value={tin16}
-                  onChange={(next) => setTin16(Math.max(0, Math.round(next)))}
-                  min={0}
-                  suffix={t('harvestCampaign.oil.tinSuffix')}
-                />
-                <HarvestNumberStepper
-                  label={t('harvestCampaign.oil.tin17')}
-                  value={tin17}
-                  onChange={(next) => setTin17(Math.max(0, Math.round(next)))}
-                  min={0}
-                  suffix={t('harvestCampaign.oil.tinSuffix')}
-                />
+                <div className="hc-oil-tins">
+                  <HarvestNumberStepper
+                    label={t('harvestCampaign.oil.tin16')}
+                    value={tin16}
+                    onChange={(next) => setTin16(Math.max(0, Math.round(next)))}
+                    min={0}
+                    suffix={t('harvestCampaign.oil.tinSuffix')}
+                  />
+                  <HarvestNumberStepper
+                    label={t('harvestCampaign.oil.tin17')}
+                    value={tin17}
+                    onChange={(next) => setTin17(Math.max(0, Math.round(next)))}
+                    min={0}
+                    suffix={t('harvestCampaign.oil.tinSuffix')}
+                  />
+                </div>
                 {settlement && !settlement.millOver && settlement.overAmount <= 0 ? (
                   <p className="capture-hint">
                     {t('harvestCampaign.oil.bulkLine', {
@@ -446,6 +588,69 @@ export const HarvestOilSheet: React.FC<
           </OilStep>
         ) : null}
       </ol>
+
+      {isPositiveAmount(value) ? (
+        <div className="hc-oil-cellar">
+          {showCellarPicker ? (
+            <>
+              <p className="hc-oil-step-title">{t('harvestCampaign.oil.cellarTitle')}</p>
+              {splitCellars ? (
+                <>
+                  {cellarCandidates.map((c) => (
+                    <HarvestNumberInput
+                      key={c.userId}
+                      label={
+                        c.isYou ? t('harvestCampaign.oil.cellarYou') : c.displayName || c.userId
+                      }
+                      value={cellarLitres[c.userId] ?? ''}
+                      onChange={(raw) =>
+                        setCellarLitres((prev) => ({ ...prev, [c.userId]: raw }))
+                      }
+                      suffix="L"
+                      min={0}
+                    />
+                  ))}
+                  <p className={`capture-hint${splitValid ? '' : ' money-warn'}`}>
+                    {splitRemaining < -0.05
+                      ? t('harvestCampaign.oil.splitOver', {
+                          amount: Math.abs(splitRemaining),
+                        })
+                      : t('harvestCampaign.oil.splitLeft', {
+                          amount: Math.max(0, splitRemaining),
+                          total: farmerLitres,
+                        })}
+                  </p>
+                </>
+              ) : (
+                <div
+                  className="hc-oil-cellar-picks"
+                  role="group"
+                  aria-label={t('harvestCampaign.oil.cellarTitle')}
+                >
+                  {cellarCandidates.map((c) => (
+                    <button
+                      key={c.userId}
+                      type="button"
+                      className={c.userId === cellarOwnerUserId ? 'is-on' : ''}
+                      aria-pressed={c.userId === cellarOwnerUserId}
+                      onClick={() => setCellarOwnerUserId(c.userId)}
+                    >
+                      {c.isYou ? t('harvestCampaign.oil.cellarYou') : c.displayName || c.userId}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button type="button" className="money-text-link" onClick={toggleSplit}>
+                {splitCellars
+                  ? t('harvestCampaign.oil.splitOff')
+                  : t('harvestCampaign.oil.splitOn')}
+              </button>
+            </>
+          ) : cellarHint ? (
+            <p className="capture-hint">{cellarHint}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="hc-oil-after">
       {isPositiveAmount(value) && settlement ? (

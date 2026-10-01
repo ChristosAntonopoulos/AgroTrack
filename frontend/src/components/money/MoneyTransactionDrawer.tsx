@@ -242,6 +242,16 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
                 <dd>{transaction.counterpartyName}</dd>
               </div>
             ) : null}
+            {transaction.category === 'olive_oil_sale' ? (
+              <div>
+                <dt>{t('money:openMyOil')}</dt>
+                <dd>
+                  <Link to="/my-oil" onClick={onClose}>
+                    {t('money:oilSaleInCellar')}
+                  </Link>
+                </dd>
+              </div>
+            ) : null}
             <div>
               <dt>{t('money:receipts')}</dt>
               <dd>

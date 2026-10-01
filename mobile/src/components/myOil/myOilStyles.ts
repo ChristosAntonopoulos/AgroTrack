@@ -137,10 +137,28 @@ export function createMyOilStyles(colors: AppColors, tapMin: number) {
       backgroundColor: 'transparent',
       minHeight: Math.min(tapMin, 40),
     },
+    tabBtnRow: {
+      flexDirection: 'row',
+      gap: 5,
+    },
     tabBtnOn: {
       backgroundColor: colors.surface,
       borderColor: colors.oliveBorder,
       ...createElevation(colors, 'sm'),
+    },
+    tabCount: {
+      minWidth: 18,
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+      borderRadius: radii.full,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tabCountText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.primary,
     },
     tabLabel: {
       fontSize: 12.5,
@@ -422,12 +440,6 @@ export function createMyOilStyles(colors: AppColors, tapMin: number) {
       zIndex: 1,
     },
     heroMain: { flex: 1, minWidth: 0 },
-    heroEyebrow: {
-      ...typography.styles.overline,
-      fontSize: 12,
-      letterSpacing: 0.6,
-      color: colors.textTertiary,
-    },
     heroQty: {
       marginTop: 6,
       fontSize: 28,
@@ -769,6 +781,25 @@ export function createMyOilStyles(colors: AppColors, tapMin: number) {
       gap: spacing.sm,
       marginTop: 10,
     },
+    waitingTop: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    waitingMeta: {
+      marginTop: 6,
+      fontSize: 13,
+      color: colors.textTertiary,
+    },
+    waitingMetaWarn: {
+      color: colors.error,
+      fontWeight: '650' as '600',
+    },
+    splitInputs: {
+      marginTop: 10,
+      gap: 2,
+    },
 
     stepper: { gap: 10, marginBottom: spacing.sm },
     stepperRow: {
@@ -921,6 +952,58 @@ export function createMyOilStyles(colors: AppColors, tapMin: number) {
       fontSize: 14,
     },
 
+    pagerDots: {
+      flexDirection: 'row',
+      gap: 6,
+      marginBottom: spacing.md,
+    },
+    pagerDot: {
+      flex: 1,
+      height: 5,
+      borderRadius: radii.full,
+      backgroundColor: colors.borderLight,
+    },
+    pagerDotDone: { backgroundColor: colors.oliveBorder },
+    pagerDotOn: { flex: 1.6, backgroundColor: colors.primary },
+
+    intentList: { gap: 8, marginBottom: spacing.sm },
+    intentCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: radii.lg,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      minHeight: tapMin,
+    },
+    intentCardOn: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primaryLight,
+    },
+    intentIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 11,
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.oliveBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    intentBody: { flex: 1, minWidth: 0, gap: 2 },
+    intentTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    intentHint: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+
     sourceList: { gap: 8, marginBottom: spacing.sm },
     sourceCard: {
       flexDirection: 'row',
@@ -1032,6 +1115,14 @@ export function createMyOilStyles(colors: AppColors, tapMin: number) {
       fontSize: 13,
       fontWeight: '700',
       color: colors.error,
+    },
+    timelineUndo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 6,
+      paddingVertical: 4,
+      alignSelf: 'flex-start',
     },
 
     lotList: { gap: spacing.sm },
@@ -1231,6 +1322,55 @@ export function createMyOilStyles(colors: AppColors, tapMin: number) {
     },
     buyerRowMeta: {
       fontSize: 12,
+      color: colors.textTertiary,
+    },
+    byGrove: {
+      gap: 8,
+      marginTop: 4,
+    },
+    byGroveTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    sectionHint: {
+      fontSize: 13,
+      color: colors.textTertiary,
+      marginBottom: 4,
+    },
+    groveCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      borderRadius: radii.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.borderLight,
+      backgroundColor: colors.surface,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+    },
+    groveCardFocus: {
+      borderColor: colors.primary,
+      backgroundColor: colors.surfaceMuted,
+    },
+    groveTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    grovePack: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    groveMeta: {
+      fontSize: 12,
+      color: colors.textTertiary,
+    },
+    heroEyebrow: {
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
       color: colors.textTertiary,
     },
   });

@@ -23,6 +23,7 @@ import MapPolygonLayer from '../maps/MapPolygonLayer';
 import MapFieldPins from '../maps/MapFieldPins';
 import MapRasterOverlay from '../maps/MapRasterOverlay';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import MapExploreCue from '../onboarding/MapExploreCue';
 import MapLayerToggle from './MapLayerToggle';
 import MapLayerSheet from './MapLayerSheet';
 import MapZoomControls from '../maps/MapZoomControls';
@@ -207,6 +208,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
           ]}
         />
       </AppMapView>
+      <MapExploreCue />
       <View style={styles.toggle} pointerEvents="box-none">
         {allowDataLayers ? (
           <Pressable

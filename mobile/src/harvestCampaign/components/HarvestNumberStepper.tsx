@@ -13,6 +13,7 @@ type Props = {
   label: string;
 };
 
+/** Crisp +/- stepper — dark olive controls on white. */
 export const HarvestNumberStepper: React.FC<Props> = ({
   value,
   onChange,
@@ -40,7 +41,15 @@ export const HarvestNumberStepper: React.FC<Props> = ({
   return (
     <View style={styles.group}>
       <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
-      <View style={[styles.row, { backgroundColor: colors.eventHarvestSoft }]}>
+      <View
+        style={[
+          styles.row,
+          {
+            backgroundColor: colors.surfaceElevated,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <Pressable
           onPress={() => setCommitted(value - step)}
           accessibilityRole="button"
@@ -50,7 +59,7 @@ export const HarvestNumberStepper: React.FC<Props> = ({
             {
               minWidth: Math.max(52, tapMin),
               minHeight: Math.max(52, tapMin),
-              backgroundColor: colors.eventHarvest,
+              backgroundColor: colors.primary,
             },
           ]}
         >
@@ -76,7 +85,7 @@ export const HarvestNumberStepper: React.FC<Props> = ({
             {
               minWidth: Math.max(52, tapMin),
               minHeight: Math.max(52, tapMin),
-              backgroundColor: colors.eventHarvest,
+              backgroundColor: colors.primary,
             },
           ]}
         >
@@ -99,8 +108,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   row: {
-    borderWidth: 0,
     borderRadius: radii.xl,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 76,
@@ -112,7 +121,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radii.lg,
   },
-  buttonText: { fontSize: 28, fontWeight: '800', color: '#fffaf0' },
+  buttonText: { fontSize: 28, fontWeight: '800', color: '#FFFFFF' },
   value: {
     flex: 1,
     flexDirection: 'row',
@@ -125,8 +134,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     textAlign: 'right',
     fontSize: 32,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: -0.5,
   },
-  suffix: { fontSize: 18, fontWeight: '750' as '700' },
+  suffix: { fontSize: 18, fontWeight: '700' },
 });

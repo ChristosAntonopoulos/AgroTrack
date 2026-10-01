@@ -1127,6 +1127,84 @@
   font-weight: 600;
 }
 
+.hc-chain-toast__link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 700;
+}
+
+.hc-share-request {
+  margin: 0 0 0.85rem;
+  padding: 1.1rem 1.15rem 1.15rem;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--harvest-gold) 36%, var(--color-border));
+  background: color-mix(in srgb, var(--harvest-gold-soft) 48%, var(--surface-1, var(--bg-card)));
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.hc-share-request__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.hc-share-request__head .hc-kicker {
+  margin: 0 0 0.15rem;
+}
+
+.hc-share-request__head h3 {
+  margin: 0;
+  font-size: calc(1.2rem * var(--font-scale, 1));
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.hc-share-request__free {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0;
+  font-size: calc(0.85rem * var(--font-scale, 1));
+  color: var(--color-text-secondary);
+}
+
+.hc-share-request__free svg {
+  color: var(--harvest-gold-deep, var(--olive-primary));
+  flex-shrink: 0;
+}
+
+.hc-share-request .hc-form {
+  gap: 0.65rem;
+}
+
+.hc-share-request__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.hc-share-request__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+
+.hc-share-request__ok {
+  margin: 0;
+  font-weight: 700;
+  color: var(--olive-primary, #4a6b3a);
+}
+
+.hc-share-request__err {
+  margin: 0;
+  color: var(--status-danger, #c45c4a);
+  font-size: 0.85rem;
+}
+
 .hc-day-summary {
   padding: 1.1rem 1.15rem 1.15rem;
   border: 1px solid var(--border-subtle, var(--color-border));

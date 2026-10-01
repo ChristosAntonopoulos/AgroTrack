@@ -1,6 +1,12 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FIELD_COLOR_NAMES, FIELD_COLOR_PRESETS, resolveFieldColor } from '../../utils/fieldColors';
+import { Check } from 'lucide-react';
+import {
+  FIELD_COLOR_NAMES,
+  FIELD_COLOR_PRESETS,
+  fieldColorNameKey,
+  resolveFieldColor,
+} from '../../utils/fieldColors';
 import './FieldColorPicker.css';
 
 type Props = {
@@ -21,6 +27,14 @@ const FieldColorPicker: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation('fields');
   const selected = resolveFieldColor(value, fieldId);
+  const selectedName = t(fieldColorNameKey(selected), { defaultValue: selected });
+  const lightSwatch = (hex: string) => {
+    const n = Number.parseInt(hex.replace('#', ''), 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return r * 0.299 + g * 0.587 + b * 0.114 > 170;
+  };
 
   return (
     <div className="field-color-picker">
@@ -55,14 +69,17 @@ const FieldColorPicker: React.FC<Props> = ({
               aria-checked={active}
               aria-label={name}
               disabled={disabled}
-              className={`field-color-swatch ${active ? 'is-active' : ''}`}
+              className={`field-color-swatch${active ? ' is-active' : ''}${lightSwatch(color) ? ' is-light' : ''}`}
               style={{ background: color }}
               onClick={() => onChange(color)}
               title={name}
-            />
+            >
+              {active ? <Check size={16} strokeWidth={3} aria-hidden /> : null}
+            </button>
           );
         })}
       </div>
+      <p className="field-color-picker-chosen">{selectedName}</p>
     </div>
   );
 };

@@ -66,6 +66,7 @@ export const HarvestSacksSheet: React.FC<
     <HarvestFormPager
       current={0}
       total={1}
+      accent="sacks"
       title={editing ? t('fields:harvestCampaign.dayActivity.editSacks') : t('fields:harvestCampaign.sacks.prompt')}
       nextLabel={
         editing

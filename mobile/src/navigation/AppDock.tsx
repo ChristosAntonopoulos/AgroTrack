@@ -14,7 +14,6 @@ import { FOOTER_LIFT, getDockMetrics } from './dockMetrics';
 import type { RootStackParamList } from './types';
 import { captureContextForRoute, type FocusedRoute } from './dockRoute';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
-import GuideTarget from '../components/onboarding/GuideTarget';
 
 type Props = {
   route: FocusedRoute;
@@ -54,29 +53,27 @@ const AppDock: React.FC<Props> = ({ route }) => {
     <View pointerEvents="box-none" style={[styles.host, { bottom: metrics.bottomInset + FOOTER_LIFT }]}>
       <View style={styles.pair}>
         {showMenu ? (
-          <GuideTarget id="homeButton">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('launcher.home')}
-              onPress={() => navigation.navigate('Main', { screen: 'Launcher' })}
-              style={({ pressed }) => [{ transform: [{ scale: pressed ? motion.fabPressScale : 1 }] }]}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('launcher.home')}
+            onPress={() => navigation.navigate('Main', { screen: 'Launcher' })}
+            style={({ pressed }) => [{ transform: [{ scale: pressed ? motion.fabPressScale : 1 }] }]}
+          >
+            <View
+              style={[
+                styles.orb,
+                styles.menuOrb,
+                {
+                  width: size,
+                  height: size,
+                  backgroundColor: colors.surfaceElevated,
+                  borderColor: isDark ? 'rgba(235, 239, 230, 0.55)' : colors.primary,
+                },
+              ]}
             >
-              <View
-                style={[
-                  styles.orb,
-                  styles.menuOrb,
-                  {
-                    width: size,
-                    height: size,
-                    backgroundColor: colors.surfaceElevated,
-                    borderColor: isDark ? 'rgba(235, 239, 230, 0.55)' : colors.primary,
-                  },
-                ]}
-              >
-                <BrandLogo variant="mark" tone={isDark ? 'on-dark' : 'on-light'} size={Math.round(size * 0.62)} />
-              </View>
-            </Pressable>
-          </GuideTarget>
+              <BrandLogo variant="mark" tone={isDark ? 'on-dark' : 'on-light'} size={Math.round(size * 0.62)} />
+            </View>
+          </Pressable>
         ) : null}
         <Pressable
           accessibilityRole="button"

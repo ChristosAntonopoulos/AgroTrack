@@ -34,7 +34,7 @@ import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const THEME_OPTIONS: ThemeMode[] = ['system', 'light', 'dark'];
+const THEME_OPTIONS: ThemeMode[] = ['system', 'light', 'dark', 'sun'];
 const START_VIEWS: DefaultStartView[] = ['chronologio', 'fields'];
 const DATE_FORMATS: DateFormatPref[] = ['dd/MM/yyyy', 'yyyy-MM-dd', 'medium'];
 const FONT_SCALES: FontScale[] = ['default', 'large', 'xl'];
@@ -65,7 +65,7 @@ type SheetOption = { value: string; label: string };
 
 const SettingsScreen = () => {
   const { user, logout, isFieldOwner } = useAuth();
-  const { colors } = useTheme();
+  const { colors, brightFieldAvailable } = useTheme();
   const { t } = useTranslation(['settings', 'common', 'nav', 'onboarding', 'auth']);
   const activation = useOwnerActivationOptional();
   const {
@@ -73,6 +73,8 @@ const SettingsScreen = () => {
     themeMode,
     setLanguage,
     setThemeMode,
+    brightFieldAuto,
+    setBrightFieldAuto,
     fontScale,
     setFontScale,
     largeControls,
@@ -162,10 +164,10 @@ const SettingsScreen = () => {
               style={{
                 color: on ? colors.primary : colors.textSecondary,
                 fontWeight: on ? '700' : '500',
-                fontSize: 13 * fontScaleMultiplier,
+                fontSize: (options.length > 3 ? 12 : 13) * fontScaleMultiplier,
                 textAlign: 'center',
               }}
-              numberOfLines={1}
+              numberOfLines={2}
             >
               {opt.label}
             </Text>
@@ -329,6 +331,38 @@ const SettingsScreen = () => {
             onChange={(v) => void setThemeMode(v as ThemeMode).then(flashSaved)}
           />
         </FieldBlock>
+
+        <View style={[styles.divider, { backgroundColor: colors.gray200 }]} />
+
+        <View style={[styles.switchRow, { minHeight: Math.max(52, controlH + 10) }]}>
+          <View style={{ flex: 1, paddingRight: spacing.sm }}>
+            <Text style={[styles.rowTitle, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}>
+              {t('settings:brightField')}
+            </Text>
+            <Text
+              style={[
+                styles.hint,
+                { color: colors.textTertiary, fontSize: 13 * fontScaleMultiplier, marginBottom: 0 },
+              ]}
+            >
+              {t(
+                brightFieldAvailable
+                  ? 'settings:brightFieldHint'
+                  : 'settings:brightFieldUnavailable'
+              )}
+            </Text>
+          </View>
+          <Switch
+            value={brightFieldAvailable && brightFieldAuto}
+            disabled={!brightFieldAvailable}
+            onValueChange={(enabled) => {
+              void setBrightFieldAuto(enabled).then(flashSaved);
+            }}
+            trackColor={{ false: colors.warmStone, true: colors.sage }}
+            thumbColor={colors.white}
+            accessibilityLabel={t('settings:brightField')}
+          />
+        </View>
 
         <View style={[styles.divider, { backgroundColor: colors.gray200 }]} />
 

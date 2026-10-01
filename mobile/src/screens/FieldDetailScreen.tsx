@@ -6,6 +6,7 @@ import {
   ScrollView,
   Alert,
   DeviceEventEmitter,
+  ActivityIndicator,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,16 +19,13 @@ import {
   type FieldPhenology,
   type FieldWorkProfile,
 } from '../services/fieldWorkService';
-import type { YearFinancialSummary, FieldYearSummary } from '../services/financialSummaryService';
 import type { ChronologioEntry } from '../services/chronologioService';
 import type { FieldEnvironmentalAlert, FieldWeather } from '../services/geospatialService';
 import { geospatialService } from '../services/geospatialService';
 import {
   getFieldService,
   getFieldWorkService,
-  getFinancialSummaryService,
   getChronologioService,
-  getHarvestService,
 } from '../services/serviceFactory';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -43,22 +41,18 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import FieldIdentity from '../components/fields/FieldIdentity';
 import FieldMoreMenu from '../components/fields/FieldMoreMenu';
-import FieldStatusStrip from '../components/fields/FieldStatusStrip';
-import FieldYearGlance from '../components/fields/FieldYearGlance';
 import FieldWeatherSection from '../components/fields/FieldWeatherSection';
-import FieldRecentChronologio from '../components/fields/FieldRecentChronologio';
-import FieldAttentionCard from '../components/fields/FieldAttentionCard';
 import FieldFacts from '../components/fields/FieldFacts';
 import GroveEnrichmentCards from '../components/fields/GroveEnrichmentCards';
 import FieldDetailMap from '../components/domain/FieldDetailMap';
-import FieldMapDataPanel from '../components/fields/FieldMapDataPanel';
-import FieldPhotosStrip from '../components/fields/FieldPhotosStrip';
-import FieldHarvestCard from '../components/domain/FieldHarvestCard';
+import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
+import FieldWeatherVegetationCharts from '../components/fields/FieldWeatherVegetationCharts';
 import FieldLocalNavigation, { FIELD_PAGE_TABS, FieldTab } from '../components/fields/FieldLocalNavigation';
-import { resolveFieldGates } from '../utils/fieldGates';
 import FieldResultYearControl from '../components/fields/FieldResultYearControl';
-import ChronologioScreen from './ChronologioScreen';
-import type { HarvestRecord } from '../services/harvestService';
+import GroveWeatherCard from '../components/weather/GroveWeatherCard';
+import GroveWeekForecast from '../components/weather/GroveWeekForecast';
+import WeatherPeekSheet from '../components/weather/WeatherPeekSheet';
+import { resolveFieldGates } from '../utils/fieldGates';
 import { spacing } from '../theme';
 import {
   formatRelativeTime,
@@ -83,8 +77,10 @@ type Route = RouteProp<RootStackParamList, 'FieldDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldDetail'>;
 
 const parseTab = (mode?: string): FieldTab => {
-  if (mode === 'map' || mode === 'details' || mode === 'chronologio') return mode;
-  return 'overview';
+  if (mode === 'weather' || mode === 'details') return mode;
+  if (mode === 'vegetation') return 'vegetation';
+  // Legacy map / overview / chronologio → vegetation home
+  return 'vegetation';
 };
 
 const FieldDetailScreen = () => {
@@ -106,13 +102,10 @@ const FieldDetailScreen = () => {
   const [weather, setWeather] = useState<FieldWeather | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState(false);
+  const [weatherPeekOpen, setWeatherPeekOpen] = useState(false);
   const [attention, setAttention] = useState<FieldAttentionModel | null>(null);
   const [dismissedAttentionIds, setDismissedAttentionIds] = useState<string[]>([]);
-  const [costSummary, setCostSummary] = useState<YearFinancialSummary | null>(null);
-  const [yearRollup, setYearRollup] = useState<FieldYearSummary | null>(null);
-  const [plannedRemaining, setPlannedRemaining] = useState(0);
   const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
-  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
   const [workProfile, setWorkProfile] = useState<FieldWorkProfile | null | undefined>(undefined);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [hasLocalDraft, setHasLocalDraft] = useState(false);
@@ -138,39 +131,32 @@ const FieldDetailScreen = () => {
 
   const load = useCallback(async () => {
     try {
-      const finance = getFinancialSummaryService();
       const work = getFieldWorkService();
       const [
         fieldData,
         taskPlan,
-        summary,
-        rollup,
         chrono,
         fieldAlerts,
         fieldPhenology,
-        harvests,
         profile,
         dismissed,
         draft,
       ] = await Promise.all([
-          getFieldService().getField(fieldId),
-          work.getTaskPlan(fieldId, year).catch(() => null),
-          finance.getYear(year, fieldId, i18n.language).catch(() => null),
-          finance.getFieldYear(fieldId, year, i18n.language).catch(() => null),
-          getChronologioService()
-            .getFieldChronologio(fieldId, {
-              limit: 8,
-              from: `${year}-01-01`,
-              to: `${year}-12-31`,
-            })
-            .catch(() => [] as ChronologioEntry[]),
-          geospatialService.getAlerts(fieldId).catch(() => [] as FieldEnvironmentalAlert[]),
-          work.getPhenology(fieldId).catch(() => null),
-          getHarvestService().listByField(fieldId).catch(() => [] as HarvestRecord[]),
-          work.getWorkProfile(fieldId).catch(() => null),
-          isWorkSetupBannerDismissed(fieldId),
-          readWorkProfileDraft(fieldId),
-        ]);
+        getFieldService().getField(fieldId),
+        work.getTaskPlan(fieldId, year).catch(() => null),
+        getChronologioService()
+          .getFieldChronologio(fieldId, {
+            limit: 8,
+            from: `${year}-01-01`,
+            to: `${year}-12-31`,
+          })
+          .catch(() => [] as ChronologioEntry[]),
+        geospatialService.getAlerts(fieldId).catch(() => [] as FieldEnvironmentalAlert[]),
+        work.getPhenology(fieldId).catch(() => null),
+        work.getWorkProfile(fieldId).catch(() => null),
+        isWorkSetupBannerDismissed(fieldId),
+        readWorkProfileDraft(fieldId),
+      ]);
       if (isFieldSetupIncomplete(fieldData.status)) {
         navigation.replace('FieldForm', { fieldId: fieldData.id });
         return;
@@ -183,11 +169,7 @@ const FieldDetailScreen = () => {
       setProposals(planProposals);
       setAlerts(Array.isArray(fieldAlerts) ? fieldAlerts : []);
       setPhenology(fieldPhenology);
-      setPlannedRemaining(activeTasks.length);
-      setCostSummary(summary);
-      setYearRollup(rollup);
       setRecentEntries(chrono);
-      setHarvestRecords(Array.isArray(harvests) ? harvests : []);
       setWorkProfile(profile);
       setBannerDismissed(dismissed);
       setHasLocalDraft(Boolean(draft?.stepId));
@@ -197,7 +179,7 @@ const FieldDetailScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [fieldId, year, t, i18n.language, navigation]);
+  }, [fieldId, year, t, navigation]);
 
   useEffect(() => {
     void load();
@@ -206,6 +188,7 @@ const FieldDetailScreen = () => {
   useEffect(() => {
     void loadWeather();
   }, [loadWeather]);
+
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener(CAPTURE_SAVED_EVENT, () => {
       void load();
@@ -285,8 +268,8 @@ const FieldDetailScreen = () => {
   );
   const canOwn = gates.canOwn;
   const visibleTabs = FIELD_PAGE_TABS.filter((id) => {
-    if (id === 'map') return gates.canViewMap;
-    if (id === 'chronologio') return gates.canViewChronologio;
+    if (id === 'vegetation') return gates.canViewMap || gates.canViewEnvironmentalData;
+    if (id === 'weather') return gates.canViewEnvironmentalData;
     return true;
   });
   const showWorkSetupBanner =
@@ -329,7 +312,7 @@ const FieldDetailScreen = () => {
                 }
               : undefined
           }
-          onOpenChronologio={() => navigation.setParams({ mode: 'chronologio' })}
+          onOpenChronologio={() => navigation.navigate('Main', { screen: 'ChronologioTab' })}
         />
       ),
     });
@@ -337,37 +320,19 @@ const FieldDetailScreen = () => {
 
   const setTab = (next: FieldTab) => {
     navigation.setParams({
-      mode: next === 'overview' ? undefined : next,
+      mode: next === 'vegetation' ? undefined : next,
     });
   };
 
   useEffect(() => {
-    if (tab === 'map' && !gates.canViewMap) setTab('overview');
-    if (tab === 'chronologio' && !gates.canViewChronologio) setTab('overview');
-  }, [tab, gates.canViewMap, gates.canViewChronologio]);
-
-  const handleAttentionPrimary = useCallback(() => {
-    if (!attention) return;
-    switch (attention.primaryAction) {
-      case 'task':
-        if (attention.taskId) navigation.navigate('TaskDetail', { taskId: attention.taskId });
-        break;
-      case 'proposal':
-        navigation.navigate('CreateTask', {
-          fieldId,
-          proposalId: attention.proposalId,
-        });
-        break;
-      case 'tasks':
-        navigation.navigate('Main', { screen: 'Tasks' });
-        break;
-      case 'chronologio':
-        navigation.setParams({ mode: 'chronologio' });
-        break;
-      default:
-        break;
+    if (tab === 'weather' && !gates.canViewEnvironmentalData) {
+      navigation.setParams({ mode: undefined });
+      return;
     }
-  }, [attention, fieldId, navigation]);
+    if (tab === 'vegetation' && !gates.canViewMap && !gates.canViewEnvironmentalData) {
+      navigation.setParams({ mode: 'details' });
+    }
+  }, [tab, gates.canViewMap, gates.canViewEnvironmentalData, navigation]);
 
   useEffect(() => {
     setDismissedAttentionIds([]);
@@ -392,9 +357,6 @@ const FieldDetailScreen = () => {
     );
   }
 
-  const latestEntry = [...recentEntries].sort(
-    (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
-  )[0];
   const isHistoricalYear = year < currentYear;
   const weatherNextTitle =
     attention?.kind === 'nextTask' || attention?.kind === 'weatherReschedule'
@@ -409,19 +371,18 @@ const FieldDetailScreen = () => {
   const readyArea = formatFieldArea(field, areaLocale);
   const panelStyle = [styles.panel];
 
-  const renderMapPanel = () => (
-    <ScrollView style={styles.flex} contentContainerStyle={panelStyle} showsVerticalScrollIndicator={false}>
-      <FieldMapDataPanel field={field} weather={weather} />
-    </ScrollView>
-  );
-
   return (
     <ScreenLayout>
       <View style={styles.header}>
         {field.status === 'Draft' ? (
           <Text style={[styles.draft, { color: colors.warning }]}>{t('fields:page.draftField')}</Text>
         ) : null}
-        {groveReady ? (
+        {groveReady &&
+        !(
+          activation?.eligible &&
+          activation.completion.drawBoundary &&
+          !activation.completion.loadData
+        ) ? (
           <View
             style={[
               styles.readyBanner,
@@ -450,137 +411,116 @@ const FieldDetailScreen = () => {
         <FieldResultYearControl year={year} onYearChange={setYear} />
       </View>
 
-      <FieldLocalNavigation tab={tab} tabs={visibleTabs} onTabChange={setTab} />
-
       {(groveReady ||
         (activation?.eligible &&
           activation.completion.drawBoundary &&
           (activationParam === 'spatial' ||
             (!activation.completion.loadData && activation.celebrating)))) &&
       field ? (
-        <SpatialLoadingPanel fieldId={fieldId} fieldName={field.name} ceremony />
+        <SpatialLoadingPanel fieldId={fieldId} fieldName={field.name} />
       ) : null}
 
-      {tab === 'chronologio' ? (
-        <View style={styles.flex}>
-          <ChronologioScreen fieldId={field.id} embedded />
+      {showWorkSetupBanner ? (
+        <View style={styles.heroPad}>
+          <WorkSetupBanner
+            fieldId={field.id}
+            resume={hasLocalDraft || workProfile?.status === 'draft'}
+            onDismiss={() => {
+              void dismissWorkSetupBanner(field.id);
+              setBannerDismissed(true);
+            }}
+          />
         </View>
       ) : null}
 
-      {tab === 'overview' ? (
-        <ScrollView style={styles.flex} contentContainerStyle={panelStyle} showsVerticalScrollIndicator={false}>
-          {showWorkSetupBanner ? (
-            <WorkSetupBanner
-              fieldId={field.id}
-              resume={hasLocalDraft || workProfile?.status === 'draft'}
-              onDismiss={() => {
-                void dismissWorkSetupBanner(field.id);
-                setBannerDismissed(true);
-              }}
-            />
-          ) : null}
-          <GroveEnrichmentCards field={field} canEdit={gates.canOwn} />
-          {attention ? (
-            <FieldStatusStrip
-              phenology={phenology}
-              currentLifecycleStage={field.currentLifecycleStage}
-              tasks={tasks}
-              attention={attention}
-              latestEntry={latestEntry}
-              onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })}
-              onOpenAttention={handleAttentionPrimary}
-              onOpenChronologio={() => setTab('chronologio')}
-            />
-          ) : null}
-          {gates.canViewMap || gates.canViewEnvironmentalData ? (
-            <View style={styles.overviewMapBlock}>
-              {gates.canViewMap ? (
-                <FieldDetailMap
-                  field={field}
-                  height={240}
-                  showDataLayers={false}
-                  onOpenMapTab={() => setTab('map')}
-                />
-              ) : null}
-              {gates.canViewEnvironmentalData ? (
-                <FieldWeatherSection
-                  fieldId={field.id}
+      <View style={styles.hero}>
+        {gates.canViewMap ? (
+          <FieldDetailMap field={field} height={300} showDataLayers />
+        ) : null}
+
+        {gates.canViewEnvironmentalData ? (
+          <View style={styles.heroWeather}>
+            {weatherLoading && !weather ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : weatherError || !weather ? (
+              <Text style={{ color: colors.textSecondary }}>{t('fields:weather.unavailable')}</Text>
+            ) : (
+              <>
+                <GroveWeatherCard
+                  fieldWeather={weather}
                   fieldName={field.name}
-                  fieldColor={field.color}
-                  weather={weather}
-                  loading={weatherLoading}
-                  error={weatherError}
-                  year={year}
-                  isHistoricalYear={isHistoricalYear}
-                  allowRecommendation={field.status !== 'Draft'}
-                  attention={attention}
-                  nextTaskTitle={weatherNextTitle}
-                  onRetry={() => void loadWeather()}
-                  onSeeCharts={() => setTab('map')}
-                  onMoveTask={
-                    attention?.kind === 'weatherReschedule' && attention.taskId
-                      ? () => navigation.navigate('TaskDetail', { taskId: attention.taskId! })
-                      : undefined
-                  }
+                  embedded
+                  compact
+                  onPress={() => setWeatherPeekOpen(true)}
                 />
-              ) : null}
-            </View>
-          ) : null}
-          {attention ? (
-            <FieldAttentionCard
+                <GroveWeekForecast fieldWeather={weather} variant="compact" />
+              </>
+            )}
+          </View>
+        ) : null}
+      </View>
+
+      <FieldLocalNavigation tab={tab} tabs={visibleTabs} onTabChange={setTab} />
+
+      <ScrollView style={styles.flex} contentContainerStyle={panelStyle} showsVerticalScrollIndicator={false}>
+        {tab === 'vegetation' ? (
+          <>
+            <FieldWeatherVegetationCharts fieldId={field.id} focus="vegetation" />
+            {field.boundary && gates.canViewEnvironmentalData ? (
+              <FieldIntelligenceCard fieldId={field.id} />
+            ) : null}
+          </>
+        ) : null}
+
+        {tab === 'weather' ? (
+          <>
+            <FieldWeatherSection
+              fieldId={field.id}
+              fieldName={field.name}
+              fieldColor={field.color}
+              weather={weather}
+              loading={weatherLoading}
+              error={weatherError}
+              year={year}
+              isHistoricalYear={isHistoricalYear}
+              allowRecommendation={field.status !== 'Draft'}
               attention={attention}
-              onPrimary={handleAttentionPrimary}
-              onKeepDate={(taskId) =>
-                setDismissedAttentionIds((ids) => (ids.includes(taskId) ? ids : [...ids, taskId]))
+              nextTaskTitle={weatherNextTitle}
+              onRetry={() => void loadWeather()}
+              onSeeCharts={undefined}
+              onMoveTask={
+                attention?.kind === 'weatherReschedule' && attention.taskId
+                  ? () => navigation.navigate('TaskDetail', { taskId: attention.taskId! })
+                  : undefined
               }
             />
-          ) : null}
-          <FieldYearGlance
-            year={year}
-            costSummary={costSummary}
-            yearRollup={yearRollup}
-            plannedRemaining={plannedRemaining}
-            canViewMoney={gates.canViewMoney}
-            onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id, year })}
-          />
-          {gates.canViewHarvest ? (
-            <FieldHarvestCard
-              fieldId={field.id}
-              records={harvestRecords}
-              canAdd={field.status !== 'Draft' && gates.canCapture}
-              canVoid={gates.canOwn}
-              onLogHarvest={() => openHarvestCampaign(navigation, { fieldId: field.id })}
-              onOpenCampaign={() => openHarvestCampaign(navigation)}
-              onVoid={async (id) => {
-                await getHarvestService().void(id);
-                await load();
-              }}
+            <FieldWeatherVegetationCharts fieldId={field.id} focus="weather" />
+          </>
+        ) : null}
+
+        {tab === 'details' ? (
+          <>
+            <GroveEnrichmentCards field={field} canEdit={gates.canOwn} />
+            <FieldFacts
+              field={field}
+              year={year}
+              canOwn={canOwn}
+              canViewSensitiveIdentity={gates.canViewSensitiveIdentity}
+              canViewDocuments={gates.canViewDocuments}
+              workProfile={workProfile}
+              phenology={phenology}
             />
-          ) : null}
-          {gates.canViewChronologio ? (
-            <FieldRecentChronologio entries={recentEntries} onSeeAll={() => setTab('chronologio')} />
-          ) : null}
-          {gates.canViewPhotos ? <FieldPhotosStrip fieldId={field.id} /> : null}
-        </ScrollView>
-      ) : null}
+          </>
+        ) : null}
+      </ScrollView>
 
-      {tab === 'map' ? renderMapPanel() : null}
-
-      {tab === 'details' ? (
-        <ScrollView style={styles.flex} contentContainerStyle={panelStyle} showsVerticalScrollIndicator={false}>
-          <FieldFacts
-            field={field}
-            year={year}
-            canOwn={canOwn}
-            canViewSensitiveIdentity={gates.canViewSensitiveIdentity}
-            canViewDocuments={gates.canViewDocuments}
-            workProfile={workProfile}
-            phenology={phenology}
-            onOpenMap={() => setTab('map')}
-          />
-        </ScrollView>
-      ) : null}
-
+      <WeatherPeekSheet
+        open={weatherPeekOpen}
+        onClose={() => setWeatherPeekOpen(false)}
+        fields={[field]}
+        primaryFieldId={field.id}
+        seedSnapshot={null}
+      />
     </ScreenLayout>
   );
 };
@@ -611,28 +551,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  heroPad: {
+    paddingHorizontal: spacing.base,
+    paddingBottom: spacing.sm,
+  },
+  hero: {
+    paddingHorizontal: spacing.base,
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  heroWeather: {
+    gap: spacing.sm,
+  },
   panel: {
     padding: spacing.base,
     gap: spacing.md,
     paddingBottom: spacing.md,
-  },
-  overviewMapBlock: {
-    gap: spacing.md,
-  },
-  workBanner: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: spacing.base,
-    gap: spacing.sm,
-  },
-  workBannerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  workBannerBody: {
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: spacing.xs,
   },
 });
 

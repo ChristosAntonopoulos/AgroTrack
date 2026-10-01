@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Button from '../../components/ui/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { formatKg } from '../../utils/harvestUtils';
-import { radii, spacing } from '../../theme';
+import { createElevation, harvestPipelinePalette, radii, spacing } from '../../theme';
 import { HarvestSheetShell } from '../components/HarvestSheetShell';
 import { formatHarvestYieldPercent } from '../utils/harvestCalculations';
 
@@ -34,6 +34,20 @@ export const HarvestCompleteSheet: React.FC<{
   const { t } = useTranslation('fields');
   const { colors } = useTheme();
 
+  const metric = (label: string, bg: string) => (
+    <View
+      style={[
+        styles.metric,
+        {
+          backgroundColor: bg,
+          ...createElevation(colors, 'sm'),
+        },
+      ]}
+    >
+      <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{label}</Text>
+    </View>
+  );
+
   return (
     <HarvestSheetShell
       footer={
@@ -57,18 +71,24 @@ export const HarvestCompleteSheet: React.FC<{
         {t('harvestCampaign.complete.finishedTitle')}
       </Text>
       <View style={styles.metrics}>
-        <View style={[styles.metric, { borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-            {t('harvestCampaign.complete.olives', { kg: formatKg(officialKg) })}
-          </Text>
-        </View>
-        <View style={[styles.metric, { borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-            {t('harvestCampaign.complete.oil', { kg: formatKg(oilKg) })}
-          </Text>
-        </View>
+        {metric(
+          t('harvestCampaign.complete.olives', { kg: formatKg(officialKg) }),
+          harvestPipelinePalette.fruit.bg
+        )}
+        {metric(
+          t('harvestCampaign.complete.oil', { kg: formatKg(oilKg) }),
+          harvestPipelinePalette.oil.bg
+        )}
         {yieldPct != null ? (
-          <View style={[styles.metricWide, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]}>
+          <View
+            style={[
+              styles.metricWide,
+              {
+                backgroundColor: colors.eventHarvestSoft,
+                ...createElevation(colors, 'sm'),
+              },
+            ]}
+          >
             <Text style={{ color: colors.textPrimary, fontWeight: '800' }}>
               {t('harvestCampaign.complete.yield', {
                 yield: formatHarvestYieldPercent(yieldPct, locale),
@@ -76,24 +96,18 @@ export const HarvestCompleteSheet: React.FC<{
             </Text>
           </View>
         ) : null}
-        <View style={[styles.metric, { borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-            {t('harvestCampaign.complete.days', { count: days })}
-          </Text>
-        </View>
-        <View style={[styles.metric, { borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-            {t('harvestCampaign.complete.personDays', { count: personDays })}
-          </Text>
-        </View>
-        <View style={[styles.metric, { borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-            {t('harvestCampaign.complete.expense', { amount: expenseEur })}
-          </Text>
-        </View>
+        {metric(t('harvestCampaign.complete.days', { count: days }), colors.surfaceElevated)}
+        {metric(
+          t('harvestCampaign.complete.personDays', { count: personDays }),
+          colors.surfaceElevated
+        )}
+        {metric(
+          t('harvestCampaign.complete.expense', { amount: expenseEur }),
+          colors.surfaceElevated
+        )}
       </View>
       {unweighedSacks > 0 ? (
-        <Text style={{ color: colors.warning }}>
+        <Text style={{ color: colors.warning, fontWeight: '600' }}>
           {t('harvestCampaign.complete.unweighed', { count: unweighedSacks })}
         </Text>
       ) : null}
@@ -102,8 +116,19 @@ export const HarvestCompleteSheet: React.FC<{
 };
 
 const styles = StyleSheet.create({
-  hero: { fontSize: 18, fontWeight: '800' },
+  hero: { fontWeight: '800', fontSize: 22, letterSpacing: -0.3 },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  metric: { width: '48%', borderWidth: 1, borderRadius: radii.lg, padding: spacing.md },
-  metricWide: { width: '100%', borderWidth: 1, borderRadius: radii.lg, padding: spacing.md },
+  metric: {
+    borderRadius: radii.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minWidth: '46%',
+    flexGrow: 1,
+  },
+  metricWide: {
+    borderRadius: radii.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    width: '100%',
+  },
 });

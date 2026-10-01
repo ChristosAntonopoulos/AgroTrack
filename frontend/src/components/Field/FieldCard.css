@@ -5,7 +5,7 @@
   justify-content: space-between;
   gap: 0.75rem;
   background: var(--surface-1);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--card-edge, var(--border-default));
   border-radius: 12px;
   padding: 0.7rem 0.85rem;
   cursor: pointer;
@@ -20,7 +20,7 @@
 
 .field-card-v2:hover,
 .field-card-v2:focus-visible {
-  border-color: var(--border-default);
+  border-color: var(--border-strong);
   background: var(--surface-hover);
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-1px);
