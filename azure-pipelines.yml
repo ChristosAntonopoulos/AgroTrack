@@ -108,40 +108,21 @@ stages:
         DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
     - script: |
+        set -euo pipefail
         docker build -t $(fullImageName):$(imageTag) -t $(fullImageName):latest -f $(dockerfilePath) $(dockerContext)
         docker push $(fullImageName):$(imageTag)
         docker push $(fullImageName):latest
+        echo "Pushed $(fullImageName):$(imageTag)"
       displayName: 'Build and push backend image'
       condition: eq('${{ parameters.deployBackend }}', true)
       env:
         DOCKER_BUILDKIT: '0'
 
-    # Always push a frontend image when deploying the website. If MobileBuild also
-    # runs, it rebuilds/pushes the same tag after staging the APK into /downloads.
-    # Previously Package skipped this when buildMobileApk=true, so a MobileBuild
-    # that failed to push left Deploy pointing at a missing :$(Build.BuildId) tag
-    # (ErrImagePull / ImagePullBackOff).
-    - script: |
-        docker build \
-          -t $(fullFrontendImageName):$(imageTag) \
-          -t $(fullFrontendImageName):latest \
-          --build-arg REACT_APP_API_URL=$(backendApiUrl) \
-          --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
-          -f $(frontendDockerfilePath) $(frontendDockerContext)
-        docker push $(fullFrontendImageName):$(imageTag)
-        docker push $(fullFrontendImageName):latest
-        echo "Pushed $(fullFrontendImageName):$(imageTag)"
-      displayName: 'Build and push frontend image'
-      condition: and(succeeded(), eq('${{ parameters.deployFrontend }}', true))
-      env:
-        DOCKER_BUILDKIT: '0'
-
+# APK only. Frontend image is built in FrontendImage after this (so Deploy cannot
+# race ahead of a missing botsystem13/oleachron-frontend:$(Build.BuildId) tag).
 - stage: MobileBuild
   displayName: 'Build Mobile APK (Gradle, no EAS)'
-  # Wait for Package so we rebuild/push the same frontend tag after APK staging
-  # instead of racing a parallel Package frontend push.
-  dependsOn:
-    - Package
+  dependsOn: []
   condition: and(succeeded(), eq('${{ parameters.buildMobileApk }}', true))
   jobs:
   - job: BuildMobile
@@ -166,6 +147,7 @@ stages:
       displayName: 'Install mobile dependencies'
 
     - script: |
+        set -euo pipefail
         # Do NOT re-run only part of this step — build + stage must run together.
         chmod +x mobile/scripts/setup-java.sh mobile/scripts/setup-android-sdk.sh \
           mobile/scripts/build-android-apk.sh mobile/scripts/build-and-stage-apk.sh
@@ -184,37 +166,20 @@ stages:
       continueOnError: false
       timeoutInMinutes: 90
 
-    - script: |
-        if [ -z "${DOCKER_USERNAME:-}" ] || [ -z "${DOCKER_PASSWORD:-}" ]; then
-          echo "ERROR: DOCKER_USERNAME / DOCKER_PASSWORD are empty."
-          echo "Link Library variable group 'Agrotrack-Secrets' to this pipeline (YAML: variables.group)."
-          exit 1
-        fi
-        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-      displayName: 'Login to Docker Hub for frontend rebuild'
-      env:
-        DOCKER_USERNAME: $(DOCKER_USERNAME)
-        DOCKER_PASSWORD: $(DOCKER_PASSWORD)
-
-    - script: |
-        docker build \
-          -t $(fullFrontendImageName):$(imageTag) \
-          -t $(fullFrontendImageName):latest \
-          --build-arg REACT_APP_API_URL=$(backendApiUrl) \
-          --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
-          -f $(frontendDockerfilePath) $(frontendDockerContext)
-        docker push $(fullFrontendImageName):$(imageTag)
-        docker push $(fullFrontendImageName):latest
-      displayName: 'Rebuild and push frontend image with APK'
-      env:
-        DOCKER_BUILDKIT: '0'
-
     - task: PublishBuildArtifacts@1
       displayName: 'Publish APK as artifact'
       condition: succeeded()
       inputs:
         pathToPublish: 'mobile/oleachron-mobile.apk'
         artifactName: 'mobile-apk'
+        publishLocation: 'Container'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish staged frontend downloads (APK + manifest)'
+      condition: succeeded()
+      inputs:
+        pathToPublish: 'frontend/public/downloads'
+        artifactName: 'frontend-downloads'
         publishLocation: 'Container'
 
     - script: |
@@ -231,14 +196,109 @@ stages:
         echo "The app connects to: $(backendApiUrl)"
       displayName: 'Display build summary'
 
+# Single place that pushes oleachron-frontend:$(Build.BuildId). Deploy waits on this.
+- stage: FrontendImage
+  displayName: 'Build and push frontend image'
+  dependsOn:
+    - MobileBuild
+  condition: and(
+      eq('${{ parameters.deployFrontend }}', true),
+      in(dependencies.MobileBuild.result, 'Succeeded', 'Skipped')
+    )
+  jobs:
+  - job: PushFrontend
+    displayName: 'Build and push frontend Docker image'
+    pool:
+      name: 'Default'
+    steps:
+    - checkout: self
+      displayName: 'Checkout frontend sources'
+
+    - task: DownloadBuildArtifacts@1
+      displayName: 'Download staged APK into frontend/public/downloads'
+      condition: eq('${{ parameters.buildMobileApk }}', true)
+      inputs:
+        buildType: 'current'
+        artifactName: 'frontend-downloads'
+        downloadPath: '$(Build.SourcesDirectory)/frontend/public'
+
+    - script: |
+        set -euo pipefail
+        DEST="$(Build.SourcesDirectory)/frontend/public/downloads"
+        SRC="$(Build.SourcesDirectory)/frontend/public/frontend-downloads"
+        mkdir -p "$DEST"
+        if [ -d "$SRC" ]; then
+          cp -a "$SRC"/. "$DEST"/
+          echo "Copied staged downloads from MobileBuild artifact:"
+          ls -lah "$DEST"
+        else
+          echo "No MobileBuild downloads artifact (APK build skipped) — frontend image without new APK."
+        fi
+      displayName: 'Normalize downloads into frontend/public/downloads'
+      condition: always()
+
+    - script: |
+        set -euo pipefail
+        if [ -z "${DOCKER_USERNAME:-}" ] || [ -z "${DOCKER_PASSWORD:-}" ]; then
+          echo "ERROR: DOCKER_USERNAME / DOCKER_PASSWORD are empty."
+          echo "Link Library variable group 'Agrotrack-Secrets' to this pipeline (YAML: variables.group)."
+          exit 1
+        fi
+        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      displayName: 'Login to Docker Hub'
+      env:
+        DOCKER_USERNAME: $(DOCKER_USERNAME)
+        DOCKER_PASSWORD: $(DOCKER_PASSWORD)
+
+    - script: |
+        set -euo pipefail
+        IMAGE="$(fullFrontendImageName):$(imageTag)"
+        echo "Building $IMAGE ..."
+        docker build \
+          -t "$IMAGE" \
+          -t $(fullFrontendImageName):latest \
+          --build-arg REACT_APP_API_URL=$(backendApiUrl) \
+          --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
+          -f $(frontendDockerfilePath) $(frontendDockerContext)
+        docker push "$IMAGE"
+        docker push $(fullFrontendImageName):latest
+        echo "Pushed $IMAGE"
+      displayName: 'Build and push frontend image'
+      env:
+        DOCKER_BUILDKIT: '0'
+
+    - script: |
+        set -euo pipefail
+        IMAGE="$(fullFrontendImageName):$(imageTag)"
+        TAG="$(imageTag)"
+        REPO="$(frontendImageName)"
+        USER="$(dockerRegistry)"
+        echo "Verifying Docker Hub has $IMAGE ..."
+        # Public Hub API — avoids docker manifest auth quirks on the agent.
+        CODE=$(curl -s -o /tmp/hub-tag.json -w "%{http_code}" \
+          "https://hub.docker.com/v2/repositories/${USER}/${REPO}/tags/${TAG}/")
+        if [ "$CODE" != "200" ]; then
+          echo "ERROR: Docker Hub returned HTTP $CODE for ${USER}/${REPO}:${TAG}"
+          cat /tmp/hub-tag.json || true
+          echo "Frontend push did not land; refusing to continue to Deploy."
+          exit 1
+        fi
+        echo "Confirmed on Docker Hub: $IMAGE"
+      displayName: 'Verify frontend tag on Docker Hub'
+
 - stage: Deploy
   displayName: 'Deploy to Kubernetes'
   dependsOn:
     - Package
     - MobileBuild
+    - FrontendImage
   condition: and(
       succeeded('Package'),
       in(dependencies.MobileBuild.result, 'Succeeded', 'Skipped'),
+      or(
+        and(eq('${{ parameters.deployFrontend }}', true), succeeded('FrontendImage')),
+        and(eq('${{ parameters.deployFrontend }}', false), in(dependencies.FrontendImage.result, 'Succeeded', 'Skipped'))
+      ),
       or(
         eq('${{ parameters.deployBackend }}', true),
         eq('${{ parameters.deployFrontend }}', true)
@@ -374,18 +434,6 @@ stages:
                   --namespace=$(frontendNamespace) \
                   --dry-run=client -o yaml | kubectl apply -f -
                 echo "ConfigMap updated with API URL: $(backendApiUrl)"
-
-          - script: |
-              IMAGE="$(fullFrontendImageName):$(imageTag)"
-              echo "Checking Docker Hub for $IMAGE before deploy..."
-              if ! docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
-                echo "ERROR: Image not found on registry: $IMAGE"
-                echo "Package/MobileBuild must push this tag before Deploy can roll out."
-                exit 1
-              fi
-              echo "Image exists: $IMAGE"
-            displayName: 'Verify frontend image exists on registry'
-            condition: eq('${{ parameters.deployFrontend }}', true)
 
           - script: |
               sed -i "s|PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG|$(fullFrontendImageName):$(imageTag)|g" frontend/k8s/deployment.yaml
