@@ -116,6 +116,11 @@ stages:
       env:
         DOCKER_BUILDKIT: '0'
 
+    # Always push a frontend image when deploying the website. If MobileBuild also
+    # runs, it rebuilds/pushes the same tag after staging the APK into /downloads.
+    # Previously Package skipped this when buildMobileApk=true, so a MobileBuild
+    # that failed to push left Deploy pointing at a missing :$(Build.BuildId) tag
+    # (ErrImagePull / ImagePullBackOff).
     - script: |
         docker build \
           -t $(fullFrontendImageName):$(imageTag) \
@@ -125,14 +130,18 @@ stages:
           -f $(frontendDockerfilePath) $(frontendDockerContext)
         docker push $(fullFrontendImageName):$(imageTag)
         docker push $(fullFrontendImageName):latest
+        echo "Pushed $(fullFrontendImageName):$(imageTag)"
       displayName: 'Build and push frontend image'
-      condition: and(succeeded(), eq('${{ parameters.deployFrontend }}', true), ne('${{ parameters.buildMobileApk }}', true))
+      condition: and(succeeded(), eq('${{ parameters.deployFrontend }}', true))
       env:
         DOCKER_BUILDKIT: '0'
 
 - stage: MobileBuild
   displayName: 'Build Mobile APK (Gradle, no EAS)'
-  dependsOn: []
+  # Wait for Package so we rebuild/push the same frontend tag after APK staging
+  # instead of racing a parallel Package frontend push.
+  dependsOn:
+    - Package
   condition: and(succeeded(), eq('${{ parameters.buildMobileApk }}', true))
   jobs:
   - job: BuildMobile
@@ -365,6 +374,18 @@ stages:
                   --namespace=$(frontendNamespace) \
                   --dry-run=client -o yaml | kubectl apply -f -
                 echo "ConfigMap updated with API URL: $(backendApiUrl)"
+
+          - script: |
+              IMAGE="$(fullFrontendImageName):$(imageTag)"
+              echo "Checking Docker Hub for $IMAGE before deploy..."
+              if ! docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
+                echo "ERROR: Image not found on registry: $IMAGE"
+                echo "Package/MobileBuild must push this tag before Deploy can roll out."
+                exit 1
+              fi
+              echo "Image exists: $IMAGE"
+            displayName: 'Verify frontend image exists on registry'
+            condition: eq('${{ parameters.deployFrontend }}', true)
 
           - script: |
               sed -i "s|PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG|$(fullFrontendImageName):$(imageTag)|g" frontend/k8s/deployment.yaml
