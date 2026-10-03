@@ -15,8 +15,10 @@ import { useFieldSpatialDossier } from '../../hooks/useFieldSpatialDossier';
 import { formatPassDay, nearbyFire, ndviBand, textureFromFractions } from '../../utils/fieldDetailsGeo';
 import { spacing } from '../../theme';
 import { RootStackParamList } from '../../navigation/types';
+import FieldDetailMotifCard from './FieldDetailMotifCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 type Props = {
   field: Field;
@@ -62,13 +64,15 @@ const FactRow: React.FC<{ label: string; value?: string | null; empty?: boolean;
 const FactCard: React.FC<{
   title: string;
   kicker?: string;
+  motif: IconName;
+  gold?: boolean;
   children: React.ReactNode;
   action?: React.ReactNode;
   footer?: string;
-}> = ({ title, kicker, children, action, footer }) => {
+}> = ({ title, kicker, motif, gold, children, action, footer }) => {
   const { colors } = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: colors.surfaceElevated }]}>
+    <FieldDetailMotifCard motif={motif} icon={motif} gold={gold}>
       <View style={styles.cardHead}>
         <View style={styles.cardHeadText}>
           {kicker ? (
@@ -82,7 +86,7 @@ const FactCard: React.FC<{
       {footer ? (
         <Text style={[styles.footer, { color: colors.textTertiary }]}>{footer}</Text>
       ) : null}
-    </View>
+    </FieldDetailMotifCard>
   );
 };
 
@@ -216,48 +220,41 @@ const FieldFacts: React.FC<Props> = ({
     });
   }
 
-  const heroCells = [
+  const heroCells: { label: string; value: string; note: string; motif: IconName }[] = [
     {
       label: t('fields:overview.area', { defaultValue: t('fields:card.area') }),
       value: areaLabel === '—' ? (collecting ? '…' : '—') : areaLabel,
       note: t('fields:details.hero.areaFrom'),
+      motif: 'resize-outline',
     },
     {
       label: t('fields:details.elevation'),
       value: elevationHero || (collecting ? '…' : '—'),
       note: terrain?.metadata?.source || t('fields:details.hero.dem'),
+      motif: 'triangle-outline',
     },
     {
       label: t('fields:details.slope'),
       value: slopeHero || (collecting ? '…' : '—'),
       note: slopeClassLabel || t('fields:details.hero.dem'),
+      motif: 'analytics-outline',
     },
     {
       label: t('fields:details.trees'),
       value: field.treeCount != null ? field.treeCount.toLocaleString(numberLocale) : '—',
       note: t('fields:details.hero.groveRecord'),
+      motif: 'leaf-outline',
     },
   ];
 
   return (
     <View style={styles.block}>
-      {canOwn ? (
-        <Pressable
-          onPress={() => navigation.navigate('FieldForm', { fieldId: field.id })}
-          style={[styles.editBanner, { backgroundColor: colors.primaryLight }]}
-          accessibilityRole="button"
-        >
-          <Ionicons name="create-outline" size={18} color={colors.primary} />
-          <Text style={[styles.editBannerText, { color: colors.primary }]}>{t('fields:page.editField')}</Text>
-        </Pressable>
-      ) : null}
-
       {collecting && !spatial?.calculatedAt ? (
         <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('fields:details.collecting')}</Text>
       ) : null}
 
       {draft ? (
-        <FactCard title={t('fields:page.draftField')}>
+        <FactCard title={t('fields:page.draftField')} motif="alert-circle-outline" gold>
           <Text style={[styles.help, { color: colors.textSecondary }]}>{t('fields:details.draftHelp')}</Text>
           {missing.map((item) => (
             <Text key={item} style={{ color: colors.textSecondary, marginTop: 4 }}>
@@ -269,17 +266,18 @@ const FieldFacts: React.FC<Props> = ({
 
       <View style={styles.hero} accessibilityLabel={t('fields:details.factsAria')}>
         {heroCells.map((cell) => (
-          <View key={cell.label} style={[styles.heroCell, { backgroundColor: colors.surfaceElevated }]}>
+          <FieldDetailMotifCard key={cell.label} motif={cell.motif} compact style={styles.heroCell}>
             <Text style={[styles.heroLabel, { color: colors.textTertiary }]}>{cell.label}</Text>
             <Text style={[styles.heroValue, { color: colors.textPrimary }]}>{cell.value}</Text>
             <Text style={[styles.heroNote, { color: colors.textTertiary }]}>{cell.note}</Text>
-          </View>
+          </FieldDetailMotifCard>
         ))}
       </View>
 
       <FactCard
         title={t('fields:details.land')}
         kicker={t('fields:details.kickers.dem')}
+        motif="trail-sign-outline"
         footer={[terrain?.metadata?.source, terrain?.metadata?.spatialResolution].filter(Boolean).join(' · ')}
       >
         {terrain ? (
@@ -316,6 +314,7 @@ const FieldFacts: React.FC<Props> = ({
       <FactCard
         title={t('fields:details.soilTitle')}
         kicker={t('fields:details.kickers.soil')}
+        motif="layers-outline"
         footer={soil?.metadata?.source}
       >
         {soil ? (
@@ -346,6 +345,7 @@ const FieldFacts: React.FC<Props> = ({
         <FactCard
           title={t('fields:intelligence.landCover')}
           kicker={t('fields:details.kickers.cover')}
+          motif="globe-outline"
           footer={landCover?.metadata?.source}
         >
           <FactRow first label={t('fields:intelligence.landCover')} value={landCoverLabel} />
@@ -362,6 +362,7 @@ const FieldFacts: React.FC<Props> = ({
       <FactCard
         title={t('fields:details.vegetationTitle')}
         kicker={t('fields:details.kickers.sentinel')}
+        motif="leaf-outline"
         footer={[green.source || t('fields:details.kickers.sentinel'), green.date ? formatPassDay(green.date, numberLocale) : null]
           .filter(Boolean)
           .join(' · ')}
@@ -408,7 +409,7 @@ const FieldFacts: React.FC<Props> = ({
         )}
       </FactCard>
 
-      <FactCard title={t('fields:details.grove')} kicker={t('fields:details.kickers.grove')}>
+      <FactCard title={t('fields:details.grove')} kicker={t('fields:details.kickers.grove')} motif="nutrition-outline">
         <FactRow first label={t('fields:overview.variety')} value={variety} empty={!variety} />
         <FactRow
           label={t('fields:treeAge')}
@@ -465,7 +466,7 @@ const FieldFacts: React.FC<Props> = ({
         ) : null}
       </FactCard>
 
-      <FactCard title={t('fields:details.identity')}>
+      <FactCard title={t('fields:details.identity')} motif="location-outline">
         <FactRow first label={t('fields:overview.status')} value={getFieldStatusLabel(field.status, t)} />
         <FactRow
           label={t('fields:locationLabel')}
@@ -492,7 +493,11 @@ const FieldFacts: React.FC<Props> = ({
         ) : null}
       </FactCard>
 
-      <FactCard title={t('fields:details.sources.title')} kicker={t('fields:details.kickers.sources')}>
+      <FactCard
+        title={t('fields:details.sources.title')}
+        kicker={t('fields:details.kickers.sources')}
+        motif="library-outline"
+      >
         <Text style={[styles.help, { color: colors.textSecondary }]}>{t('fields:details.sources.introApi')}</Text>
         {sources.map((source, index) => (
           <FactRow key={source.title} first={index === 0} label={source.title} value={source.provider} />
@@ -500,7 +505,7 @@ const FieldFacts: React.FC<Props> = ({
       </FactCard>
 
       {canViewDocuments ? (
-      <FactCard title={t('fields:page.documents')}>
+      <FactCard title={t('fields:page.documents')} motif="document-text-outline">
         {(field.documents || []).length === 0 ? (
           <Text style={{ color: colors.textTertiary }}>{t('fields:details.noDocuments')}</Text>
         ) : (
@@ -517,44 +522,24 @@ const FieldFacts: React.FC<Props> = ({
 const styles = StyleSheet.create({
   block: { gap: spacing.md },
   lead: { fontSize: 14, lineHeight: 20 },
-  editBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderRadius: 14,
-    paddingVertical: 12,
-    minHeight: 44,
-  },
-  editBannerText: { fontWeight: '700', fontSize: 15 },
   hero: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   heroCell: {
     width: '48%',
     flexGrow: 1,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
     minWidth: 140,
   },
   heroLabel: { fontSize: 12, fontWeight: '600' },
-  heroValue: { fontSize: 20, fontWeight: '800', marginTop: 4 },
-  heroNote: { fontSize: 11, marginTop: 4, lineHeight: 14 },
-  card: {
-    borderRadius: 16,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-  },
+  heroValue: { fontSize: 20, fontWeight: '800' },
+  heroNote: { fontSize: 11, lineHeight: 14 },
   cardHead: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
     gap: 8,
   },
   cardHeadText: { flex: 1, gap: 2 },
-  kicker: { fontSize: 11, fontWeight: '700' },
-  cardTitle: { fontSize: 15, fontWeight: '700' },
+  kicker: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+  cardTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
   cardBody: { gap: 2 },
   help: { fontSize: 14, lineHeight: 20, marginBottom: 4 },
   banner: {

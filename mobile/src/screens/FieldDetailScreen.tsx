@@ -555,14 +555,6 @@ const FieldDetailScreen = () => {
 
       {tab === 'details' ? (
         <View style={styles.panel}>
-          <FieldQuickLinks
-            canViewChronologio={false}
-            onHistory={() => undefined}
-            canManageAccess={false}
-            onPeople={() => undefined}
-            showEdit={gates.canOwn}
-            onEdit={() => navigation.navigate('FieldForm', { fieldId: field.id })}
-          />
           <GroveEnrichmentCards field={field} canEdit={gates.canOwn} />
           <FieldFacts
             field={field}

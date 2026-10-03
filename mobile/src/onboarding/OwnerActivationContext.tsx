@@ -375,6 +375,7 @@ export const OwnerActivationProvider: React.FC<{
   const continueToHistory = useCallback(() => {
     const current = persistedRef.current;
     if (current.firstObservationDoneAt) return;
+    if (current.navCoachPhase === 'history') return;
     persist({
       ...current,
       navCoachPhase: 'history',
@@ -387,6 +388,7 @@ export const OwnerActivationProvider: React.FC<{
   const arriveAtHistory = useCallback(() => {
     const current = persistedRef.current;
     if (current.firstObservationDoneAt) return;
+    if (current.awaitingFirstObservation && current.navCoachPhase == null) return;
     persist({
       ...current,
       navCoachPhase: null,

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,6 +26,8 @@ const CaptureProviderInner: React.FC<{ children: React.ReactNode }> = ({ childre
   const { t } = useTranslation(['capture', 'common']);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const page = useCapturePageOptional();
+  const pageRef = useRef(page);
+  pageRef.current = page;
   const dialog = useDialog();
   const [open, setOpen] = useState(false);
   const [context, setContext] = useState<CaptureCtx>({});
@@ -38,12 +40,12 @@ const CaptureProviderInner: React.FC<{ children: React.ReactNode }> = ({ childre
           routeName: focused.name,
           params: focused.params,
           explicit: ctx,
-          page: page?.snapshot,
+          page: pageRef.current?.snapshot,
         })
       );
       setOpen(true);
     },
-    [navigation, page?.snapshot]
+    [navigation]
   );
 
   const closeCapture = useCallback(() => setOpen(false), []);

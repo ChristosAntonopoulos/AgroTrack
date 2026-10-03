@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { createElevation, radii, spacing } from '../../theme';
+import FieldDetailMotifCard from './FieldDetailMotifCard';
 
 type Link = {
   id: string;
@@ -27,6 +28,8 @@ type Props = {
   onMyOil?: () => void;
   showEdit?: boolean;
   onEdit?: () => void;
+  /** Launcher-style watermark cards — Field Details tab only. */
+  motifStyle?: boolean;
 };
 
 /** Floor-door shortcuts — History, People, Αποθήκη (Αποθήκη visual language). */
@@ -43,6 +46,7 @@ const FieldQuickLinks: React.FC<Props> = ({
   onMyOil,
   showEdit,
   onEdit,
+  motifStyle = false,
 }) => {
   const { t } = useTranslation(['fields', 'nav', 'chronologio', 'partners', 'myOil']);
   const { colors, tapMin } = useTheme();
@@ -115,6 +119,37 @@ const FieldQuickLinks: React.FC<Props> = ({
 
   if (!links.length) return null;
 
+  if (motifStyle) {
+    return (
+      <View style={styles.wrap}>
+        {links.map((link) => (
+          <FieldDetailMotifCard
+            key={link.id}
+            motif={link.icon}
+            icon={link.icon}
+            gold={link.alert || link.id === 'edit'}
+            onPress={link.onPress}
+            accessibilityLabel={[link.title, link.detail].filter(Boolean).join('. ')}
+          >
+            <View style={[styles.motifRow, { minHeight: Math.max(40, tapMin - 12) }]}>
+              <View style={styles.copy}>
+                <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {link.title}
+                </Text>
+                {link.detail ? (
+                  <Text style={[styles.detail, { color: colors.textTertiary }]} numberOfLines={2}>
+                    {link.detail}
+                  </Text>
+                ) : null}
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            </View>
+          </FieldDetailMotifCard>
+        ))}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.wrap}>
       {links.map((link) => (
@@ -174,6 +209,11 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: 12,
     paddingHorizontal: 12,
+  },
+  motifRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   icon: {
     width: 36,
