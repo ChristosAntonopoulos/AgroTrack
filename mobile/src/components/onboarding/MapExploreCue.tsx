@@ -51,7 +51,8 @@ const styles = StyleSheet.create({
     zIndex: 20,
     top: spacing.sm,
     left: spacing.sm,
-    maxWidth: 220,
+    right: spacing.sm,
+    maxWidth: 280,
     padding: 12,
     borderRadius: radii.lg,
     borderWidth: StyleSheet.hairlineWidth,
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: -0.2,
-    lineHeight: 18,
+    lineHeight: 19,
   },
   cta: {
     borderRadius: radii.md,

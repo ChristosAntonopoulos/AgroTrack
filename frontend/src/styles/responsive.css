@@ -17,7 +17,8 @@
 
 @media (max-width: 768px) {
   :root {
-    --bottom-nav-height: 56px;
+    /* Tall enough for the docked capture / menu machine buttons. */
+    --bottom-nav-height: 76px;
   }
 }
 

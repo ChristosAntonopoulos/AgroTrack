@@ -30,10 +30,27 @@
     "settings": "Impostazioni",
     "help": "Aiuto",
     "thisHarvest": "Questa stagione",
-    "myOil": "Il mio olio",
+    "myOil": "Magazzino",
     "chronologio": "Cronologia",
     "more": "Altro",
     "inbox": "Posta in arrivo"
+  },
+  "hints": {
+    "chronologio": "Tutto il percorso",
+    "fields": "I tuoi uliveti",
+    "tasks": "Cosa c’è da fare",
+    "harvest": "Sacchi, olive e olio",
+    "harvestLive": "La raccolta è aperta",
+    "myOil": "Scorte di olio",
+    "money": "Spese e entrate",
+    "photos": "Foto dal campo",
+    "partners": "Persone con accesso",
+    "settings": "Preferenze account",
+    "help": "Guide e supporto",
+    "feedback": "Dicci di cosa hai bisogno",
+    "dataSources": "Fonti e collegamenti dati",
+    "campaigns": "Messaggi di sistema",
+    "userFeedback": "Feedback utenti"
   },
   "breadcrumb": {
     "new": "Nuovo",

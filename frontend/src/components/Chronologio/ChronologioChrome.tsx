@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChevronLeft, ChevronRight, SlidersHorizontal, X } from 'lucide-react';
-import Button from '../Common/Button';
+import { ChevronLeft, ChevronRight, SlidersHorizontal, X } from 'lucide-react';
+import BackLink from '../Common/BackLink';
 import ChronologioViewTabs from './ChronologioViewTabs';
 import ChronologioFilterDrawer from './ChronologioFilterDrawer';
 import { useAuth } from '../../context/AuthContext';
@@ -36,7 +36,6 @@ type Props = {
   periodYear: number;
   axis: ChronologioAxis;
   embedded?: boolean;
-  onBack?: () => void;
   onSetZoom: (z: ChronologioZoom) => void;
   onSetFilters: (f: Partial<LivingFilters>) => void;
   onJumpToDate?: (isoDate: string) => void;
@@ -69,6 +68,7 @@ const typeLabelKey = (category: LivingFilters['category']): string => {
 const ChronologioChrome: React.FC<Props> = ({
   fieldMode,
   fieldName,
+  fieldId,
   fields,
   filters,
   zoom,
@@ -76,7 +76,6 @@ const ChronologioChrome: React.FC<Props> = ({
   periodYear,
   axis,
   embedded = false,
-  onBack,
   onSetZoom,
   onSetFilters,
   onJumpToDate,
@@ -130,16 +129,6 @@ const ChronologioChrome: React.FC<Props> = ({
         onRemove: () => onSetFilters({ fieldId: '' }),
       });
     }
-    if (filters.lifecycleYear === 'low' || filters.lifecycleYear === 'high') {
-      chips.push({
-        id: `lifecycle:${filters.lifecycleYear}`,
-        label:
-          filters.lifecycleYear === 'low'
-            ? t('chronologio:seasonLow')
-            : t('chronologio:seasonHigh'),
-        onRemove: () => onSetFilters({ lifecycleYear: '' }),
-      });
-    }
     return chips;
   }, [fieldMode, fields, filters, onSetFilters, t]);
 
@@ -159,12 +148,10 @@ const ChronologioChrome: React.FC<Props> = ({
   return (
     <>
       <header className="chronologio-header chrono-locked-header">
-        {fieldMode && onBack && !embedded ? (
-          <div className="chronologio-header-back">
-            <Button variant="outline" size="sm" icon={<ArrowLeft size={16} />} onClick={onBack}>
-              {fieldName || t('chronologio:backToField')}
-            </Button>
-          </div>
+        {fieldMode && fieldId && !embedded ? (
+          <BackLink to={`/fields/${fieldId}`}>
+            {fieldName || t('chronologio:backToField')}
+          </BackLink>
         ) : null}
 
         <div className="chrono-header-top">

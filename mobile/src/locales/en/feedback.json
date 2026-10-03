@@ -1,7 +1,7 @@
 {
   "title": "Tell us what you saw",
   "kicker": "Your note matters",
-  "intro": "A sentence or a picture is enough. It shows us where OleaChron helps in the grove — and where it gets in the way.",
+  "intro": "A sentence or a picture is enough. It shows us where The Olive Lot helps in the grove — and where it gets in the way.",
   "commentLabel": "Your note",
   "commentPlaceholder": "Something that wasn’t clear, something missing, or something that went well.",
   "attachLabel": "A picture, if you want",
@@ -16,6 +16,6 @@
   "needSomething": "Write a few words or add a picture.",
   "sendFailed": "It didn’t go through. Try again in a moment.",
   "thanksTitle": "It arrived. Thank you.",
-  "thanksBody": "We’ll keep it. People who say what they see in the grove are why OleaChron gets more useful.",
+  "thanksBody": "We’ll keep it. People who say what they see in the grove are why The Olive Lot gets more useful.",
   "thanksClose": "Back to the grove"
 }

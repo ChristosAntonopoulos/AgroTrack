@@ -101,7 +101,7 @@ const LandingPage: React.FC = () => {
               className="landing-brand-lockup"
               variant="horizontal"
               tone="on-light"
-              size="sm"
+              size="md"
               alt={t('brand')}
             />
           </a>
@@ -339,7 +339,7 @@ const LandingPage: React.FC = () => {
                 className="landing-footer-lockup"
                 variant="horizontal"
                 tone="on-dark"
-                size="sm"
+                size="md"
                 alt={t('brand')}
               />
               <span className="landing-alpha-pill">{t('footer.version')}</span>

@@ -37,7 +37,7 @@ const CATEGORY_EL: Record<string, string> = {
   harvest: 'Συγκομιδή',
   note: 'Παρατήρηση',
   weather: 'Καιρός',
-  intelligence: 'OLEACHRON',
+  intelligence: 'The Olive Lot',
   lifecycle: 'Κύκλος ζωής',
   collaborator: 'Συνεργάτης',
   activity: 'Δραστηριότητα',
@@ -51,7 +51,7 @@ const CATEGORY_EN: Record<string, string> = {
   harvest: 'Harvest',
   note: 'Observation',
   weather: 'Weather',
-  intelligence: 'OLEACHRON',
+  intelligence: 'The Olive Lot',
   lifecycle: 'Lifecycle',
   collaborator: 'Collaborator',
   activity: 'Activity',
@@ -161,6 +161,17 @@ export const looksLikeInternalCode = (value?: string | null): boolean => {
 export const presentCategory = (category: string, language = 'el'): string =>
   pick(CATEGORY_EL, CATEGORY_EN, category, language) || (isEnglish(language) ? 'Activity' : 'Δραστηριότητα');
 
+/** Uppercase meta labels without Greek τόνοι (ΣΥΓΚΟΜΙΔΗ, not ΣΥΓΚΟΜΙΔΉ). */
+export const presentMetaLabel = (label: string, language = 'el'): string => {
+  const text = (label || '').trim();
+  if (!text) return '';
+  const locale = isEnglish(language) ? 'en' : 'el-GR';
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleUpperCase(locale);
+};
+
 export const presentExpenseCategory = (category?: string | null, language = 'el'): string => {
   if (!category) return '';
   const labeled = financialCategoryLabel(category, language);
@@ -259,8 +270,9 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
   if (category === 'harvest') {
     const isDay =
       entry.sourceType === 'Harvest' && /^Harvest:day:/i.test(entry.id);
+    // Category already shows in the meta row — avoid "Συγκομιδή" twice.
     return {
-      label: presentCategory('harvest', language),
+      label: '',
       shortLabel: isDay ? presentCategory('harvest', language) : shortLabel,
       icon,
       accent,
@@ -282,12 +294,27 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
     const categoryLabel =
       entry.details.expense?.expenseCategoryLabel ||
       presentExpenseCategory(entry.details.expense?.expenseCategory, language);
+    const titled = humanTitle(entry.title, language, '');
+    const stripped = titled.replace(/^[''΄`«»\s]+/, '');
+    const genericMoneyTitle =
+      !titled ||
+      titled === shortLabel ||
+      stripped === shortLabel ||
+      stripped.toLowerCase().startsWith(shortLabel.toLowerCase());
+    const label = genericMoneyTitle
+      ? categoryLabel || titled || shortLabel
+      : titled;
+    const summary = (entry.summary || '').trim();
+    const extra =
+      summary && summary !== label && summary.toLowerCase() !== label.toLowerCase()
+        ? summary
+        : undefined;
     return {
-      label: humanTitle(entry.title, language, shortLabel),
+      label,
       shortLabel,
       icon,
       accent,
-      description: categoryLabel || entry.summary || undefined,
+      description: label === categoryLabel ? extra : categoryLabel || extra,
     };
   }
 

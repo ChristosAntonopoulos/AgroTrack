@@ -81,8 +81,9 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     if (!params.has('category') && stored.category) {
       next.category = stored.category;
     }
-    if (!params.has('lifecycleYear') && stored.lifecycleYear) {
-      next.lifecycleYear = stored.lifecycleYear;
+    // Light/heavy year filter retired.
+    if (params.has('lifecycleYear') || stored.lifecycleYear) {
+      next.lifecycleYear = null;
     }
     if (
       !fieldModeFieldId &&

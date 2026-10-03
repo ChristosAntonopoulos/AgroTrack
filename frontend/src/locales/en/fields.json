@@ -160,8 +160,8 @@
     "useCurrentLocation": "Use my location",
     "mapLayerSatellite": "Satellite",
     "mapLayerStreet": "Street map",
-    "confirmBoundary": "I confirm that the boundary drawn represents the field I want to manage in Oleachron.",
-    "confirmCadastre": "I understand the cadastre extract is reference data only and not legal proof inside Oleachron.",
+    "confirmBoundary": "I confirm that the boundary drawn represents the field I want to manage in The Olive Lot.",
+    "confirmCadastre": "I understand the cadastre extract is reference data only and not legal proof inside The Olive Lot.",
     "basicsDesc": "Give it a name so you can find it easily. Everything else can wait.",
     "worksThisFieldMyself": "I work this field myself",
     "worksThisFieldMyselfHint": "This is not ownership — it means you take part in today’s tasks on this field (start and finish work).",
@@ -210,7 +210,7 @@
       "warnLarge": "This area looks large for a typical olive grove. Double-check before continuing."
     },
     "mapLayerAria": "Map view",
-    "cropDesc": "A few details that help Oleachron give you more useful reminders. You do not need them to start.",
+    "cropDesc": "A few details that help The Olive Lot give you more useful reminders. You do not need them to start.",
     "reviewDesc": "Your grove is almost ready.",
     "officialUnavailable": "Not available",
     "areaNoOfficial": "No official cadastre area available for comparison.",
@@ -353,7 +353,7 @@
   },
   "mapWorkspace": {
     "lead": "Choose what to look at on the field — boundary, photo, greenness or moisture.",
-    "whatToSee": "What do you want to see?",
+    "whatToSee": "Pictures on the map",
     "terrain": "Terrain",
     "recenter": "Centre on field",
     "openTab": "Open map",
@@ -404,7 +404,7 @@
     "created": "Created",
     "updated": "Last change",
     "cadastre": "Cadastre",
-    "cadastreNote": "Cadastre extracts are a reference only — not legal proof inside Oleachron.",
+    "cadastreNote": "Cadastre extracts are a reference only — not legal proof inside The Olive Lot.",
     "areaHint": "Map {{measured}} · cadastre {{official}}",
     "measuredHint": "Measured on the map: {{measured}}",
     "yearsOld": "{{count}} years",
@@ -422,11 +422,11 @@
     "sourceAria": "Where this number comes from",
     "spatialPending": "Modelled elevation and soil maps are not ready for this boundary yet.",
     "cadastreSources": {
-      "Manual": "Cadastre extract (entered in Oleachron)",
+      "Manual": "Cadastre extract (entered in The Olive Lot)",
       "HellenicCadastre": "Hellenic Cadastre"
     },
     "sourceType": {
-      "recorded": "Entered in Oleachron",
+      "recorded": "Entered in The Olive Lot",
       "reference": "Official reference",
       "declared": "Declared by the grower",
       "modelled": "Modelled",
@@ -727,20 +727,20 @@
     "dateUsable": "{{cloud}}% cloud over field · {{usable}}% usable pixels",
     "dateUnusable": "Too cloudy to use ({{cloud}}% cloud over field)",
     "names": {
-      "truecolor": "Photo from space",
-      "ndvi": "Tree greenness",
-      "ndvi-change": "What changed",
-      "ndmi": "Leaf moisture",
-      "ndre": "Leaf colour",
-      "ndwi": "Standing water",
-      "savi": "Greenness on bare soil",
-      "land-cover": "What's on the ground",
-      "cadastre": "Hellenic Cadastre"
+      "truecolor": "Photo",
+      "ndvi": "Greenness",
+      "ndvi-change": "Change",
+      "ndmi": "Moisture",
+      "ndre": "Colour",
+      "ndwi": "Water",
+      "savi": "Soil green",
+      "land-cover": "Ground",
+      "cadastre": "Cadastre"
     },
     "valueTypes": {
       "raster": "Satellite derived",
       "vector": "Mapped boundary",
-      "summary": "Derived by Oleachron"
+      "summary": "Derived by The Olive Lot"
     },
     "notes": {
       "truecolor": "How the grove looked from above that day. Clouds hide the ground.",
@@ -997,7 +997,7 @@
     "inviteAcceptedBody": "The shared field is ready. You do not need to create a new field.",
     "openField": "Open field",
     "inviteSignIn": "Sign in",
-    "inviteExistingAccountHint": "You already have an Oleachron account for this email. Sign in to accept.",
+    "inviteExistingAccountHint": "You already have an Olive Lot account for this email. Sign in to accept.",
     "pendingInvitesTitle_one": "You have an invitation waiting",
     "pendingInvitesTitle_other": "You have {{count}} invitations waiting",
     "pendingInvitesTitle": "You have {{count}} invitation(s) waiting",
@@ -1525,10 +1525,10 @@
       "yieldLine": "{{olives}} kg olives → {{oil}} kg oil · Yield {{yield}}%",
       "estimatedKg": "About {{kg}} kg (density estimate)",
       "save": "Record {{amount}} {{unit}} of oil",
-      "cellarTitle": "Where does it go? (default: admin)",
-      "cellarYou": "Into your cellar",
-      "cellarOf": "Into {{name}}'s cellar",
-      "cellarAssigned": "Oil went into {{name}}'s cellar.",
+      "cellarTitle": "Whose storage?",
+      "cellarYou": "Into your storage",
+      "cellarOf": "Into {{name}}'s storage",
+      "cellarAssigned": "Oil went into {{name}}'s storage.",
       "splitOn": "Share it between cellars",
       "splitOff": "One cellar takes it all",
       "splitLeft": "{{amount}} L still to share of {{total}} L",
@@ -1828,7 +1828,7 @@
   },
   "createGrove": {
     "title": "Add grove",
-    "firstTitle": "Put your first grove in Oleachron",
+    "firstTitle": "Put your first grove in The Olive Lot",
     "subtitle": "A name first. Then where it is, and its boundary.",
     "placeHeading": "Where is it?",
     "continueToPlace": "Continue",
@@ -1887,7 +1887,7 @@
       "noResults": "We could not find that place. Try another name or tap the map."
     },
     "details": {
-      "subtitle": "A few details that help Oleachron give you more useful reminders. You do not need them to start.",
+      "subtitle": "A few details that help The Olive Lot give you more useful reminders. You do not need them to start.",
       "varietyHint": "Helps organise harvest and observations.",
       "treeCountLabel": "About how many trees does it have?",
       "treeCountHint": "If you are not sure, leave it blank."
@@ -1929,7 +1929,7 @@
       "boundaryAction": "Draw boundary",
       "boundaryLater": "Later",
       "detailsTitle": "Add variety and trees",
-      "detailsBody": "A few details that help Oleachron give you more useful reminders.",
+      "detailsBody": "A few details that help The Olive Lot give you more useful reminders.",
       "detailsAction": "Add details"
     }
   }

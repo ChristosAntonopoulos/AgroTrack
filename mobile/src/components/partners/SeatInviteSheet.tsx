@@ -172,8 +172,8 @@ const SeatInviteSheet: React.FC<Props> = ({
             {invite.inviteeHasAccount
               ? t('fields:people.inviteSentExisting', {
                   defaultValue: invite.notificationQueued
-                    ? 'They already use Oleachron — notified in the app and by email.'
-                    : 'They already use Oleachron — invite email sent.',
+                    ? 'They already use The Olive Lot — notified in the app and by email.'
+                    : 'They already use The Olive Lot — invite email sent.',
                 })
               : t('fields:people.inviteSentNew', {
                   defaultValue: 'Invite email sent. They can register with the link or code.',

@@ -1,16 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Camera,
-  CheckSquare,
-  FileText,
-  Mic,
-  StickyNote,
-  Wallet,
-  X,
-} from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Camera, FileText, Mic, X } from 'lucide-react';
 import RightDrawer from '../Common/RightDrawer';
 import type { CaptureContext, CaptureSavedDetail, CaptureSavedOptions, CaptureType } from '../../capture/types';
 import { getAvailableCaptureActions } from '../../capture/permissions';
@@ -21,14 +12,32 @@ import { fileUploadService } from '../../services/fileUploadService';
 import type { Field } from '../../services/fieldService';
 import { useAuth } from '../../context/AuthContext';
 import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
+import { getHarvestCapabilities } from '../../harvestCampaign/harvestCapabilities';
+import { millKgNeedingOil, pendingSackTotal } from '../../harvestCampaign/chain';
+import type { HarvestCaptureKind } from '../../harvestCampaign/types';
+import { buildCaptureMenu, type CaptureMove } from '../../capture/menu';
+import { buildQuickAddMoves } from '../../capture/quickAdd';
+import { resolveCaptureFieldId } from '../../capture/fieldContext';
+import {
+  readLastCaptureFieldId,
+  readRecentCaptureMoves,
+  rememberCaptureMove,
+  rememberLastCaptureFieldId,
+} from '../../capture/recentActions';
+import { harvestPath, myOilPath, taskFormPath } from '../../navigation/intents';
+import { dayKeyFromOccurredAt } from '../../capture/openContext';
+import CaptureQuickAdd from './CaptureQuickAdd';
+import CaptureCatalog from './CaptureCatalog';
+import CaptureContextChips from './CaptureContextChips';
 import { readLastMoneyFieldId } from '../../finance/lastField';
 import { templateTitle } from '../../data/fieldWorkCatalogueLabels';
-import { taskFormPath } from '../../navigation/intents';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import MoneyCaptureForm from './MoneyCaptureForm';
 import PhotoCaptureForm from './PhotoCaptureForm';
 import './Capture.css';
+import '../../harvestCampaign/HarvestSheets.css';
 
 const MAX_PHOTOS = 5;
 
@@ -43,6 +52,21 @@ type Props = {
 };
 
 type PhotoItem = { id: string; file: File; preview: string; url?: string };
+
+/** Chooser stages before a concrete form. */
+type ChooserStep = 'quick' | 'catalog';
+type DrawerStep = ChooserStep | CaptureType;
+
+const isChooserStep = (step: DrawerStep): step is ChooserStep =>
+  step === 'quick' || step === 'catalog';
+
+const initialStepFromContext = (preferredType?: CaptureType): DrawerStep => {
+  if (preferredType === 'expense' || preferredType === 'income') return preferredType;
+  if (preferredType && preferredType !== 'harvest' && preferredType !== 'money') {
+    return preferredType;
+  }
+  return 'quick';
+};
 
 const toDateTimeLocal = (iso?: string): string => {
   const d = iso ? new Date(iso) : new Date();
@@ -67,7 +91,9 @@ const CaptureDrawer: React.FC<Props> = ({
   const { t, i18n } = useTranslation(['capture', 'fields', 'common', 'chronologio', 'money']);
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
+  const harvestCampaign = useHarvestCampaignOptional();
   const navigate = useNavigate();
+  const location = useLocation();
   const fileRef = useRef<HTMLInputElement>(null);
   const docFileRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -75,10 +101,12 @@ const CaptureDrawer: React.FC<Props> = ({
   const voiceChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<number | null>(null);
 
-  const [step, setStep] = useState<'choose' | CaptureType>(context.preferredType || 'choose');
+  const [step, setStep] = useState<DrawerStep>(() => initialStepFromContext(context.preferredType));
+  const [returnTo, setReturnTo] = useState<ChooserStep>('quick');
   const wasOpenRef = useRef(open);
   if (open && !wasOpenRef.current) {
-    setStep(context.preferredType || 'choose');
+    setStep(initialStepFromContext(context.preferredType));
+    setReturnTo('quick');
   }
   wasOpenRef.current = open;
   const [fields, setFields] = useState<Field[]>([]);
@@ -140,16 +168,20 @@ const CaptureDrawer: React.FC<Props> = ({
     return Math.round((oil / olives) * 1000) / 10;
   }, [oliveKg, oilKg]);
 
+  // Full form reset only when the drawer opens (or preferred type jumps to a form).
+  const openSessionKey = `${open ? '1' : '0'}|${context.preferredType || ''}|${context.description || ''}|${context.category || ''}`;
+  const openSessionRef = useRef('');
   useEffect(() => {
-    if (!open) return;
-    const moneyStep =
-      context.preferredType === 'expense' ||
-      context.preferredType === 'income' ||
-      context.preferredType === 'money'
-        ? context.preferredType
-        : null;
-    setStep(moneyStep || context.preferredType || 'choose');
-    setFieldId(context.fieldId || readLastMoneyFieldId() || '');
+    if (!open) {
+      openSessionRef.current = '';
+      return;
+    }
+    const sessionChanged = openSessionRef.current !== openSessionKey;
+    openSessionRef.current = openSessionKey;
+    if (!sessionChanged) return;
+
+    setStep(initialStepFromContext(context.preferredType));
+    setReturnTo('quick');
     setOccurredAt(toDateTimeLocal(context.occurredAt));
     setDirty(false);
     setLeaveOpen(false);
@@ -166,20 +198,44 @@ const CaptureDrawer: React.FC<Props> = ({
     setOliveKg('');
     setOilKg('');
     setHarvestNotes('');
+    setWorkTemplate('');
     void getFieldService()
       .getFields()
-      .then(setFields)
-      .catch(() => setFields([]));
+      .then((list) => {
+        setFields(list);
+        const resolved = resolveCaptureFieldId({
+          contextFieldId: context.fieldId,
+          pathname: location.pathname,
+          activeFieldId: activeField.fieldId,
+          lastCaptureFieldId: readLastCaptureFieldId(),
+          lastMoneyFieldId: readLastMoneyFieldId(),
+          availableIds: list.map((f) => f.id),
+        });
+        setFieldId(resolved);
+      })
+      .catch(() => {
+        setFields([]);
+        setFieldId(
+          resolveCaptureFieldId({
+            contextFieldId: context.fieldId,
+            pathname: location.pathname,
+            activeFieldId: activeField.fieldId,
+            lastCaptureFieldId: readLastCaptureFieldId(),
+            lastMoneyFieldId: readLastMoneyFieldId(),
+            availableIds: [],
+          })
+        );
+      });
   }, [
     open,
+    openSessionKey,
     context.preferredType,
-    context.fieldId,
     context.occurredAt,
-    context.dateDefaultedToToday,
-    context.taskId,
-    context.harvestId,
-    context.category,
+    context.fieldId,
     context.description,
+    context.category,
+    location.pathname,
+    activeField.fieldId,
   ]);
 
   useEffect(() => {
@@ -240,23 +296,39 @@ const CaptureDrawer: React.FC<Props> = ({
   };
 
   const selectType = (type: CaptureType) => {
+    setReturnTo(isChooserStep(step) ? step : returnTo);
     setStep(type);
     setError(null);
   };
 
   const goBack = () => {
-    if (step === 'choose') {
+    if (step === 'quick') {
       requestClose();
       return;
     }
-    setStep('choose');
+    if (step === 'catalog') {
+      setStep('quick');
+      setError(null);
+      return;
+    }
+    setStep(returnTo);
     setError(null);
   };
 
   const onFieldChange = (id: string) => {
     setFieldId(id);
+    rememberLastCaptureFieldId(id || undefined);
     onContextChange({ ...context, fieldId: id || undefined });
-    markDirty();
+  };
+
+  const onOccurredAtChange = (localDateTime: string) => {
+    setOccurredAt(localDateTime);
+    onContextChange({
+      ...context,
+      occurredAt: fromDateTimeLocal(localDateTime),
+      dateDefaultedToToday: false,
+      dateNeedsChoice: false,
+    });
   };
 
   const addPhotos = async (files: FileList | null) => {
@@ -371,12 +443,23 @@ const CaptureDrawer: React.FC<Props> = ({
     return true;
   };
 
+  /** Reopen Quick Add with the same field/date — not the just-saved form. */
+  const reopenQuickContext = (): CaptureContext => ({
+    fieldId: fieldId || context.fieldId,
+    occurredAt: fromDateTimeLocal(occurredAt),
+    sourcePage: context.sourcePage,
+    harvestId: context.harvestId,
+    taskId: context.taskId,
+    harvestCampaignLink: context.harvestCampaignLink,
+    periodLabel: context.periodLabel,
+  });
+
   const handleSave = async () => {
     if (!ensureField()) return;
     setSubmitting(true);
     setError(null);
     try {
-      const when = step === 'observation' ? new Date().toISOString() : fromDateTimeLocal(occurredAt);
+      const when = fromDateTimeLocal(occurredAt);
       if (step === 'observation') {
         if (!body.trim() && photos.length === 0) {
           setError(t('capture:errors.observationEmpty'));
@@ -399,7 +482,8 @@ const CaptureDrawer: React.FC<Props> = ({
             description: body.trim() || undefined,
             harvestCampaignLink: context.harvestCampaignLink,
           },
-          t('capture:observation.saved')
+          t('capture:observation.saved'),
+          { reopen: reopenQuickContext() }
         );
       } else if (step === 'work') {
         if (!ensureField()) return;
@@ -429,7 +513,11 @@ const CaptureDrawer: React.FC<Props> = ({
           notes: harvestNotes.trim() || undefined,
           mediaUrls,
         });
-        onSaved({ type: 'harvest', fieldId, sourceId: harvest.id }, t('capture:harvest.saved'));
+        onSaved(
+          { type: 'harvest', fieldId, sourceId: harvest.id },
+          t('capture:harvest.saved'),
+          { reopen: reopenQuickContext() }
+        );
       } else if (step === 'voice') {
         let blob = voiceBlob;
         if (recording || (!blob && mediaRecorderRef.current?.state === 'recording')) {
@@ -468,7 +556,11 @@ const CaptureDrawer: React.FC<Props> = ({
           occurredAt: when,
           mediaUrls: [mediaUrl],
         });
-        onSaved({ type: 'voice', fieldId, sourceId: note.id }, t('capture:voice.saved'));
+        onSaved(
+          { type: 'voice', fieldId, sourceId: note.id },
+          t('capture:voice.saved'),
+          { reopen: reopenQuickContext() }
+        );
       } else if (step === 'document') {
         if (!documentName.trim()) {
           setError(t('capture:errors.documentNameRequired'));
@@ -488,7 +580,11 @@ const CaptureDrawer: React.FC<Props> = ({
           occurredAt: when,
           mediaUrls: [mediaUrl],
         });
-        onSaved({ type: 'document', fieldId, sourceId: note.id }, t('capture:document.saved'));
+        onSaved(
+          { type: 'document', fieldId, sourceId: note.id },
+          t('capture:document.saved'),
+          { reopen: reopenQuickContext() }
+        );
       }
     } catch {
       setError(t('capture:errors.saveFailed'));
@@ -497,37 +593,156 @@ const CaptureDrawer: React.FC<Props> = ({
     }
   };
 
-  const typeCards: Array<{ type: CaptureType; icon: React.ReactNode; enabled: boolean }> = [
-    { type: 'work', icon: <CheckSquare size={22} />, enabled: permissions.canRecordWork },
-    { type: 'money', icon: <Wallet size={22} />, enabled: permissions.canRecordMoney },
-    { type: 'photo', icon: <Camera size={22} />, enabled: permissions.canRecordPhoto },
-    {
-      type: 'observation',
-      icon: <StickyNote size={22} />,
-      enabled: permissions.canRecordObservation,
-    },
-    { type: 'voice', icon: <Mic size={22} />, enabled: permissions.canRecordVoice },
-  ];
+  const captureModeLive = Boolean(harvestCampaign?.isLive);
+  const harvestCaps = useMemo(
+    () =>
+      getHarvestCapabilities({
+        hasAnyFieldAccess: fields.length > 0,
+        canOwn:
+          user?.role === 'FieldOwner' ||
+          user?.role === 'Administrator' ||
+          fields.some((f) => f.ownerId === user?.userId),
+        canWork:
+          user?.role === 'Producer' ||
+          user?.role === 'FieldOwner' ||
+          user?.role === 'Administrator',
+        familyModules: activeField.modules,
+        accessLevel: activeField.accessLevel,
+      }),
+    [fields, user, activeField.modules, activeField.accessLevel]
+  );
+  const openSacks = harvestCampaign ? pendingSackTotal(harvestCampaign.campaign) : 0;
+  const openMillKg = harvestCampaign ? millKgNeedingOil(harvestCampaign.campaign) : 0;
+  const menuGroups = useMemo(
+    () =>
+      buildCaptureMenu({
+        permissions,
+        harvestKinds: harvestCaps.captureKinds,
+        isHarvestLive: captureModeLive,
+        canUseWarehouse: permissions.canRecordMoney,
+        openSacks,
+        openMillKg,
+      }),
+    [permissions, harvestCaps.captureKinds, captureModeLive, openSacks, openMillKg]
+  );
+  const harvestHint = useMemo(() => {
+    const hint: Partial<Record<HarvestCaptureKind, string>> = {};
+    if (openSacks > 0) {
+      hint.mill = t('fields:harvestCampaign.addMenu.sacksWaiting', { count: openSacks });
+    }
+    if (openMillKg > 0) {
+      hint.oil = t('fields:harvestCampaign.addMenu.fruitWaiting', { kg: Math.round(openMillKg) });
+    }
+    return hint;
+  }, [openMillKg, openSacks, t]);
+
+  const quickMoves = useMemo(
+    () =>
+      buildQuickAddMoves({
+        pathname: location.pathname,
+        isHarvestLive: captureModeLive,
+        sourcePage: context.sourcePage,
+        groups: menuGroups,
+        recentIds: readRecentCaptureMoves(),
+      }),
+    [location.pathname, captureModeLive, menuGroups, context.sourcePage]
+  );
+
+  const pickMove = (move: CaptureMove) => {
+    rememberCaptureMove(move.id);
+    if (fieldId) rememberLastCaptureFieldId(fieldId);
+
+    if (move.surface === 'capture') {
+      if (move.id === 'oil_sale') {
+        onContextChange({
+          ...context,
+          fieldId: fieldId || context.fieldId,
+          preferredType: 'income',
+          category: 'olive_oil_sale',
+          occurredAt: fromDateTimeLocal(occurredAt),
+        });
+        selectType('income');
+        return;
+      }
+      if (move.id === 'payment') {
+        onContextChange({
+          ...context,
+          fieldId: fieldId || context.fieldId,
+          preferredType: 'expense',
+          category: 'labor',
+          occurredAt: fromDateTimeLocal(occurredAt),
+        });
+        selectType('expense');
+        return;
+      }
+      onContextChange({
+        ...context,
+        fieldId: fieldId || context.fieldId,
+        occurredAt: fromDateTimeLocal(occurredAt),
+      });
+      selectType(move.type);
+      return;
+    }
+    if (move.surface === 'money') {
+      selectType('money');
+      return;
+    }
+
+    const groveId = fieldId || context.fieldId;
+    if (move.surface === 'warehouse') {
+      onClose();
+      navigate(myOilPath({ field: groveId || undefined, do: move.action }));
+      return;
+    }
+    if (!groveId) {
+      setError(t('capture:errors.fieldRequired'));
+      return;
+    }
+
+    onClose();
+    navigate(
+      harvestPath({
+        add: true,
+        kind: move.kind,
+        fieldId: groveId,
+        day: dayKeyFromOccurredAt(context.occurredAt || fromDateTimeLocal(occurredAt)),
+        harvestId: context.harvestId,
+      })
+    );
+  };
 
   const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
   const isPhotoStep = step === 'photo';
-  const fieldLocked = Boolean(context.fieldId);
+  const isChoosing = isChooserStep(step);
   const selectedFieldName = fields.find((f) => f.id === fieldId)?.name;
+
+  const quickHints = useMemo(() => {
+    const hints: Partial<Record<string, string>> = {};
+    if (harvestHint?.mill) hints.mill = harvestHint.mill;
+    if (harvestHint?.oil) hints.oil = harvestHint.oil;
+    if (harvestHint?.sacks) hints.sacks = harvestHint.sacks;
+    return hints;
+  }, [harvestHint]);
+
+  const drawerTitle = (() => {
+    if (isMoneyStep) return t('capture:money.cta');
+    if (step === 'quick') return t('capture:newRecord');
+    if (step === 'catalog') return t('capture:allRecords');
+    return t(`capture:types.${step}.title`);
+  })();
 
   return (
     <RightDrawer
       open={open}
       onClose={requestClose}
-      resetKey={`${step}:${context.fieldId || ''}`}
+      resetKey={`${step}:${fieldId || ''}:${context.fieldId || ''}`}
       size={isMoneyStep ? 'lg' : 'md'}
-      title={
-        isMoneyStep
-          ? t('capture:money.cta')
-          : step === 'choose'
-            ? t('capture:title')
-            : t(`capture:types.${step}.title`)
+      title={drawerTitle}
+      subtitle={
+        !isMoneyStep && !isPhotoStep && !isChoosing
+          ? friendlyFieldLabel(selectedFieldName || fieldId) || undefined
+          : undefined
       }
-      subtitle={!isMoneyStep && !isPhotoStep && step !== 'choose' ? selectedFieldName : undefined}
       hideClose={!isMoneyStep && !isPhotoStep}
       leading={
         isMoneyStep ? undefined : (
@@ -535,15 +750,15 @@ const CaptureDrawer: React.FC<Props> = ({
             type="button"
             className="oa-drawer-icon-btn"
             onClick={goBack}
-            aria-label={step === 'choose' ? t('capture:cancel') : t('capture:back')}
+            aria-label={step === 'quick' ? t('capture:cancel') : t('capture:back')}
           >
-            {step === 'choose' ? <X size={18} aria-hidden /> : <ArrowLeft size={18} aria-hidden />}
+            {step === 'quick' ? <X size={18} aria-hidden /> : <ArrowLeft size={18} aria-hidden />}
           </button>
         )
       }
       bodyClassName={isMoneyStep ? 'oa-drawer-body--flush' : undefined}
       footer={
-        step !== 'choose' && !isMoneyStep && !isPhotoStep ? (
+        !isChoosing && !isMoneyStep && !isPhotoStep ? (
           <button
             type="button"
             className="capture-save-btn"
@@ -555,13 +770,46 @@ const CaptureDrawer: React.FC<Props> = ({
         ) : undefined
       }
     >
+      <div className="capture-with-tabs">
+        {error && isChoosing ? <p className="capture-error">{error}</p> : null}
+        {step === 'quick' ? (
+          <CaptureQuickAdd
+            moves={quickMoves}
+            fields={fields}
+            fieldId={fieldId}
+            occurredAtLocal={occurredAt}
+            onFieldChange={onFieldChange}
+            onOccurredAtChange={onOccurredAtChange}
+            onPick={pickMove}
+            onMore={() => {
+              setError(null);
+              setStep('catalog');
+            }}
+            hints={quickHints}
+          />
+        ) : null}
+        {step === 'catalog' ? (
+          <CaptureCatalog
+            groups={menuGroups}
+            isHarvestLive={captureModeLive}
+            harvestHint={harvestHint}
+            fields={fields}
+            fieldId={fieldId}
+            occurredAtLocal={occurredAt}
+            recentIds={readRecentCaptureMoves()}
+            onFieldChange={onFieldChange}
+            onOccurredAtChange={onOccurredAtChange}
+            onPick={pickMove}
+          />
+        ) : null}
             {isMoneyStep ? (
               <>
               <MoneyCaptureForm
                 context={{
                   ...context,
-                  fieldId: context.fieldId || fieldId || undefined,
+                  fieldId: fieldId || context.fieldId || undefined,
                   preferredType: step === 'money' ? 'money' : step,
+                  occurredAt: fromDateTimeLocal(occurredAt),
                 }}
                 fields={fields}
                 canRecordIncome={permissions.canRecordIncome}
@@ -597,127 +845,38 @@ const CaptureDrawer: React.FC<Props> = ({
               </>
             ) : isPhotoStep ? (
               <PhotoCaptureForm
-                context={context}
+                context={{
+                  ...context,
+                  fieldId: fieldId || context.fieldId,
+                  occurredAt: fromDateTimeLocal(occurredAt),
+                }}
                 fields={fields}
                 fieldId={fieldId}
-                fieldLocked={fieldLocked}
+                fieldLocked={false}
                 onFieldChange={onFieldChange}
                 onSaved={onSaved}
                 onDirty={markDirty}
               />
-            ) : (
-              <>
-              {step === 'choose' ? (
-                <div className="capture-type-list">
-                  <p className="capture-prompt">{t('capture:whatToRecord')}</p>
-                  {typeCards
-                    .filter((c) => c.enabled && (c.type === 'work' || c.type === 'money'))
-                    .map((card) => (
-                      <button
-                        key={card.type}
-                        type="button"
-                        className="capture-type-card"
-                        onClick={() => selectType(card.type)}
-                      >
-                        <span className="capture-type-icon">{card.icon}</span>
-                        <span>
-                          <strong>{t(`capture:types.${card.type}.title`)}</strong>
-                          <span>{t(`capture:types.${card.type}.description`)}</span>
-                        </span>
-                      </button>
-                    ))}
-                  <p className="capture-prompt capture-prompt-more">{t('capture:alsoRecord')}</p>
-                  {typeCards
-                    .filter((c) => c.enabled && c.type !== 'work' && c.type !== 'money')
-                    .map((card) => (
-                      <button
-                        key={card.type}
-                        type="button"
-                        className="capture-type-card is-quiet"
-                        onClick={() => selectType(card.type)}
-                      >
-                        <span className="capture-type-icon">{card.icon}</span>
-                        <span>
-                          <strong>{t(`capture:types.${card.type}.title`)}</strong>
-                          <span>{t(`capture:types.${card.type}.description`)}</span>
-                        </span>
-                      </button>
-                    ))}
-                </div>
-              ) : (
+            ) : !isChoosing ? (
                 <div className={`capture-form${step === 'observation' ? ' capture-form--observation' : ''}`}>
                   {context.periodLabel ? (
                     <p className="capture-context">{context.periodLabel}</p>
                   ) : null}
 
-                  <fieldset className="capture-fieldset">
-                    <legend className="capture-legend">{t('capture:fieldLabel')}</legend>
-                    {fieldLocked ? (
-                      <div className="capture-field-locked">
-                        <span
-                          className="capture-field-dot"
-                          style={{
-                            background: resolveFieldColor(
-                              fields.find((f) => f.id === fieldId)?.color,
-                              fieldId
-                            ),
-                          }}
-                          aria-hidden
-                        />
-                        {friendlyFieldLabel(selectedFieldName || fieldId)}
-                      </div>
-                    ) : (
-                      <div
-                        className="capture-field-chips"
-                        role="radiogroup"
-                        aria-label={t('capture:fieldPrompt')}
-                      >
-                        {fields.map((f) => {
-                          const selected = fieldId === f.id;
-                          return (
-                            <button
-                              key={f.id}
-                              type="button"
-                              role="radio"
-                              aria-checked={selected}
-                              className={selected ? 'is-selected' : ''}
-                              onClick={() => onFieldChange(f.id)}
-                            >
-                              <span
-                                className="capture-field-dot"
-                                style={{ background: resolveFieldColor(f.color, f.id) }}
-                                aria-hidden
-                              />
-                              {friendlyFieldLabel(f.name)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </fieldset>
-
-                  {step !== 'observation' ? (
-                    <>
-                      <label className="capture-label" htmlFor="capture-occurred-at">
-                        {t('capture:dateLabel')}
-                        <input
-                          id="capture-occurred-at"
-                          type="datetime-local"
-                          value={occurredAt}
-                          onChange={(e) => {
-                            setOccurredAt(e.target.value);
-                            markDirty();
-                          }}
-                        />
-                      </label>
-                      {context.dateNeedsChoice ? (
-                        <p className="capture-hint">
-                          {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
-                        </p>
-                      ) : context.dateDefaultedToToday ? (
-                        <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
-                      ) : null}
-                    </>
+                  <CaptureContextChips
+                    fields={fields}
+                    fieldId={fieldId}
+                    occurredAtLocal={occurredAt}
+                    onFieldChange={onFieldChange}
+                    onOccurredAtChange={onOccurredAtChange}
+                    compact
+                  />
+                  {context.dateNeedsChoice ? (
+                    <p className="capture-hint">
+                      {t('chronologio:captureDateChoose', { period: context.periodLabel || '' })}
+                    </p>
+                  ) : context.dateDefaultedToToday ? (
+                    <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
                   ) : null}
 
                   {step === 'observation' ? (
@@ -948,9 +1107,8 @@ const CaptureDrawer: React.FC<Props> = ({
 
                   {error ? <p className="capture-error">{error}</p> : null}
                 </div>
-              )}
-              </>
-            )}
+            ) : null}
+      </div>
     </RightDrawer>
   );
 };

@@ -16,6 +16,7 @@ export type HeaderIconButtonProps = {
   compact?: boolean;
   /** Ivory paper control — same surface, border, and shadow as dashboard cards. */
   paper?: boolean;
+  disabled?: boolean;
 };
 
 /** Circular trailing header control — used on tab roots and native headerRight. */
@@ -28,6 +29,7 @@ const HeaderIconButton: React.FC<HeaderIconButtonProps> = ({
   size = 20,
   compact = false,
   paper = false,
+  disabled = false,
 }) => {
   const { colors, isDark } = useTheme();
   const dim = compact ? 34 : touch.icon;
@@ -38,6 +40,8 @@ const HeaderIconButton: React.FC<HeaderIconButtonProps> = ({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       hitSlop={6}
       style={({ pressed }) => [
         styles.btn,
@@ -49,7 +53,7 @@ const HeaderIconButton: React.FC<HeaderIconButtonProps> = ({
           backgroundColor: active ? colors.primaryLight : colors.surfaceElevated,
           borderColor: active ? colors.oliveBorder : paper ? colors.border : colors.borderLight,
           borderWidth: paper ? 1 : StyleSheet.hairlineWidth,
-          opacity: pressed ? motion.pressOpacity : 1,
+          opacity: disabled ? 0.28 : pressed ? motion.pressOpacity : 1,
           ...(paper
             ? {
                 shadowColor: '#273625',

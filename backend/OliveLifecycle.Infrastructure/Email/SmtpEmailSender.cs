@@ -36,10 +36,10 @@ public sealed class SmtpEmailSender : IEmailSender
         var port = int.TryParse(_configuration["Email:SmtpPort"], out var parsedPort) ? parsedPort : 587;
         var enableSsl = !string.Equals(_configuration["Email:EnableSsl"], "false", StringComparison.OrdinalIgnoreCase);
         var fromAddress = string.IsNullOrWhiteSpace(_configuration["Email:FromAddress"])
-            ? "hello@oleachron.app"
+            ? "hello@The Olive Lot.app"
             : _configuration["Email:FromAddress"]!;
         var fromName = string.IsNullOrWhiteSpace(_configuration["Email:FromName"])
-            ? "OleaChron"
+            ? "The Olive Lot"
             : _configuration["Email:FromName"]!;
         var user = _configuration["Email:SmtpUser"];
         var password = _configuration["Email:SmtpPassword"];

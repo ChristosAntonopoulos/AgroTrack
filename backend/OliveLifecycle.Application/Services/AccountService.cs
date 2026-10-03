@@ -14,7 +14,7 @@ namespace OliveLifecycle.Application.Services;
 
 public class AccountService : IAccountService
 {
-    public const string DefaultSupportEmail = "support@oleachron.com";
+    public const string DefaultSupportEmail = "support@The Olive Lot.com";
     private const int MinimumPasswordLength = 8;
     private const int EmailCodeHours = 1;
     private const int MaxNameLength = 80;
@@ -130,10 +130,10 @@ public class AccountService : IAccountService
         user.UpdatedAt = _clock.UtcNow;
         await _users.UpdateAsync(user, cancellationToken);
 
-        var subject = "OleaChron — επιβεβαίωση email / email verification";
+        var subject = "The Olive Lot — επιβεβαίωση email / email verification";
         var body =
-            $"Κωδικός επιβεβαίωσης για το νέο email του λογαριασμού OleaChron: {code}\n" +
-            $"Verification code for your new OleaChron email: {code}\n\n" +
+            $"Κωδικός επιβεβαίωσης για το νέο email του λογαριασμού The Olive Lot: {code}\n" +
+            $"Verification code for your new The Olive Lot email: {code}\n\n" +
             $"Ο κωδικός ισχύει για {EmailCodeHours} ώρα.\n" +
             $"This code expires in {EmailCodeHours} hour.\n\n" +
             "Αν δεν το ζητήσατε εσείς, αγνοήστε αυτό το μήνυμα.\n" +
@@ -246,7 +246,7 @@ public class AccountService : IAccountService
         }
 
         var now = _clock.UtcNow;
-        user.Email = $"deleted.{user.Id}@deleted.oleachron.invalid";
+        user.Email = $"deleted.{user.Id}@deleted.The Olive Lot.invalid";
         user.FirstName = null;
         user.LastName = null;
         user.PendingEmail = null;

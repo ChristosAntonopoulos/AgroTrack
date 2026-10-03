@@ -1,5 +1,5 @@
 {
-  "appName": "Oleachron",
+  "appName": "The Olive Lot",
   "home": "Αρχική",
   "breadcrumb": "Διαδρομή",
   "loading": "Φόρτωση...",
@@ -40,6 +40,7 @@
   "nextTask": "Επόμενο",
   "toggleMenu": "Εναλλαγή μενού",
   "moreNav": "Περισσότερα",
+  "menuNav": "Μενού",
   "moreMenu": "Περισσότερες επιλογές",
   "mobileNav": "Κύρια πλοήγηση",
   "logout": "Αποσύνδεση",

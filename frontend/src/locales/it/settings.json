@@ -1,6 +1,6 @@
 {
   "title": "Impostazioni",
-  "subtitle": "Adatta OLEACHRON come ti è comodo.",
+  "subtitle": "AdattThe Olive Lot come ti è comodo.",
   "autosaveHint": "Le modifiche vengono salvate automaticamente",
   "saved": "Salvato",
   "saveError": "Impossibile salvare.",
@@ -81,7 +81,7 @@
     "dateFormat": "Formato data"
   },
   "startup": {
-    "label": "Quando apro OLEACHRON",
+    "label": "Quando apro The Olive Lot",
     "options": {
       "fields": "Campi",
       "chronologio": "Cronologia"
@@ -108,7 +108,7 @@
       "yyyy-MM-dd": "2026-09-09",
       "medium": "9 set 2026"
     },
-    "defaultView": "Quando apro OLEACHRON",
+    "defaultView": "Quando apro The Olive Lot",
     "defaultViews": {
       "dashboard": "Dashboard",
       "fields": "Campi",
@@ -129,7 +129,7 @@
   "notifications": {
     "title": "Notifiche",
     "accountHint": "Salvate sul tuo account insieme alla casella. Le stesse scelte valgono su ogni dispositivo in cui accedi.",
-    "accountHintDemo": "Salvate su questo account demo nel browser, con esempi di assegnazioni e approvazioni. Su un account OLEACHRON reale ti seguono su ogni dispositivo.",
+    "accountHintDemo": "Salvate su questo account demo nel browser, con esempi di assegnazioni e approvazioni. Su un account The Olive Lot reale ti seguono su ogni dispositivo.",
     "email": "Notifiche email",
     "taskAssignment": "Notifiche assegnazione attività",
     "deadline": "Promemoria scadenze",
@@ -158,12 +158,12 @@
     "exportWorking": "Preparazione del file…",
     "exportDone": "Download avviato.",
     "supportTitle": "Chiedi al supporto",
-    "supportBody": "Per una correzione, un archivio completo o la conferma scritta che i dati dell'oliveto sono stati cancellati, scrivi al supporto OLEACHRON. Includi l'email di accesso.",
+    "supportBody": "Per una correzione, un archivio completo o la conferma scritta che i dati dell'oliveto sono stati cancellati, scrivi al supporto The Olive Lot. Includi l'email di accesso.",
     "supportAction": "Email al supporto"
   },
   "sessions": {
     "thisDevice": "Questo dispositivo",
-    "thisDeviceHint": "OLEACHRON traccia solo la sessione in questo browser. Esci per terminarla."
+    "thisDeviceHint": "The Olive Lot traccia solo la sessione in questo browser. Esci per terminarla."
   },
   "danger": {
     "deleteHelp": "Chiudere l'account ti disconnette e toglie nome ed email dall'accesso. I dati dell'oliveto restano finché il supporto non conferma la cancellazione.",
@@ -178,7 +178,7 @@
   },
   "technical": {
     "purpose": "Condividi la versione dell'app con l'assistenza se qualcosa non va.",
-    "supportHint": "Indica questa versione quando contatti l'assistenza OLEACHRON."
+    "supportHint": "Indica questa versione quando contatti l'assistenzThe Olive Lot."
   },
   "demo": {
     "title": "Demo",

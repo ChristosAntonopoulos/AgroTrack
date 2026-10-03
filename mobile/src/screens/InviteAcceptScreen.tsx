@@ -259,7 +259,7 @@ const InviteAcceptScreen = () => {
             <>
               <Text style={{ color: colors.textSecondary }}>
                 {t('fields:people.inviteExistingAccountHint', {
-                  defaultValue: 'You already have an Oleachron account. Sign in to accept.',
+                  defaultValue: 'You already have an The Olive Lot account. Sign in to accept.',
                 })}
               </Text>
               <Button title={t('fields:people.inviteSignIn')} onPress={() => goAuth('Login')} />

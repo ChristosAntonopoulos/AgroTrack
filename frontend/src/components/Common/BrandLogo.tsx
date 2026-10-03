@@ -13,48 +13,48 @@ type Props = {
   alt?: string;
 };
 
+/** Horizontal lockup height (mark + wordmark side-by-side). */
 const HORIZONTAL_H: Record<BrandLogoSize, number> = {
-  xs: 28,
-  sm: 36,
-  md: 44,
-  lg: 56,
-  xl: 72,
-};
-
-const MARK_PX: Record<BrandLogoSize, number> = {
-  xs: 28,
-  sm: 40,
+  xs: 40,
+  sm: 48,
   md: 56,
-  lg: 72,
-  xl: 96,
+  lg: 68,
+  xl: 84,
 };
 
-const STACKED_MARK: Record<BrandLogoSize, number> = {
+/** Compact mark / app-icon tile. Mark is slightly wider than tall (leaf). */
+const MARK_PX: Record<BrandLogoSize, number> = {
   xs: 40,
   sm: 52,
-  md: 64,
-  lg: 80,
-  xl: 96,
+  md: 68,
+  lg: 88,
+  xl: 112,
+};
+
+/** Full stacked lockup (mark above wordmark) — height of the whole asset. */
+const STACKED_H: Record<BrandLogoSize, number> = {
+  xs: 112,
+  sm: 140,
+  md: 172,
+  lg: 208,
+  xl: 248,
 };
 
 const SRC = {
   horizontal: {
-    'on-light': '/branding/oleachron-logo-horizontal-light.png',
-    'on-dark': '/branding/oleachron-logo-horizontal-dark.png',
+    'on-light': '/branding/logo-horizontal-ink.png?v=2',
+    'on-dark': '/branding/logo-horizontal-ivory.png?v=2',
+  },
+  stacked: {
+    'on-light': '/branding/logo-stacked-ink.png?v=2',
+    'on-dark': '/branding/logo-stacked-ivory.png?v=2',
   },
   mark: {
-    'on-light': '/branding/oleachron-mark-light.png',
-    'on-dark': '/branding/oleachron-mark-dark.png',
+    'on-light': '/branding/mark-ink.png?v=2',
+    'on-dark': '/branding/mark-ivory.png?v=2',
   },
-  wordmark: {
-    'on-light': '/branding/oleachron-wordmark-light.png',
-    'on-dark': '/branding/oleachron-wordmark-dark.png',
-  },
-  favicon: '/branding/oleachron-favicon-mark.png',
-  appIcon: {
-    'on-light': '/branding/oleachron-app-icon-light.png',
-    'on-dark': '/branding/oleachron-app-icon-dark.png',
-  },
+  favicon: '/branding/mark-ink.png?v=2',
+  appIcon: '/branding/app-icon.png?v=2',
 } as const;
 
 const BrandLogo: React.FC<Props> = ({
@@ -62,37 +62,30 @@ const BrandLogo: React.FC<Props> = ({
   variant = 'horizontal',
   tone = 'on-light',
   className = '',
-  alt = 'Oleachron',
+  alt = 'The Olive Lot',
 }) => {
   if (variant === 'stacked') {
-    const markH = STACKED_MARK[size];
+    const height = STACKED_H[size];
     return (
-      <div className={['brand-logo', 'brand-logo--stacked', className].filter(Boolean).join(' ')}>
-        <img
-          src={SRC.mark[tone]}
-          alt=""
-          height={markH}
-          className="brand-logo-stacked-mark"
-          style={{ height: markH, width: 'auto' }}
-          decoding="async"
-        />
-        <img
-          src={SRC.wordmark[tone]}
-          alt={alt}
-          className="brand-logo-stacked-wordmark"
-          decoding="async"
-        />
-      </div>
+      <img
+        src={SRC.stacked[tone]}
+        alt={alt}
+        height={height}
+        className={['brand-logo', 'brand-logo--stacked', className].filter(Boolean).join(' ')}
+        style={{ height, width: 'auto' }}
+        decoding="async"
+      />
     );
   }
 
-  const isTile = variant === 'app-icon' || variant === 'favicon' || variant === 'mark';
-  const height = isTile ? MARK_PX[size] : HORIZONTAL_H[size];
+  const isTile = variant === 'app-icon' || variant === 'favicon';
+  const isMark = variant === 'mark';
+  const height = isTile || isMark ? MARK_PX[size] : HORIZONTAL_H[size];
   const src =
     variant === 'favicon'
       ? SRC.favicon
       : variant === 'app-icon'
-        ? SRC.appIcon[tone]
+        ? SRC.appIcon
         : variant === 'mark'
           ? SRC.mark[tone]
           : SRC.horizontal[tone];

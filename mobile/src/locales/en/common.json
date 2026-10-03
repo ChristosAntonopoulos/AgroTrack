@@ -1,5 +1,5 @@
 {
-  "appName": "Oleachron",
+  "appName": "The Olive Lot",
   "tagline": "The story of every olive tree lives on",
   "loading": "Loading...",
   "save": "Save",
@@ -7,6 +7,7 @@
   "delete": "Delete",
   "edit": "Edit",
   "back": "Back",
+  "previous": "Previous",
   "next": "Next",
   "skip": "Skip",
   "done": "Done",
@@ -84,6 +85,7 @@
     "submitFailed": "Could not submit your answer."
   },
   "close": "Close",
+  "ok": "OK",
   "familyCollaboratorBadge": "Collaborator of {{owner}}",
   "version": "Version",
   "or": "or",

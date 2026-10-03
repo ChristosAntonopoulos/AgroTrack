@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin } from 'lucide-react';
+import { Cylinder } from 'lucide-react';
 import { formatOilNumber, formatOilPack } from '../../myOil/formatOilPack';
 import {
   groveGroupLabel,
@@ -51,46 +51,43 @@ export function OilByGroveSection({
             !!focusFieldId &&
             (group.primaryFieldId === focusFieldId || group.fieldIds.includes(focusFieldId));
           const free = group.available.litres;
+          const fillLot =
+            focused && onFillLot
+              ? group.lots.find((lot) => lot.available.bulkLitres > 0.05) || null
+              : null;
           return (
-            <li key={group.key}>
+            <li key={group.key} className="my-oil-shelf">
               <button
                 type="button"
                 className={`my-oil-grove-card${focused ? ' is-focus' : ''}`}
                 onClick={() => onSelectGrove?.(group)}
               >
                 <span className="my-oil-grove-card__icon" aria-hidden>
-                  <MapPin size={18} strokeWidth={1.75} />
+                  <Cylinder size={18} strokeWidth={1.75} />
                 </span>
                 <span className="my-oil-grove-card__body">
-                  <strong>{label}</strong>
-                  <em>
+                  <strong className="my-oil-grove-card__pack">
                     {free > 0.05
                       ? formatOilPack(group.available, packLabels)
                       : t('byGrove.noneFree')}
-                  </em>
-                  <span className="my-oil-grove-card__meta">
-                    {t('byGrove.lotCount', { count: group.lots.length })}
-                    {free > 0.05
-                      ? ` · ${t('litres', { amount: formatOilNumber(free, i18n.language) })}`
-                      : ''}
-                  </span>
+                  </strong>
+                  <em className="my-oil-grove-card__where">{label}</em>
+                  {free > 0.05 ? (
+                    <span className="my-oil-grove-card__meta">
+                      {t('litres', { amount: formatOilNumber(free, i18n.language) })}
+                    </span>
+                  ) : null}
                 </span>
               </button>
-              {focused && onFillLot
-                ? group.lots
-                    .filter((lot) => lot.available.bulkLitres > 0.05)
-                    .slice(0, 1)
-                    .map((lot) => (
-                      <button
-                        key={`${lot.id}-fill`}
-                        type="button"
-                        className="my-oil-linkish"
-                        onClick={() => onFillLot(lot)}
-                      >
-                        {t('actions.fillTins')}
-                      </button>
-                    ))
-                : null}
+              {fillLot ? (
+                <button
+                  type="button"
+                  className="my-oil-linkish my-oil-shelf__fill"
+                  onClick={() => onFillLot?.(fillLot)}
+                >
+                  {t('actions.fillTins')}
+                </button>
+              ) : null}
             </li>
           );
         })}

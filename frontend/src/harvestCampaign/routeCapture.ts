@@ -1,5 +1,5 @@
 import type { CaptureType } from '../capture/types';
 
-/** Generic + and harvest capture join the harvest add menu while a harvest is live. */
+/** Only an explicit harvest choice opens the live campaign. The + still shows every record type. */
 export const shouldRouteCaptureToHarvest = (preferredType?: CaptureType): boolean =>
-  !preferredType || preferredType === 'harvest';
+  preferredType === 'harvest';

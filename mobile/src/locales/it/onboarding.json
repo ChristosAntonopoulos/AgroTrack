@@ -6,7 +6,7 @@
     "expand": "Mostra setup",
     "dismiss": "Per ora basta",
     "celebrateTitle": "Confine salvato — puoi esplorare",
-    "celebrateBody": "I confini sbloccano il resto di Oleachron. Meteo e satellite appariranno sulla mappa del campo.",
+    "celebrateBody": "I confini sbloccano il resto di The Olive Lot. Meteo e satellite appariranno sulla mappa del campo.",
     "continueTitle": "Completa la configurazione",
     "continueBody": "Il nome conta già. Senza confine non si calcola la superficie e non si aprono meteo e satellite.",
     "continueCta": "Continua setup"
@@ -117,8 +117,8 @@
     "openGrove": "Apri la mappa"
   },
   "mapExplore": {
-    "caption": "Guarda intorno — livelli e meteo sono tuoi.",
-    "cta": "Continua alla Cronologia"
+    "caption": "Questo è il tuo oliveto sulla mappa. Prova un’immagine sotto, poi apri la Cronologia.",
+    "cta": "Apri la Cronologia"
   },
   "coach": {
     "kicker": "Tocca a te",
@@ -130,7 +130,7 @@
     "createField": {
       "title": "Crea il tuo oliveto",
       "body": "Tocca + e dagli un nome che riconoscerai.",
-      "cue": "Tocca qui e dai un nome."
+      "cue": "Tocca il + e dai un nome al tuo primo oliveto."
     },
     "homeButton": {
       "title": "Questo ti riporta a casa",

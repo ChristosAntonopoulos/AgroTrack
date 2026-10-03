@@ -124,8 +124,10 @@
   },
   "page": {
     "tabsAria": "Sezioni del campo",
+    "tabField": "Oliveto",
     "tabVegetation": "Vegetazione",
     "tabWeather": "Meteo",
+    "tabWeatherVegetation": "Meteo e vegetazione",
     "mapData": "Mappa",
     "mapDataFull": "Mappa e dati",
     "details": "Dettagli",
@@ -142,7 +144,31 @@
     "archiveUnavailable": "L'archiviazione sarà collegata quando l'azione sul server sarà pronta.",
     "draftField": "Campo bozza",
     "mapPlaceholder": "La mappa e i dati di questo campo appariranno qui.",
-    "detailsPlaceholder": "Identità, acqua, suolo, persone e documenti del oliveto saranno organizzati qui."
+    "detailsPlaceholder": "Identità, acqua, suolo, persone e documenti del oliveto saranno organizzati qui.",
+    "harvest": {
+      "title": "Raccolta",
+      "empty": "Nessuna raccolta registrata per questo oliveto.",
+      "emptyAction": "Registra raccolta",
+      "sacksCount": "{{count}} sacchi",
+      "kgCount": "{{count}} kg",
+      "oilCount": "{{count}} L",
+      "oilKgCount": "{{count}} kg olio",
+      "recorded": "{{count}} registrazioni"
+    },
+    "nextTasks": {
+      "title": "Prossimi lavori",
+      "seeAll": "Tutti",
+      "empty": "Nessun lavoro programmato."
+    },
+    "shortcuts": {
+      "history": "Cronologia",
+      "historyDetail": "Registrazioni di questo oliveto",
+      "people": "Persone",
+      "peopleDetail": "Persone con accesso a questo oliveto",
+      "myOil": "Magazzino",
+      "myOilDetail": "Olio di questo oliveto",
+      "editDetail": "Nome, varietà e impostazioni"
+    }
   },
   "mapWorkspace": {
     "lead": "Scegli cosa guardare sul campo — confine, foto, verde o umidità.",
@@ -245,7 +271,7 @@
     },
     "sources": {
       "title": "Fonti dei dati",
-      "oleachron": "Scheda Oleachron",
+      "oleachron": "SchedThe Olive Lot",
       "fieldRecord": "Dettagli dell'oliveto",
       "regional": "Stima regionale — non un campione di questo oliveto",
       "introApi": "Terreno, suolo e verdore arrivano da mappe pubbliche sul confine disegnato. Alberi e irrigazione dai dettagli dell'oliveto."
@@ -1074,7 +1100,7 @@
   },
   "createGrove": {
     "title": "Aggiungi oliveto",
-    "firstTitle": "Metti il tuo primo oliveto in Oleachron",
+    "firstTitle": "Metti il tuo primo oliveto in The Olive Lot",
     "subtitle": "Prima il nome. Poi dov’è e il suo confine.",
     "placeHeading": "Dov’è?",
     "continueToPlace": "Continua",
@@ -1133,7 +1159,7 @@
       "noResults": "Non abbiamo trovato quel luogo. Prova un altro nome o tocca la mappa."
     },
     "details": {
-      "subtitle": "A few details that help Oleachron give you more useful reminders. You do not need them to start.",
+      "subtitle": "A few details that help The Olive Lot give you more useful reminders. You do not need them to start.",
       "varietyHint": "Helps organise harvest and observations.",
       "treeCountLabel": "About how many trees does it have?",
       "treeCountHint": "If you are not sure, leave it blank."
@@ -1175,7 +1201,7 @@
       "boundaryAction": "Draw boundary",
       "boundaryLater": "Later",
       "detailsTitle": "Add variety and trees",
-      "detailsBody": "A few details that help Oleachron give you more useful reminders.",
+      "detailsBody": "A few details that help The Olive Lot give you more useful reminders.",
       "detailsAction": "Add details"
     }
   }

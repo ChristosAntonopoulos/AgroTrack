@@ -62,6 +62,7 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
   const mapRef = useRef<AppMapViewRef>(null);
   const [hasLocation, setHasLocation] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
 
   useEffect(() => {
@@ -77,7 +78,16 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
     [fields]
   );
 
-  const fitPoints = useMemo(() => collectFitPoints(mappableFields), [mappableFields]);
+  /** Prefer drawn boundaries so zoom frames the maps that exist. */
+  const fitSourceFields = useMemo(() => {
+    const withBoundary = mappableFields.filter((field) => {
+      const polygon = resolveFieldPolygon(field);
+      return Boolean(polygon && polygon.length >= 3);
+    });
+    return withBoundary.length > 0 ? withBoundary : mappableFields;
+  }, [mappableFields]);
+
+  const fitPoints = useMemo(() => collectFitPoints(fitSourceFields), [fitSourceFields]);
 
   const initialRegion = useMemo(() => {
     if (fitPoints.length === 0) return null;
@@ -91,15 +101,15 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
     return {
       latitude: (minLat + maxLat) / 2,
       longitude: (minLng + maxLng) / 2,
-      latitudeDelta: Math.max((maxLat - minLat) * 1.12, 0.002),
-      longitudeDelta: Math.max((maxLng - minLng) * 1.12, 0.002),
+      latitudeDelta: Math.max((maxLat - minLat) * 1.25, 0.002),
+      longitudeDelta: Math.max((maxLng - minLng) * 1.25, 0.002),
     };
   }, [fitPoints]);
 
   useEffect(() => {
-    if (fitPoints.length === 0) return;
-    mapRef.current?.fitCoordinates(fitPoints);
-  }, [fitPoints, fields.length]);
+    if (!mapReady || fitPoints.length === 0) return;
+    mapRef.current?.fitCoordinates(fitPoints, 44, 15, 17);
+  }, [mapReady, fitPoints, fields.length]);
 
   const selectedField = useMemo(
     () => mappableFields.find((field) => field.id === selectedFieldId) ?? null,
@@ -107,7 +117,7 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
   );
 
   useEffect(() => {
-    if (!selectedField) return;
+    if (!mapReady || !selectedField) return;
     const polygon = resolveFieldPolygon(selectedField);
     const center = resolveFieldCenter(selectedField);
     if (polygon && polygon.length >= 3) {
@@ -117,7 +127,7 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
     if (center) {
       mapRef.current?.fitCoordinates([center], 48, 15, 16);
     }
-  }, [selectedField]);
+  }, [mapReady, selectedField]);
 
   const safeCompact = toBoolean(compact, 'FieldsMap.compact');
 
@@ -176,6 +186,7 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
             showUserLocation={hasLocation}
             scrollEnabled
             zoomEnabled
+            onMapReady={() => setMapReady(true)}
           >
             {mappableFields.map((field) => {
               const polygon = resolveFieldPolygon(field);
@@ -202,7 +213,7 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
           </View>
           <View style={[styles.countPill, { backgroundColor: colors.surfaceElevated + 'E8' }]}>
             <Text style={[styles.countText, { color: colors.textPrimary }]}>
-              {mappableFields.length} {t('summary.fields')}
+              {mappableFields.length} {t('summaryFields')}
             </Text>
           </View>
         </>

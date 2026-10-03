@@ -30,6 +30,8 @@ type Props = {
   busy?: boolean;
   error?: string | null;
   accent?: HarvestFormAccentKey;
+  /** Keep the step on one screen. Content is not scrolled. */
+  scrollEnabled?: boolean;
 };
 
 /**
@@ -51,6 +53,7 @@ export const HarvestFormPager: React.FC<Props> = ({
   busy,
   error,
   accent = 'default',
+  scrollEnabled = true,
 }) => {
   const { colors } = useTheme();
   const tone = harvestFormAccent[accent] ?? harvestFormAccent.default;
@@ -65,6 +68,7 @@ export const HarvestFormPager: React.FC<Props> = ({
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
           bounces={false}
+          scrollEnabled={scrollEnabled}
         >
           {total > 1 ? (
             <View style={styles.progress} accessibilityRole="progressbar">

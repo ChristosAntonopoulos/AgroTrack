@@ -1,23 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import HeaderIconButton from '../components/layout/HeaderIconButton';
+import BrandLogo from '../components/ui/BrandLogo';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useHarvestCampaignOptional } from '../context/HarvestCampaignContext';
 import { useTasks } from '../hooks/useTasks';
 import { openHarvestCampaign } from '../navigation/intents';
 import type { RootStackParamList } from '../navigation/types';
-import { getFieldService } from '../services/serviceFactory';
 import { oilStockService } from '../services/oilStockService';
 import { formatOilLitres } from '../myOil/formatOilPack';
 import { isActiveFieldTask } from '../services/fieldWorkService';
 import { radii, spacing, typography } from '../theme';
-import { athensCalendarDateKey } from '../utils/athensDate';
 import { isTaskDueToday, isTaskOverdue } from '../utils/taskListUtils';
 import GuideTarget from '../components/onboarding/GuideTarget';
 import PendingInvitesBanner from '../components/partners/PendingInvitesBanner';
@@ -75,21 +74,10 @@ const LauncherScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const harvest = useHarvestCampaignOptional();
   const { tasks, loading } = useTasks();
-  const [fieldCount, setFieldCount] = useState<number | null>(null);
   const [oilFreeLitres, setOilFreeLitres] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    if (user?.id) {
-      getFieldService()
-        .getFields(user.id, user.role || 'FieldOwner')
-        .then((list) => {
-          if (!cancelled) setFieldCount(list.length);
-        })
-        .catch(() => {
-          if (!cancelled) setFieldCount(null);
-        });
-    }
     oilStockService
       .getSummary()
       .then((summary) => {
@@ -101,10 +89,7 @@ const LauncherScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, user?.role]);
-
-  const displayName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || '';
+  }, []);
 
   const role = user?.role || '';
   const canMoney = ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'].includes(role);
@@ -112,10 +97,10 @@ const LauncherScreen: React.FC = () => {
   const openTasks = tasks.filter(isActiveFieldTask);
   const overdue = openTasks.filter((task) => isTaskOverdue(task)).length;
   const dueToday = openTasks.filter((task) => isTaskDueToday(task)).length;
-  const todayKey = athensCalendarDateKey(new Date());
-  const sacksToday = (harvest?.campaign.sacks ?? [])
-    .filter((row) => row.date.slice(0, 10) === todayKey)
-    .reduce((sum, row) => sum + (Number(row.sacks) || 0), 0);
+  const sacksTotal = (harvest?.campaign.sacks ?? []).reduce(
+    (sum, row) => sum + (Number(row.sacks) || 0),
+    0
+  );
   const tasksNeedAttention = !loading && (overdue > 0 || dueToday > 0);
 
   const cards = useMemo(() => {
@@ -140,7 +125,7 @@ const LauncherScreen: React.FC = () => {
       icon: 'leaf-outline',
       motif: 'leaf-outline',
       title: t('fields'),
-      helper: fieldCount == null ? '' : t('launcher.fields', { count: fieldCount }),
+      helper: t('launcher.helpers.fields'),
       status: '',
       statusKind: 'none',
       onPress: () =>
@@ -178,8 +163,8 @@ const LauncherScreen: React.FC = () => {
       helper: '',
       live: Boolean(harvest?.isLive),
       status: harvest?.isLive
-        ? sacksToday > 0
-          ? t('launcher.status.sacks', { count: sacksToday })
+        ? sacksTotal > 0
+          ? t('launcher.status.sacks', { count: sacksTotal })
           : t('launcher.status.inProgress')
         : '',
       statusKind: harvest?.isLive ? 'production' : 'none',
@@ -189,16 +174,11 @@ const LauncherScreen: React.FC = () => {
       canMoney
         ? {
             id: 'myOil',
-            icon: 'water-outline',
-            motif: 'water-outline',
+            icon: 'cube-outline',
+            motif: 'cube-outline',
             title: t('myOil'),
             helper: '',
-            status:
-              oilFreeLitres == null
-                ? ''
-                : t('launcher.status.oilFree', {
-                    amount: formatOilLitres(oilFreeLitres, i18n.language),
-                  }),
+            status: oilFreeLitres == null ? '' : formatOilLitres(oilFreeLitres, i18n.language),
             statusKind: oilFreeLitres == null ? 'none' : 'oil',
             onPress: () => navigation.navigate('MyOil'),
           }
@@ -242,22 +222,17 @@ const LauncherScreen: React.FC = () => {
   }, [
     canMoney,
     dueToday,
-    fieldCount,
     harvest?.isLive,
     loading,
     navigation,
     oilFreeLitres,
     openTasks.length,
     overdue,
-    sacksToday,
+    sacksTotal,
     tasksNeedAttention,
     t,
     i18n.language,
   ]);
-
-  const subtitleParts: string[] = [];
-  if (fieldCount != null && fieldCount > 0) subtitleParts.push(t('launcher.fields', { count: fieldCount }));
-  else if (fieldCount === 0) subtitleParts.push(t('launcher.status.fieldsEmpty'));
 
   const pressedSurface = isDark ? colors.surfaceHover : '#F5F7F0';
   const oliveInk = isDark ? colors.olive : '#52733F';
@@ -268,27 +243,12 @@ const LauncherScreen: React.FC = () => {
 
   return (
     <ScreenLayout scroll tabBarInset padded canvasOpacity={0.38} canvasSettle>
-      <Image
-        source={require('../../assets/icon.png')}
-        style={styles.appIcon}
-        accessibilityRole="image"
-        accessibilityLabel={t('common:appName', { defaultValue: 'Oleachron' })}
-      />
-      <View style={styles.identity}>
-        <View style={styles.identityCopy}>
-          <Text
-            style={[styles.name, { color: colors.textPrimary, fontSize: 29 * scale, lineHeight: 34 * scale }]}
-            numberOfLines={1}
-          >
-            {displayName}
-          </Text>
-          <Text
-            style={[styles.subtitle, { color: colors.textSecondary, fontSize: 16 * scale, lineHeight: 21 * scale }]}
-            numberOfLines={1}
-          >
-            {subtitleParts.join(' · ') || t('launcher.calm')}
-          </Text>
-        </View>
+      <View style={styles.brandRow}>
+        <BrandLogo
+          variant="horizontal"
+          tone={isDark ? 'on-dark' : 'on-light'}
+          size={40}
+        />
         <HeaderIconButton
           paper
           icon="notifications-outline"
@@ -350,7 +310,12 @@ const LauncherScreen: React.FC = () => {
               ]}
             >
               <View pointerEvents="none" style={styles.motifClip}>
-                <Ionicons name={card.motif} size={78} color={oliveInk} style={styles.motif} />
+                <Ionicons
+                  name={card.motif}
+                  size={78}
+                  color={gold ? goldInk : oliveInk}
+                  style={[styles.motif, { opacity: gold ? 0.14 : 0.11 }]}
+                />
               </View>
               <View style={[styles.iconWell, { backgroundColor: gold ? goldTile : iconTile }]}>
                 <Ionicons name={card.icon} size={18} color={gold ? goldInk : iconInk} />
@@ -407,6 +372,8 @@ const LauncherScreen: React.FC = () => {
             </Pressable>
           );
           if (!coachId) return <React.Fragment key={card.id}>{pressable}</React.Fragment>;
+          // One wrapper only: the card fills the slot (cardInSlot), so the
+          // measured rect the spotlight frames is the visible tile.
           return (
             <GuideTarget key={card.id} id={coachId} style={styles.cardSlot}>
               {pressable}
@@ -472,28 +439,12 @@ const UtilityRow: React.FC<{ icon: IconName; label: string; onPress: () => void 
 };
 
 const styles = StyleSheet.create({
-  identity: {
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.sm,
     marginBottom: 18,
-  },
-  appIcon: {
-    width: 74,
-    height: 74,
-    alignSelf: 'center',
-    marginBottom: 10,
-    borderRadius: 18,
-  },
-  identityCopy: { flex: 1, minWidth: 0 },
-  name: {
-    fontFamily: typography.fontFamily.bold,
-    fontWeight: '700',
-  },
-  subtitle: {
-    marginTop: 2,
-    fontFamily: typography.fontFamily.regular,
-    fontWeight: '400',
   },
   sectionLabel: {
     fontFamily: typography.fontFamily.bold,
@@ -511,8 +462,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   cardInSlot: {
+    // Fills the measured GuideTarget slot exactly, so the spotlight ring frames
+    // the tile even when the row stretches to the taller neighbour.
+    flex: 1,
     width: '100%',
-    flexGrow: 1,
   },
   cardShell: {
     width: '47%',
@@ -520,7 +473,8 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   cardLive: {
     borderWidth: 1.5,
@@ -534,7 +488,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -10,
     bottom: -14,
-    opacity: 0.065,
   },
   iconWell: {
     width: 30,

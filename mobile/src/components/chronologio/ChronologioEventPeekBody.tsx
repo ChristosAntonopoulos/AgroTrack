@@ -53,7 +53,14 @@ const isRealMedia = (url?: string | null) => {
   if (!url) return false;
   const u = url.toLowerCase();
   if (u.includes('unsplash') || u.includes('picsum') || u.includes('placeholder')) return false;
-  return u.includes('/uploads/') || u.startsWith('file:') || u.startsWith('content:') || u.startsWith('http');
+  return (
+    u.includes('/uploads/') ||
+    u.includes('/api/v1/photos/') ||
+    u.startsWith('/') ||
+    u.startsWith('file:') ||
+    u.startsWith('content:') ||
+    u.startsWith('http')
+  );
 };
 
 const Fact: React.FC<{

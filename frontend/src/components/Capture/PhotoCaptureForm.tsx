@@ -90,9 +90,19 @@ const PhotoCaptureForm: React.FC<Props> = ({
         sourceId: first.id,
         harvestCampaignLink: context.harvestCampaignLink,
       },
-      t('capture:photo.saved', { count: ok.length })
+      t('capture:photo.saved', { count: ok.length }),
+      {
+        reopen: {
+          fieldId: fieldId || context.fieldId,
+          occurredAt: context.occurredAt,
+          sourcePage: context.sourcePage,
+          harvestId: context.harvestId,
+          taskId: context.taskId,
+          harvestCampaignLink: context.harvestCampaignLink,
+        },
+      }
     );
-  }, [context.harvestCampaignLink, fieldId, jobs, onSaved, t, tracked]);
+  }, [context, fieldId, jobs, onSaved, t, tracked]);
 
   const upload = (files: File[]) => {
     if (!fieldId) {

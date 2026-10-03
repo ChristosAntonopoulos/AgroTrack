@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import OfflineBanner from '../components/OfflineBanner';
 import MainTabs from './MainTabs';
 import AppCanvas from '../components/layout/AppCanvas';
+import NavCoach from '../components/onboarding/NavCoach';
 import { useTheme } from '../context/ThemeContext';
 import { usePreferences } from '../context/PreferencesContext';
 
@@ -21,8 +22,16 @@ const MainLayout = () => {
       <AppCanvas />
       <View style={[styles.foreground, { paddingTop: insets.top }]}>
         <OfflineBanner />
-        <MainTabs />
+        <View style={styles.tabs}>
+          <MainTabs />
+        </View>
       </View>
+      {/*
+        Outside the safe-area padding on purpose: the spotlight dims the full
+        screen and derives its own window origin, so it must not inherit the
+        content frame's offset.
+      */}
+      <NavCoach />
     </View>
   );
 };
@@ -30,6 +39,7 @@ const MainLayout = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   foreground: { flex: 1, backgroundColor: 'transparent' },
+  tabs: { flex: 1 },
 });
 
 export default MainLayout;

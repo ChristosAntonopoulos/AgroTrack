@@ -10,6 +10,9 @@ export {
   OilSectionHeader,
 } from './OilStockChrome';
 export { OilStockHero } from './OilStockHero';
+export { OilShelfPreview } from './OilShelfPreview';
+export { OilFloorDoors } from './OilFloorDoors';
+export { OilShelvesSheet } from './OilShelvesSheet';
 export { StockTab } from './StockTab';
 export {
   OilPendingSection,

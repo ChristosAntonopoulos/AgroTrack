@@ -153,40 +153,62 @@ export const movementActionKey = (kind: string): string => {
 export const groupMovementsByDay = (
   movements: StockMovement[],
   locale: string,
-  labels: { today: string; yesterday: string }
+  labels: { today: string; yesterday: string; thisWeek?: string }
 ): { dayKey: string; label: string; items: StockMovement[] }[] => {
   const today = new Date();
   const yday = new Date();
   yday.setDate(today.getDate() - 1);
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - 6);
+  weekStart.setHours(0, 0, 0, 0);
   const sameDay = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
-  const map = new Map<string, StockMovement[]>();
+  const map = new Map<string, { label: string; items: StockMovement[]; rank: number; time: number }>();
   for (const m of movements) {
     const d = new Date(m.occurredOn);
-    const key = Number.isNaN(d.getTime())
-      ? m.occurredOn
-      : `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    const list = map.get(key) || [];
-    list.push(m);
-    map.set(key, list);
+    let key = m.occurredOn;
+    let label = m.occurredOn;
+    let rank = 3;
+    let time = 0;
+    if (!Number.isNaN(d.getTime())) {
+      time = d.getTime();
+      if (sameDay(d, today)) {
+        key = 'today';
+        label = labels.today;
+        rank = 0;
+      } else if (sameDay(d, yday)) {
+        key = 'yesterday';
+        label = labels.yesterday;
+        rank = 1;
+      } else if (labels.thisWeek && d >= weekStart) {
+        key = 'week';
+        label = labels.thisWeek;
+        rank = 2;
+      } else {
+        key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        label = d.toLocaleDateString(locale, { day: 'numeric', month: 'long' });
+      }
+    }
+    const existing = map.get(key);
+    if (existing) existing.items.push(m);
+    else map.set(key, { label, items: [m], rank, time });
   }
 
-  return [...map.entries()].map(([dayKey, items]) => {
-    const d = new Date(items[0].occurredOn);
-    let label = items[0].occurredOn;
-    if (!Number.isNaN(d.getTime())) {
-      if (sameDay(d, today)) label = labels.today;
-      else if (sameDay(d, yday)) label = labels.yesterday;
-      else label = d.toLocaleDateString(locale, { day: 'numeric', month: 'long' });
-    }
-    return { dayKey, label, items };
-  });
+  return [...map.entries()]
+    .sort((a, b) => a[1].rank - b[1].rank || b[1].time - a[1].time)
+    .map(([dayKey, group]) => ({ dayKey, label: group.label, items: group.items }));
 };
 
 /** Stock = what you have; holds = what you promised; movements = what happened. */
 export type OilStockTab = 'stock' | 'holds' | 'movements';
 export type CommitmentFilter = 'all' | 'held' | 'pending' | 'delivered';
+/** Who the oil was for: anyone, a hold, or a sale. */
+export type CommitmentKind = 'all' | 'held' | 'sold';
+/** Still in the cellar, or already handed over. */
+export type CommitmentLens = 'waiting' | 'delivered';
+/** Κρατήσεις: everything, still open, already handed over, or a sale with no payment. */
+export type CommitmentView = 'all' | 'waiting' | 'delivered' | 'unpaid';
 
 /** Movements a farmer may undo — everything they could have simply mistyped. */
 const REVERSIBLE_KINDS = new Set([

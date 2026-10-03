@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +16,7 @@ import type {
 } from '../types';
 import { formatHarvestOilAmountLabel, readOilTinCounts } from '../utils/harvestCalculations';
 import { HARVEST_ACTION_ICONS } from '../harvestActions';
-import { createElevation, radii, spacing } from '../../theme';
+import { appFonts, radii, spacing } from '../../theme';
 
 export type DayActivityKind = 'sack' | 'mill' | 'oil' | 'people';
 
@@ -38,9 +38,8 @@ type Props = {
 
 type RowProps = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
-  kindLabel: string;
   title: string;
-  fieldLine?: string;
+  timeLabel?: string;
   fields?: FieldNameRef[];
   lines?: string[];
   status?: string;
@@ -48,7 +47,6 @@ type RowProps = {
   onMenu: () => void;
 };
 
-/** Round ugly share fractions in notes: μερίδιο 54.701.../95.16... → 54.7/95.2 */
 const tidyLine = (line: string) =>
   line.replace(/μερίδιο\s+(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)/gi, (_m, a: string, b: string) => {
     const left = Math.round(Number(a) * 10) / 10;
@@ -56,11 +54,16 @@ const tidyLine = (line: string) =>
     return `μερίδιο ${left}/${right}`;
   });
 
+const formatTime = (iso: string, locale: string) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+};
+
 const ActivityRow: React.FC<RowProps> = ({
   icon,
-  kindLabel,
   title,
-  fieldLine,
+  timeLabel,
   fields,
   lines,
   status,
@@ -71,19 +74,26 @@ const ActivityRow: React.FC<RowProps> = ({
   const { t } = useTranslation('fields');
 
   return (
-    <View
-      style={[
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [
         styles.row,
-        { backgroundColor: colors.surfaceElevated, ...createElevation(colors, 'sm') },
+        {
+          backgroundColor: colors.surfaceElevated,
+          borderColor: colors.borderLight,
+          opacity: pressed ? 0.92 : 1,
+        },
       ]}
     >
       <View style={styles.rowTop}>
-        <Pressable onPress={onPress} style={styles.rowMain} accessibilityRole="button">
-          <Ionicons name={icon} size={18} color={colors.eventHarvest} />
-          <Text style={[styles.kind, { color: colors.textPrimary }]} numberOfLines={1}>
-            {kindLabel}
-          </Text>
-        </Pressable>
+        <Ionicons name={icon} size={18} color={colors.primaryDark} />
+        <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>
+          {title}
+        </Text>
+        {timeLabel ? (
+          <Text style={[styles.time, { color: colors.textTertiary }]}>{timeLabel}</Text>
+        ) : null}
         <Pressable
           onPress={onMenu}
           hitSlop={10}
@@ -94,25 +104,24 @@ const ActivityRow: React.FC<RowProps> = ({
           <Ionicons name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
         </Pressable>
       </View>
-      <Pressable onPress={onPress} style={styles.rowBody}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
-        {fields && fields.length > 0 ? <FieldNameRow fields={fields} /> : null}
-        {fieldLine ? (
-          <Text style={[styles.field, { color: colors.textSecondary }]}>{tidyLine(fieldLine)}</Text>
-        ) : null}
-        {lines?.map((line, index) => (
-          <Text key={`${index}-${line}`} style={[styles.meta, { color: colors.textSecondary }]}>
-            {tidyLine(line)}
-          </Text>
-        ))}
-        {status ? (
-          <View style={[styles.badge, { backgroundColor: colors.primaryLight }]}>
-            <Ionicons name="time-outline" size={12} color={colors.primary} />
-            <Text style={[styles.badgeText, { color: colors.primary }]}>{status}</Text>
-          </View>
-        ) : null}
-      </Pressable>
-    </View>
+      {fields && fields.length > 0 ? (
+        <View style={styles.rowBody}>
+          <FieldNameRow fields={fields} variant="legend" />
+        </View>
+      ) : null}
+      {lines?.map((line, index) => (
+        <Text
+          key={`${index}-${line}`}
+          style={[styles.meta, { color: colors.textSecondary }]}
+          numberOfLines={2}
+        >
+          {tidyLine(line)}
+        </Text>
+      ))}
+      {status ? (
+        <Text style={[styles.status, { color: colors.eventHarvest }]}>{status}</Text>
+      ) : null}
+    </Pressable>
   );
 };
 
@@ -127,11 +136,7 @@ export const HarvestDayActivity: React.FC<Props> = ({
 }) => {
   const { t, i18n } = useTranslation(['fields', 'common']);
   const { colors, tapMin } = useTheme();
-  const [filter, setFilter] = useState<DayActivityKind | null>(null);
-
-  useEffect(() => {
-    setFilter(null);
-  }, [date]);
+  const locale = i18n.language || 'el';
 
   const day = useMemo(() => {
     const sacks = campaign.sacks.filter((row) => row.date === date);
@@ -140,11 +145,6 @@ export const HarvestDayActivity: React.FC<Props> = ({
     const people = campaign.peopleLogs.filter((row) => row.date === date);
     return { sacks, mills, oils, people };
   }, [campaign, date]);
-
-  const sackCount = day.sacks.reduce((sum, row) => sum + row.sacks, 0);
-  const millKg = day.mills.reduce((sum, row) => sum + row.kg, 0);
-  const oilKg = day.oils.reduce((sum, row) => sum + oilAmountToKg(row), 0);
-  const peopleCount = day.people.reduce((sum, row) => sum + row.people, 0);
 
   const empty =
     day.sacks.length === 0 &&
@@ -188,51 +188,6 @@ export const HarvestDayActivity: React.FC<Props> = ({
     return t('harvestCampaign.people.hours.skip');
   };
 
-  const kgLabel = (kg: number) => (kg > 0 ? `${formatKg(kg)} kg` : '—');
-
-  const chip = (
-    kind: DayActivityKind,
-    capture: HarvestCaptureKind,
-    label: string,
-    value: string,
-    count: number
-  ) => {
-    if (count <= 0) return null;
-    if (allowedKinds && !allowedKinds.includes(capture)) return null;
-    const selected = filter === kind;
-    const icon =
-      kind === 'sack'
-        ? HARVEST_ACTION_ICONS.sacks
-        : kind === 'mill'
-          ? HARVEST_ACTION_ICONS.mill
-          : kind === 'oil'
-            ? HARVEST_ACTION_ICONS.oil
-            : HARVEST_ACTION_ICONS.people;
-    return (
-      <Pressable
-        key={kind}
-        onPress={() => setFilter((current) => (current === kind ? null : kind))}
-        accessibilityState={{ selected }}
-        style={({ pressed }) => [
-          styles.chip,
-          {
-            borderColor: selected ? colors.eventHarvest : colors.oliveBorder,
-            backgroundColor: selected ? colors.eventHarvestSoft : colors.surfaceElevated,
-            opacity: pressed ? 0.85 : 1,
-          },
-        ]}
-      >
-        <Ionicons name={icon} size={14} color={colors.eventHarvest} />
-        <Text style={[styles.chipText, { color: colors.textPrimary }]} numberOfLines={1}>
-          {label}
-          <Text style={{ color: colors.textSecondary }}>{` · ${value}`}</Text>
-        </Text>
-      </Pressable>
-    );
-  };
-
-  const show = (kind: DayActivityKind) => filter == null || filter === kind;
-
   const guideKinds: {
     kind: DayActivityKind;
     capture: HarvestCaptureKind;
@@ -267,17 +222,21 @@ export const HarvestDayActivity: React.FC<Props> = ({
 
   return (
     <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+        {t('harvestCampaign.dayActivity.title')}
+      </Text>
+
       {empty ? (
         <View
-        style={[
-          styles.guide,
-          {
-            backgroundColor: colors.surfaceElevated,
-            ...createElevation(colors, 'sm'),
-          },
-        ]}
+          style={[
+            styles.guide,
+            {
+              backgroundColor: colors.surfaceElevated,
+              borderColor: colors.borderLight,
+            },
+          ]}
         >
-          <Text style={[styles.guideTitle, { color: colors.textPrimary }]}>
+          <Text style={[styles.guideTitle, { color: colors.textSecondary }]}>
             {t('harvestCampaign.dayGuide.title')}
           </Text>
           <View style={styles.guideGrid}>
@@ -290,16 +249,14 @@ export const HarvestDayActivity: React.FC<Props> = ({
                 style={({ pressed }) => [
                   styles.guideTile,
                   {
-                    minHeight: Math.max(72, tapMin + 24),
+                    minHeight: Math.max(52, tapMin),
+                    borderColor: colors.border,
                     backgroundColor: colors.surface,
-                    ...createElevation(colors, 'sm'),
                     opacity: pressed ? 0.88 : 1,
                   },
                 ]}
               >
-                <View style={[styles.guideIcon, { backgroundColor: colors.primaryLight }]}>
-                  <Ionicons name={item.icon} size={22} color={colors.primary} />
-                </View>
+                <Ionicons name={item.icon} size={18} color={colors.primaryDark} />
                 <Text style={[styles.guideLabel, { color: colors.textPrimary }]} numberOfLines={1}>
                   {item.label}
                 </Text>
@@ -308,146 +265,109 @@ export const HarvestDayActivity: React.FC<Props> = ({
           </View>
         </View>
       ) : (
-        <>
-          <View style={styles.chips}>
-            {chip(
-              'sack',
-              'sacks',
-              t('harvestCampaign.dayActivity.short.sacks'),
-              sackCount > 0 ? String(sackCount) : '—',
-              sackCount
-            )}
-            {chip(
-              'mill',
-              'mill',
-              t('harvestCampaign.dayActivity.short.mill'),
-              kgLabel(millKg),
-              millKg
-            )}
-            {chip('oil', 'oil', t('harvestCampaign.dayActivity.short.oil'), kgLabel(oilKg), oilKg)}
-            {chip(
-              'people',
-              'people',
-              t('harvestCampaign.dayActivity.short.people'),
-              peopleCount > 0 ? String(peopleCount) : '—',
-              peopleCount
-            )}
-          </View>
+        <View style={styles.list}>
+          {day.sacks.map((entry) => (
+            <ActivityRow
+              key={entry.id}
+              icon={HARVEST_ACTION_ICONS.sacks}
+              title={`${entry.sacks} ${t('harvestCampaign.sacks.unit')}`}
+              timeLabel={formatTime(entry.createdAt, locale)}
+              fields={[fieldOf(entry.fieldId)]}
+              lines={
+                entry.kgPerSack
+                  ? [`~${entry.kgPerSack} kg ${t('harvestCampaign.sacks.kgPerSack')}`]
+                  : undefined
+              }
+              status={
+                entry.millWeightId ? undefined : t('harvestCampaign.dayActivity.openBadge')
+              }
+              onPress={() => onEdit({ kind: 'sack', entry })}
+              onMenu={() => openMenu({ kind: 'sack', entry })}
+            />
+          ))}
 
-          <View style={styles.list}>
-          {show('sack')
-            ? day.sacks.map((entry) => (
-                <ActivityRow
-                  key={entry.id}
-                  kindLabel={t('harvestCampaign.dayActivity.short.sacks')}
-                  icon={HARVEST_ACTION_ICONS.sacks}
-                  title={`${entry.sacks} ${t('harvestCampaign.sacks.unit')}`}
-                  fields={[fieldOf(entry.fieldId)]}
-                  lines={
-                    entry.kgPerSack
-                      ? [`${t('harvestCampaign.sacks.kgPerSack')}: ${entry.kgPerSack}`]
-                      : undefined
-                  }
-                  status={
-                    entry.millWeightId
-                      ? undefined
-                      : t('harvestCampaign.dayActivity.openBadge')
-                  }
-                  onPress={() => onEdit({ kind: 'sack', entry })}
-                  onMenu={() => openMenu({ kind: 'sack', entry })}
-                />
-              ))
-            : null}
+          {day.mills.map((entry) => (
+            <ActivityRow
+              key={entry.id}
+              icon={HARVEST_ACTION_ICONS.mill}
+              title={`${formatKg(entry.kg)} kg`}
+              timeLabel={formatTime(entry.createdAt, locale)}
+              fields={entry.fieldIds.map(fieldOf)}
+              lines={[
+                entry.fieldIds.length === 0 ? t('harvestCampaign.shared.badge') : null,
+                entry.sackIds.length > 0
+                  ? t('harvestCampaign.flow.fromSacks', { count: entry.sackIds.length })
+                  : null,
+                entry.note || null,
+              ].filter((line): line is string => Boolean(line))}
+              onPress={() => onEdit({ kind: 'mill', entry })}
+              onMenu={() => openMenu({ kind: 'mill', entry })}
+            />
+          ))}
 
-          {show('mill')
-            ? day.mills.map((entry) => (
-                <ActivityRow
-                  key={entry.id}
-                  kindLabel={t('harvestCampaign.dayActivity.millWeight')}
-                  icon={HARVEST_ACTION_ICONS.mill}
-                  title={`${formatKg(entry.kg)} kg`}
-                  fields={entry.fieldIds.map(fieldOf)}
-                  fieldLine={entry.fieldIds.length === 0 ? t('harvestCampaign.shared.badge') : undefined}
-                  lines={[
-                    entry.sackIds.length > 0
-                      ? t('harvestCampaign.flow.fromSacks', { count: entry.sackIds.length })
-                      : null,
-                    entry.note || null,
-                  ].filter((line): line is string => Boolean(line))}
-                  onPress={() => onEdit({ kind: 'mill', entry })}
-                  onMenu={() => openMenu({ kind: 'mill', entry })}
-                />
-              ))
-            : null}
+          {day.oils.map((entry) => {
+            const recorded = (entry.tinLines || []).filter((line) => line.count > 0);
+            const tins = readOilTinCounts(entry);
+            const tinBits: string[] =
+              recorded.length > 0
+                ? recorded.map((line) =>
+                    t('harvestCampaign.oil.tinBit', { count: line.count, size: line.sizeLitres })
+                  )
+                : [
+                    tins.tin16 > 0
+                      ? t('harvestCampaign.oil.tinBit', { count: tins.tin16, size: 16 })
+                      : '',
+                    tins.tin17 > 0
+                      ? t('harvestCampaign.oil.tinBit', { count: tins.tin17, size: 17 })
+                      : '',
+                  ].filter(Boolean);
+            const lines: string[] = [];
+            if (tinBits.length > 0) lines.push(tinBits.join(' · '));
+            if (entry.millKept != null) {
+              lines.push(
+                t('harvestCampaign.dayActivity.millKept', {
+                  amount: formatHarvestOilAmountLabel(
+                    entry.millKept,
+                    entry.unit,
+                    i18n.language || 'en'
+                  ),
+                })
+              );
+            }
+            if (entry.acidity != null) {
+              lines.push(`${t('harvestCampaign.oil.acidity')}: ${entry.acidity}`);
+            }
+            if (entry.note) lines.push(entry.note);
+            return (
+              <ActivityRow
+                key={entry.id}
+                icon={HARVEST_ACTION_ICONS.oil}
+                title={
+                  entry.unit === 'litres'
+                    ? `${Math.round(entry.amount)} L`
+                    : `${formatKg(oilAmountToKg(entry))} kg`
+                }
+                timeLabel={formatTime(entry.createdAt, locale)}
+                fields={entry.fieldIds.map(fieldOf)}
+                lines={lines}
+                onPress={() => onEdit({ kind: 'oil', entry })}
+                onMenu={() => openMenu({ kind: 'oil', entry })}
+              />
+            );
+          })}
 
-          {show('oil')
-            ? day.oils.map((entry) => {
-                const tins = readOilTinCounts(entry);
-                const tinBits: string[] = [];
-                if (tins.tin16 > 0) {
-                  tinBits.push(t('harvestCampaign.oil.tinBit', { count: tins.tin16, size: 16 }));
-                }
-                if (tins.tin17 > 0) {
-                  tinBits.push(t('harvestCampaign.oil.tinBit', { count: tins.tin17, size: 17 }));
-                }
-                const lines: string[] = [];
-                if (tinBits.length > 0) lines.push(tinBits.join(' · '));
-                if (entry.millKept != null) {
-                  lines.push(
-                    t('harvestCampaign.dayActivity.millKept', {
-                      amount: formatHarvestOilAmountLabel(
-                        entry.millKept,
-                        entry.unit,
-                        i18n.language || 'en'
-                      ),
-                    })
-                  );
-                }
-                if (entry.acidity != null) {
-                  lines.push(`${t('harvestCampaign.oil.acidity')}: ${entry.acidity}`);
-                }
-                if (entry.note) lines.push(entry.note);
-                return (
-                  <ActivityRow
-                    key={entry.id}
-                    kindLabel={t('harvestCampaign.dayActivity.short.oil')}
-                    icon={HARVEST_ACTION_ICONS.oil}
-                    title={
-                      entry.unit === 'litres'
-                        ? `${Math.round(entry.amount)} L`
-                        : `${formatKg(oilAmountToKg(entry))} kg`
-                    }
-                    fields={entry.fieldIds.map(fieldOf)}
-                    fieldLine={
-                      entry.fieldIds.length
-                        ? undefined
-                        : t('harvestCampaign.dayActivity.fromMills', {
-                            count: entry.millWeightIds.length,
-                          })
-                    }
-                    lines={lines}
-                    onPress={() => onEdit({ kind: 'oil', entry })}
-                    onMenu={() => openMenu({ kind: 'oil', entry })}
-                  />
-                );
-              })
-            : null}
-
-          {show('people')
-            ? day.people.map((entry) => (
-                <ActivityRow
-                  key={entry.id}
-                  kindLabel={t('harvestCampaign.dayActivity.short.people')}
-                  icon={HARVEST_ACTION_ICONS.people}
-                  title={t('harvestCampaign.today.people', { count: entry.people })}
-                  fieldLine={hoursLabel(entry)}
-                  onPress={() => onEdit({ kind: 'people', entry })}
-                  onMenu={() => openMenu({ kind: 'people', entry })}
-                />
-              ))
-            : null}
-          </View>
-        </>
+          {day.people.map((entry) => (
+            <ActivityRow
+              key={entry.id}
+              icon={HARVEST_ACTION_ICONS.people}
+              title={t('harvestCampaign.today.people', { count: entry.people })}
+              timeLabel={formatTime(entry.createdAt, locale)}
+              lines={[hoursLabel(entry)]}
+              onPress={() => onEdit({ kind: 'people', entry })}
+              onMenu={() => openMenu({ kind: 'people', entry })}
+            />
+          ))}
+        </View>
       )}
     </View>
   );
@@ -456,68 +376,50 @@ export const HarvestDayActivity: React.FC<Props> = ({
 const styles = StyleSheet.create({
   section: {
     gap: spacing.sm,
-    marginTop: spacing.sm,
   },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: radii.full,
-    borderWidth: 1,
-  },
-  chipText: {
-    fontSize: 13,
+  sectionTitle: {
+    fontFamily: appFonts.bold,
+    fontSize: 16,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   guide: {
-    borderRadius: radii.card,
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: spacing.md,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   guideTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: -0.2,
+    fontSize: 14,
+    fontWeight: '600',
   },
   guideGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   guideTile: {
     width: '47%',
     flexGrow: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    borderRadius: radii.lg,
-  },
-  guideIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   guideLabel: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
+    flexShrink: 1,
   },
   list: {
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+    gap: 8,
   },
   row: {
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     gap: 4,
@@ -525,52 +427,36 @@ const styles = StyleSheet.create({
   rowTop: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  rowMain: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
   },
-  kind: {
+  title: {
     flex: 1,
-    fontSize: 14,
+    fontFamily: appFonts.bold,
+    fontSize: 16,
     fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  time: {
+    fontSize: 12,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
   menuBtn: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowBody: {
     paddingLeft: 26,
-    gap: 2,
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  field: {
-    fontSize: 14,
-    lineHeight: 18,
   },
   meta: {
+    paddingLeft: 26,
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 17,
   },
-  badge: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radii.full,
-  },
-  badgeText: {
+  status: {
+    paddingLeft: 26,
     fontSize: 12,
     fontWeight: '700',
   },

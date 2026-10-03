@@ -9,6 +9,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { CaptureProvider } from '../context/CaptureContext';
+import { DialogProvider } from '../context/DialogContext';
 import { InAppMessageProvider } from '../context/InAppMessageContext';
 import { useTheme } from '../context/ThemeContext';
 import { motion } from '../theme';
@@ -57,7 +58,6 @@ import { View, StyleSheet, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import OwnerActivationHost from '../components/onboarding/OwnerActivationHost';
 import ActivationGate from '../components/onboarding/ActivationGate';
-import NavCoach from '../components/onboarding/NavCoach';
 import { OwnerActivationProvider } from '../onboarding/OwnerActivationContext';
 import AppDock from './AppDock';
 import { DockProvider } from './DockContext';
@@ -210,6 +210,7 @@ const RootNavigator = () => {
         },
       }}
     >
+      <DialogProvider>
       <CaptureProvider>
         <InAppMessageProvider>
         <OwnerActivationProvider navRef={navRef}>
@@ -278,7 +279,7 @@ const RootNavigator = () => {
               <Stack.Screen
                 name="FieldMapBoundary"
                 component={FieldMapBoundaryScreen}
-                options={{ title: '', presentation: 'modal' }}
+                options={{ headerShown: false, presentation: 'fullScreenModal' }}
               />
               <Stack.Screen
                 name="CreateTask"
@@ -336,7 +337,7 @@ const RootNavigator = () => {
               <Stack.Screen
                 name="MyOil"
                 component={MyOilScreen}
-                options={{ title: t('nav:myOil', { defaultValue: 'My oil' }) }}
+                options={{ title: t('nav:myOil', { defaultValue: 'Storage' }) }}
               />
               <Stack.Screen
                 name="Photos"
@@ -407,12 +408,12 @@ const RootNavigator = () => {
         {isAuthenticated && !dockHiddenForRoute(focusedRoute.name) ? (
           <AppDock route={focusedRoute} />
         ) : null}
-        {isAuthenticated ? <NavCoach /> : null}
         </View>
         </DockProvider>
         </OwnerActivationProvider>
         </InAppMessageProvider>
       </CaptureProvider>
+      </DialogProvider>
     </NavigationContainer>
   );
 };

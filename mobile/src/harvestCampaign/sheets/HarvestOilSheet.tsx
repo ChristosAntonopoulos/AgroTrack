@@ -1,43 +1,53 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { resolveFieldColor } from '../../utils/fieldColors';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { formatKg } from '../../utils/harvestUtils';
-import { HarvestCarryPicker, carryColor } from '../components/HarvestCarryPicker';
-import {
-  equalFieldShares,
-  fieldIdsFromShares,
-  millFieldShares,
-  oilFieldShares,
-} from '../allocation';
+import { resolveFieldColor } from '../../utils/fieldColors';
+import FieldColorMark from '../../components/fields/FieldColorMark';
+import { equalFieldShares, fieldIdsFromShares, millFieldShares } from '../allocation';
 import { millsNeedingOil } from '../chain';
-import { HarvestFieldPicker } from '../components/HarvestFieldPicker';
-import { HarvestNumberInput } from '../components/HarvestNumberInput';
-import { HarvestSegmentedControl } from '../components/HarvestSegmentedControl';
-import { HarvestFormPager, HarvestHint, HarvestMoreToggle, HarvestQuickChips, HarvestTextField } from '../components/HarvestFormPager';
-import { HarvestOilPackSection } from '../components/HarvestOilPackSection';
+import { HarvestCarryPicker } from '../components/HarvestCarryPicker';
+import { HarvestNumberStepper } from '../components/HarvestNumberStepper';
+import { HarvestFormPager, HarvestQuickChips } from '../components/HarvestFormPager';
 import {
-  extractionYieldPercent,
   formatHarvestOilAmountLabel,
-  formatHarvestYieldPercent,
-  oilKgFromAmount,
+  OIL_TIN_SIZES,
   OLIVE_OIL_KG_PER_LITRE,
-  plausibleOilYield,
   readOilTinCounts,
   settleOil,
-  type HarvestOilUnit,
 } from '../utils/harvestCalculations';
 import { isPositiveAmount, parseHarvestDecimal } from '../utils/harvestValidation';
 import type { HarvestFieldShare, HarvestOilEntry } from '../types';
 import type { HarvestFlowChrome, HarvestSheetSharedProps } from './types';
 import { useAuth } from '../../context/AuthContext';
 import { oilStockService, type OilCellarCandidate } from '../../services/oilStockService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { radii } from '../../theme';
 
-const lastCellarKey = (fieldId: string) => `oleachron.oilCellar.last.${fieldId}`;
+const round1 = (value: number) => Math.round(value * 10) / 10;
 
+const toLitres = (amount: number, unit: 'kg' | 'litres') =>
+  unit === 'litres' ? amount : amount / OLIVE_OIL_KG_PER_LITRE;
+
+const countsFromEntry = (entry: HarvestOilEntry | null | undefined): Record<number, number> => {
+  const counts: Record<number, number> = {};
+  for (const line of entry?.tinLines || []) {
+    if (line.count > 0) counts[line.sizeLitres] = line.count;
+  }
+  const legacy = readOilTinCounts(entry ?? {});
+  if (!counts[16] && legacy.tin16 > 0) counts[16] = legacy.tin16;
+  if (!counts[17] && legacy.tin17 > 0) counts[17] = legacy.tin17;
+  return counts;
+};
+
+const tinLitresOf = (counts: Record<number, number>) =>
+  OIL_TIN_SIZES.reduce((sum, size) => sum + size * Math.max(0, counts[size] || 0), 0);
+
+/**
+ * Oil in three short screens: litres + mill %, then χύμα or tins, then cellar
+ * only when the grove admin has someone else to choose.
+ */
 export const HarvestOilSheet: React.FC<
   HarvestSheetSharedProps & {
     prefillMillIds?: string[];
@@ -45,24 +55,22 @@ export const HarvestOilSheet: React.FC<
     flow?: HarvestFlowChrome;
     onSave: (input: {
       amount: number;
-      unit: HarvestOilUnit;
+      unit: 'litres';
       millKept?: number;
       tin16Count?: number;
       tin17Count?: number;
       tinSizeLitres?: 16 | 17;
       tinCount?: number;
-      extraLitres?: number;
+      tinLines?: { sizeLitres: number; count: number }[];
       millWeightIds: string[];
       fieldIds: string[];
       fieldShares?: HarvestFieldShare[];
-      acidity?: number;
-      note?: string;
       cellarOwnerUserId?: string;
     }) => void;
   }
 > = ({ campaign, fields, locale, prefillMillIds, initial, flow, onSave, onClose }) => {
   const { t } = useTranslation(['fields', 'common']);
-  const { colors } = useTheme();
+  const { colors, tapMin } = useTheme();
   const { user } = useAuth();
   const editing = Boolean(initial);
   const uncovered = useMemo(() => millsNeedingOil(campaign), [campaign]);
@@ -77,21 +85,24 @@ export const HarvestOilSheet: React.FC<
     return latest ? [latest] : [];
   }, [initial, prefillMillIds, uncovered, campaign.millWeights]);
 
-  const initialTins = readOilTinCounts(initial ?? {});
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
-  const [unit, setUnit] = useState<HarvestOilUnit>(initial?.unit ?? 'kg');
-  const [millKept, setMillKept] = useState(
-    initial?.millKept != null ? String(initial.millKept) : '0'
+  const initialCounts = countsFromEntry(initial);
+  const [amount, setAmount] = useState(() => {
+    if (!initial) return '';
+    return String(round1(toLitres(initial.amount, initial.unit)));
+  });
+  const [millKept, setMillKept] = useState(() => {
+    if (!initial?.amount) return '0';
+    return String(round1(((initial.millKept ?? 0) / initial.amount) * 100));
+  });
+  const [millMode, setMillMode] = useState<'amount' | 'percent'>('percent');
+  const [pickFruit, setPickFruit] = useState(
+    () => defaultMillIds.length === 0 && campaign.millWeights.length > 0
   );
-  const [millMode, setMillMode] = useState<'amount' | 'percent'>('amount');
   const [storageMode, setStorageMode] = useState<'all' | 'tins'>(
-    initialTins.tin16 > 0 || initialTins.tin17 > 0 ? 'tins' : 'all'
+    tinLitresOf(initialCounts) > 0 ? 'tins' : 'all'
   );
-  const [useTin16, setUseTin16] = useState(initialTins.tin16 > 0);
-  const [useTin17, setUseTin17] = useState(initialTins.tin17 > 0);
-  const [tin16, setTin16] = useState(initialTins.tin16);
-  const [tin17, setTin17] = useState(initialTins.tin17);
-  const [fieldIds, setFieldIds] = useState<string[]>(() => {
+  const [tinCounts, setTinCounts] = useState<Record<number, number>>(initialCounts);
+  const [fieldIds] = useState<string[]>(() => {
     if (initial?.fieldIds?.length) return initial.fieldIds;
     if (campaign.fieldOrder.length === 1) return [campaign.fieldOrder[0]];
     return [];
@@ -108,54 +119,36 @@ export const HarvestOilSheet: React.FC<
     if (fresh.length === 0) return;
     setMillWeightIds((prev) => [...new Set([...prev, ...fresh])]);
   }, [prefillMillIds, editing]);
-  const [note, setNote] = useState(initial?.note || '');
-  const [more, setMore] = useState(Boolean(initial?.acidity != null || initial?.note));
-  const [adjustShares, setAdjustShares] = useState(false);
-  const [manualShares, setManualShares] = useState<HarvestFieldShare[]>(
-    initial?.fieldShares || []
-  );
-  const [acidity, setAcidity] = useState(
-    initial?.acidity != null ? String(initial.acidity) : ''
-  );
   const [cellarOwnerUserId, setCellarOwnerUserId] = useState(initial?.cellarOwnerUserId || '');
   const [cellarCandidates, setCellarCandidates] = useState<OilCellarCandidate[]>([]);
+  const [cellarsReady, setCellarsReady] = useState(false);
   const [page, setPage] = useState(0);
-  const [splitCellars, setSplitCellars] = useState(Boolean(initial?.cellarAllocations?.length));
-  const [cellarLitres, setCellarLitres] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      (initial?.cellarAllocations || []).map((a) => [a.cellarOwnerUserId, String(a.litres)])
-    )
-  );
-  const value = parseHarvestDecimal(amount);
+
+  const litres = parseHarvestDecimal(amount);
   const millRaw = parseHarvestDecimal(millKept) ?? 0;
-  const settlement =
-    value != null && value > 0
+  const millBase =
+    litres != null && litres > 0
       ? settleOil({
-          total: value,
-          unit,
+          total: litres,
+          unit: 'litres',
           millKept: millRaw,
           millMode,
-          tin16Count: storageMode === 'tins' && useTin16 ? tin16 : 0,
-          tin17Count: storageMode === 'tins' && useTin17 ? tin17 : 0,
-          splitTins: storageMode === 'tins',
+          tin16Count: 0,
+          tin17Count: 0,
+          splitTins: false,
         })
       : null;
-  const splitBlocked = Boolean(settlement && (settlement.millOver || settlement.overAmount > 0));
-  const farmerLitres = settlement
-    ? Math.round(
-        (unit === 'litres'
-          ? settlement.farmerAmount
-          : settlement.farmerAmount / OLIVE_OIL_KG_PER_LITRE) * 10
-      ) / 10
-    : 0;
-  const splitEntries = cellarCandidates.map((c) => ({
-    userId: c.userId,
-    litres: Math.max(0, parseHarvestDecimal(cellarLitres[c.userId] ?? '') ?? 0),
-  }));
-  const splitTaken = splitEntries.filter((e) => e.litres > 0.05);
-  const splitRemaining =
-    Math.round((farmerLitres - splitTaken.reduce((sum, e) => sum + e.litres, 0)) * 10) / 10;
-  const splitValid = !splitCellars || (splitTaken.length > 0 && Math.abs(splitRemaining) <= 0.05);
+  const packedCounts = storageMode === 'tins' ? tinCounts : {};
+  const tinLitres = tinLitresOf(packedCounts);
+  const farmerLitres = millBase?.farmerAmount ?? 0;
+  const bulkLitres = Math.max(0, round1(farmerLitres - tinLitres));
+  const tinOver = storageMode === 'tins' && tinLitres > farmerLitres + 0.05;
+  const millOver = Boolean(millBase?.millOver);
+  const tinCount = OIL_TIN_SIZES.reduce((sum, size) => sum + (packedCounts[size] || 0), 0);
+  const packBlocked = storageMode === 'tins' && (tinCount <= 0 || tinOver);
+
+  const selectedMills = campaign.millWeights.filter((row) => millWeightIds.includes(row.id));
+  const relatedOliveKg = selectedMills.reduce((sum, row) => sum + row.kg, 0);
   const millChipOrder = useMemo(() => {
     const uncoveredIds = new Set(uncovered.map((m) => m.id));
     const rest = campaign.millWeights
@@ -164,14 +157,20 @@ export const HarvestOilSheet: React.FC<
       .sort((a, b) => b.date.localeCompare(a.date));
     return [...uncovered, ...rest];
   }, [campaign.millWeights, uncovered]);
-  const selectedMills = campaign.millWeights.filter((row) => millWeightIds.includes(row.id));
-  const relatedOliveKg = selectedMills.reduce((sum, row) => sum + row.kg, 0);
-  const oilKg = isPositiveAmount(value) ? oilKgFromAmount(value, unit) : 0;
-  const yieldPct =
-    relatedOliveKg > 0 && oilKg > 0
-      ? plausibleOilYield(extractionYieldPercent(relatedOliveKg, oilKg))
-      : null;
-
+  const fruitColors = useMemo(
+    () =>
+      [
+        ...new Set(
+          selectedMills.flatMap((row) =>
+            row.fieldIds.map((id) => {
+              const field = fields.find((f) => f.id === id);
+              return resolveFieldColor(field?.color, id);
+            })
+          )
+        ),
+      ].slice(0, 3),
+    [selectedMills, fields]
+  );
   const inferredShares = useMemo(() => {
     if (selectedMills.length > 0) {
       const byField = new Map<string, number>();
@@ -186,54 +185,51 @@ export const HarvestOilSheet: React.FC<
     }
     return equalFieldShares(fieldIds);
   }, [campaign, selectedMills, fieldIds]);
-
-  const activeShares = adjustShares && manualShares.length > 0 ? manualShares : inferredShares;
-  const showFieldPicker = millWeightIds.length === 0;
   const inferredLabels = fieldIdsFromShares(inferredShares)
     .map((id) => friendlyFieldLabel(fields.find((f) => f.id === id)?.name || id))
     .filter(Boolean);
 
   const resolvedFieldIds = useMemo(() => {
-    const fromShares = fieldIdsFromShares(activeShares);
+    const fromShares = fieldIdsFromShares(inferredShares);
     if (fromShares.length) return fromShares;
-    if (showFieldPicker) return fieldIds;
-    return fieldIdsFromShares(inferredShares);
-  }, [activeShares, showFieldPicker, fieldIds, inferredShares]);
+    return fieldIds;
+  }, [inferredShares, fieldIds]);
 
   useEffect(() => {
     let cancelled = false;
+    setCellarsReady(false);
     void (async () => {
+      const apply = (rows: OilCellarCandidate[]) => {
+        if (cancelled) return;
+        setCellarCandidates(rows);
+        const admin = rows.find((row) => row.role === 'admin');
+        const hasOthers = admin ? rows.some((row) => row.userId !== admin.userId) : false;
+        const show = Boolean(admin?.isYou && hasOthers);
+        const automatic = admin?.userId || (rows.length === 1 ? rows[0].userId : '');
+        setCellarOwnerUserId((prev) => {
+          if (!show) return automatic;
+          if (
+            initial?.cellarOwnerUserId &&
+            rows.some((row) => row.userId === initial.cellarOwnerUserId)
+          ) {
+            return initial.cellarOwnerUserId;
+          }
+          if (prev && rows.some((row) => row.userId === prev)) return prev;
+          return automatic;
+        });
+        setCellarsReady(true);
+      };
       if (resolvedFieldIds.length === 0) {
         const selfId = user?.id || '';
-        if (!cancelled && selfId) {
-          setCellarCandidates([{ userId: selfId, displayName: '', role: 'admin', isYou: true }]);
-          if (!cellarOwnerUserId) setCellarOwnerUserId(selfId);
-        }
+        apply(selfId ? [{ userId: selfId, displayName: '', role: 'admin', isYou: true }] : []);
         return;
       }
       try {
         const rows = await oilStockService.listCellarCandidates(resolvedFieldIds);
         if (cancelled) return;
-        setCellarCandidates(rows);
-        let last: string | null = null;
-        for (const id of resolvedFieldIds) {
-          last = await AsyncStorage.getItem(lastCellarKey(id));
-          if (last) break;
-        }
-        const preferred =
-          (initial?.cellarOwnerUserId && rows.some((r) => r.userId === initial.cellarOwnerUserId)
-            ? initial.cellarOwnerUserId
-            : null) ||
-          (last && rows.some((r) => r.userId === last) ? last : null) ||
-          rows.find((r) => r.role === 'admin')?.userId ||
-          rows.find((r) => r.isYou)?.userId ||
-          rows[0]?.userId ||
-          '';
-        setCellarOwnerUserId((prev) =>
-          prev && rows.some((r) => r.userId === prev) ? prev : preferred
-        );
+        apply(rows);
       } catch {
-        if (!cancelled) setCellarCandidates([]);
+        if (!cancelled) apply([]);
       }
     })();
     return () => {
@@ -241,148 +237,89 @@ export const HarvestOilSheet: React.FC<
     };
   }, [resolvedFieldIds.join('|'), user?.id, initial?.cellarOwnerUserId]);
 
-  const showCellarPicker = cellarCandidates.length > 1;
-  const selectedCellar = cellarCandidates.find((c) => c.userId === cellarOwnerUserId);
-
-  // Amount → mill share → pack (tins) → optional cellar.
-  const pages = useMemo<Array<'amount' | 'settle' | 'pack' | 'cellar'>>(
-    () => (showCellarPicker ? ['amount', 'settle', 'pack', 'cellar'] : ['amount', 'settle', 'pack']),
-    [showCellarPicker]
+  const admin = cellarCandidates.find((row) => row.role === 'admin');
+  const showCellarScreen = Boolean(
+    cellarsReady && admin?.isYou && cellarCandidates.some((row) => row.userId !== admin.userId)
   );
+  const pages = showCellarScreen ? (['amount', 'pack', 'cellar'] as const) : (['amount', 'pack'] as const);
   const pageIndex = Math.min(page, pages.length - 1);
   const step = pages[pageIndex];
-  const isLastPage = pageIndex === pages.length - 1;
-  const packBlocked =
-    storageMode === 'tins' &&
-    ((!useTin16 && !useTin17) ||
-      (useTin16 ? tin16 : 0) + (useTin17 ? tin17 : 0) <= 0 ||
-      Boolean(settlement && settlement.overAmount > 0));
+  const isLastPage = cellarsReady && pageIndex === pages.length - 1;
 
-  const canSave = isPositiveAmount(value) && !splitBlocked && splitValid && !packBlocked;
-  const saveHint = !isPositiveAmount(value)
-    ? t('fields:harvestCampaign.validation.enterAmount')
-    : !splitValid
-      ? t('fields:harvestCampaign.oil.splitOver', { amount: Math.abs(splitRemaining) })
-      : settlement?.millOver
-        ? t('fields:harvestCampaign.oil.overMill')
-        : settlement && settlement.overAmount > 0
-          ? t('fields:harvestCampaign.oil.overTins', {
-              amount: formatHarvestOilAmountLabel(settlement.overAmount, unit, locale),
-            })
-          : packBlocked && storageMode === 'tins' && !useTin16 && !useTin17
-            ? t('fields:harvestCampaign.oil.tinTypeHint')
-            : packBlocked
-              ? t('fields:harvestCampaign.oil.tinCountHint')
-              : null;
+  const saveHint = millOver
+    ? t('fields:harvestCampaign.oil.overMill')
+    : tinOver
+      ? t('fields:harvestCampaign.oil.overTins', {
+          amount: formatHarvestOilAmountLabel(round1(tinLitres - farmerLitres), 'litres', locale),
+        })
+      : packBlocked
+        ? t('fields:harvestCampaign.oil.tinCountHint')
+        : null;
 
-  const pageTitle =
+  const stepBlocked =
     step === 'amount'
-      ? editing
-        ? t('fields:harvestCampaign.dayActivity.editOil')
-        : t('fields:harvestCampaign.oil.prompt')
-      : step === 'settle'
-        ? t('fields:harvestCampaign.oil.millTitle')
-        : step === 'pack'
-          ? t('fields:harvestCampaign.oil.storedTitle')
-          : t('fields:harvestCampaign.oil.cellarTitle');
+      ? !isPositiveAmount(litres) || millOver
+      : step === 'pack'
+        ? packBlocked || !cellarsReady
+        : false;
 
-  const pageBlocked =
-    step === 'amount'
-      ? !isPositiveAmount(value)
-      : step === 'settle'
-        ? Boolean(settlement?.millOver)
-        : step === 'pack'
-          ? packBlocked
-          : !splitValid;
-
-  const pageHint =
-    step === 'amount' && !isPositiveAmount(value)
-      ? t('fields:harvestCampaign.validation.enterAmount')
-      : step === 'settle' && settlement?.millOver
-        ? t('fields:harvestCampaign.oil.overMill')
-        : step === 'pack' && storageMode === 'tins' && !useTin16 && !useTin17
-          ? t('fields:harvestCampaign.oil.tinTypeHint')
-          : step === 'pack' &&
-              storageMode === 'tins' &&
-              (useTin16 || useTin17) &&
-              (useTin16 ? tin16 : 0) + (useTin17 ? tin17 : 0) <= 0
-            ? t('fields:harvestCampaign.oil.tinCountHint')
-            : step === 'pack' && settlement && settlement.overAmount > 0
-              ? t('fields:harvestCampaign.oil.overTins', {
-                  amount: formatHarvestOilAmountLabel(settlement.overAmount, unit, locale),
-                })
-              : step === 'cellar' && !splitValid
-                ? t('fields:harvestCampaign.oil.splitOver', { amount: Math.abs(splitRemaining) })
-                : null;
+  const setTinCount = (size: number, count: number) => {
+    setTinCounts((prev) => ({ ...prev, [size]: Math.max(0, count) }));
+  };
 
   const toggleMill = (id: string) => {
     setMillWeightIds((prev) =>
       prev.includes(id) ? prev.filter((row) => row !== id) : [...prev, id]
     );
-    setAdjustShares(false);
+  };
+
+  const switchMillMode = (next: 'amount' | 'percent') => {
+    if (next === millMode) return;
+    const current = parseHarvestDecimal(millKept) ?? 0;
+    if (litres != null && litres > 0) {
+      if (next === 'percent') {
+        setMillKept(String(round1((Math.min(current, litres) / litres) * 100)));
+      } else {
+        setMillKept(String(round1((litres * Math.min(current, 100)) / 100)));
+      }
+    }
+    setMillMode(next);
   };
 
   const oilPayload = () => {
-    const shares =
-      activeShares.length > 0
-        ? activeShares
-        : oilFieldShares(campaign, {
-            id: 'draft',
-            date: '',
-            amount: value!,
-            unit,
-            millWeightIds,
-            fieldIds: showFieldPicker ? fieldIds : fieldIdsFromShares(inferredShares),
-            createdAt: '',
-          });
-    const useTins = storageMode === 'tins';
-    const effectiveTin16 = useTins && useTin16 ? tin16 : 0;
-    const effectiveTin17 = useTins && useTin17 ? tin17 : 0;
-    const only16 = useTins && effectiveTin16 > 0 && effectiveTin17 === 0;
-    const only17 = useTins && effectiveTin17 > 0 && effectiveTin16 === 0;
-    const tinSizeLitres: 16 | 17 | undefined = only16 ? 16 : only17 ? 17 : undefined;
-    const bulkLitres =
-      unit === 'litres' && settlement && settlement.bulkAmount > 0
-        ? settlement.bulkAmount
-        : undefined;
-    const allocations = splitCellars
-      ? splitTaken.map((e) => ({ cellarOwnerUserId: e.userId, litres: e.litres }))
-      : undefined;
-    const primaryCellar = allocations?.length
-      ? [...allocations].sort((a, b) => b.litres - a.litres)[0].cellarOwnerUserId
-      : cellarOwnerUserId;
-    const primaryCandidate = cellarCandidates.find((c) => c.userId === primaryCellar);
+    const shares = inferredShares;
+    const lines =
+      storageMode === 'tins'
+        ? OIL_TIN_SIZES.flatMap((size) => {
+            const count = tinCounts[size] || 0;
+            return count > 0 ? [{ sizeLitres: size, count }] : [];
+          })
+        : [];
+    const tin16 = lines.find((line) => line.sizeLitres === 16)?.count;
+    const tin17 = lines.find((line) => line.sizeLitres === 17)?.count;
+    const only16 = tin16 && !tin17;
+    const only17 = tin17 && !tin16;
+    const owner = showCellarScreen ? cellarOwnerUserId || admin?.userId : admin?.userId;
     return {
-      amount: value!,
-      unit,
-      millKept: settlement?.millAmount ?? 0,
-      tin16Count: effectiveTin16 > 0 ? effectiveTin16 : undefined,
-      tin17Count: effectiveTin17 > 0 ? effectiveTin17 : undefined,
-      tinSizeLitres,
-      tinCount: only16 ? effectiveTin16 : only17 ? effectiveTin17 : undefined,
-      extraLitres: (only16 || only17) && bulkLitres ? bulkLitres : undefined,
+      amount: litres!,
+      unit: 'litres' as const,
+      millKept: millBase?.millAmount ?? 0,
+      tin16Count: tin16,
+      tin17Count: tin17,
+      tinSizeLitres: only16 ? (16 as const) : only17 ? (17 as const) : undefined,
+      tinCount: only16 ? tin16 : only17 ? tin17 : undefined,
+      tinLines: lines.length > 0 ? lines : undefined,
       millWeightIds,
-      fieldIds: fieldIdsFromShares(shares).length
-        ? fieldIdsFromShares(shares)
-        : showFieldPicker
-          ? fieldIds
-          : fieldIdsFromShares(inferredShares),
+      fieldIds: fieldIdsFromShares(shares).length ? fieldIdsFromShares(shares) : fieldIds,
       fieldShares: shares.length > 0 ? shares : undefined,
-      acidity: acidity.trim() ? parseHarvestDecimal(acidity) ?? undefined : undefined,
-      note: note.trim() || undefined,
-      cellarOwnerUserId: primaryCellar || undefined,
-      cellarOwnerDisplayName: primaryCandidate?.displayName,
-      cellarIsYou:
-        primaryCandidate?.isYou ||
-        (!primaryCandidate && cellarCandidates.length <= 1) ||
-        primaryCellar === user?.id,
-      cellarAllocations: allocations,
+      cellarOwnerUserId: owner || undefined,
     };
   };
   const commitRef = useRef(oilPayload);
   commitRef.current = oilPayload;
   const onSaveRef = useRef(onSave);
   onSaveRef.current = onSave;
+  const canSave = isPositiveAmount(litres) && !millOver && !packBlocked && cellarsReady;
 
   useEffect(() => {
     flow?.bind?.(() => {
@@ -395,18 +332,35 @@ export const HarvestOilSheet: React.FC<
   const saveLabel = editing
     ? t('fields:harvestCampaign.dayActivity.saveChanges')
     : t('fields:harvestCampaign.oil.save', {
-        amount: formatKg(value || 0),
-        unit: unit === 'litres' ? t('fields:harvestCampaign.oil.litres') : 'kg',
+        amount: formatKg(litres || 0),
+        unit: t('fields:harvestCampaign.oil.litres'),
       });
+
+  const fruitLabel =
+    relatedOliveKg > 0
+      ? t('fields:harvestCampaign.flow.fruitLine', { kg: Math.round(relatedOliveKg) })
+      : t('fields:harvestCampaign.carry.pickFruit');
+  const fieldLabel = inferredLabels.join(' + ');
+
+  const tinShare = farmerLitres > 0 ? Math.min(100, (tinLitres / farmerLitres) * 100) : 0;
 
   return (
     <HarvestFormPager
       current={pageIndex}
       total={pages.length}
       accent="oil"
-      title={pageTitle}
+      scrollEnabled={pickFruit || (step === 'pack' && storageMode === 'tins')}
+      title={
+        step === 'amount'
+          ? editing
+            ? t('fields:harvestCampaign.dayActivity.editOil')
+            : t('fields:harvestCampaign.oil.prompt')
+          : step === 'pack'
+            ? t('fields:harvestCampaign.oil.storedTitle')
+            : t('fields:harvestCampaign.oil.cellarTitle')
+      }
       nextLabel={isLastPage ? saveLabel : t('common:next')}
-      nextDisabled={isLastPage ? !canSave : pageBlocked}
+      nextDisabled={isLastPage ? !canSave : stepBlocked}
       onNext={() => {
         if (!isLastPage) {
           setPage(pageIndex + 1);
@@ -419,18 +373,118 @@ export const HarvestOilSheet: React.FC<
       cancelLabel={t('common:cancel')}
       onCancel={onClose}
       busy={flow?.busy}
-      error={isLastPage ? (!canSave ? saveHint : null) : pageHint}
+      error={step === 'amount' ? (millOver ? saveHint : null) : step === 'pack' ? saveHint : null}
     >
       {step === 'amount' ? (
         <>
-          {millChipOrder.length > 0 ? (
+          <AmountField
+            label={t('fields:harvestCampaign.oil.litres')}
+            value={amount}
+            onChange={setAmount}
+            suffix="L"
+            autoFocus={!flow || Boolean(flow.active)}
+          />
+          <HarvestQuickChips
+            values={[10, 20, 50, 100]}
+            suffix="L"
+            onPick={(add) => setAmount(String(round1((parseHarvestDecimal(amount) ?? 0) + add)))}
+          />
+          <View style={styles.millBlock}>
+            <View style={styles.millHead}>
+              <Text style={[styles.amountLabel, { color: colors.textSecondary }]}>
+                {t('fields:harvestCampaign.oil.part.mill')}
+              </Text>
+              <View style={styles.modeRow}>
+                {(
+                  [
+                    ['percent', '%'],
+                    ['amount', 'L'],
+                  ] as const
+                ).map(([mode, label]) => {
+                  const on = millMode === mode;
+                  return (
+                    <Pressable
+                      key={mode}
+                      onPress={() => switchMillMode(mode)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: on }}
+                      style={[
+                        styles.modeChip,
+                        {
+                          backgroundColor: on ? colors.primary : colors.surfaceElevated,
+                          borderColor: on ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: on ? colors.onOlive : colors.textPrimary,
+                          fontWeight: '800',
+                          fontSize: 13,
+                        }}
+                      >
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+            <AmountField
+              label=""
+              value={millKept}
+              onChange={setMillKept}
+              suffix={millMode === 'percent' ? '%' : 'L'}
+            />
+            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+              {t('fields:harvestCampaign.oil.millHint')}
+            </Text>
+          </View>
+
+          {millChipOrder.length > 0 && !pickFruit ? (
+            <Pressable
+              onPress={() => setPickFruit(true)}
+              accessibilityRole="button"
+              style={[
+                styles.fruitCard,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surfaceElevated,
+                },
+              ]}
+            >
+              <View style={styles.fruitColors}>
+                {fruitColors.length > 0 ? (
+                  fruitColors.map((color, index) => (
+                    <FieldColorMark
+                      key={`${color}-${index}`}
+                      color={color}
+                      size={14}
+                      style={index > 0 ? { marginLeft: -4 } : undefined}
+                    />
+                  ))
+                ) : (
+                  <FieldColorMark hollow size={14} />
+                )}
+              </View>
+              <View style={styles.fruitCopy}>
+                <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 15 }}>
+                  {fruitLabel}
+                </Text>
+                {fieldLabel ? (
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }} numberOfLines={1}>
+                    {fieldLabel}
+                  </Text>
+                ) : null}
+              </View>
+              <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
+                {t('fields:harvestCampaign.millKg.changeSelection')}
+              </Text>
+            </Pressable>
+          ) : null}
+
+          {millChipOrder.length > 0 && pickFruit ? (
             <HarvestCarryPicker
-              hideHeading
-              compact
-              moreLabel={t('fields:harvestCampaign.oil.moreLots', {
-                count: Math.max(millChipOrder.length - millWeightIds.length, 1),
-              })}
-              lessLabel={t('fields:harvestCampaign.less')}
               label={t('fields:harvestCampaign.oil.relatedKg')}
               items={millChipOrder.map((row) => {
                 const fieldNames = row.fieldIds
@@ -453,376 +507,282 @@ export const HarvestOilSheet: React.FC<
               })}
               selected={millWeightIds}
               onToggle={toggleMill}
-              transfer={
-                relatedOliveKg > 0
-                  ? {
-                      from: t('fields:harvestCampaign.flow.fruitLine', {
-                        kg: Math.round(relatedOliveKg),
-                      }),
-                      to: t('fields:harvestCampaign.addMenu.title.oil'),
-                      color: carryColor(
-                        selectedMills.flatMap((row) =>
-                          row.fieldIds.map((id) => {
-                            const field = fields.find((f) => f.id === id);
-                            return resolveFieldColor(field?.color, id);
-                          })
-                        )
-                      ),
-                    }
-                  : null
-              }
               hint={relatedOliveKg > 0 ? undefined : t('fields:harvestCampaign.carry.pickFruit')}
               trailing={
-                <Pressable
-                  onPress={() => {
-                    setMillWeightIds([]);
-                    setAdjustShares(false);
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: millWeightIds.length === 0 ? colors.primary : colors.textSecondary,
-                      fontWeight: '700',
-                    }}
-                  >
-                    {t('fields:harvestCampaign.oil.noRelated')}
+                <Pressable onPress={() => setPickFruit(false)} hitSlop={8}>
+                  <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                    {t('fields:harvestCampaign.less')}
                   </Text>
                 </Pressable>
               }
             />
           ) : null}
-          {!showFieldPicker && inferredLabels.length > 0 ? (
-            <Text style={{ color: colors.textSecondary }}>
-              {t('fields:harvestCampaign.shared.fromFields', { fields: inferredLabels.join(' + ') })}
-            </Text>
-          ) : null}
-          {showFieldPicker ? (
-            <HarvestFieldPicker
-              mode="multiple"
-              fields={fields}
-              value={fieldIds}
-              onChange={(next) => {
-                setFieldIds(next);
-                setAdjustShares(false);
-              }}
-              sectionLabel={t('fields:harvestCampaign.millKg.whichField')}
-            />
-          ) : null}
-          {activeShares.length > 1 ? (
-            <Pressable
-              onPress={() => {
-                setManualShares(inferredShares.map((s) => ({ ...s })));
-                setAdjustShares(true);
-              }}
-            >
-              <Text style={{ color: colors.primary, fontWeight: '700' }}>
-                {adjustShares
-                  ? t('fields:harvestCampaign.shared.editingShares')
-                  : t('fields:harvestCampaign.shared.adjustShares')}
-              </Text>
-            </Pressable>
-          ) : null}
-          {adjustShares
-            ? manualShares.map((share) => {
-                const field = fields.find((f) => f.id === share.fieldId);
-                return (
-                  <HarvestNumberInput
-                    key={share.fieldId}
-                    label={t('fields:harvestCampaign.shared.shareFor', {
-                      field: field?.name || share.fieldId,
-                    })}
-                    value={String(share.weight)}
-                    onChange={(raw) => {
-                      const weight = parseHarvestDecimal(raw) ?? 0;
-                      setManualShares((prev) =>
-                        prev.map((row) =>
-                          row.fieldId === share.fieldId
-                            ? { ...row, weight: Math.max(0, weight) }
-                            : row
-                        )
-                      );
-                    }}
-                    min={0}
-                  />
-                );
-              })
-            : null}
         </>
       ) : null}
-      {step === 'amount' ? (
-        <>
-          <HarvestSegmentedControl
-            value={unit}
-            label={t('fields:harvestCampaign.oil.unitLabel')}
-            ariaLabel={t('fields:harvestCampaign.oil.prompt')}
-            onChange={setUnit}
-            options={[
-              {
-                value: 'kg',
-                label: t('fields:harvestCampaign.oil.kg'),
-                detail: t('fields:harvestCampaign.oil.kgDetail'),
-              },
-              {
-                value: 'litres',
-                label: t('fields:harvestCampaign.oil.litres'),
-                detail: t('fields:harvestCampaign.oil.litresDetail'),
-              },
-            ]}
-          />
-          <HarvestNumberInput
-            label={
-              unit === 'kg' ? t('fields:harvestCampaign.oil.kg') : t('fields:harvestCampaign.oil.litres')
-            }
-            value={amount}
-            onChange={setAmount}
-            suffix={unit === 'kg' ? 'kg' : 'L'}
-          />
-          <HarvestQuickChips
-            values={[5, 10, 20, 50]}
-            suffix={unit === 'kg' ? 'kg' : 'L'}
-            onPick={(add) =>
-              setAmount(String(Math.round(((parseHarvestDecimal(amount) ?? 0) + add) * 100) / 100))
-            }
-          />
-          {unit === 'litres' && isPositiveAmount(value) ? (
-            <Text style={{ color: colors.textSecondary }}>
-              {t('fields:harvestCampaign.oil.estimatedKg', { kg: formatKg(oilKg) })}
-            </Text>
-          ) : null}
-        </>
-      ) : null}
-      {step === 'settle' ? (
-        <>
-          <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 16 }}>
-            {t('fields:harvestCampaign.oil.millTitle')}
-          </Text>
-          <HarvestSegmentedControl
-            value={millMode}
-            label={t('fields:harvestCampaign.oil.millModeLabel')}
-            ariaLabel={t('fields:harvestCampaign.oil.millModeLabel')}
-            onChange={setMillMode}
-            options={[
-              {
-                value: 'amount',
-                label: t('fields:harvestCampaign.oil.millAmount'),
-                detail: t('fields:harvestCampaign.oil.millAmountDetail'),
-              },
-              {
-                value: 'percent',
-                label: t('fields:harvestCampaign.oil.millPercent'),
-                detail: t('fields:harvestCampaign.oil.millPercentDetail'),
-              },
-            ]}
-          />
-          <HarvestNumberInput
-            label={
-              millMode === 'percent'
-                ? t('fields:harvestCampaign.oil.millPercent')
-                : t('fields:harvestCampaign.oil.millAmount')
-            }
-            value={millKept}
-            onChange={setMillKept}
-            suffix={millMode === 'percent' ? '%' : unit === 'kg' ? 'kg' : 'L'}
-            min={0}
-          />
-          {yieldPct != null ? (
-            <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-              {t('fields:harvestCampaign.oil.yieldLine', {
-                olives: formatKg(relatedOliveKg),
-                oil: formatKg(oilKg),
-                yield: formatHarvestYieldPercent(yieldPct, locale),
-              })}
-            </Text>
-          ) : null}
-          {settlement?.millOver ? (
-            <Text style={{ color: colors.error }}>{t('fields:harvestCampaign.oil.overMill')}</Text>
-          ) : null}
-        </>
-      ) : null}
+
       {step === 'pack' ? (
-        <HarvestOilPackSection
-          storageMode={storageMode}
-          onStorageMode={(mode) => {
-            setStorageMode(mode);
-            if (mode === 'all') {
-              setUseTin16(false);
-              setUseTin17(false);
-              setTin16(0);
-              setTin17(0);
-            }
-          }}
-          useTin16={useTin16}
-          useTin17={useTin17}
-          onToggleTin16={() => {
-            setUseTin16((on) => {
-              if (on) setTin16(0);
-              return !on;
-            });
-          }}
-          onToggleTin17={() => {
-            setUseTin17((on) => {
-              if (on) setTin17(0);
-              return !on;
-            });
-          }}
-          tin16={tin16}
-          tin17={tin17}
-          onTin16={setTin16}
-          onTin17={setTin17}
-          settlement={settlement}
-          unit={unit}
-          locale={locale}
-        />
-      ) : null}
-      {(step === 'cellar' || (!showCellarPicker && isLastPage)) && isPositiveAmount(value) ? (
-        <View style={{ gap: 8 }}>
-          {showCellarPicker ? (
-            <>
-              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                {t('fields:harvestCampaign.oil.cellarTitle')}
+        <>
+          <View style={styles.barBlock}>
+            <View style={[styles.barTrack, { backgroundColor: colors.surfaceMuted }]}>
+              {tinShare > 0 ? (
+                <View
+                  style={[
+                    styles.barFill,
+                    {
+                      width: `${tinOver ? 100 : tinShare}%`,
+                      backgroundColor: tinOver ? colors.error : colors.primary,
+                    },
+                  ]}
+                />
+              ) : null}
+            </View>
+            <View style={styles.barLegend}>
+              <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 13 }}>
+                {t('fields:harvestCampaign.oil.part.bulk')}{' '}
+                {formatHarvestOilAmountLabel(storageMode === 'tins' ? bulkLitres : farmerLitres, 'litres', locale)}
               </Text>
-              {splitCellars ? (
-                <View style={{ gap: 8 }}>
-                  {cellarCandidates.map((c) => (
-                    <HarvestNumberInput
-                      key={c.userId}
-                      label={
-                        c.isYou
-                          ? t('fields:harvestCampaign.oil.cellarYou')
-                          : c.displayName || c.userId
-                      }
-                      value={cellarLitres[c.userId] ?? ''}
-                      onChange={(raw) =>
-                        setCellarLitres((prev) => ({ ...prev, [c.userId]: raw }))
-                      }
-                      suffix="L"
+              {storageMode === 'tins' && tinLitres > 0 ? (
+                <Text style={{ color: colors.textSecondary, fontWeight: '700', fontSize: 13 }}>
+                  {t('fields:harvestCampaign.oil.storedTins')}{' '}
+                  {formatHarvestOilAmountLabel(round1(tinLitres), 'litres', locale)}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+          <View style={styles.pair}>
+            {(
+              [
+                ['all', t('fields:harvestCampaign.oil.part.bulk')],
+                ['tins', t('fields:harvestCampaign.oil.storedTins')],
+              ] as const
+            ).map(([mode, label]) => {
+              const on = storageMode === mode;
+              return (
+                <Pressable
+                  key={mode}
+                  onPress={() => setStorageMode(mode)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  style={[
+                    styles.choice,
+                    {
+                      backgroundColor: on ? colors.primary : colors.surfaceElevated,
+                      borderColor: on ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: on ? colors.onOlive : colors.textPrimary, fontWeight: '800' }}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {storageMode === 'tins' ? (
+            <View style={styles.tinBlock}>
+              <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 14 }}>
+                {t('fields:harvestCampaign.oil.tinTypeTitle')}
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                {t('fields:harvestCampaign.oil.tapTinAdd')}
+              </Text>
+              <View style={styles.tinChips}>
+                {OIL_TIN_SIZES.map((size) => {
+                  const count = tinCounts[size] || 0;
+                  const on = count > 0;
+                  return (
+                    <Pressable
+                      key={size}
+                      onPress={() => setTinCount(size, count + 1)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`+1 ${size} L`}
+                      style={[
+                        styles.tinChip,
+                        {
+                          minHeight: Math.max(48, tapMin * 0.95),
+                          backgroundColor: on ? colors.primary : colors.surfaceElevated,
+                          borderColor: on ? colors.primaryDark : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: on ? colors.onOlive : colors.textPrimary,
+                          fontWeight: '800',
+                          fontSize: 16,
+                        }}
+                      >
+                        {size} L
+                      </Text>
+                      {on ? (
+                        <Text style={{ color: colors.onOlive, fontWeight: '700', fontSize: 12 }}>
+                          ×{count}
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {tinCount > 0 ? (
+                <View style={styles.tinRows}>
+                  {OIL_TIN_SIZES.filter((size) => (tinCounts[size] || 0) > 0).map((size) => (
+                    <HarvestNumberStepper
+                      key={size}
+                      label={`${size} L`}
+                      value={tinCounts[size] || 0}
+                      onChange={(next) => setTinCount(size, Math.round(next))}
                       min={0}
+                      suffix={t('fields:harvestCampaign.oil.tinSuffix')}
                     />
                   ))}
-                  <Text style={{ color: splitValid ? colors.textSecondary : colors.error }}>
-                    {splitRemaining < -0.05
-                      ? t('fields:harvestCampaign.oil.splitOver', {
-                          amount: Math.abs(splitRemaining),
-                        })
-                      : t('fields:harvestCampaign.oil.splitLeft', {
-                          amount: Math.max(0, splitRemaining),
-                          total: farmerLitres,
-                        })}
-                  </Text>
                 </View>
               ) : (
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {cellarCandidates.map((c) => {
-                    const on = c.userId === cellarOwnerUserId;
-                    return (
-                      <Pressable
-                        key={c.userId}
-                        onPress={() => setCellarOwnerUserId(c.userId)}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: on }}
-                        style={({ pressed }) => ({
-                          minHeight: 44,
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          borderRadius: 10,
-                          borderWidth: on ? 2 : 1.5,
-                          borderColor: on ? colors.primaryDark : colors.border,
-                          backgroundColor: on ? colors.primary : colors.surfaceElevated,
-                          opacity: pressed && !on ? 0.9 : 1,
-                        })}
-                      >
-                        <Text
-                          style={{
-                            color: on ? colors.onOlive : colors.textPrimary,
-                            fontWeight: '700',
-                          }}
-                        >
-                          {c.isYou
-                            ? t('fields:harvestCampaign.oil.cellarYou')
-                            : c.displayName || c.userId}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' }}>
+                  {t('fields:harvestCampaign.oil.tinCountHint')}
+                </Text>
               )}
-              <Pressable
-                onPress={() => {
-                  if (splitCellars) {
-                    setSplitCellars(false);
-                    return;
-                  }
-                  setCellarLitres(
-                    Object.fromEntries(
-                      cellarCandidates.map((c) => [
-                        c.userId,
-                        c.userId === cellarOwnerUserId ? String(farmerLitres) : '',
-                      ])
-                    )
-                  );
-                  setSplitCellars(true);
-                }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: '700' }}>
-                  {splitCellars
-                    ? t('fields:harvestCampaign.oil.splitOff')
-                    : t('fields:harvestCampaign.oil.splitOn')}
-                </Text>
-              </Pressable>
-            </>
-          ) : selectedCellar ? (
-            <Text style={{ color: colors.textSecondary }}>
-              {selectedCellar.isYou
-                ? t('fields:harvestCampaign.oil.cellarYou')
-                : t('fields:harvestCampaign.oil.cellarOf', {
-                    name: selectedCellar.displayName || selectedCellar.userId,
-                  })}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-      {isLastPage ? (
-        <>
-          {settlement
-            ? settlement.parts.map((part) => (
-                <Text key={part.key} style={{ color: colors.textSecondary }}>
-                  {t(`fields:harvestCampaign.oil.part.${part.key}`)} ·{' '}
-                  {formatHarvestOilAmountLabel(part.amount, unit, locale)}
-                </Text>
-              ))
-            : null}
-          {yieldPct != null ? (
-            <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-              {t('fields:harvestCampaign.oil.yieldLine', {
-                olives: formatKg(relatedOliveKg),
-                oil: formatKg(oilKg),
-                yield: formatHarvestYieldPercent(yieldPct, locale),
-              })}
-            </Text>
-          ) : null}
-          <HarvestMoreToggle
-            open={more}
-            onPress={() => setMore((v) => !v)}
-            openLabel={t('fields:harvestCampaign.less')}
-            closedLabel={t('fields:harvestCampaign.more')}
-          />
-          {more ? (
-            <View style={{ gap: 8 }}>
-              <HarvestNumberInput
-                label={t('fields:harvestCampaign.oil.acidity')}
-                value={acidity}
-                onChange={setAcidity}
-              />
-              <HarvestTextField
-                label={t('fields:harvestCampaign.noteOptional')}
-                value={note}
-                onChange={setNote}
-                multiline
-              />
             </View>
           ) : null}
         </>
       ) : null}
+
+      {step === 'cellar' ? (
+        <View style={styles.cellars}>
+          {cellarCandidates.map((candidate) => {
+            const on = candidate.userId === (cellarOwnerUserId || admin?.userId);
+            return (
+              <Pressable
+                key={candidate.userId}
+                onPress={() => setCellarOwnerUserId(candidate.userId)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                style={[
+                  styles.cellarChip,
+                  {
+                    backgroundColor: on ? colors.primary : colors.surfaceElevated,
+                    borderColor: on ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <Text style={{ color: on ? colors.onOlive : colors.textPrimary, fontWeight: '700' }}>
+                  {candidate.isYou
+                    ? t('fields:harvestCampaign.oil.cellarYou')
+                    : candidate.displayName || candidate.userId}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
     </HarvestFormPager>
   );
 };
+
+const AmountField: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  suffix: string;
+  autoFocus?: boolean;
+}> = ({ label, value, onChange, suffix, autoFocus }) => {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.amount}>
+      {label ? (
+        <Text style={[styles.amountLabel, { color: colors.textSecondary }]}>{label}</Text>
+      ) : null}
+      <View style={[styles.amountRow, { borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          keyboardType="decimal-pad"
+          placeholder="0"
+          placeholderTextColor={colors.textTertiary}
+          autoFocus={autoFocus}
+          accessibilityLabel={label || suffix}
+          style={[styles.amountInput, { color: colors.textPrimary }]}
+        />
+        <Text style={{ color: colors.textSecondary, fontWeight: '800' }}>{suffix}</Text>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  pair: { flexDirection: 'row', gap: 10 },
+  amount: { gap: 4 },
+  amountLabel: { fontSize: 12, fontWeight: '700' },
+  amountRow: {
+    minHeight: 48,
+    borderWidth: 1.5,
+    borderRadius: radii.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  amountInput: { flex: 1, fontSize: 22, fontWeight: '800', paddingVertical: 6 },
+  millBlock: { gap: 8 },
+  millHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  modeRow: { flexDirection: 'row', gap: 6 },
+  modeChip: {
+    minWidth: 40,
+    minHeight: 32,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fruitCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 52,
+    borderWidth: 1.5,
+    borderRadius: radii.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  fruitColors: { flexDirection: 'row', alignItems: 'center' },
+  fruitCopy: { flex: 1, gap: 2 },
+  barBlock: { gap: 6 },
+  barTrack: { height: 14, borderRadius: 99, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 99 },
+  barLegend: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  choice: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tinBlock: { gap: 10 },
+  tinChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tinChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    minWidth: '30%',
+    flexGrow: 1,
+  },
+  tinRows: { gap: 12 },
+  cellars: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  cellarChip: {
+    minHeight: 40,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

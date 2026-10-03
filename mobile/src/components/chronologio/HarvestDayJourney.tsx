@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { ChronologioHarvestDetails } from '../../services/chronologioService';
-import { formatKg } from '../../utils/harvestUtils';
+import { formatKg, formatOilLitresAmountFromKg } from '../../utils/harvestUtils';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { useTheme } from '../../context/ThemeContext';
+import { HARVEST_ACTION_ICONS } from '../../harvestCampaign/harvestActions';
 import { radii, spacing } from '../../theme';
 
 type JourneyStage = {
@@ -21,6 +23,12 @@ type Props = {
   fieldAccent?: string;
   /** Compact horizontal chain for the timeline card. */
   compact?: boolean;
+};
+
+const STAGE_ICON: Record<JourneyStage['kind'], React.ComponentProps<typeof Ionicons>['name']> = {
+  harvest: HARVEST_ACTION_ICONS.sacks,
+  mill: HARVEST_ACTION_ICONS.mill,
+  oil: HARVEST_ACTION_ICONS.oil,
 };
 
 const stageTitle = (kind: JourneyStage['kind'], t: (key: string) => string) => {
@@ -53,7 +61,7 @@ const HarvestDayJourney: React.FC<Props> = ({
       out.push({
         kind: 'harvest',
         value: String(sacks),
-        unit: t('harvestCampaign.flow.unitSacks'),
+        unit: t('harvestCampaign.sacks.unit'),
         lines: [
           fieldLine,
           harvest.hasOfficialWeight === false && olives > 0
@@ -80,8 +88,8 @@ const HarvestDayJourney: React.FC<Props> = ({
     if (oil > 0) {
       out.push({
         kind: 'oil',
-        value: formatKg(oil),
-        unit: t('harvestCampaign.flow.unitOil'),
+        value: formatOilLitresAmountFromKg(oil),
+        unit: t('harvestCampaign.flow.unitOilLitres'),
         lines: [
           fieldLine,
           olives > 0
@@ -108,28 +116,19 @@ const HarvestDayJourney: React.FC<Props> = ({
   if (compact) {
     return (
       <View style={styles.compact} accessibilityLabel={t('harvestCampaign.flow.title')}>
-        <Text style={[styles.lead, { color: colors.textSecondary }]}>
-          {t('harvestCampaign.flow.steps')}
-        </Text>
         <View style={styles.chain}>
           {stages.map((stage, index) => (
             <React.Fragment key={stage.kind}>
               {index > 0 ? (
                 <Text style={[styles.sep, { color: colors.textTertiary }]} aria-hidden>
-                  →
+                  ·
                 </Text>
               ) : null}
-              <View
-                style={[
-                  styles.pill,
-                  {
-                    backgroundColor: colors.surfaceMuted,
-                    borderColor: accent,
-                  },
-                ]}
-              >
+              <View style={styles.metric}>
+                <Ionicons name={STAGE_ICON[stage.kind]} size={16} color={colors.textPrimary} />
                 <Text style={[styles.pillText, { color: colors.textPrimary }]}>
-                  {stage.value} {stage.unit}
+                  {stage.value}{' '}
+                  <Text style={[styles.unit, { color: colors.textSecondary }]}>{stage.unit}</Text>
                 </Text>
               </View>
             </React.Fragment>
@@ -177,19 +176,14 @@ const HarvestDayJourney: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  compact: { marginTop: spacing.xs, gap: 4 },
+  compact: { marginTop: spacing.xs },
   full: { marginBottom: spacing.sm, gap: 8 },
   lead: { fontSize: 13, lineHeight: 18 },
-  chain: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
-  sep: { fontSize: 12, fontWeight: '600' },
-  pill: {
-    borderRadius: radii.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderLeftWidth: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  pillText: { fontSize: 13, fontWeight: '700' },
+  chain: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  sep: { fontSize: 14, fontWeight: '600' },
+  metric: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  pillText: { fontSize: 15, fontWeight: '700', fontVariantNumeric: ['tabular-nums'] },
+  unit: { fontSize: 12, fontWeight: '600' },
   stack: { gap: 8 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,

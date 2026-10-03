@@ -278,15 +278,19 @@ const FieldsPage: React.FC = () => {
             <h1>{t('fields:title')}</h1>
             <p className="fields-subtitle">{subtitle}</p>
           </div>
-          <div className="fields-page-header-actions">
-            {canCreate && (
+          {canCreate ? (
+            <div className="fields-page-header-actions">
               <span className="fields-add-btn" data-guide-target="createField">
-                <Button to="/fields/new" icon={<Plus />} size="md">
+                <Button
+                  to="/fields/new"
+                  icon={<Plus size={20} strokeWidth={2.5} />}
+                  size="md"
+                >
                   {t('fields:addFieldCta')}
                 </Button>
               </span>
-            )}
-          </div>
+            </div>
+          ) : null}
         </header>
 
         {loading ? (

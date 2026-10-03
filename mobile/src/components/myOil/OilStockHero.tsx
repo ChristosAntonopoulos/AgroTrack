@@ -1,83 +1,190 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { formatHeroStock, formatOilNumber } from '../../myOil/formatOilPack';
-import {
-  isHouseholdCommitment,
-  sumHouseholdPack,
-  tinCount,
-  visibleHouseholdCommitments,
-} from '../../myOil/commitmentCopy';
+import { formatOilNumber } from '../../myOil/formatOilPack';
+import { cellarFlow, cellarSlices, type StockSliceKey } from '../../myOil/stockPicture';
 import type { OilCommitment, OilStockSummary } from '../../services/oilStockService';
+import { OilStockDonut } from './OilStockDonut';
 import { createMyOilStyles } from './myOilStyles';
 
 type Props = {
   summary: OilStockSummary;
-  closed?: OilCommitment[];
-  onOpenHome: () => void;
-  onOpenHolds: () => void;
+  /** Open and closed promises, so sold and given oil can sit beside the stock ring. */
+  history?: OilCommitment[];
+  busy?: boolean;
+  onGive: () => void;
+  onSell: () => void;
+  onHold: () => void;
+  onFill: () => void;
 };
 
-/** Compact cellar total — litres first, pack line once, two status chips. */
-export function OilStockHero({ summary, closed = [], onOpenHome, onOpenHolds }: Props) {
+const SLICE_KEY: Record<StockSliceKey, string> = {
+  free: 'hero.sliceFree',
+  held: 'hero.sliceHeld',
+  awaiting: 'hero.sliceAwaiting',
+};
+
+/**
+ * The cellar in one glance: how much is here, how it splits, and the four things you came to do.
+ */
+export function OilStockHero({
+  summary,
+  history = [],
+  busy = false,
+  onGive,
+  onSell,
+  onHold,
+  onFill,
+}: Props) {
   const { t, i18n } = useTranslation('myOil');
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
   const locale = i18n.language;
-  const available = summary.available;
+  const picture = useMemo(() => cellarSlices(summary), [summary]);
+  const flow = useMemo(() => cellarFlow(history), [history]);
+  const onHand = summary.onHand;
+  const tinCount = Math.max(0, onHand.tin16) + Math.max(0, onHand.tin17);
 
-  const homeHeld = sumHouseholdPack(visibleHouseholdCommitments(summary.openCommitments, closed));
-  const thirdParty = summary.openCommitments.filter((c) => !isHouseholdCommitment(c));
-  const pending = thirdParty.filter((c) => c.derivedStatus === 'pending_delivery').length;
-  const held = thirdParty.filter((c) => c.derivedStatus === 'reserved').length;
-  const homeTins = tinCount(homeHeld);
-  const hasHome = homeTins > 0 || homeHeld.bulkLitres > 0.05;
+  const sliceColor: Record<StockSliceKey, string> = {
+    free: colors.primary,
+    held: colors.accentGold,
+    awaiting: colors.warning,
+  };
 
-  const packLine = formatHeroStock(available, locale, {
-    tins: (count) => t('hero.tins', { count }),
-    bulkPlus: (amount) => t('hero.bulkPlus', { amount }),
-    bulkOnly: (amount) => t('hero.bulkOnly', { amount }),
-    empty: t('hero.empty'),
-  }).replace(' + ', ' · ');
+  const pctLabel = (pct: number) =>
+    `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(pct)}%`;
 
-  const homeValue = hasHome
-    ? homeTins > 0
-      ? t('hero.tins', { count: homeTins })
-      : t('hero.bulkOnly', { amount: formatOilNumber(homeHeld.bulkLitres, locale) })
-    : t('hero.householdEmpty');
+  const euro = (amount: number) =>
+    new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'EUR',
+      maximumFractionDigits: Math.abs(amount - Math.round(amount)) < 0.005 ? 0 : 2,
+    }).format(amount);
 
-  const holdsValue =
-    pending > 0
-      ? t('hero.pendingCount', { count: pending })
-      : held > 0
-        ? t('hero.heldCount', { count: held })
-        : t('hero.holdsEmpty');
+  const legend = picture.slices.filter((slice) => slice.key !== 'awaiting' || slice.litres > 0.05);
+  const ring = legend.filter((slice) => slice.litres > 0.05);
+
+  const verbs: {
+    key: string;
+    label: string;
+    icon: React.ComponentProps<typeof Ionicons>['name'];
+    primary: boolean;
+    onPress: () => void;
+  }[] = [
+    { key: 'fill', label: t('actions.fillVerb'), icon: 'cube-outline', primary: true, onPress: onFill },
+    { key: 'sell', label: t('actions.sell'), icon: 'cash-outline', primary: true, onPress: onSell },
+    { key: 'give', label: t('actions.verbGive'), icon: 'water-outline', primary: false, onPress: onGive },
+    { key: 'hold', label: t('actions.hold'), icon: 'bookmark-outline', primary: false, onPress: onHold },
+  ];
+
+  const formRows = [
+    { key: 'bulk', label: t('hero.formBulk'), value: `${formatOilNumber(onHand.bulkLitres, locale)} L` },
+    { key: '16', label: t('hero.form16'), value: t('hero.pieces', { count: onHand.tin16 }) },
+    { key: '17', label: t('hero.form17'), value: t('hero.pieces', { count: onHand.tin17 }) },
+    { key: 'tins', label: t('hero.formTins'), value: t('hero.pieces', { count: tinCount }) },
+  ];
 
   return (
-    <View style={styles.heroCompact}>
-      <Text style={styles.heroEyebrow}>{t('hero.eyebrow')}</Text>
-      <Text style={styles.heroTotal}>
-        {t('hero.approxTotal', { amount: formatOilNumber(available.litres || 0, locale) })}
-      </Text>
-      <Text style={styles.heroPackLine}>{packLine}</Text>
+    <View style={{ gap: 10 }}>
+      <View style={styles.floorHero}>
+        <Text style={styles.heroEyebrow}>{t('hero.totalInCellar')}</Text>
+        <Text style={styles.heroTotal}>{formatOilNumber(picture.total, locale)} L</Text>
+        <View style={styles.ringRow}>
+          <View style={styles.ringWrap}>
+            <OilStockDonut
+              slices={ring}
+              colors={sliceColor}
+              track={colors.surfaceMuted}
+            />
+            <View style={styles.ringCenter} pointerEvents="none">
+              <Text style={styles.ringCenterValue} numberOfLines={1}>
+                {formatOilNumber(picture.total, locale)}
+              </Text>
+              <Text style={styles.ringCenterCaption}>{t('hero.ringTotal')}</Text>
+            </View>
+          </View>
+          <View style={styles.ringLegend}>
+            {legend.map((slice) => (
+              <View key={slice.key} style={styles.ringLegendItem}>
+                <View style={[styles.ringDot, { backgroundColor: sliceColor[slice.key] }]} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={styles.ringLegendTop}>
+                    <Text style={styles.ringLegendLabel} numberOfLines={1}>
+                      {t(SLICE_KEY[slice.key])}
+                    </Text>
+                    <Text style={styles.ringLegendPct}>{pctLabel(slice.pct)}</Text>
+                  </View>
+                  <Text style={styles.ringLegendValue} numberOfLines={1}>
+                    {formatOilNumber(slice.litres, locale)} L
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
 
-      <View style={styles.heroStatusRow}>
-        <Pressable onPress={onOpenHome} style={styles.heroStatusCard}>
-          <View style={styles.heroStatusLabel}>
-            <Ionicons name="home-outline" size={14} color={colors.textTertiary} />
-            <Text style={styles.heroStatusLabelText}>{t('hero.household')}</Text>
+      <View style={styles.flowStrip}>
+        <View style={styles.flowCell}>
+          <Text style={styles.flowLabel}>{t('hero.soldThisYear')}</Text>
+          <Text style={styles.flowValue}>{formatOilNumber(flow.soldLitres, locale)} L</Text>
+        </View>
+        <View style={styles.flowCell}>
+          <Text style={styles.flowLabel}>{t('hero.given')}</Text>
+          <Text style={styles.flowValue}>{formatOilNumber(flow.givenLitres, locale)} L</Text>
+        </View>
+      </View>
+
+      <View style={styles.formCard}>
+        <Text style={styles.heroEyebrow}>{t('hero.formTitle')}</Text>
+        {formRows.map((row) => (
+          <View key={row.key} style={styles.formRow}>
+            <Text style={styles.formLabel}>{row.label}</Text>
+            <Text style={styles.formValue}>{row.value}</Text>
           </View>
-          <Text style={styles.heroStatusValue}>{homeValue}</Text>
-        </Pressable>
-        <Pressable onPress={onOpenHolds} style={styles.heroStatusCard}>
-          <View style={styles.heroStatusLabel}>
-            <Ionicons name="bookmark-outline" size={14} color={colors.textTertiary} />
-            <Text style={styles.heroStatusLabelText}>{t('hero.holds')}</Text>
-          </View>
-          <Text style={styles.heroStatusValue}>{holdsValue}</Text>
-        </Pressable>
+        ))}
+      </View>
+
+      <View style={styles.formCard}>
+        <Text style={styles.heroEyebrow}>{t('hero.moneyTitle')}</Text>
+        <View style={styles.formRow}>
+          <Text style={styles.formLabel}>{t('hero.revenue')}</Text>
+          <Text style={styles.formValue}>{euro(flow.revenue)}</Text>
+        </View>
+        <View style={styles.formRow}>
+          <Text style={styles.formLabel}>{t('hero.unpaid')}</Text>
+          <Text style={styles.formValue}>{euro(flow.unpaid)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.verbRow}>
+        {verbs.map((verb) => (
+          <Pressable
+            key={verb.key}
+            disabled={busy}
+            onPress={verb.onPress}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.verb,
+              verb.primary ? styles.verbOn : styles.verbOff,
+              (pressed || busy) && { opacity: 0.88 },
+            ]}
+          >
+            <Ionicons
+              name={verb.icon}
+              size={20}
+              color={verb.primary ? colors.onOlive : colors.primary}
+            />
+            <Text
+              style={[styles.verbLabel, verb.primary ? styles.verbLabelOn : styles.verbLabelOff]}
+              numberOfLines={2}
+            >
+              {verb.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
     </View>
   );

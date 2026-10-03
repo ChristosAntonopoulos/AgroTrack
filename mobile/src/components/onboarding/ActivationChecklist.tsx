@@ -30,6 +30,9 @@ const ActivationChecklist: React.FC = () => {
 
   if (!visible) return null;
 
+  // Full-screen boundary stage owns the lesson — keep the map free of the setup bar.
+  if (spotlightStep === 'drawBoundary') return null;
+
   const total = OWNER_CHECKLIST_STEPS.length;
   const top = insets.top + 8;
   const resumeStep = activeStep || (completion.createGrove ? 'drawBoundary' : 'createGrove');

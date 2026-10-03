@@ -5,7 +5,7 @@ import MapWheelZoom from '../maps/MapWheelZoom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
-import { Crosshair, LocateFixed, Undo2, Trash2, Check, MapPin } from 'lucide-react';
+import { ArrowLeft, Crosshair, LocateFixed, Undo2, Trash2, Check, MapPin } from 'lucide-react';
 import { GeoJsonPolygon, GreekCadastreInfo } from '../../services/fieldService';
 import AreaComparisonCard from './AreaComparisonCard';
 import LocationSearchField from './LocationSearchField';
@@ -52,6 +52,8 @@ interface Props {
   activationGuide?: boolean;
   /** Grove steps, drawn on the map when the boundary fills the screen. */
   setupRail?: React.ReactNode;
+  /** Leave the full-screen map. The page behind it is hidden, so this is the only way back. */
+  onBack?: () => void;
 }
 
 type DrawPhase = 'locate' | 'drawing' | 'done';
@@ -160,6 +162,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   continueLoading = false,
   activationGuide = false,
   setupRail,
+  onBack,
 }) => {
   const { t, i18n } = useTranslation('fields');
   const locale = normalizeLocale(i18n.language);
@@ -419,7 +422,7 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
 
   const stageView = (
     <div
-      className={`field-boundary-step is-handoff is-stage${phase === 'done' ? ' is-ready' : ''}`}
+      className={`field-boundary-step is-handoff is-stage${phase === 'done' ? ' is-ready' : ''}${onBack ? ' has-back' : ''}`}
       data-onboarding-boundary-phase={phase}
       data-onboarding-located={locationStatus === 'found' || hasCoords(latitude, longitude) ? 'true' : 'false'}
     >
@@ -503,6 +506,12 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
         </MapContainer>
 
         <div className="boundary-stage-top">
+          {onBack ? (
+            <button type="button" className="boundary-stage-back" onClick={onBack}>
+              <ArrowLeft size={18} aria-hidden />
+              {t('form.back')}
+            </button>
+          ) : null}
           {setupRail}
           {searchTools}
           {locationStatus === 'missing' && search.trim() ? (

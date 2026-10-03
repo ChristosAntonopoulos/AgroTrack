@@ -237,7 +237,7 @@ describe('TaskFormPage Phase 4', () => {
   });
 
   it('keeps proposal context and schedules via acceptProposal', async () => {
-    sessionStorage.setItem('oleachron.scheduleProposal.v1', JSON.stringify(proposal()));
+    sessionStorage.setItem('The Olive Lot.scheduleProposal.v1', JSON.stringify(proposal()));
     renderForm('proposalId=p-1&fieldId=field-1');
 
     expect(await screen.findByRole('heading', { name: 'Προγραμματισμός εργασίας' })).toBeInTheDocument();

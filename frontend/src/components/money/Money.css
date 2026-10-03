@@ -1130,26 +1130,53 @@
   gap: 12px;
 }
 
+.money-push-hint {
+  margin: 0 0 2px;
+  color: var(--money-text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
 .money-push {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  min-height: 112px;
-  padding: 18px 18px;
-  border: 1px solid var(--money-border);
+  min-height: 104px;
+  padding: 16px;
+  border: 1.5px solid var(--money-border);
   border-radius: 18px;
   background: var(--money-surface-1);
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+
+.money-push:hover {
+  transform: translateY(-1px);
+}
+
+.money-push-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--money-surface-1);
+  box-shadow: 0 1px 2px rgba(36, 37, 31, 0.06);
+}
+
+.money-push-copy {
+  flex: 1;
+  min-width: 0;
 }
 
 .money-push strong {
   display: block;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 750;
   letter-spacing: -0.02em;
 }
@@ -1161,29 +1188,39 @@
   font-size: 15px;
   font-style: normal;
   font-weight: 550;
+  line-height: 1.35;
 }
 
 .money-push.is-income {
-  background: color-mix(in srgb, var(--money-income) 12%, var(--money-surface-1));
-  border-color: color-mix(in srgb, var(--money-income) 40%, var(--money-border));
+  background: color-mix(in srgb, var(--money-income) 14%, var(--money-surface-1));
+  border-color: color-mix(in srgb, var(--money-income) 42%, var(--money-border));
 }
 
 .money-push.is-income strong {
+  color: var(--color-text-primary, inherit);
+}
+
+.money-push.is-income .money-push-icon,
+.money-push.is-income > svg {
   color: var(--money-income);
 }
 
 .money-push.is-expense {
-  background: color-mix(in srgb, var(--money-expense) 10%, var(--money-surface-1));
-  border-color: color-mix(in srgb, var(--money-expense) 38%, var(--money-border));
+  background: color-mix(in srgb, var(--money-expense) 14%, var(--money-surface-1));
+  border-color: color-mix(in srgb, var(--money-expense) 42%, var(--money-border));
 }
 
 .money-push.is-expense strong {
+  color: var(--color-text-primary, inherit);
+}
+
+.money-push.is-expense .money-push-icon,
+.money-push.is-expense > svg {
   color: var(--money-expense);
 }
 
-.money-push svg {
-  flex: 0 0 auto;
-  color: var(--money-text-secondary);
+.money-push > svg {
+  flex-shrink: 0;
 }
 
 .money-drawer__footer {

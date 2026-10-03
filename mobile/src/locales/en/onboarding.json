@@ -6,7 +6,7 @@
     "expand": "Show setup",
     "dismiss": "Done for now",
     "celebrateTitle": "Boundary saved — you can explore",
-    "celebrateBody": "Your όρια unlock the rest of Oleachron. Weather and satellite will appear on the field map.",
+    "celebrateBody": "Your όρια unlock the rest of The Olive Lot. Weather and satellite will appear on the field map.",
     "continueTitle": "Finish grove setup",
     "continueBody": "The name already counts. Without a boundary, area is not calculated and weather and satellite stay closed.",
     "continueCta": "Continue setup"
@@ -117,8 +117,8 @@
     "openGrove": "Open the map"
   },
   "mapExplore": {
-    "caption": "Look around — layers and weather are yours.",
-    "cta": "Continue to History"
+    "caption": "This is your grove on the map. Try a picture below, then open History.",
+    "cta": "Open History"
   },
   "coach": {
     "kicker": "Your move",
@@ -130,7 +130,7 @@
     "createField": {
       "title": "Create your grove",
       "body": "Tap + and give it a name you will recognise.",
-      "cue": "Tap here and name the grove."
+      "cue": "Tap the + to name your first grove."
     },
     "homeButton": {
       "title": "This brings you home",

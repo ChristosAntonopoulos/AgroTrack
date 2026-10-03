@@ -10,7 +10,11 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import FormField from '../forms/FormField';
 import { useTheme } from '../../context/ThemeContext';
-import { searchPlaces, type GeocodedPlace } from '../../utils/geocodeLocation';
+import {
+  reverseGeocode,
+  searchPlaces,
+  type GeocodedPlace,
+} from '../../utils/geocodeLocation';
 import { locationService } from '../../services/locationService';
 import { spacing, typography, createElevation } from '../../theme';
 
@@ -111,9 +115,14 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
     setLocating(true);
     try {
       const loc = await locationService.getCurrentLocation();
-      const label = t('createGrove.placement.nearMe', {
-        defaultValue: t('addField.useCurrentLocation', { defaultValue: 'Near me' }),
-      });
+      const place = await reverseGeocode(loc.latitude, loc.longitude, {
+        language: i18n.language,
+      }).catch(() => null);
+      const label =
+        place?.label ||
+        t('createGrove.placement.nearMe', {
+          defaultValue: t('addField.useCurrentLocation', { defaultValue: 'Near me' }),
+        });
       committedQuery.current = label.trim();
       setQuery(label);
       setSuggestions([]);
@@ -142,8 +151,7 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
           if (committedQuery.current) committedQuery.current = null;
           setQuery(text);
           setOpen(true);
-          // Text only — parent must not move the map until a list pick.
-          onChange({ locationText: text });
+          // Typing alone must not persist as locationText — only a list pick or GPS does.
         }}
         onFocus={() => {
           if (query.trim().length >= 2) setOpen(true);
@@ -249,21 +257,23 @@ const LocationSearchField: React.FC<Props> = ({ value, onChange, disabled, compa
         </View>
       ) : null}
 
-      <Pressable
-        onPress={() => void useNearMe()}
-        disabled={disabled || locating}
-        style={[
-          styles.nearMe,
-          { borderColor: colors.borderLight, backgroundColor: colors.surface },
-        ]}
-      >
-        <Ionicons name="locate-outline" size={18} color={colors.primary} />
-        <Text style={[styles.nearMeText, { color: colors.primary }]}>
-          {t('addField.useCurrentLocation', {
-            defaultValue: t('createGrove.placement.nearMe'),
-          })}
-        </Text>
-      </Pressable>
+      {!compact ? (
+        <Pressable
+          onPress={() => void useNearMe()}
+          disabled={disabled || locating}
+          style={[
+            styles.nearMe,
+            { borderColor: colors.borderLight, backgroundColor: colors.surface },
+          ]}
+        >
+          <Ionicons name="locate-outline" size={18} color={colors.primary} />
+          <Text style={[styles.nearMeText, { color: colors.primary }]}>
+            {t('addField.useCurrentLocation', {
+              defaultValue: t('createGrove.placement.nearMe'),
+            })}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 };
@@ -273,7 +283,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
     position: 'relative',
   },
-  compactField: { marginBottom: 0 },
+  compactField: { marginBottom: 0, minHeight: 44 },
   hint: { ...typography.styles.caption, marginTop: -spacing.xs, marginBottom: spacing.xs },
   nearMe: {
     flexDirection: 'row',

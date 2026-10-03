@@ -156,7 +156,7 @@ const FieldFormScreen = () => {
     try {
       const id = await ensureDraftField();
       await getFieldService().updateField(id, fieldPayload());
-      activation?.markFieldsDirty();
+      activation?.markFieldsDirty({ groveCreatedFieldId: id });
       navigation.replace('FieldMapBoundary', { fieldId: id });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
@@ -261,15 +261,19 @@ const FieldFormScreen = () => {
     </>
   );
 
+  const setSpotlightScreen = activation?.setSpotlightScreen;
+  const releaseSpotlightScreen = activation?.releaseSpotlightScreen;
   useEffect(() => {
-    if (!activation) return;
+    if (!setSpotlightScreen || !releaseSpotlightScreen) return undefined;
     if (!isActiveEdit && createScreen === 'name') {
-      activation.setSpotlightScreen('create');
-      return () => activation.setSpotlightScreen(null);
+      setSpotlightScreen('create');
+      // Release only our own claim: navigation.replace unmounts this screen after the boundary
+      // screen has mounted, and a blind reset would wipe the boundary coach.
+      return () => releaseSpotlightScreen('create');
     }
-    activation.setSpotlightScreen(null);
+    releaseSpotlightScreen('create');
     return undefined;
-  }, [activation, isActiveEdit, createScreen]);
+  }, [setSpotlightScreen, releaseSpotlightScreen, isActiveEdit, createScreen]);
 
   if (loading || (!isActiveEdit && activation != null && !activation.ready)) {
     return <LoadingSpinner fullScreen />;

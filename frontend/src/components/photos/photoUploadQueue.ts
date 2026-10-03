@@ -64,7 +64,7 @@ type UploadFn = (
   onProgress: (received: number, total: number) => void
 ) => Promise<{ result: PhotoUploadResult; uploadId: string; receivedBytes: number }>;
 
-const DB_NAME = 'oleachron-photo-uploads';
+const DB_NAME = 'The Olive Lot-photo-uploads';
 const STORE = 'jobs';
 
 const newLocalId = () =>

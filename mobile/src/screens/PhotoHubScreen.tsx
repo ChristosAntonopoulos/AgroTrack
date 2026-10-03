@@ -56,6 +56,7 @@ import { fieldLabelMap, friendlyFieldLabel } from '../utils/fieldLabels';
 import { RootStackParamList } from '../navigation/types';
 import { spacing, typography, radii } from '../theme';
 import PhotoViewer, { type PhotoViewerItem } from '../components/photos/PhotoViewer';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
 
 type LinkOwner = 'task' | 'note' | 'harvest' | 'phenology';
 type LinkTarget = { id: string; label: string };
@@ -127,6 +128,11 @@ const PhotoHubScreen: React.FC = () => {
   const [fields, setFields] = useState<Field[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [fieldId, setFieldId] = useState(params?.fieldId || '');
+
+  useRegisterCapturePage({
+    sourcePage: 'photos',
+    fieldId: fieldId || undefined,
+  });
   const [linkStatus, setLinkStatus] = useState<PhotoLinkStatus>('all');
   const [assignment, setAssignment] = useState('');
   const [reviewItems, setReviewItems] = useState<PhotoUploadResult[]>([]);

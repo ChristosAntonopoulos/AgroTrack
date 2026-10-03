@@ -25,6 +25,7 @@ import PhotoFrame from '../components/photos/PhotoFrame';
 import { resolvePublicAssetUrl } from '../config/apiConfig';
 import { getFieldService, getPhotoService } from '../services/serviceFactory';
 import { readFieldId } from '../navigation/intents';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
 import { useFeedback } from '../context/FeedbackContext';
@@ -56,6 +57,11 @@ const PhotoHubPage: React.FC = () => {
   const to = searchParams.get('to') || '';
   const sort = searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest';
   const viewingTrash = searchParams.get('view') === 'trash';
+
+  useRegisterCapturePage({
+    sourcePage: 'photos',
+    fieldId: fieldId || undefined,
+  });
 
   const [fields, setFields] = useState<Field[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);

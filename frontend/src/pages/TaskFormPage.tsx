@@ -16,6 +16,7 @@ import {
   suggestAssigneeFromProfile,
 } from '../utils/fieldWorkLearning';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
+import BackLink from '../components/Common/BackLink';
 import PageContainer from '../components/Common/PageContainer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import TaskComposer, { type ComposerPayload } from '../components/Tasks/form/TaskComposer';
@@ -252,6 +253,7 @@ const TaskFormPage: React.FC = () => {
       <Breadcrumbs />
       <div className="task-form-page">
         <header className="task-form-header">
+          <BackLink to="/tasks">{t('common:back')}</BackLink>
           <h1>
             {mode === 'proposal' ? t('fieldWork.form.scheduleTitle') : t('fieldWork.form.newTitle')}
           </h1>

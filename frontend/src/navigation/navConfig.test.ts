@@ -1,4 +1,10 @@
-import { filterNavItemsForUser, navItems } from './navConfig';
+import {
+  filterNavItemsForUser,
+  isTopLevelAppPath,
+  navItems,
+  resolveParentPath,
+  shouldHideGlobalPageTitle,
+} from './navConfig';
 
 const partnerVisible = (
   role: 'FieldOwner' | 'Producer',
@@ -27,6 +33,40 @@ describe('partners navigation', () => {
 
   it('stays available to the field admin', () => {
     expect(partnerVisible('FieldOwner', true)).toBe(true);
+  });
+});
+
+describe('top-level app chrome', () => {
+  it('treats primary module roots as top-level', () => {
+    for (const path of primaryPaths) {
+      expect(isTopLevelAppPath(path)).toBe(true);
+    }
+    expect(isTopLevelAppPath('/harvest')).toBe(true);
+    expect(isTopLevelAppPath('/partners')).toBe(true);
+    expect(isTopLevelAppPath('/settings')).toBe(true);
+  });
+
+  it('treats nested routes as not top-level', () => {
+    expect(isTopLevelAppPath('/fields/abc')).toBe(false);
+    expect(isTopLevelAppPath('/tasks/new')).toBe(false);
+    expect(isTopLevelAppPath('/partners/me')).toBe(false);
+    expect(isTopLevelAppPath('/this-harvest/review')).toBe(false);
+  });
+
+  it('always hides the global header page title', () => {
+    expect(shouldHideGlobalPageTitle('/money')).toBe(true);
+    expect(shouldHideGlobalPageTitle('/fields/abc')).toBe(true);
+  });
+
+  it('resolves fixed parents for nested routes', () => {
+    expect(resolveParentPath('/fields')).toBeNull();
+    expect(resolveParentPath('/fields/abc')).toBe('/fields');
+    expect(resolveParentPath('/fields/abc/weather')).toBe('/fields/abc');
+    expect(resolveParentPath('/fields/abc/edit')).toBe('/fields');
+    expect(resolveParentPath('/tasks/new')).toBe('/tasks');
+    expect(resolveParentPath('/partners/me')).toBe('/partners');
+    expect(resolveParentPath('/this-harvest/review')).toBe('/harvest');
+    expect(resolveParentPath('/admin/campaigns/x')).toBe('/admin/campaigns');
   });
 });
 

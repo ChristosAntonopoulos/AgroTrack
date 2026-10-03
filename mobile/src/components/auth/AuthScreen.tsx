@@ -65,14 +65,10 @@ const AuthScreen: React.FC<Props> = ({
               </View>
 
               <View style={styles.hero}>
-                <BrandLogo variant="stacked" tone="on-dark" size={isRegister ? 56 : 64} />
+                <BrandLogo variant="stacked" tone="on-dark" size={isRegister ? 108 : 124} />
               </View>
 
               <View style={styles.card}>
-                <View style={styles.brandRow}>
-                  <BrandLogo variant="mark" tone="on-light" size={24} />
-                  <Text style={styles.wordmark}>{t('login.appName')}</Text>
-                </View>
                 {eyebrow ? (
                   <View style={styles.eyebrowPill}>
                     <Text style={styles.eyebrow}>{eyebrow}</Text>
@@ -149,18 +145,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 30,
     elevation: 10,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  wordmark: {
-    ...typography.styles.label,
-    color: loginTheme.textMuted,
-    letterSpacing: 1.8,
-    fontWeight: '700',
   },
   eyebrowPill: {
     alignSelf: 'flex-start',

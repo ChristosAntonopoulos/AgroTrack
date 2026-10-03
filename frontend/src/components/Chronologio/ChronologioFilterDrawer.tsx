@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import RightDrawer from '../Common/RightDrawer';
 import Button from '../Common/Button';
-import FieldScopeSelector from './FieldScopeSelector';
 import {
   MORE_FILTER_CATEGORIES,
   PRIMARY_RAIL_CATEGORIES,
@@ -27,6 +26,9 @@ import {
   type ChronologioTypeId,
 } from '../../chronologio/categorySelection';
 import type { Field } from '../../services/fieldService';
+import { isListedGrove } from '../../utils/fieldDisplay';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { resolveFieldColor } from '../../utils/fieldColors';
 
 type Props = {
   open: boolean;
@@ -65,7 +67,7 @@ const typeLabelKey = (id: string): string => {
 };
 
 /**
- * Advanced Chronologio filters in one drawer — field, type, light/heavy year.
+ * Advanced Chronologio filters — field scope and record types.
  */
 const ChronologioFilterDrawer: React.FC<Props> = ({
   open,
@@ -84,6 +86,14 @@ const ChronologioFilterDrawer: React.FC<Props> = ({
     [hideHarvest]
   );
   const typeIds = CHRONOLOGIO_TYPE_IDS.filter((id) => !(hideHarvest && id === 'harvest'));
+  const groveOptions = useMemo(() => {
+    const listed = fields.filter(isListedGrove);
+    if (filters.fieldId && !listed.some((field) => field.id === filters.fieldId)) {
+      const selected = fields.find((field) => field.id === filters.fieldId);
+      if (selected) return [selected, ...listed];
+    }
+    return listed;
+  }, [fields, filters.fieldId]);
 
   const toggleType = (id: ChronologioTypeId | 'all') => {
     if (id === 'all') {
@@ -96,14 +106,7 @@ const ChronologioFilterDrawer: React.FC<Props> = ({
     onSetFilters({ category: chronologioTypesParam(current) });
   };
 
-  const applyPreset = (ids: ChronologioTypeId[]) => {
-    onSetFilters({ category: chronologioTypesParam(ids) });
-  };
-
-  const hasActive =
-    selectedTypes.length > 0 ||
-    Boolean(filters.fieldId) ||
-    Boolean(filters.lifecycleYear);
+  const hasActive = selectedTypes.length > 0 || Boolean(filters.fieldId);
 
   return (
     <RightDrawer
@@ -125,15 +128,36 @@ const ChronologioFilterDrawer: React.FC<Props> = ({
         </div>
       }
     >
-      {!fieldMode && fields.length > 0 ? (
-        <section className="chrono-filter-section" aria-labelledby="chrono-filter-field">
-          <h3 id="chrono-filter-field">{t('living.field')}</h3>
-          <FieldScopeSelector
-            fields={fields}
-            value={filters.fieldId}
-            onChange={(next) => onSetFilters({ fieldId: next })}
-            id="chrono-filter-field-select"
-          />
+      {!fieldMode && groveOptions.length > 0 ? (
+        <section className="chrono-filter-section" aria-label={t('allFields')}>
+          <div className="chrono-filter-type-grid" role="group">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!filters.fieldId}
+              className={`chrono-filter-type-chip${!filters.fieldId ? ' is-selected' : ''}`}
+              onClick={() => onSetFilters({ fieldId: '' })}
+            >
+              <span>{t('allFields')}</span>
+            </button>
+            {groveOptions.map((field) => {
+              const selected = filters.fieldId === field.id;
+              const color = resolveFieldColor(field.color, field.id);
+              return (
+                <button
+                  key={field.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  className={`chrono-filter-type-chip${selected ? ' is-selected' : ''}`}
+                  onClick={() => onSetFilters({ fieldId: field.id })}
+                >
+                  <span className="chrono-filter-field-dot" style={{ background: color }} aria-hidden />
+                  <span>{friendlyFieldLabel(field.name)}</span>
+                </button>
+              );
+            })}
+          </div>
         </section>
       ) : null}
 
@@ -149,20 +173,9 @@ const ChronologioFilterDrawer: React.FC<Props> = ({
             </button>
           </div>
         </div>
-        <div className="chrono-filter-presets">
-          {(
-            [
-              ['fieldWork', ['work', 'observation', 'photo']],
-              ['harvestStory', ['harvest', 'money', 'photo']],
-              ['decisions', ['observation', 'weather', 'work']],
-              ['people', ['work', 'collaborator']],
-            ] as const
-          ).map(([key, ids]) => (
-            <button key={key} type="button" onClick={() => applyPreset([...ids])}>
-              {t(`living.preset.${key}`)}
-            </button>
-          ))}
-        </div>
+        <p className="chrono-filter-type-note">
+          {t('living.typesHint', { defaultValue: 'Pick what appears in History.' })}
+        </p>
         <div className="chrono-filter-type-grid" role="group" aria-labelledby="chrono-filter-type">
           {options.map((item) => {
             const selected =
@@ -173,7 +186,7 @@ const ChronologioFilterDrawer: React.FC<Props> = ({
                 type="button"
                 role="checkbox"
                 aria-checked={selected}
-                className={`chrono-filter-type-chip chrono-category-chip--${item.id}${selected ? ' is-selected' : ''}`}
+                className={`chrono-filter-type-chip${selected ? ' is-selected' : ''}`}
                 onClick={() => toggleType(item.id === 'all' ? 'all' : (item.id as ChronologioTypeId))}
               >
                 {item.icon}
@@ -187,37 +200,6 @@ const ChronologioFilterDrawer: React.FC<Props> = ({
             ? t('living.allTypesOn')
             : t('living.typesOn', { count: selectedTypes.length, total: typeIds.length })}
         </p>
-      </section>
-
-      <section className="chrono-filter-section" aria-labelledby="chrono-filter-lifecycle">
-        <h3 id="chrono-filter-lifecycle">{t('living.lifecycleYear')}</h3>
-        <div
-          className="chrono-filter-type-grid"
-          role="radiogroup"
-          aria-labelledby="chrono-filter-lifecycle"
-        >
-          {(
-            [
-              { value: '', label: t('allSeasons') },
-              { value: 'low', label: t('seasonLow') },
-              { value: 'high', label: t('seasonHigh') },
-            ] as const
-          ).map((item) => {
-            const selected = (filters.lifecycleYear || '') === item.value;
-            return (
-              <button
-                key={item.value || 'all'}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                className={`chrono-filter-type-chip${selected ? ' is-selected' : ''}`}
-                onClick={() => onSetFilters({ lifecycleYear: item.value })}
-              >
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
       </section>
     </RightDrawer>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { motion, spacing } from '../../theme';
+import { appFonts, createElevation, motion, spacing } from '../../theme';
 
 export type ChronologioZoomTabOption<T extends string = string> = {
   value: T;
@@ -16,7 +16,8 @@ type Props<T extends string = string> = {
 };
 
 /**
- * Quiet paper-tray zoom control — Days / Months / Years (web .chrono-view-tabs).
+ * Segmented zoom control — Days / Months / Years.
+ * Selected pill sits raised on the track for clear outdoor readability.
  */
 function ChronologioZoomTabs<T extends string = string>({
   options,
@@ -24,7 +25,7 @@ function ChronologioZoomTabs<T extends string = string>({
   onChange,
   accessibilityLabel,
 }: Props<T>) {
-  const { colors, fontScaleMultiplier } = useTheme();
+  const { colors, fontScaleMultiplier, tapMin } = useTheme();
 
   return (
     <View
@@ -49,10 +50,11 @@ function ChronologioZoomTabs<T extends string = string>({
             style={({ pressed }) => [
               styles.tab,
               {
-                backgroundColor: selected ? colors.primaryLight : 'transparent',
-                borderColor: selected ? colors.oliveBorder : 'transparent',
-                opacity: pressed ? motion.pressOpacity : 1,
+                minHeight: Math.max(40, tapMin - 8),
+                backgroundColor: selected ? colors.surfaceElevated : 'transparent',
+                opacity: pressed && !selected ? motion.pressOpacity : 1,
               },
+              selected ? createElevation(colors, 'sm') : null,
             ]}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
@@ -62,8 +64,9 @@ function ChronologioZoomTabs<T extends string = string>({
                 styles.label,
                 {
                   color: selected ? colors.textPrimary : colors.textSecondary,
-                  fontSize: 14 * fontScaleMultiplier,
-                  fontWeight: selected ? '600' : '500',
+                  fontSize: 13.5 * fontScaleMultiplier,
+                  fontFamily: selected ? appFonts.bold : appFonts.semibold,
+                  fontWeight: selected ? '700' : '600',
                 },
               ]}
               numberOfLines={1}
@@ -81,29 +84,25 @@ const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    borderRadius: 14,
+    alignSelf: 'stretch',
+    borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 4,
+    padding: 3,
     gap: 2,
-    margin: spacing.sm,
-    flexGrow: 0,
-    flexShrink: 0,
   },
   tab: {
-    flexGrow: 0,
+    flexGrow: 1,
     flexShrink: 1,
-    minWidth: 88,
-    minHeight: 40,
-    paddingHorizontal: spacing.md,
+    flexBasis: 0,
+    minWidth: 0,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
   label: {
-    letterSpacing: -0.1,
+    letterSpacing: -0.15,
   },
 });
 

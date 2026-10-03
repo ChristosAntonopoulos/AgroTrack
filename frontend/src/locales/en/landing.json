@@ -1,5 +1,5 @@
 {
-  "brand": "Oleachron",
+  "brand": "The Olive Lot",
   "header": {
     "howItWorks": "How it works",
     "chronologio": "History",
@@ -20,7 +20,7 @@
   },
   "memory": {
     "title": "What you know about your grove deserves to stay.",
-    "text": "A note on the phone, a conversation in the field, an old notebook — all of it is useful until you need to find it. Oleachron keeps it with the field and its year.",
+    "text": "A note on the phone, a conversation in the field, an old notebook — all of it is useful until you need to find it. The Olive Lot keeps it with the field and its year.",
     "close": "What happened. When it happened. Why it matters.",
     "photoAlt": "An old notebook and notes, with the grove in afternoon light"
   },
@@ -156,14 +156,14 @@
   },
   "cta": {
     "title": "Don’t let another year stay on scraps of paper.",
-    "text": "Start your grove on Oleachron and keep what matters, from today.",
+    "text": "Start your grove on The Olive Lot and keep what matters, from today.",
     "primary": "Start with your first field free"
   },
   "alpha": {
     "androidTestTitle": "Android trial (advanced)",
     "download": "Download the Android trial APK",
     "downloadHint": "Optional install. Most people start on the web.",
-    "safetyWhy": "This build is signed and hosted only on oleachron.com. Android will warn about an unknown source — that is normal before the Play Store.",
+    "safetyWhy": "This build is signed and hosted only on The Olive Lot.com. Android will warn about an unknown source — that is normal before the Play Store.",
     "version": "Version",
     "versionValue": "0.1.0-alpha",
     "released": "Date",
@@ -174,10 +174,10 @@
       "Download the file on your Android phone.",
       "Open the file.",
       "Allow installs from this source if asked.",
-      "Open Oleachron.",
+      "Open The Olive Lot.",
       "Create an account or sign in."
     ],
-    "safety": "Install only from oleachron.com."
+    "safety": "Install only from The Olive Lot.com."
   },
   "footer": {
     "description": "The digital archive of your olive grove.",

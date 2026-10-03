@@ -26,6 +26,7 @@ import {
   type TaskPageView,
 } from '../utils/taskViewState';
 import { readFieldId } from '../navigation/intents';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -71,6 +72,11 @@ const TasksPage: React.FC = () => {
   const assigneeFilter = parseTaskAssigneeId(searchParams.get('assignee'));
   const createdId = searchParams.get('created') || '';
   const selectedTaskId = searchParams.get('task') || '';
+
+  useRegisterCapturePage({
+    sourcePage: 'tasks',
+    fieldId: fieldFilter || undefined,
+  });
 
   const [proposals, setProposals] = useState<TaskProposal[]>([]);
   const [tasks, setTasks] = useState<FieldTask[]>([]);
@@ -130,7 +136,7 @@ const TasksPage: React.FC = () => {
       setWorkSetup(null);
       return;
     }
-    const dismissKey = `oleachron.workSetupBanner.dismissed.${fieldFilter}`;
+    const dismissKey = `The Olive Lot.workSetupBanner.dismissed.${fieldFilter}`;
     if (localStorage.getItem(dismissKey) === '1') {
       setWorkSetup(null);
       return;
@@ -620,7 +626,7 @@ const TasksPage: React.FC = () => {
             fieldId={fieldFilter}
             resume={workSetup.resume}
             onDismiss={() => {
-              localStorage.setItem(`oleachron.workSetupBanner.dismissed.${fieldFilter}`, '1');
+              localStorage.setItem(`The Olive Lot.workSetupBanner.dismissed.${fieldFilter}`, '1');
               setWorkSetup(null);
             }}
           />

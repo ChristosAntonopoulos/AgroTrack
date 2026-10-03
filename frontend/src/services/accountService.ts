@@ -254,9 +254,9 @@ export const downloadAccountExport = (data: AccountExport) => {
 };
 
 export const supportMailto = (user: AccountUser) => {
-  const subject = encodeURIComponent('OLEACHRON account request');
+  const subject = encodeURIComponent('The Olive Lot account request');
   const body = encodeURIComponent(
-    `Please help with my OLEACHRON account.\n\nRequest: correction / full export / deletion confirmation\nUser ID: ${user.userId}\nEmail: ${user.email}\n`
+    `Please help with my The Olive Lot account.\n\nRequest: correction / full export / deletion confirmation\nUser ID: ${user.userId}\nEmail: ${user.email}\n`
   );
   return `mailto:${LANDING_SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
 };

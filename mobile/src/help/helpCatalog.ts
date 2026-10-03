@@ -62,8 +62,8 @@ export const HELP_TOPICS: HelpTopic[] = [
   },
   {
     id: 'myOil',
-    icon: 'water-outline',
-    searchTags: ['oil', 'tins', 'stock', 'λάδι', 'τενεκέδες'],
+    icon: 'cube-outline',
+    searchTags: ['oil', 'tins', 'stock', 'λάδι', 'τενεκέδες', 'αποθήκη', 'storage'],
   },
   {
     id: 'money',

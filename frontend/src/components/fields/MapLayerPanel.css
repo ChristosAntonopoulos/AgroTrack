@@ -148,9 +148,19 @@
   .map-look-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+  }
+
+  .map-look-option {
+    min-height: 2.75rem;
+    align-content: center;
+  }
+
+  .map-look-option-why {
+    display: none;
   }
 
   .map-look-option.is-selected {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 }

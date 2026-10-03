@@ -33,6 +33,7 @@ import MoneyTransactionDrawer from '../components/money/MoneyTransactionDrawer';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
 import {
   getFieldService,
   getFieldWorkService,
@@ -60,7 +61,7 @@ import {
 } from '../finance/harvestYear';
 import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import type { RootStackParamList } from '../navigation/types';
-import { createElevation, radii, spacing, typography } from '../theme';
+import { appFonts, createElevation, radii, spacing, typography } from '../theme';
 
 const PAGE_SIZE = 20;
 
@@ -86,6 +87,11 @@ const MoneyScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [fieldId, setFieldId] = useState(routeFieldId);
+
+  useRegisterCapturePage({
+    sourcePage: 'money',
+    fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined,
+  });
   const [year, setYear] = useState(
     typeof routeYear === 'number' && Number.isFinite(routeYear)
       ? routeYear
@@ -271,6 +277,7 @@ const MoneyScreen = () => {
       capture?.openCapture({
         preferredType,
         fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined,
+        sourcePage: 'money',
       });
     },
     [capture, fieldId]
@@ -320,17 +327,10 @@ const MoneyScreen = () => {
             accessibilityLabel={exporting ? t('money:exporting') : t('money:export')}
             onPress={() => void exportLedger()}
           />
-          {capture ? (
-            <HeaderIconButton
-              icon="add"
-              accessibilityLabel={t('capture:money.ctaPlus')}
-              onPress={() => openCapture('money')}
-            />
-          ) : null}
         </View>
       ),
     });
-  }, [navigation, capture, openCapture, exportLedger, exporting, t]);
+  }, [navigation, exportLedger, exporting, t]);
 
   const loadOlder = async () => {
     if (loadingMore || transactions.length >= totalCount) return;
@@ -776,7 +776,12 @@ const styles = StyleSheet.create({
   sectionLabel: {
     ...typography.styles.overline,
   },
-  entriesTitle: { fontWeight: '700', letterSpacing: -0.3, marginTop: spacing.sm },
+  entriesTitle: {
+    fontFamily: appFonts.bold,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    marginTop: spacing.sm,
+  },
   monthGroup: { gap: spacing.sm },
   monthHeading: {
     ...typography.styles.overline,

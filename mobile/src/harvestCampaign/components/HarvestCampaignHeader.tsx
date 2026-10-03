@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { appFonts, radii, spacing } from '../../theme';
+import { appFonts, spacing } from '../../theme';
 
 type Props = {
   title: string;
@@ -12,7 +12,7 @@ type Props = {
 };
 
 /**
- * Compact harvest chrome: calm title + season chip, crisp status on the right.
+ * Harvest chrome — same title row as Χρήματα: one calm title, trailing status.
  */
 export function HarvestCampaignHeader({
   title,
@@ -23,6 +23,7 @@ export function HarvestCampaignHeader({
 }: Props) {
   const { colors, fontScaleMultiplier: scale } = useTheme();
   const paused = statusTone === 'paused';
+  const titleSize = 20 * scale;
 
   return (
     <View style={styles.root}>
@@ -33,8 +34,8 @@ export function HarvestCampaignHeader({
               styles.title,
               {
                 color: colors.textPrimary,
-                fontSize: 22 * scale,
-                lineHeight: 26 * scale,
+                fontSize: titleSize,
+                lineHeight: titleSize * 1.15,
               },
             ]}
             numberOfLines={1}
@@ -42,39 +43,23 @@ export function HarvestCampaignHeader({
           >
             {title}
           </Text>
-          <View
+          <Text
             style={[
-              styles.seasonChip,
+              styles.season,
               {
-                backgroundColor: colors.primaryLight,
+                color: colors.textSecondary,
+                fontSize: 14 * scale,
               },
             ]}
+            numberOfLines={1}
             accessibilityLabel={season}
           >
-            <Text
-              style={[
-                styles.seasonText,
-                {
-                  color: colors.primaryDark,
-                  fontSize: 12 * scale,
-                },
-              ]}
-              numberOfLines={1}
-            >
-              {season}
-            </Text>
-          </View>
+            {season}
+          </Text>
         </View>
 
         {statusLabel ? (
-          <View
-            style={[
-              styles.statusPill,
-              {
-                backgroundColor: paused ? colors.warningLight : colors.successLight,
-              },
-            ]}
-          >
+          <View style={styles.status}>
             <View
               style={[
                 styles.statusDot,
@@ -104,46 +89,39 @@ export function HarvestCampaignHeader({
 
 const styles = StyleSheet.create({
   root: {
-    paddingTop: 2,
-    paddingBottom: spacing.sm,
-    gap: spacing.sm,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.base,
+    gap: spacing.xs,
   },
   topRow: {
+    minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.sm,
   },
   lead: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
+    alignItems: 'baseline',
     gap: 8,
     minWidth: 0,
   },
   title: {
+    flexShrink: 1,
     fontFamily: appFonts.bold,
     fontWeight: '700',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
-  seasonChip: {
-    borderRadius: radii.full,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  season: {
+    fontFamily: appFonts.semibold,
+    fontWeight: '600',
+    letterSpacing: -0.1,
   },
-  seasonText: {
-    fontFamily: appFonts.bold,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  statusPill: {
+  status: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    borderRadius: radii.full,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
     flexShrink: 0,
   },
   statusDot: {
@@ -152,12 +130,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   statusText: {
-    fontFamily: appFonts.bold,
-    fontWeight: '800',
-    letterSpacing: 0.1,
+    fontFamily: appFonts.semibold,
+    fontWeight: '600',
   },
   context: {
-    gap: spacing.sm,
+    gap: 0,
   },
 });
 

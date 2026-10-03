@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ViewStyle } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { typography, spacing, radii, motion } from '../../theme';
+import { typography, spacing, radii, motion, createElevation } from '../../theme';
 
 export type SegmentedOption<T extends string = string> = {
   value: T;
   label: string;
+  icon?: React.ReactNode;
   disabled?: boolean;
 };
 
@@ -35,13 +36,13 @@ function SegmentedControl<T extends string = string>({
   compact = false,
   quiet = false,
 }: SegmentedControlProps<T>) {
-  const { colors, tapMin, fontScaleMultiplier } = useTheme();
+  const { colors, fontScaleMultiplier } = useTheme();
   const trackBg = colors.surfaceMuted;
-  const selectedBg = tone === 'olive' ? colors.primaryLight : colors.surface;
-  const selectedText = colors.primary;
+  const selectedBg = tone === 'olive' ? colors.surface : colors.surfaceElevated;
+  const selectedText = tone === 'olive' ? colors.primary : colors.textPrimary;
   const safeOptions = Array.isArray(options) ? options : [];
-  const trackMin = quiet ? 46 : compact ? 36 : Math.max(44, tapMin * 0.9);
-  const segmentMin = quiet ? 38 : compact ? 30 : Math.max(36, tapMin * 0.75);
+  const trackMin = quiet ? 40 : compact ? 36 : 40;
+  const segmentMin = quiet ? 34 : compact ? 30 : 34;
 
   return (
     <View
@@ -51,8 +52,8 @@ function SegmentedControl<T extends string = string>({
           backgroundColor: trackBg,
           borderColor: colors.borderLight,
           minHeight: trackMin,
-          padding: quiet || compact ? 2 : 3,
-          borderRadius: quiet ? 12 : undefined,
+          padding: 3,
+          borderRadius: quiet || compact ? 12 : 14,
         },
         fullWidth && styles.fullWidth,
         style,
@@ -60,8 +61,13 @@ function SegmentedControl<T extends string = string>({
       accessibilityRole="tablist"
       accessibilityLabel={ariaLabel}
     >
-      {safeOptions.map(opt => {
+      {safeOptions.map((opt) => {
         const selected = opt.value === value;
+        const labelColor = selected
+          ? selectedText
+          : quiet
+            ? colors.textTertiary
+            : colors.textSecondary;
         return (
           <Pressable
             key={String(opt.value)}
@@ -74,29 +80,35 @@ function SegmentedControl<T extends string = string>({
               compact && styles.segmentCompact,
               {
                 minHeight: segmentMin,
-                borderRadius: quiet ? 8 : undefined,
+                borderRadius: quiet || compact ? 9 : 11,
                 opacity: opt.disabled ? 0.45 : pressed ? motion.pressOpacity : 1,
                 backgroundColor: selected ? selectedBg : 'transparent',
-                borderColor: 'transparent',
+                borderWidth: selected ? StyleSheet.hairlineWidth : 0,
+                borderColor: selected ? colors.oliveBorder : 'transparent',
                 flex: fullWidth ? 1 : undefined,
+                ...(selected ? createElevation(colors, 'sm') : null),
               },
             ]}
             accessibilityRole="tab"
             accessibilityState={{ selected, disabled: !!opt.disabled }}
+            accessibilityLabel={opt.label}
           >
-            <Text
-              style={[
-                styles.label,
-                {
-                  color: selected ? selectedText : quiet ? colors.textTertiary : colors.textSecondary,
-                  fontSize: (quiet ? 13 : compact ? 12 : 13) * fontScaleMultiplier,
-                  fontWeight: selected ? '600' : '500',
-                },
-              ]}
-              numberOfLines={1}
-            >
-              {opt.label}
-            </Text>
+            <View style={styles.segmentInner}>
+              {opt.icon ? <View style={styles.iconSlot}>{opt.icon}</View> : null}
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    color: labelColor,
+                    fontSize: (quiet || compact ? 12 : 13) * fontScaleMultiplier,
+                    fontWeight: selected ? '700' : '500',
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {opt.label}
+              </Text>
+            </View>
           </Pressable>
         );
       })}
@@ -110,7 +122,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: radii.control ?? 14,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 3,
     gap: 2,
     alignSelf: 'flex-start',
   },
@@ -119,9 +130,8 @@ const styles = StyleSheet.create({
   },
   segment: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: 6,
     borderRadius: 11,
-    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -129,6 +139,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: 9,
+  },
+  segmentInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  iconSlot: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   label: {
     ...typography.styles.caption,

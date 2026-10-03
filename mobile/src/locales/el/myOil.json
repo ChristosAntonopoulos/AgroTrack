@@ -1,6 +1,6 @@
 {
-  "title": "Η αποθήκη σου",
-  "pageSupport": "Η αποθήκη σου — όχι του ελαιώνα.",
+  "title": "Αποθήκη",
+  "pageSupport": "",
   "seasonLabel": "Συγκομιδή {{season}}",
   "seasonHint": "",
   "activity": {
@@ -25,8 +25,18 @@
     "movements": "Κινήσεις"
   },
   "byGrove": {
-    "title": "Ανά κτήμα",
-    "hint": "Από πού ήρθε το λάδι",
+    "title": "Ράφια",
+    "hint": "Ανά κτήμα — πάτα για γέμισμα",
+    "organize": "Το λάδι ανά κτήμα.",
+    "sharedTitle": "Κοινό",
+    "groveCount_one": "{{count}} κτήμα",
+    "groveCount_other": "{{count}} κτήματα",
+    "seeAll": "Προβολή όλων των ραφιών",
+    "totalLine": "{{amount}} L συνολικά",
+    "packBulk": "Χύμα",
+    "pack16": "Τενεκέδες 16L",
+    "pack17": "Τενεκέδες 17L",
+    "pieces": "{{count}} τεμ. ({{litres}} L)",
     "shared": "Κοινό · {{names}}",
     "unassigned": "Χωρίς κτήμα",
     "noneFree": "Τίποτα ελεύθερο",
@@ -43,8 +53,8 @@
     "history": "Ιστορικό →"
   },
   "shareInbox": {
-    "title": "Ζητούν λάδι από την αποθήκη σου",
-    "hint": "Αποδοχή = μπαίνει στην αποθήκη τους",
+    "title": "Ζητούν λάδι",
+    "hint": "Αποδοχή = πάει στη δική τους αποθήκη.",
     "someone": "Κάποιος",
     "asking": "Ζητά λάδι",
     "accept": "Αποδοχή",
@@ -59,8 +69,8 @@
     "household": "Για το σπίτι",
     "householdEmpty": "—",
     "availableHint": "",
-    "forOthers": "Κρατήσεις",
-    "holds": "Κρατήσεις",
+    "forOthers": "Εκκρεμή",
+    "holds": "Κρατημένο",
     "holdsEmpty": "Καμία",
     "pendingCount_one": "{{count}} σε αναμονή",
     "pendingCount_other": "{{count}} σε αναμονή",
@@ -77,25 +87,49 @@
     "bulkOnly": "{{amount}} L χύμα",
     "empty": "Άδεια αποθήκη",
     "zero": "0",
-    "actionsHint": ""
+    "actionsHint": "",
+    "onHandLabel": "Στην αποθήκη",
+    "totalInCellar": "Συνολικά στην αποθήκη",
+    "ringTotal": "Σύνολο",
+    "sliceFree": "Ελεύθερα",
+    "sliceHeld": "Κρατημένα",
+    "sliceAwaiting": "Σε αναμονή",
+    "sliceSold": "Πουλημένα",
+    "soldThisYear": "Πωλημένα φέτος",
+    "given": "Δοσμένα",
+    "formTitle": "Μορφή",
+    "formBulk": "Χύμα",
+    "form16": "16L",
+    "form17": "17L",
+    "formTins": "Σύνολο",
+    "pieces_one": "{{count}} τεμ.",
+    "pieces_other": "{{count}} τεμ.",
+    "moneyTitle": "Χρήματα",
+    "revenue": "Έσοδα",
+    "unpaid": "Απλήρωτα",
+    "freeOfTotal": "{{amount}} L ελεύθερα",
+    "freeHeldLine": "{{free}} L ελεύθερα · {{held}} L κρατημένα"
   },
   "actions": {
-    "give": "Δώσε / Πούλησε",
+    "give": "Δώσε",
+    "verbGive": "Δώσε",
     "hold": "Κράτησε",
+    "fillVerb": "Γέμισε τενεκέδες",
     "fillTins": "Γέμισα τενεκέδες",
     "more": "Άλλες ενέργειες",
-    "menuTitle": "Τι θέλεις να κάνεις;",
+    "menuTitle": "Άλλες ενέργειες",
     "correct": "Διόρθωση",
     "homeUse": "Για το σπίτι",
     "loss": "Απώλεια",
     "sell": "Πούλησε",
-    "count": "Μέτρηση αποθέματος",
+    "count": "Μέτρηση",
     "delivered": "Δόθηκαν",
-    "cancelHold": "Ακύρωση"
+    "cancelHold": "Ακύρωση",
+    "fillTinsShort": "Τενεκέδες"
   },
   "pendingPressings": {
-    "title": "Περιμένει κατανομή",
-    "hint": "Λάδι από το λιοτρίβι χωρίς αποθήκη. Μοίρασέ το.",
+    "title": "Μοίρασε από το λιοτρίβι",
+    "hint": "Λάδι χωρίς αποθήκη ακόμα.",
     "batch": "Παρτίδα {{batch}}",
     "you": "Εσύ",
     "left": "Μένουν {{amount}} L",
@@ -115,7 +149,7 @@
     "available": "διαθέσιμα"
   },
   "needsNow": {
-    "title": "Χρειάζεται προσοχή",
+    "title": "Να δοθούν",
     "intro": "",
     "emptyTitle": "Όλα τακτοποιημένα",
     "emptyBody": "",
@@ -178,7 +212,10 @@
   "commitments": {
     "filters": {
       "all": "Όλα",
+      "waiting": "Περιμένουν",
+      "unpaid": "Απλήρωτα",
       "held": "Κρατημένα",
+      "sold": "Πουλημένα",
       "pending": "Σε αναμονή",
       "delivered": "Παραδόθηκαν"
     },
@@ -251,6 +288,9 @@
     "emptyBody": ""
   },
   "timeline": {
+    "today": "Σήμερα",
+    "yesterday": "Χθες",
+    "thisWeek": "Αυτή την εβδομάδα",
     "produced": "Παραγωγή",
     "filledTins": "Γέμισμα τενεκέδων",
     "held": "Κράτηση",
@@ -282,7 +322,7 @@
     "save": "Καταχώρηση",
     "defaultReason": "Μέτρηση αποθέματος"
   },
-  "markDelivered": "Παραδόθηκαν",
+  "markDelivered": "Παράδωσε",
   "theyTookIt": "Το πήρε",
   "deliverAllPrompt": "Τα πήρε όλα;",
   "deliverAll": "Ναι, και τα {{count}}",
@@ -293,6 +333,15 @@
     "title": "Δώσε ή πούλησε",
     "subtitle": "",
     "who": "Σε ποιον;",
+    "inside": "Στην εφαρμογή",
+    "insideHint": "Χρήστες του ελαιώνα",
+    "insideEmpty": "Δεν υπάρχει άλλος χρήστης.",
+    "outside": "Έξω από την εφαρμογή",
+    "outsideHint": "Γράψε όνομα ή διάλεξε από το τηλέφωνο",
+    "outsidePlaceholder": "Όνομα",
+    "importContact": "Επαφές τηλεφώνου",
+    "savedContact": "Αποθηκεύτηκε στις επαφές",
+    "yourContacts": "Οι επαφές σου",
     "forSomeone": "Κάποιον",
     "forHome": "Σπίτι",
     "noName": "Χωρίς όνομα",
@@ -363,9 +412,9 @@
   "repack": "Γέμισα τενεκέδες",
   "repackHint": "Το χύμα του χωραφιού γίνεται τενεκέδες.",
   "adjust": "Διόρθωση / δώρο / σπίτι",
-  "empty": "Δεν έχει καταγραφεί ακόμα λάδι στην αποθήκη σου.",
-  "emptyHint": "Όταν μπει λάδι στην αποθήκη σου από τη συγκομιδή, θα το δεις εδώ.",
-  "emptyCta": "Καταχώρισε λάδι",
+  "empty": "Η αποθήκη είναι άδεια",
+  "emptyHint": "Το λάδι μπαίνει εδώ από τη συγκομιδή.",
+  "emptyCta": "Άνοιξε συγκομιδή",
   "loading": "Φόρτωση…",
   "error": "Δεν φορτώθηκε το λάδι. Δοκίμασε ξανά.",
   "seeMyOil": "Δες την αποθήκη",
@@ -396,5 +445,26 @@
     "correction": "Διόρθωση (+)",
     "returned": "Επιστροφή (+)",
     "save": "Καταχώρηση"
+  },
+  "where": {
+    "title": "Πού πήγε το λάδι;",
+    "waiting": "Σε αναμονή",
+    "delivered": "Παραδόθηκαν",
+    "paid": "Πληρωμένα",
+    "waitingPill": "Περιμένει παράδοση"
+  },
+  "attention": {
+    "title": "Θέλει προσοχή",
+    "door": "Θέλει προσοχή",
+    "doorDetail": "{{count}} εκκρεμότητες"
+  },
+  "doors": {
+    "shelves": "Ράφια",
+    "shelvesDetail": "{{count}} κτήματα",
+    "waiting": "Εκκρεμή",
+    "waitingDetail": "{{count}} ανοιχτά",
+    "waitingEmpty": "Τίποτα σε αναμονή",
+    "activity": "Κινήσεις",
+    "activityDetail": "Τι μπήκε και τι βγήκε"
   }
 }

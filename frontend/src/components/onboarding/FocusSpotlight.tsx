@@ -14,7 +14,7 @@ type Props = {
 
 type Rect = { top: number; left: number; width: number; height: number };
 
-type BoundaryFocus = 'search' | 'map';
+type BoundaryFocus = 'search' | 'map' | 'save';
 
 const PAD = 8;
 
@@ -48,6 +48,8 @@ const readBoundaryFocus = (): BoundaryFocus => {
   const root = document.querySelector('[data-onboarding-boundary-phase]');
   const phase = root?.getAttribute('data-onboarding-boundary-phase');
   const located = root?.getAttribute('data-onboarding-located') === 'true';
+  // Shape is closed — the only thing left is saving it, so the cue must not say "tap corners" again.
+  if (phase === 'done') return 'save';
   if (phase === 'locate' && !located) return 'search';
   if (!located && phase !== 'drawing' && phase !== 'done') return 'search';
   return 'map';
@@ -75,7 +77,10 @@ const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
     const primary =
       focus === 'search'
         ? queryRect(`[data-onboarding-target="${ONBOARDING_TARGETS.boundarySearch}"]`)
-        : queryRect(`[data-onboarding-target="${ONBOARDING_TARGETS.boundaryMap}"]`);
+        : focus === 'save'
+          ? queryRect(`[data-onboarding-target="${ONBOARDING_TARGETS.boundarySave}"]`) ??
+            queryRect(`[data-onboarding-target="${ONBOARDING_TARGETS.boundaryMap}"]`)
+          : queryRect(`[data-onboarding-target="${ONBOARDING_TARGETS.boundaryMap}"]`);
     if (!primary) {
       setRect(null);
       return;
@@ -137,11 +142,21 @@ const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
     return () => window.removeEventListener('keydown', onKey);
   }, [onSkip]);
 
+  // Target not laid out yet (map stage mounting after the name step): poll fast so the cue
+  // lands with the page instead of up to a second later.
+  const waitingForTarget = rect === null;
+  useEffect(() => {
+    if (!waitingForTarget) return undefined;
+    const id = window.setInterval(measure, 120);
+    return () => window.clearInterval(id);
+  }, [waitingForTarget, step]);
+
   if (!rect) return null;
 
   const journeyId: OnboardingJourneyId =
     step === 'createGrove' ? 'createGrove' : boundaryFocus === 'search' ? 'locatePlace' : 'drawBoundary';
-  const cueKey = journeyId === 'createGrove' ? 'createGrove' : journeyId;
+  const cueKey =
+    step === 'drawBoundary' && boundaryFocus === 'save' ? 'saveBoundary' : journeyId;
   const label = t(`spotlight.${cueKey}.cue`);
   const cardWidth = Math.min(352, window.innerWidth - 32);
   const cardLeft = Math.min(Math.max(16, rect.left), window.innerWidth - cardWidth - 16);

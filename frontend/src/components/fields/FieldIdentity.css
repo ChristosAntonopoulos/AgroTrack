@@ -60,16 +60,36 @@
   padding: 0.08rem 0.45rem;
 }
 
-.field-identity--page .field-identity-name {
-  font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+.field-identity--page .field-identity-title {
+  align-items: stretch;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.85rem 1rem 0.85rem 0;
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  overflow: hidden;
 }
 
 .field-identity--page .field-identity-swatch {
-  width: 1.05rem;
-  height: 1.05rem;
-  box-shadow:
-    0 0 0 3px var(--surface-1),
-    0 0 0 6px var(--field-accent-soft);
+  width: 0.4rem;
+  height: auto;
+  min-height: 2.75rem;
+  align-self: stretch;
+  border-radius: 0 3px 3px 0;
+  box-shadow: none;
+}
+
+.field-identity--page .field-identity-name {
+  font-size: clamp(1.45rem, 3vw, 1.85rem);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  padding-right: 0.25rem;
+}
+
+.field-identity--page .field-identity-chips {
+  margin-left: 0;
+  margin-top: 0.65rem;
 }
 
 .field-identity-place {
@@ -79,11 +99,6 @@
   line-height: 1.35;
 }
 
-.field-identity--page .field-identity-place {
-  font-size: 0.9rem;
-  margin: 0.3rem 0 0 1.5rem;
-}
-
 .field-identity-chips {
   display: flex;
   flex-wrap: wrap;
@@ -91,10 +106,6 @@
   margin: 0.35rem 0 0 1.45rem;
   padding: 0;
   list-style: none;
-}
-
-.field-identity--page .field-identity-chips {
-  margin-left: 1.5rem;
 }
 
 .field-identity-chip {

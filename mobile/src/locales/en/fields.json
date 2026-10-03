@@ -16,6 +16,7 @@
   "openMapsDirections": "Open maps / Directions",
   "fieldLabel": "Olive grove",
   "addFieldLabel": "Add field",
+  "addFieldShort": "New",
   "addFieldCta": "Add field",
   "editField": "Edit field",
   "editMapBoundary": "Edit boundary on map",
@@ -92,7 +93,7 @@
     "inviteAcceptedBody": "The shared field is ready. You do not need to create a new field.",
     "openField": "Open field",
     "inviteSignIn": "Sign in",
-    "inviteExistingAccountHint": "You already have an Oleachron account for this email. Sign in to accept.",
+    "inviteExistingAccountHint": "You already have an Olive Lot account for this email. Sign in to accept.",
     "pendingInvitesTitle_one": "You have an invitation waiting",
     "pendingInvitesTitle_other": "You have {{count}} invitations waiting",
     "pendingInvitesTitle": "You have {{count}} invitation(s) waiting",
@@ -110,7 +111,7 @@
     "acceptInvite": "Accept invitation",
     "inviteMissing": "This invite was not found.",
     "inviteAcceptFailed": "Could not accept this invite.",
-    "inviteSentExisting": "They already use Oleachron — notified in the app and by email.",
+    "inviteSentExisting": "They already use The Olive Lot — notified in the app and by email.",
     "inviteSentNew": "Invite email sent. They can register with the link or code."
   },
   "weatherLocation": "Weather & location",
@@ -136,7 +137,11 @@
     "title": "Your first grove is almost ready",
     "body": "“{{name}}” has a name. Without a place and a boundary, area, weather and Chronologio stay closed.",
     "continuePlace": "Continue the place",
-    "viewGrove": "View the grove"
+    "viewGrove": "View the grove",
+    "banner": "“{{name}}” still needs a boundary",
+    "bannerBasics": "“{{name}}” still needs a name",
+    "bannerDetails": "“{{name}}” still needs details",
+    "continueShort": "Continue"
   },
   "sortLabel": "Sort fields",
   "sortName": "Name",
@@ -156,8 +161,10 @@
   },
   "page": {
     "tabsAria": "Field sections",
+    "tabField": "Grove",
     "tabVegetation": "Vegetation",
     "tabWeather": "Weather",
+    "tabWeatherVegetation": "Weather & vegetation",
     "mapData": "Map",
     "mapDataFull": "Map & environment",
     "details": "Details",
@@ -170,7 +177,31 @@
     "editField": "Edit field",
     "manageAccess": "Manage access",
     "draftField": "Draft field",
-    "documents": "Documents"
+    "documents": "Documents",
+    "harvest": {
+      "title": "Harvest",
+      "empty": "No harvest recorded for this grove yet.",
+      "emptyAction": "Record harvest",
+      "sacksCount": "{{count}} sacks",
+      "kgCount": "{{count}} kg",
+      "oilCount": "{{count}} L",
+      "oilKgCount": "{{count}} kg oil",
+      "recorded": "{{count}} records"
+    },
+    "nextTasks": {
+      "title": "Next tasks",
+      "seeAll": "All",
+      "empty": "No scheduled task."
+    },
+    "shortcuts": {
+      "history": "History",
+      "historyDetail": "Records for this grove",
+      "people": "People",
+      "peopleDetail": "People with access to this grove",
+      "myOil": "Warehouse",
+      "myOilDetail": "Oil from this grove",
+      "editDetail": "Name, variety, and settings"
+    }
   },
   "mapWorkspace": {
     "openTab": "Open map"
@@ -255,7 +286,7 @@
     },
     "sources": {
       "title": "Data sources",
-      "oleachron": "Oleachron record",
+      "oleachron": "The Olive Lot record",
       "fieldRecord": "Grove details",
       "regional": "Regional estimate — not a soil sample from this grove",
       "introApi": "Land, soil and greenness come from public maps over the drawn boundary. Trees and irrigation come from the grove details."
@@ -352,7 +383,7 @@
     "todayTasks_zero": "No tasks today",
     "todayTasksLoading": "Loading…",
     "open": "Open →",
-    "continueSetup": "Continue setup →",
+    "continueSetup": "Continue setup",
     "irrigationYes": "Yes",
     "metaAria": "Field details"
   },
@@ -365,16 +396,16 @@
   "mapEmptyTitle": "No fields to show on the map",
   "mapEmptyDescription": "Add a field boundary on the map or set GPS coordinates to see fields here.",
   "mapUnavailable": "Map view is not available on this device.",
-  "mapRequiresNativeBuild": "Maps need a custom app build — not Expo Go. Run npx expo run:android locally, or install the Oleachron APK from the pipeline.",
+  "mapRequiresNativeBuild": "Maps need a custom app build — not Expo Go. Run npx expo run:android locally, or install the The Olive Lot APK from the pipeline.",
   "mapLocationHint": "Location enabled",
   "mapLayerSatellite": "Satellite",
   "mapLayerStreet": "Street",
   "mapLayers": {
     "title": "Map pictures",
     "baseLayer": "Map style",
-    "dataOverlay": "What to show on the map",
+    "dataOverlay": "Pictures on the map",
     "overlayHint": "Tap a picture to show it on the map.",
-    "none": "Map only",
+    "none": "Map",
     "opacity": "How strong the picture is",
     "noOverlays": "No map pictures are ready yet.",
     "unavailable": "No photo for this picture yet.",
@@ -383,24 +414,24 @@
     "dateUsable": "{{cloud}}% cloud over grove · {{usable}}% usable",
     "dateUnusable": "Too cloudy to use ({{cloud}}% cloud)",
     "names": {
-      "truecolor": "Photo from space",
-      "ndvi": "Tree greenness",
-      "ndvi-change": "What changed",
-      "ndmi": "Leaf moisture",
-      "ndre": "Leaf colour",
-      "ndwi": "Standing water",
-      "savi": "Greenness on bare soil",
-      "land-cover": "What's on the ground",
-      "cadastre": "Hellenic Cadastre"
+      "truecolor": "Photo",
+      "ndvi": "Greenness",
+      "ndvi-change": "Change",
+      "ndmi": "Moisture",
+      "ndre": "Colour",
+      "ndwi": "Water",
+      "savi": "Soil green",
+      "land-cover": "Ground",
+      "cadastre": "Cadastre"
     },
     "notes": {
-      "ndvi": "How green the trees look from space. Compare this grove with its own earlier photos.",
+      "ndvi": "How green the trees look from space.",
       "ndvi-change": "Difference from the last clear satellite photo.",
-      "ndmi": "Moisture in the leaves, not water deep in the soil.",
+      "ndmi": "Moisture in the leaves.",
       "ndre": "Leaf colour in thick canopy.",
-      "ndwi": "Highlights puddles and very wet ground.",
-      "savi": "Greenness that ignores bare soil, helpful in young or widely spaced groves.",
-      "land-cover": "A 2021 map of what covered the ground. Newer planting will not show yet."
+      "ndwi": "Puddles and very wet ground.",
+      "savi": "Greenness that ignores bare soil.",
+      "land-cover": "What covered the ground (2021)."
     }
   },
   "intelligence": {
@@ -547,8 +578,28 @@
     "locationSearching": "Searching the map…",
     "locationNotFound": "We could not find that place. The map shows Greece — zoom to your grove.",
     "boundaryDescFriendly": "Find your grove on the map, then tap each corner — like pinning the edges with your finger.",
+    "boundarySheet": {
+      "locate": "Find the grove, then mark its corners.",
+      "corners": "{{count}} of 3 corners",
+      "ready": "Close the shape when it looks right.",
+      "saved": "The shape is ready."
+    },
+    "boundaryValidation": {
+      "invalidCoordinates": "Those corners are not valid map coordinates. Redraw the boundary.",
+      "nullIsland": "The shape landed near 0°,0° — that is not a real grove. Search for the place and redraw.",
+      "swappedLatLng": "Latitude and longitude look swapped. Redraw the corners on the map.",
+      "tooFewPoints": "Mark at least 3 corners to finish the shape.",
+      "selfIntersect": "The boundary crosses itself. Adjust the corners.",
+      "tooSmall": "This area is too small for a field. Zoom in and draw again.",
+      "tooLarge": "This area is impossibly large for an olive grove. Zoom closer and redraw.",
+      "excessiveSpan": "Corners are too far apart. Make sure you drew a single grove.",
+      "zoomTooLow": "Zoom in closer to start drawing.",
+      "warnLarge": "This area looks large for a typical olive grove. Double-check before continuing."
+    },
     "boundaryCoachLocate": "First, find your grove. Zoom in or tap “My location”.",
-    "boundaryCoachFound": "The grove is on the map. Now place 3–6 points around its edge.",
+    "boundaryCoachFound": "Your grove is on the map. Zoom in, then tap around its edge.",
+    "boundaryCoachZoomIn": "Zoom in closer to your grove",
+    "boundaryCoachZoomInHint": "Then tap 3–6 points around its boundary.",
     "boundaryAreaExplained": "We measured about {{area}} from the outline you drew.",
     "continueToChronologio": "Continue to History",
     "boundaryCoachFirst": "Tap the first corner of your grove on the map.",
@@ -1021,6 +1072,7 @@
       "storedTins": "Tins",
       "storedTinsDetail": "Count the tins",
       "tinTypeTitle": "Which tin size?",
+      "tapTinAdd": "Tap a size — each tap adds 1 tin. Adjust the count below.",
       "tinTypeHint": "Pick 16 L or 17 L (or both).",
       "tinCountHint": "Add how many tins.",
       "packTotal": "Totals",
@@ -1047,9 +1099,9 @@
       "yieldLine": "{{olives}} kg olives → {{oil}} kg oil · Yield {{yield}}%",
       "estimatedKg": "About {{kg}} kg (density estimate)",
       "save": "Record {{amount}} {{unit}} of oil",
-      "cellarTitle": "Where does it go?",
-      "cellarYou": "Into your cellar",
-      "cellarOf": "Into {{name}}'s cellar",
+      "cellarTitle": "Whose storage?",
+      "cellarYou": "Into your storage",
+      "cellarOf": "Into {{name}}'s storage",
       "cellarAssigned": "Oil went into {{name}}'s cellar.",
       "splitOn": "Share it between cellars",
       "splitOff": "One cellar takes it all",
@@ -1105,6 +1157,7 @@
     },
     "today": {
       "label": "This day",
+      "fieldsLabel": "Groves",
       "empty": "Nothing recorded for this day yet.",
       "official": "{{kg}} kg official weight",
       "sacksAlso": "{{count}} sacks were recorded",
@@ -1156,14 +1209,16 @@
     },
     "pipeline": {
       "sacks": "Sacks",
-      "sacksOk": "picked",
+      "sacksOk": "Picked",
       "sacksPending": "{{count}} still need weighing",
       "fruit": "Olive fruit",
-      "fruitUnit": "kg",
+      "fruitShort": "Fruit",
+      "fruitUnit": "Fruit",
       "fruitPending": "{{kg}} need oil",
       "oil": "Oil",
-      "oilLitres": "litres",
+      "oilLitres": "Litres",
       "oilKg": "kg",
+      "oilPending": "Not milled yet",
       "yieldHint": "oil from fruit",
       "daysLabel": "Days",
       "daysHint_one": "worked",
@@ -1337,7 +1392,7 @@
   },
   "createGrove": {
     "title": "Add grove",
-    "firstTitle": "Put your first grove in Oleachron",
+    "firstTitle": "Put your first grove in The Olive Lot",
     "subtitle": "A name first. Then where it is, and its boundary.",
     "placeHeading": "Where is it?",
     "continueToPlace": "Continue",
@@ -1346,7 +1401,12 @@
     "nameHeading": "What shall we call it?",
     "nameHelper": "A short name you’ll recognise easily.",
     "nameSuggestionsLabel": "Name ideas",
-    "nameSuggestions": ["Olive grove", "Lower field", "Hillside", "Home grove"],
+    "nameSuggestions": [
+      "Olive grove",
+      "Lower field",
+      "Hillside",
+      "Home grove"
+    ],
     "nameLabel": "Grove name",
     "colorHeading": "Pick a colour",
     "colorHelper": "Shown on Chronologio so you can spot this grove quickly.",
@@ -1396,7 +1456,7 @@
       "noResults": "We could not find that place. Try another name or tap the map."
     },
     "details": {
-      "subtitle": "A few details that help Oleachron give you more useful reminders. You do not need them to start.",
+      "subtitle": "A few details that help The Olive Lot give you more useful reminders. You do not need them to start.",
       "varietyHint": "Helps organise harvest and observations.",
       "treeCountLabel": "About how many trees does it have?",
       "treeCountHint": "If you are not sure, leave it blank."
@@ -1438,7 +1498,7 @@
       "boundaryAction": "Draw boundary",
       "boundaryLater": "Later",
       "detailsTitle": "Add variety and trees",
-      "detailsBody": "A few details that help Oleachron give you more useful reminders.",
+      "detailsBody": "A few details that help The Olive Lot give you more useful reminders.",
       "detailsAction": "Add details"
     }
   }

@@ -16,21 +16,8 @@
 }
 
 .brand-logo--stacked {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.brand-logo-stacked-mark {
   display: block;
-  object-fit: contain;
-}
-
-.brand-logo-stacked-wordmark {
-  display: block;
-  height: auto;
-  width: min(100%, 260px);
-  object-fit: contain;
+  margin-inline: auto;
+  max-width: min(100%, 300px);
+  object-position: center;
 }

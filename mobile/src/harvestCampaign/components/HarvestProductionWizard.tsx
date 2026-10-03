@@ -154,11 +154,10 @@ export const HarvestProductionWizard: React.FC<{
         current={step}
         enabled={enabled}
         onPick={busy ? undefined : (next) => go(next)}
-        caption={t(`harvestCampaign.addMenu.hint.${step}`)}
       />
       {others.length > 0 ? (
         <Pressable onPress={() => setShowOther((open) => !open)}>
-          <Text style={{ color: colors.primary, fontWeight: '700' }}>
+          <Text style={{ color: colors.textSecondary, fontWeight: '700' }}>
             {t('harvestCampaign.wizard.other')}
           </Text>
         </Pressable>

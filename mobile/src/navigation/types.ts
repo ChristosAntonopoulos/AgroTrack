@@ -12,6 +12,7 @@ export type AuthStackParamList = {
 
 export type HarvestCampaignParams = {
   add?: boolean;
+  kind?: 'sacks' | 'mill' | 'oil' | 'people' | 'expense' | 'income' | 'note';
   fieldId?: string;
   harvestId?: string;
   day?: string;
@@ -27,7 +28,7 @@ export type FieldsStackParamList = {
 /** Phone home is the launcher. The dock shows only the record button. */
 export type MainTabParamList = {
   Launcher: undefined;
-  ChronologioTab: undefined;
+  ChronologioTab: { fieldId?: string } | undefined;
   Fields: NavigatorScreenParams<FieldsStackParamList> | undefined;
   Capture: undefined;
   Tasks: {
@@ -46,8 +47,8 @@ export type RootStackParamList = {
   FieldDetail: {
     fieldId: string;
     focus?: 'harvest' | 'harvest-final' | 'money';
-    /** Local field page tab. Legacy `map` / `overview` / `chronologio` map to vegetation. */
-    mode?: 'vegetation' | 'weather' | 'details' | 'overview' | 'map' | 'chronologio';
+    /** Local field page tab. Legacy `map` / `overview` / `vegetation` → field; `chronologio` kept for activation coaching. */
+    mode?: 'field' | 'weather' | 'details' | 'vegetation' | 'overview' | 'map' | 'chronologio';
     /** First-run spatial loading panel. */
     activation?: 'spatial' | 'observe';
     /** Shown after the first boundary is saved. */
@@ -60,7 +61,7 @@ export type RootStackParamList = {
   ThisHarvest: undefined;
   ThisHarvestReview: undefined;
   Money: { fieldId?: string; year?: number; tx?: string } | undefined;
-  MyOil: { field?: string } | undefined;
+  MyOil: { field?: string; do?: 'give' | 'sell' | 'hold' | 'fill' | 'count' } | undefined;
   Photos: { fieldId?: string; photoId?: string; importNearby?: boolean } | undefined;
   Analytics: undefined;
   Reports: undefined;

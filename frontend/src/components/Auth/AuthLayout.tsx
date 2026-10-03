@@ -76,12 +76,11 @@ const AuthLayout: React.FC = () => {
             <div className="login-card-brand">
               <div className="login-card-lockup">
                 <BrandLogo
-                  variant="mark"
+                  variant="stacked"
                   tone={isDarkTheme ? 'on-dark' : 'on-light'}
-                  size="md"
-                  alt=""
+                  size="lg"
+                  alt={t('auth:login.appName')}
                 />
-                <span className="login-card-wordmark">{t('auth:login.appName')}</span>
               </div>
             </div>
 

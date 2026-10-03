@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { appFonts, createElevation, radii, spacing } from '../theme';
+import { appFonts, radii, spacing } from '../theme';
 import type { HarvestDaySummary } from './totals';
 import { harvestWorkingDayHasActivity } from './workingDay';
 
@@ -18,8 +18,8 @@ type Props = {
   onShift: (delta: -1 | 1) => void;
 };
 
-const CHIP_WIDTH = 72;
-const CHIP_GAP = spacing.md;
+const CHIP_WIDTH = 44;
+const CHIP_GAP = 6;
 const CHIP_STRIDE = CHIP_WIDTH + CHIP_GAP;
 
 const HarvestDayStrip: React.FC<Props> = ({
@@ -33,7 +33,7 @@ const HarvestDayStrip: React.FC<Props> = ({
   onShift,
 }) => {
   const { t } = useTranslation('fields');
-  const { colors, fontScaleMultiplier: scale } = useTheme();
+  const { colors, fontScaleMultiplier: scale, tapMin } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const viewportWidth = useRef(0);
 
@@ -58,73 +58,40 @@ const HarvestDayStrip: React.FC<Props> = ({
 
   return (
     <View accessibilityLabel={t('harvestCampaign.dayNav.label')} style={styles.wrap}>
-      <View
-        style={[
-          styles.masthead,
-          {
-            backgroundColor: colors.surfaceElevated,
-            ...createElevation(colors, 'sm'),
-          },
-        ]}
-      >
+      <View style={[styles.masthead, { minHeight: Math.max(56, tapMin) }]}>
         <Pressable
           onPress={() => onShift(-1)}
           disabled={!canPrev}
-          hitSlop={12}
+          hitSlop={10}
           accessibilityLabel={t('harvestCampaign.dayNav.prev')}
-          style={[
-            styles.chevron,
-            {
-              opacity: canPrev ? 1 : 0.3,
-              backgroundColor: colors.primaryLight,
-            },
-          ]}
+          style={[styles.chevron, { opacity: canPrev ? 1 : 0.28 }]}
         >
-          <Ionicons name="chevron-back" size={18} color={colors.primaryDark} />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </Pressable>
 
         <View style={styles.copy} accessibilityRole="header">
           <Text
             style={[
-              styles.weekday,
-              {
-                color: colors.primaryDark,
-                fontSize: 12 * scale,
-              },
-            ]}
-            numberOfLines={1}
-          >
-            {weekday}
-          </Text>
-          <Text
-            style={[
-              styles.dayMonth,
+              styles.dateLine,
               {
                 color: colors.textPrimary,
-                fontSize: 20 * scale,
-                lineHeight: 24 * scale,
+                fontSize: 16 * scale,
               },
             ]}
             numberOfLines={1}
           >
-            {dayMonth}
+            {`${weekday} ${dayMonth}`}
           </Text>
         </View>
 
         <Pressable
           onPress={() => onShift(1)}
           disabled={!canNext}
-          hitSlop={12}
+          hitSlop={10}
           accessibilityLabel={t('harvestCampaign.dayNav.next')}
-          style={[
-            styles.chevron,
-            {
-              opacity: canNext ? 1 : 0.3,
-              backgroundColor: colors.primaryLight,
-            },
-          ]}
+          style={[styles.chevron, { opacity: canNext ? 1 : 0.28 }]}
         >
-          <Ionicons name="chevron-forward" size={18} color={colors.primaryDark} />
+          <Ionicons name="chevron-forward" size={20} color={colors.textPrimary} />
         </Pressable>
       </View>
 
@@ -150,17 +117,12 @@ const HarvestDayStrip: React.FC<Props> = ({
               <Pressable
                 key={row.date}
                 onPress={() => onSelectDay(row.date)}
-                hitSlop={6}
+                hitSlop={4}
                 accessibilityState={{ selected }}
                 style={[
                   styles.chip,
                   {
-                    borderColor: selected ? colors.primary : 'transparent',
-                    backgroundColor: selected
-                      ? colors.primaryLight
-                      : colors.surfaceElevated,
-                    borderWidth: selected ? 1.5 : 0,
-                    ...(selected ? {} : createElevation(colors, 'sm')),
+                    backgroundColor: selected ? colors.primary : 'transparent',
                   },
                 ]}
               >
@@ -168,7 +130,7 @@ const HarvestDayStrip: React.FC<Props> = ({
                   style={[
                     styles.chipWeekday,
                     {
-                      color: selected ? colors.primaryDark : colors.textSecondary,
+                      color: selected ? colors.onOlive : colors.textSecondary,
                     },
                   ]}
                 >
@@ -178,8 +140,8 @@ const HarvestDayStrip: React.FC<Props> = ({
                   style={[
                     styles.dayNum,
                     {
-                      color: selected ? colors.primaryDark : colors.textPrimary,
-                      fontSize: 17 * scale,
+                      color: selected ? colors.onOlive : colors.textPrimary,
+                      fontSize: 15 * scale,
                     },
                   ]}
                 >
@@ -189,11 +151,13 @@ const HarvestDayStrip: React.FC<Props> = ({
                   style={[
                     styles.dot,
                     {
-                      backgroundColor: active
-                        ? colors.primary
-                        : row.date === today
-                          ? colors.eventHarvest
-                          : 'transparent',
+                      backgroundColor: selected
+                        ? colors.onOlive
+                        : active
+                          ? colors.primary
+                          : row.date === today
+                            ? colors.eventHarvest
+                            : 'transparent',
                     },
                   ]}
                 />
@@ -207,62 +171,56 @@ const HarvestDayStrip: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.sm },
+  wrap: { gap: 6 },
   masthead: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    borderRadius: radii.card,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 12,
+    gap: 4,
   },
   chevron: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.full,
   },
   copy: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
     minWidth: 0,
   },
-  weekday: {
-    fontFamily: appFonts.semibold,
+  dateLine: {
+    fontFamily: appFonts.bold,
     fontWeight: '700',
-    letterSpacing: 0.6,
+    letterSpacing: -0.2,
     textTransform: 'capitalize',
     textAlign: 'center',
   },
-  dayMonth: {
-    fontFamily: appFonts.bold,
-    fontWeight: '800',
-    letterSpacing: -0.35,
-    textAlign: 'center',
+  strip: {
+    gap: CHIP_GAP,
+    paddingVertical: 2,
+    paddingHorizontal: 2,
+    alignItems: 'center',
   },
-  strip: { gap: CHIP_GAP, paddingVertical: 4, paddingHorizontal: 2 },
   chip: {
     width: CHIP_WIDTH,
-    borderRadius: radii.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    borderRadius: radii.md,
+    paddingTop: 6,
+    paddingBottom: 5,
     alignItems: 'center',
-    gap: 4,
+    gap: 1,
   },
   chipWeekday: {
-    fontSize: 11,
-    fontFamily: appFonts.bold,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+    fontSize: 10,
+    fontFamily: appFonts.semibold,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   dayNum: {
     fontFamily: appFonts.bold,
-    fontWeight: '800',
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
-  dot: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
+  dot: { width: 4, height: 4, borderRadius: 2, marginTop: 1 },
 });
 
 export default HarvestDayStrip;

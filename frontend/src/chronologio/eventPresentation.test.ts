@@ -103,7 +103,7 @@ describe('eventPresentation', () => {
       'en'
     );
     expect(presented.shortLabel).toBe('Harvest');
-    expect(presented.label).toBe('Harvest');
+    expect(presented.label).toBe('');
     expect(presented.description).toBeUndefined();
   });
 

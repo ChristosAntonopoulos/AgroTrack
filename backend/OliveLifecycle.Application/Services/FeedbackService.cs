@@ -131,12 +131,12 @@ public class FeedbackService : IFeedbackService
 
         if (string.IsNullOrWhiteSpace(inbox))
         {
-            inbox = "hello@oleachron.app";
+            inbox = "hello@The Olive Lot.app";
         }
 
-        var subject = $"OleaChron feedback from {feedback.UserName}";
+        var subject = $"The Olive Lot feedback from {feedback.UserName}";
         var body =
-            $"Someone took time to help us improve OleaChron. Treat this with care.\n\n" +
+            $"Someone took time to help us improve The Olive Lot. Treat this with care.\n\n" +
             $"From: {feedback.UserName}\n" +
             $"Email: {feedback.UserEmail ?? "—"}\n" +
             $"Role: {feedback.Role}\n" +

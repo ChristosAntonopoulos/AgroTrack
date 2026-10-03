@@ -60,9 +60,15 @@ export const evaluateStepCompletion = (
   fields: Field[],
   primary: Field | null,
   spatial: SpatialReadiness,
-  opts?: { firstObservationDone?: boolean }
+  opts?: {
+    firstObservationDone?: boolean;
+    /** Draft grove just saved on the name step, before the fields list has refetched. */
+    knownGroveFieldId?: string | null;
+  }
 ): Record<OwnerActivationStepId, boolean> => {
-  const hasGrove = fields.some((f) => f.status !== 'Archived' && Boolean(f.name?.trim()));
+  const hasGrove =
+    Boolean(opts?.knownGroveFieldId) ||
+    fields.some((f) => f.status !== 'Archived' && Boolean(f.name?.trim()));
   const hasBoundary = primary ? fieldHasBoundary(primary) : false;
 
   return {

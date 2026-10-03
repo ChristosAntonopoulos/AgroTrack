@@ -1,5 +1,5 @@
 {
-  "appName": "Oleachron",
+  "appName": "The Olive Lot",
   "home": "Home",
   "loading": "Caricamento...",
   "refresh": "Aggiorna",
@@ -38,6 +38,7 @@
   "nextTask": "Prossimo",
   "toggleMenu": "Apri/chiudi menu",
   "moreNav": "Altro",
+  "menuNav": "Menù",
   "moreMenu": "Altre opzioni",
   "mobileNav": "Navigazione principale",
   "logout": "Esci",

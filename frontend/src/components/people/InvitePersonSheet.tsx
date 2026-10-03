@@ -204,8 +204,8 @@ const InvitePersonSheet: React.FC<Props> = ({
         anyExisting
           ? t('partners:peoplePage.inviteSentExisting', {
               defaultValue: anyNotified
-                ? 'They already use Oleachron — notified in the app and by email.'
-                : 'They already use Oleachron — invite email sent.',
+                ? 'They already use The Olive Lot — notified in the app and by email.'
+                : 'They already use The Olive Lot — invite email sent.',
             })
           : t('partners:peoplePage.inviteSentNew', {
               defaultValue: 'Invite email sent. They can register with the link or code.',

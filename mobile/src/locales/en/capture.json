@@ -1,7 +1,51 @@
 {
   "cta": "Record",
+  "ctaPlus": "+ Record",
   "title": "Record",
+  "newRecord": "New record",
+  "allRecords": "All records",
+  "moreRecords": "More records",
   "whatToRecord": "What do you want to record?",
+  "alsoRecord": "Also",
+  "recentSection": "Recent",
+  "dateChip": "Date",
+  "addAnother": "+ Another record",
+  "today": "Today",
+  "quickDomain": {
+    "harvest": "Harvest",
+    "grove": "Grove",
+    "money": "Money",
+    "warehouse": "Cellar"
+  },
+  "catalogSections": {
+    "harvest": "Harvest",
+    "grove": "Grove",
+    "money": "Money",
+    "warehouse": "Cellar"
+  },
+  "tabs": {
+    "day": "Day",
+    "grove": "Grove",
+    "warehouse": "Cellar",
+    "money": "Money"
+  },
+  "tabPrompt": {
+    "day": "What are you adding to today’s harvest?",
+    "grove": "What happened in the grove?",
+    "warehouse": "What are you doing in the cellar?",
+    "money": "What are you recording?",
+    "moneyHint": "Pick income or expense — one tap, then continue."
+  },
+  "dayEmpty": "Harvest is not open. Start the season when you are ready to pick.",
+  "openHarvest": "Open this harvest",
+  "tabLocked": "You cannot record this here.",
+  "warehouseHint": {
+    "give": "Oil to someone",
+    "sell": "A sale from storage",
+    "hold": "Set some aside",
+    "fill": "From bulk into tins",
+    "count": "Correct what is there"
+  },
   "types": {
     "observation": { "title": "Observation", "description": "A note or photos from the grove" },
     "work": { "title": "Work", "description": "Pruning, spraying, fertilizing…" },
@@ -9,6 +53,8 @@
     "income": { "title": "Income", "description": "Oil, fruit, or subsidy…" },
     "harvest": { "title": "Harvest", "description": "Olives, oil, and yield" },
     "money": { "title": "Money", "description": "Income or expense" },
+    "oilSale": { "title": "Oil sale", "description": "Income from olive oil" },
+    "payment": { "title": "Payment", "description": "Labor or other payment" },
     "voice": { "title": "Voice message", "description": "A recording saved on the timeline" },
     "document": { "title": "Document", "description": "Upload a file with a name" },
     "photo": { "title": "Photo", "description": "A photo from the grove" }

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, Wallet, BookOpen, ArrowLeft } from 'lucide-react';
+import { ChevronRight, Wallet, BookOpen } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
 import PageHeader from '../components/Common/PageHeader';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -146,11 +146,9 @@ const ThisHarvestReviewPage: React.FC = () => {
         <PageHeader
           title={t('fields:apologismos.title')}
           subtitle={t('fields:apologismos.subtitle')}
+          backTo="/harvest"
+          backLabel={t('fields:apologismos.backToProgress')}
         />
-
-        <Link to="/harvest" className="ravdos-section-link ravdos-back">
-          <ArrowLeft size={16} aria-hidden /> {t('fields:apologismos.backToProgress')}
-        </Link>
 
         {closedYears.length === 0 ? (
           <EmptyState

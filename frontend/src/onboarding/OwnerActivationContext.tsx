@@ -75,7 +75,7 @@ type OwnerActivationContextValue = {
   setCollapsed: (collapsed: boolean) => void;
   goToStep: (step: OwnerActivationStepId) => void;
   clearCelebration: () => void;
-  markFieldsDirty: (opts?: { boundarySavedFieldId?: string }) => void;
+  markFieldsDirty: (opts?: { boundarySavedFieldId?: string; groveCreatedFieldId?: string }) => void;
   /** After spatial welcome — land on details and guide first observation. */
   beginFirstObservationGuide: () => void;
   /** After observation posted/skipped — ends activation. */
@@ -102,6 +102,8 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
   const [fieldsEpoch, setFieldsEpoch] = useState(0);
   const [fieldsHydrated, setFieldsHydrated] = useState(false);
   const [optimisticBoundaryFieldId, setOptimisticBoundaryFieldId] = useState<string | null>(null);
+  /** Draft grove saved on the name step — bridges the gap until the fields list refetches. */
+  const [optimisticGroveFieldId, setOptimisticGroveFieldId] = useState<string | null>(null);
   const wasUnlocked = useRef(false);
   const pollRef = useRef<number | undefined>(undefined);
   const persistedRef = useRef(persisted);
@@ -112,6 +114,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       setPersisted(emptyPersisted());
       setFieldsHydrated(false);
       setOptimisticBoundaryFieldId(null);
+      setOptimisticGroveFieldId(null);
       return;
     }
     setPersisted(readPersisted(userId));
@@ -168,6 +171,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
           Boolean(persisted.firstObservationDoneAt) ||
           persisted.skippedSteps.includes('firstObservation'),
         knownBoundaryFieldId: optimisticBoundaryFieldId,
+        knownGroveFieldId: optimisticGroveFieldId,
       }),
     [
       fields,
@@ -176,6 +180,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       persisted.firstObservationDoneAt,
       persisted.skippedSteps,
       optimisticBoundaryFieldId,
+      optimisticGroveFieldId,
     ]
   );
 
@@ -273,6 +278,12 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       setOptimisticBoundaryFieldId(null);
     }
   }, [fields, userId, optimisticBoundaryFieldId]);
+
+  useEffect(() => {
+    if (optimisticGroveFieldId && fields.some((f) => f.id === optimisticGroveFieldId)) {
+      setOptimisticGroveFieldId(null);
+    }
+  }, [fields, optimisticGroveFieldId]);
 
   const visible =
     eligible && (persisted.forceShow || !setupUnlocked);
@@ -537,9 +548,12 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
     setCelebrating(false);
   }, [persist, persisted]);
 
-  const markFieldsDirty = useCallback((opts?: { boundarySavedFieldId?: string }) => {
+  const markFieldsDirty = useCallback((opts?: { boundarySavedFieldId?: string; groveCreatedFieldId?: string }) => {
     if (opts?.boundarySavedFieldId) {
       setOptimisticBoundaryFieldId(opts.boundarySavedFieldId);
+    }
+    if (opts?.groveCreatedFieldId) {
+      setOptimisticGroveFieldId(opts.groveCreatedFieldId);
     }
     setFieldsEpoch((n) => n + 1);
   }, []);

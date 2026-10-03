@@ -16,12 +16,13 @@ import { HarvestCampaignHeader } from '../harvestCampaign/components/HarvestCamp
 import { useTheme } from '../context/ThemeContext';
 import { useHarvestCampaign } from '../context/HarvestCampaignContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
+import { occurredAtForCalendarDay } from '../chronologio/captureContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/types';
-import { useDock } from '../navigation/DockContext';
 import { useFields } from '../hooks/useFields';
 import { getHarvestService } from '../services/serviceFactory';
 import {
@@ -99,7 +100,6 @@ import { getHarvestCapabilities } from '../harvestCampaign/harvestCapabilities';
 import { harvestSeatFromFields, resolveFieldGates } from '../utils/fieldGates';
 import { useFamilyMembershipModules, useActiveFieldAccessLevel } from '../hooks/useFamilyMembershipModules';
 import {
-  HarvestAddMenu,
   HarvestCompleteSheet,
   HarvestDayStrip,
   HarvestMillLinkSheet,
@@ -139,7 +139,6 @@ type HarvestAddPrefill = {
 
 const HarvestCampaignScreen = () => {
   const { colors, tapMin } = useTheme();
-  const { setAdd } = useDock();
   const { t, i18n } = useTranslation(['fields', 'common', 'chronologio']);
   const locale = i18n.language || 'en';
   const { user, isFieldOwner } = useAuth();
@@ -192,6 +191,13 @@ const HarvestCampaignScreen = () => {
       ? historicalLink.day
       : today
     : clampHarvestNavDay(selectedDay, today);
+
+  useRegisterCapturePage({
+    sourcePage: 'harvest',
+    fieldId: preferredFieldId || route.params?.fieldId,
+    occurredAt: occurredAtForCalendarDay(workingDay),
+    harvestId: route.params?.harvestId,
+  });
   const harvestable = useMemo(
     () => fields.filter((field) => field.status !== 'Draft' && field.status !== 'Archived'),
     [fields]
@@ -350,11 +356,14 @@ const HarvestCampaignScreen = () => {
   useEffect(() => {
     if (!isLive) return;
     const add = route.params?.add;
-    if (!add) return;
+    if (!add || route.params?.kind) return;
     setView('today');
     setAddPrefill(null);
-    setSheet('add');
     navigation.setParams({ add: undefined });
+    moneyCapture?.openCapture({
+      tab: 'day',
+      fieldId: route.params?.fieldId,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-shot from params
   }, [isLive, route.params?.add]);
 
@@ -495,42 +504,52 @@ const HarvestCampaignScreen = () => {
   const requestAdd = (prefill?: HarvestAddPrefill) => {
     if (harvestCaps.captureKinds.length === 0) return;
     setEditTarget(null);
-    if (prefill?.preferredKind === 'expense') {
+    if (!prefill?.preferredKind) {
+      moneyCapture?.openCapture({
+        tab: 'day',
+        fieldId: preferredFieldId || route.params?.fieldId,
+      });
+      return;
+    }
+    if (prefill.preferredKind === 'expense') {
       openHarvestExpense();
       return;
     }
-    if (prefill?.preferredKind === 'income') {
+    if (prefill.preferredKind === 'income') {
       openHarvestIncome();
       return;
     }
-    if (prefill?.preferredKind === 'note') {
+    if (prefill.preferredKind === 'note') {
       openHarvestNote();
       return;
     }
-    if (prefill?.preferredKind === 'people') {
+    if (prefill.preferredKind === 'people') {
       if (!harvestCaps.canAddPeople) return;
       setAddPrefill(null);
       setSheet('people');
       return;
     }
     setAddPrefill(prefill || null);
-    if (prefill?.preferredKind === 'sacks' || prefill?.preferredKind === 'mill' || prefill?.preferredKind === 'oil') {
+    if (prefill.preferredKind === 'sacks' || prefill.preferredKind === 'mill' || prefill.preferredKind === 'oil') {
       setSheet('produce');
       return;
     }
-    setSheet('add');
+    moneyCapture?.openCapture({
+      tab: 'day',
+      fieldId: preferredFieldId || route.params?.fieldId,
+    });
   };
 
   const requestAddRef = useRef(requestAdd);
   requestAddRef.current = requestAdd;
   useEffect(() => {
-    if (!isLive || harvestCaps.captureKinds.length === 0) {
-      setAdd(null);
-      return;
-    }
-    setAdd({ hideHome: false, onAdd: () => requestAddRef.current() });
-    return () => setAdd(null);
-  }, [harvestCaps.captureKinds.length, isLive, setAdd]);
+    if (!isLive) return;
+    const kind = route.params?.kind;
+    if (!kind) return;
+    setView('today');
+    navigation.setParams({ kind: undefined, add: undefined });
+    requestAddRef.current({ preferredKind: kind });
+  }, [isLive, navigation, route.params?.kind]);
 
   const openCapture = (kind: HarvestCaptureKind) => {
     const sackIds = addPrefill?.sackIds;
@@ -762,6 +781,7 @@ const HarvestCampaignScreen = () => {
       tin17Count?: number;
       tinSizeLitres?: 16 | 17;
       tinCount?: number;
+      tinLines?: { sizeLitres: number; count: number }[];
       extraLitres?: number;
       millWeightIds: string[];
       fieldIds: string[];
@@ -783,13 +803,13 @@ const HarvestCampaignScreen = () => {
           tin17Count: input.tin17Count,
           tinSizeLitres: input.tinSizeLitres,
           tinCount: input.tinCount,
+          tinLines: input.tinLines,
           extraLitres: input.extraLitres,
           millWeightIds: input.millWeightIds,
           fieldIds: input.fieldIds,
           fieldShares: input.fieldShares,
-          acidity: input.acidity,
-          note: input.note,
           cellarOwnerUserId: input.cellarOwnerUserId,
+          cellarAllocations: [],
         })
       );
       if (!opts?.keepOpen) closeSheet();
@@ -811,9 +831,8 @@ const HarvestCampaignScreen = () => {
       tin17Count: input.tin17Count,
       tinSizeLitres: input.tinSizeLitres,
       tinCount: input.tinCount,
+      tinLines: input.tinLines,
       extraLitres: input.extraLitres,
-      acidity: input.acidity,
-      note: input.note,
       cellarOwnerUserId: input.cellarOwnerUserId,
       createdAt: new Date().toISOString(),
     };
@@ -1046,7 +1065,7 @@ const HarvestCampaignScreen = () => {
             showsVerticalScrollIndicator={false}
           >
             {view === 'today' ? (
-              <View style={{ gap: spacing.lg }}>
+              <View style={{ gap: spacing.md }}>
                 {showDayStrip ? (
                   <HarvestDayStrip
                     selectedDay={workingDay}
@@ -1212,15 +1231,6 @@ const HarvestCampaignScreen = () => {
             onOther={(kind) => openCapture(kind)}
           />
         ) : null}
-        {sheet === 'add' ? (
-          <HarvestAddMenu
-            key={`sheet-add-${workingDay}`}
-            campaign={campaign}
-            allowedKinds={harvestCaps.captureKinds}
-            preferredKind={addPrefill?.preferredKind}
-            onPick={openCapture}
-          />
-        ) : null}
         {sheet === 'sacks' ? (
           <HarvestSacksSheet
             key={
@@ -1372,7 +1382,7 @@ const HarvestCampaignScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  block: { gap: spacing.md, paddingHorizontal: spacing.sm },
+  block: { gap: spacing.md, paddingHorizontal: spacing.base },
   lead: { ...typography.styles.body, lineHeight: 22 },
   h2: { ...typography.styles.h3 },
   card: {

@@ -6,7 +6,7 @@ import type { NativeStackHeaderProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import HeaderIconButton from '../components/layout/HeaderIconButton';
-import { spacing, touch } from '../theme';
+import { appFonts, spacing, touch } from '../theme';
 
 /**
  * Pushed-screen chrome. Title sits on the same row as the back control.
@@ -83,7 +83,9 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     minWidth: 0,
+    fontFamily: appFonts.bold,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   flex: {
     flex: 1,

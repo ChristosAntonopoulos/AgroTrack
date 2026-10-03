@@ -8,7 +8,6 @@ import { typography, spacing, radii } from '../../theme';
 import { formatFieldArea } from '../../utils/fieldGeo';
 import { getFieldShortLocation } from '../../utils/shortLocation';
 import { getFieldStatusLabel } from '../../utils/fieldDisplay';
-import { resolveFieldStageLabel } from '../../utils/fieldStage';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 
@@ -24,17 +23,16 @@ type Props = {
 type MetaChip = {
   key: string;
   label: string;
-  kind: 'status' | 'variety' | 'area' | 'stage';
+  kind: 'status' | 'variety' | 'area';
 };
 
 /**
- * Shared field identity — quiet title + circular colour mark (matches web information).
+ * Shared field identity — quiet title + colour mark (matches web information).
  */
 const FieldIdentity: React.FC<Props> = ({
   field,
   size = 'card',
   showMeta = true,
-  phenology,
   hideTitle = false,
 }) => {
   const { colors } = useTheme();
@@ -42,11 +40,6 @@ const FieldIdentity: React.FC<Props> = ({
   const displayName = friendlyFieldLabel(field.name);
   const shortLocation = getFieldShortLocation(field);
   const status = getFieldStatusLabel(field.status, t);
-  const stage = resolveFieldStageLabel({
-    phenology,
-    currentLifecycleStage: field.currentLifecycleStage,
-    t,
-  });
   const varietyRaw = field.variety || field.oliveVariety;
   const variety = varietyRaw
     ? t(`fields:addField.varietyOptions.${varietyRaw}`, {
@@ -65,56 +58,51 @@ const FieldIdentity: React.FC<Props> = ({
   const chips: MetaChip[] = [];
   if (status) chips.push({ key: 'status', label: status, kind: 'status' });
   if (area && area !== '—') chips.push({ key: 'area', label: area, kind: 'area' });
-  if (isPage && stage) chips.push({ key: 'stage', label: stage, kind: 'stage' });
   // Variety lives on the field page only — list cards keep the grove name clean.
   if (isPage && variety) chips.push({ key: 'variety', label: variety, kind: 'variety' });
 
-  const tint = accent.length === 7 ? `${accent}22` : colors.primaryLight;
-
   return (
     <View style={[styles.wrap, !isPage && styles.wrapFlex]} accessibilityLabel={t('fields:card.metaAria')}>
-      {isPage && shortLocation ? (
-        <Text style={[styles.placePage, { color: colors.textSecondary }]} numberOfLines={1}>
-          {shortLocation}
-        </Text>
-      ) : null}
       {!hideTitle ? (
         <View
           style={[
             styles.titleRow,
-            isPage && styles.namePlate,
-            isPage && { backgroundColor: tint, borderColor: accent },
+            isPage && styles.nameBlock,
+            isPage && {
+              backgroundColor: colors.surface,
+              borderColor: colors.borderLight,
+            },
           ]}
         >
           <View
             style={[
-              styles.swatch,
-              isPage && styles.swatchPage,
+              isPage ? styles.accentBar : styles.swatch,
               { backgroundColor: accent, borderColor: isPage ? accent : colors.surface },
             ]}
             accessibilityElementsHidden
           />
-          <Text
-            style={[
-              isPage ? styles.pageName : styles.cardName,
-              { color: colors.textPrimary },
-            ]}
-            numberOfLines={isPage ? 3 : 2}
-          >
-            {displayName}
-          </Text>
+          <View style={styles.nameCopy}>
+            <Text
+              style={[isPage ? styles.pageName : styles.cardName, { color: colors.textPrimary }]}
+              numberOfLines={isPage ? 3 : 2}
+            >
+              {displayName}
+            </Text>
+            {!isPage && shortLocation ? (
+              <Text style={[styles.place, { color: colors.textSecondary }]} numberOfLines={1}>
+                {shortLocation}
+              </Text>
+            ) : null}
+          </View>
         </View>
       ) : null}
-      {!isPage && shortLocation ? (
-        <Text
-          style={[styles.place, { color: colors.textSecondary, marginLeft: hideTitle ? 0 : 22 }]}
-          numberOfLines={1}
-        >
+      {hideTitle && !isPage && shortLocation ? (
+        <Text style={[styles.place, { color: colors.textSecondary }]} numberOfLines={1}>
           {shortLocation}
         </Text>
       ) : null}
       {showMeta && chips.length > 0 ? (
-        <View style={styles.chips} accessibilityRole="list">
+        <View style={[styles.chips, hideTitle && styles.chipsAlone]} accessibilityRole="list">
           {chips.map((chip) => {
             const chipStyle =
               chip.kind === 'status'
@@ -158,12 +146,24 @@ const styles = StyleSheet.create({
     gap: 10,
     maxWidth: '100%',
   },
-  namePlate: {
-    marginTop: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: radii.lg,
-    borderWidth: 1,
+  nameBlock: {
+    alignItems: 'stretch',
+    gap: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingLeft: 0,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  nameCopy: { flex: 1, minWidth: 0, justifyContent: 'center', paddingRight: 4 },
+  accentBar: {
+    width: 6,
+    minHeight: 44,
+    borderTopRightRadius: 3,
+    borderBottomRightRadius: 3,
+    alignSelf: 'stretch',
+    flexShrink: 0,
   },
   swatch: {
     width: 12,
@@ -172,18 +172,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     flexShrink: 0,
   },
-  swatchPage: {
-    width: 18,
-    height: 18,
-    borderWidth: 0,
-  },
   pageName: {
     ...typography.styles.h2,
     fontWeight: '800',
-    fontSize: 26,
-    lineHeight: 32,
-    letterSpacing: -0.4,
-    flex: 1,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.5,
   },
   cardName: {
     ...typography.styles.body,
@@ -191,15 +185,16 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 22,
     letterSpacing: -0.25,
-    flex: 1,
   },
-  place: { ...typography.styles.bodySmall, marginTop: 6 },
-  placePage: { ...typography.styles.bodySmall, fontSize: 15, fontWeight: '600' },
+  place: { ...typography.styles.bodySmall, marginTop: 2 },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 6,
+    marginTop: 10,
+  },
+  chipsAlone: {
+    marginTop: 0,
   },
   chip: {
     borderWidth: StyleSheet.hairlineWidth,

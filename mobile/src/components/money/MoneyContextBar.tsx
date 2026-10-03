@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { radii, spacing, createElevation } from '../../theme';
+import { appFonts, radii, spacing, createElevation } from '../../theme';
 
 export type MoneyKindFilter = 'all' | 'income' | 'expense' | 'draft';
 
@@ -142,7 +142,8 @@ const MoneyContextBar: React.FC<Props> = ({
               />
               <Text
                 style={{
-                  fontWeight: '600',
+                  fontFamily: selected ? appFonts.semibold : appFonts.medium,
+                  fontWeight: selected ? '600' : '500',
                   fontSize: 13 * fontScaleMultiplier,
                   color: selected ? colors.primary : colors.textSecondary,
                 }}
@@ -177,15 +178,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   status: {
+    fontFamily: appFonts.semibold,
     fontWeight: '600',
     textAlign: 'center',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
-  season: { fontWeight: '500' },
+  season: { fontFamily: appFonts.medium, fontWeight: '500' },
   year: {
+    fontFamily: appFonts.bold,
     fontWeight: '700',
-    letterSpacing: -0.4,
+    letterSpacing: -0.2,
     textAlign: 'center',
     fontVariant: ['tabular-nums'],
   },

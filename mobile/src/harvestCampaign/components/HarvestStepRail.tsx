@@ -3,19 +3,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { harvestPipelinePalette } from '../../theme';
 import { HARVEST_ACTION_ICONS } from '../harvestActions';
 
 export type HarvestPathStep = 'sacks' | 'mill' | 'oil';
 
 const ORDER: HarvestPathStep[] = ['sacks', 'mill', 'oil'];
-
-const toneFor = (step: HarvestPathStep) =>
-  step === 'sacks'
-    ? harvestPipelinePalette.sacks
-    : step === 'mill'
-      ? harvestPipelinePalette.fruit
-      : harvestPipelinePalette.oil;
 
 /**
  * Sacks → fruit → oil, drawn as one connected path.
@@ -31,7 +23,6 @@ export const HarvestStepRail: React.FC<{
   const { colors } = useTheme();
   const you = t('harvestCampaign.stepRail.you');
   const currentIndex = ORDER.indexOf(current);
-  const currentTone = toneFor(current);
   const fill = current === 'oil' ? '100%' : current === 'mill' ? '50%' : '12%';
 
   return (
@@ -41,12 +32,11 @@ export const HarvestStepRail: React.FC<{
           style={[styles.line, { backgroundColor: colors.border }]}
           accessibilityElementsHidden
         >
-          <View style={[styles.lineFill, { width: fill, backgroundColor: currentTone.icon }]} />
+          <View style={[styles.lineFill, { width: fill, backgroundColor: colors.primary }]} />
         </View>
         {ORDER.map((step) => {
           const isCurrent = step === current;
           const index = ORDER.indexOf(step);
-          const tone = toneFor(step);
           const canPick = onPick != null && (enabled == null || enabled.includes(step));
           const place =
             onPick != null
@@ -62,18 +52,19 @@ export const HarvestStepRail: React.FC<{
                   : 'later';
           const factText = isCurrent ? (onPick ? you : facts?.[step] || you) : facts?.[step] || '';
           const filled = place === 'current';
+          const open = place === 'done' || place === 'open';
           const dot = (
             <View
               style={[
                 styles.dot,
                 filled
                   ? {
-                      backgroundColor: tone.icon,
-                      borderColor: tone.icon,
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
                     }
                   : {
                       backgroundColor: colors.surfaceElevated,
-                      borderColor: place === 'later' ? colors.border : tone.icon,
+                      borderColor: open ? colors.primary : colors.border,
                     },
               ]}
             >
@@ -81,11 +72,7 @@ export const HarvestStepRail: React.FC<{
                 name={HARVEST_ACTION_ICONS[step]}
                 size={isCurrent ? 18 : 16}
                 color={
-                  filled
-                    ? colors.onOlive
-                    : place === 'later'
-                      ? colors.textTertiary
-                      : tone.icon
+                  filled ? colors.onOlive : open ? colors.primary : colors.textTertiary
                 }
               />
             </View>
@@ -97,12 +84,11 @@ export const HarvestStepRail: React.FC<{
                 style={[
                   styles.name,
                   {
-                    color:
-                      place === 'current'
-                        ? tone.icon
-                        : place === 'later'
-                          ? colors.textTertiary
-                          : colors.textPrimary,
+                    color: filled
+                      ? colors.primary
+                      : place === 'later'
+                        ? colors.textTertiary
+                        : colors.textPrimary,
                   },
                 ]}
                 numberOfLines={2}
@@ -112,7 +98,7 @@ export const HarvestStepRail: React.FC<{
               <Text
                 style={[
                   styles.fact,
-                  { color: place === 'current' ? tone.icon : colors.textSecondary },
+                  { color: filled ? colors.primary : colors.textSecondary },
                 ]}
                 numberOfLines={1}
               >
@@ -127,14 +113,14 @@ export const HarvestStepRail: React.FC<{
                 onPress={() => onPick(step)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isCurrent }}
-                style={[styles.node, place === 'later' && styles.later]}
+                style={styles.node}
               >
                 {body}
               </Pressable>
             );
           }
           return (
-            <View key={step} style={[styles.node, place === 'later' && styles.later]}>
+            <View key={step} style={styles.node}>
               {body}
             </View>
           );
@@ -171,7 +157,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     zIndex: 1,
   },
-  later: { opacity: 0.55 },
   dot: {
     width: 44,
     height: 44,

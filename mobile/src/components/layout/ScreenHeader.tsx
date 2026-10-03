@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { typography, spacing } from '../../theme';
+import { appFonts, typography, spacing } from '../../theme';
 
 export interface ScreenHeaderProps {
   title: string;
@@ -68,7 +68,9 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({
         </View>
         {action ? <View style={styles.actions}>{action}</View> : null}
       </View>
-      {context && !compact ? <View style={styles.context}>{context}</View> : null}
+      {context && !compact ? (
+        <View style={[styles.context, dense && styles.contextDense]}>{context}</View>
+      ) : null}
     </View>
   );
 };
@@ -97,7 +99,9 @@ const styles = StyleSheet.create({
   textBlock: { flex: 1, minWidth: 0 },
   title: {
     ...typography.styles.h2,
+    fontFamily: appFonts.bold,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   subtitle: {
     ...typography.styles.bodySmall,
@@ -111,6 +115,9 @@ const styles = StyleSheet.create({
   },
   context: {
     gap: spacing.sm,
+  },
+  contextDense: {
+    gap: 8,
   },
 });
 

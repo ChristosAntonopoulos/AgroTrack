@@ -290,7 +290,7 @@ const ChronologioEventDetail: React.FC<Props> = ({ entry, numberLocale, dayWeath
         <Fact label={t('drawer.severity')}>
           {intel?.severity || String(entry.importance || '')}
         </Fact>
-        <Fact label={t('drawer.source')}>{entry.isSystemGenerated ? 'OLEACHRON' : actor}</Fact>
+        <Fact label={t('drawer.source')}>{entry.isSystemGenerated ? 'The Olive Lot' : actor}</Fact>
         <Fact label={t('drawer.issued')}>{formatWhen(entry.occurredAt, i18n.language)}</Fact>
         <Fact label={t('living.field')}>{entry.field?.name}</Fact>
         <Fact wide label={t('drawer.why')}>{intel?.message || entry.summary}</Fact>

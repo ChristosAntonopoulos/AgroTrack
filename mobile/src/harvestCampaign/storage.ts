@@ -33,6 +33,18 @@ const asNumber = (value: unknown): number | undefined =>
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 
+const parseTinLines = (value: unknown): HarvestOilEntry['tinLines'] => {
+  if (!Array.isArray(value)) return undefined;
+  const lines = value.flatMap((row) => {
+    if (!isRecord(row)) return [];
+    const sizeLitres = asNumber(row.sizeLitres);
+    const count = asNumber(row.count);
+    if (sizeLitres == null || count == null || count <= 0) return [];
+    return [{ sizeLitres, count: Math.round(count) }];
+  });
+  return lines.length > 0 ? lines : undefined;
+};
+
 export const newHarvestEntryId = () =>
   typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
@@ -118,6 +130,7 @@ const parseOil = (value: unknown): HarvestOilEntry | null => {
       (value.tinSizeLitres === 17 ? asNumber(value.tinCount) : undefined),
     tinSizeLitres: value.tinSizeLitres === 16 || value.tinSizeLitres === 17 ? value.tinSizeLitres : undefined,
     tinCount: asNumber(value.tinCount),
+    tinLines: parseTinLines(value.tinLines),
     extraLitres: asNumber(value.extraLitres),
     millWeightIds: asStringArray(value.millWeightIds),
     fieldIds: fieldShares ? fieldIdsFromShares(fieldShares) : fieldIds,
@@ -127,6 +140,7 @@ const parseOil = (value: unknown): HarvestOilEntry | null => {
     batchId: asString(value.batchId),
     harvestRecordId: asString(value.harvestRecordId),
     harvestRecordIds: asStringArray(value.harvestRecordIds),
+    cellarOwnerUserId: asString(value.cellarOwnerUserId),
     soldLitres: asNumber(value.soldLitres),
     soldTin16: asNumber(value.soldTin16),
     soldTin17: asNumber(value.soldTin17),
@@ -504,7 +518,9 @@ export const updateOil = (
       | 'tin17Count'
       | 'tinSizeLitres'
       | 'tinCount'
+      | 'tinLines'
       | 'extraLitres'
+      | 'cellarAllocations'
       | 'millWeightIds'
       | 'fieldIds'
       | 'fieldShares'

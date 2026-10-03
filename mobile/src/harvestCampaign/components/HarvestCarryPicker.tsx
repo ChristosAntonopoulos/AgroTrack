@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { radii, spacing } from '../../theme';
+import { readableFieldColor } from '../../utils/fieldColors';
 
 export const carryColor = (colors: string[]): string | undefined => {
   const unique = [...new Set(colors.filter(Boolean))];
@@ -76,8 +77,10 @@ export const HarvestCarryPicker: React.FC<{
           const on = selected.includes(item.id);
           const showGroup = Boolean(item.group) && item.group !== lastGroup;
           if (item.group) lastGroup = item.group;
-          const lead = item.colors[0] || colors.primary;
-          const barColors = [...new Set(item.colors.filter(Boolean))].slice(0, 3);
+          const lead = readableFieldColor(item.colors[0] || colors.primary);
+          const barColors = [
+            ...new Set(item.colors.filter(Boolean).map((color) => readableFieldColor(color))),
+          ].slice(0, 3);
           const stripes = barColors.length > 0 ? barColors : [lead];
           return (
             <React.Fragment key={item.id}>
@@ -145,9 +148,19 @@ export const HarvestCarryPicker: React.FC<{
         </Pressable>
       ) : null}
       {transfer ? (
-        <Text style={[styles.transfer, { color: transfer.color || colors.textPrimary }]}>
-          {transfer.from} → {transfer.to}
-        </Text>
+        <View style={styles.transferRow}>
+          {transfer.color ? (
+            <View
+              style={[
+                styles.transferDot,
+                { backgroundColor: readableFieldColor(transfer.color) },
+              ]}
+            />
+          ) : null}
+          <Text style={[styles.transfer, { color: colors.textPrimary }]}>
+            {transfer.from} → {transfer.to}
+          </Text>
+        </View>
       ) : hint ? (
         <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{hint}</Text>
       ) : null}
@@ -177,7 +190,9 @@ const styles = StyleSheet.create({
   title: { fontWeight: '700', fontSize: 15 },
   detail: { fontSize: 13 },
   badge: { fontSize: 11, fontWeight: '700' },
-  transfer: { fontSize: 13, fontWeight: '700' },
+  transferRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  transferDot: { width: 8, height: 8, borderRadius: 4 },
+  transfer: { fontSize: 13, fontWeight: '700', flex: 1 },
   rowCompact: { paddingVertical: 8, borderRadius: 14 },
   more: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
 });

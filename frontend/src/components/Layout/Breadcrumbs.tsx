@@ -3,7 +3,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Home } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { resolveBreadcrumbLabel, roleHomePath, AppRole } from '../../navigation/navConfig';
+import {
+  isTopLevelAppPath,
+  resolveBreadcrumbLabel,
+  roleHomePath,
+  AppRole,
+} from '../../navigation/navConfig';
 import { demoStore } from '../../services/demo/demoStore';
 import { isMockMode } from '../../services/serviceFactory';
 import { useFieldName } from '../../hooks/useFieldName';
@@ -25,7 +30,8 @@ const Breadcrumbs: React.FC = () => {
 
   const apiFieldName = useFieldName(fieldIdFromPath);
 
-  if (pathnames.length === 0) {
+  // Top-level nav pages own their header — no Home › Module trail.
+  if (pathnames.length === 0 || isTopLevelAppPath(location.pathname)) {
     return null;
   }
 

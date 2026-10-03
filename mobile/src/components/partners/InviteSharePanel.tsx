@@ -55,7 +55,7 @@ const InviteSharePanel: React.FC<Props> = ({ invite, copyNs = 'family', onDone }
           name: invite.displayName || '',
           defaultValue: invite.shareUrl,
         });
-    await nativeShare(t(`${ns}.shareTitle`, { defaultValue: 'Oleachron invite' }), text, invite.shareUrl);
+    await nativeShare(t(`${ns}.shareTitle`, { defaultValue: 'The Olive Lot invite' }), text, invite.shareUrl);
   };
 
   return (

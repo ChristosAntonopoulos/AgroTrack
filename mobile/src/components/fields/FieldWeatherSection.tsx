@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { FieldWeather } from '../../services/geospatialService';
@@ -8,15 +8,9 @@ import {
   weatherOutlookBuckets,
 } from '../../utils/fieldWeatherImplication';
 import { useTheme } from '../../context/ThemeContext';
-import { typography } from '../../theme';
 import FieldOverviewCard from './FieldOverviewCard';
-import GroveWeatherCard from '../weather/GroveWeatherCard';
-import WeatherPeekSheet from '../weather/WeatherPeekSheet';
 
 type Props = {
-  fieldId: string;
-  fieldName?: string;
-  fieldColor?: string | null;
   weather: FieldWeather | null;
   loading?: boolean;
   error?: boolean;
@@ -31,12 +25,9 @@ type Props = {
 };
 
 /**
- * Grove weather + implication/outlook — same depth as web FieldWeatherCard.
+ * Weather implication + outlook only — the grove card lives in the weather tab hero.
  */
 const FieldWeatherSection: React.FC<Props> = ({
-  fieldId,
-  fieldName,
-  fieldColor,
   weather,
   loading,
   error,
@@ -51,7 +42,6 @@ const FieldWeatherSection: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation('fields');
   const { colors } = useTheme();
-  const [peekOpen, setPeekOpen] = useState(false);
 
   const implication = useMemo(
     () => resolveWeatherImplication(weather, { allowRecommendation }),
@@ -62,7 +52,6 @@ const FieldWeatherSection: React.FC<Props> = ({
   if (loading && !weather) {
     return (
       <FieldOverviewCard>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('weather.fieldTitle')}</Text>
         <ActivityIndicator color={colors.primary} />
       </FieldOverviewCard>
     );
@@ -71,7 +60,6 @@ const FieldWeatherSection: React.FC<Props> = ({
   if (error || !weather) {
     return (
       <FieldOverviewCard>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('weather.fieldTitle')}</Text>
         <Text style={[styles.body, { color: colors.textSecondary }]}>{t('weather.unavailable')}</Text>
         {onRetry ? (
           <Pressable onPress={onRetry} hitSlop={4}>
@@ -92,8 +80,6 @@ const FieldWeatherSection: React.FC<Props> = ({
 
   return (
     <FieldOverviewCard>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{t('weather.fieldTitle')}</Text>
-
       {isHistoricalYear ? (
         <Text style={[styles.note, { color: colors.textTertiary }]}>
           {t('weather.notThatYear', { year })}
@@ -101,13 +87,6 @@ const FieldWeatherSection: React.FC<Props> = ({
       ) : null}
 
       <Text style={[styles.implication, { color: colors.textSecondary }]}>{implicationText}</Text>
-
-      <GroveWeatherCard
-        fieldWeather={weather}
-        fieldName={fieldName}
-        compact
-        onPress={() => setPeekOpen(true)}
-      />
 
       {outlook.length > 0 ? (
         <View style={styles.outlook}>
@@ -141,24 +120,11 @@ const FieldWeatherSection: React.FC<Props> = ({
           <Text style={[styles.link, { color: colors.primary }]}>{t('weather.seeCharts')}</Text>
         </Pressable>
       ) : null}
-
-      <WeatherPeekSheet
-        open={peekOpen}
-        onClose={() => setPeekOpen(false)}
-        fields={[{ id: fieldId, name: fieldName || fieldId, color: fieldColor }]}
-        primaryFieldId={fieldId}
-      />
     </FieldOverviewCard>
   );
 };
 
 const styles = StyleSheet.create({
-  title: {
-    ...typography.styles.body,
-    fontWeight: '700',
-    fontSize: 17,
-    letterSpacing: -0.2,
-  },
   body: {
     fontSize: 14,
     lineHeight: 20,

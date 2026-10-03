@@ -1,9 +1,7 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
 import type { FieldPhenology } from '../../services/fieldWorkService';
-import Button from '../Common/Button';
 import FieldIdentity from './FieldIdentity';
 import FieldMoreMenu from './FieldMoreMenu';
 import FieldResultYearControl from './FieldResultYearControl';
@@ -16,7 +14,6 @@ type Props = {
   canManageAccess?: boolean;
   showYearControl?: boolean;
   onYearChange: (year: number) => void;
-  onCapture?: () => void;
   phenology?: FieldPhenology | null;
 };
 
@@ -27,7 +24,6 @@ const FieldHeader: React.FC<Props> = ({
   canManageAccess = false,
   showYearControl = true,
   onYearChange,
-  onCapture,
   phenology,
 }) => {
   const { t } = useTranslation('fields');
@@ -42,17 +38,6 @@ const FieldHeader: React.FC<Props> = ({
       <div className="field-header-actions">
         {showYearControl ? (
           <FieldResultYearControl year={year} onYearChange={onYearChange} />
-        ) : null}
-        {onCapture && (field.capabilities?.canCreateRecords ?? true) ? (
-          <Button
-            icon={<Plus />}
-            variant="primary"
-            size="md"
-            className="field-header-capture"
-            onClick={onCapture}
-          >
-            {t('page.capture')}
-          </Button>
         ) : null}
         <FieldMoreMenu
           field={field}

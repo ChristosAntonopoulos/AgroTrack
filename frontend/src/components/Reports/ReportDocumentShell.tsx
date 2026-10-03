@@ -42,9 +42,9 @@ const ReportDocumentShell: React.FC<ReportDocumentShellProps> = ({
           <header className="report-doc-header report-doc-header--formal">
             <div className="report-formal-top">
               <div className="report-formal-brand">
-                <BrandLogo variant="mark" size="md" className="report-doc-logo" />
+                <BrandLogo variant="mark" size="lg" className="report-doc-logo" />
                 <div>
-                  <p className="report-formal-house">Oleachron</p>
+                  <p className="report-formal-house">The Olive Lot</p>
                   <p className="report-formal-tag">{t('brandLine')}</p>
                 </div>
               </div>
@@ -80,14 +80,14 @@ const ReportDocumentShell: React.FC<ReportDocumentShellProps> = ({
         ) : (
           <header className="report-doc-header">
             <div className="report-doc-brand">
-              <BrandLogo variant="mark" size="sm" className="report-doc-logo" />
+              <BrandLogo variant="mark" size="md" className="report-doc-logo" />
               <div className="report-doc-brand-text">
                 <h2>{title}</h2>
                 {subtitle && <p>{subtitle}</p>}
               </div>
             </div>
             <div className="report-doc-meta">
-              <strong>Oleachron</strong>
+              <strong>The Olive Lot</strong>
               {periodLabel ? <span>{periodLabel}</span> : season ? <span>{t('seasonLabel', { season })}</span> : null}
               <span>{t('generated')} {generated}</span>
             </div>

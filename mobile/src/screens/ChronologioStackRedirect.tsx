@@ -4,7 +4,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-/** Stack Chronologio is a deep-link gate. The living journal lives on the tab or field page. */
+/** Stack Chronologio is a deep-link gate. The living journal lives on the tab. */
 const ChronologioStackRedirect = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Chronologio'>>();
@@ -12,7 +12,7 @@ const ChronologioStackRedirect = () => {
 
   useEffect(() => {
     if (fieldId) {
-      navigation.replace('FieldDetail', { fieldId, mode: 'chronologio' });
+      navigation.replace('Main', { screen: 'ChronologioTab', params: { fieldId } });
       return;
     }
     navigation.replace('Main', { screen: 'ChronologioTab' });

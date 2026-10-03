@@ -20,13 +20,23 @@
     "nextPerson": "{{name}} · {{pack}}"
   },
   "tabs": {
-    "stock": "Scorte",
+    "stock": "Giacenza",
     "holds": "Riserve",
     "movements": "Movimenti"
   },
   "byGrove": {
-    "title": "Per campo",
+    "title": "Scaffali",
     "hint": "Da dove viene l'olio",
+    "organize": "Come è messo l'olio, campo per campo.",
+    "sharedTitle": "In comune",
+    "groveCount_one": "{{count}} campo",
+    "groveCount_other": "{{count}} campi",
+    "seeAll": "Vedi tutti gli scaffali",
+    "totalLine": "{{amount}} L in totale",
+    "packBulk": "Sfuso",
+    "pack16": "Latte 16L",
+    "pack17": "Latte 17L",
+    "pieces": "{{count}} pz ({{litres}} L)",
     "shared": "Condiviso · {{names}}",
     "unassigned": "Senza campo",
     "noneFree": "Niente libero",
@@ -77,11 +87,33 @@
     "bulkOnly": "{{amount}} L sfusi",
     "empty": "Cantina vuota",
     "zero": "0",
-    "actionsHint": ""
+    "actionsHint": "",
+    "onHandLabel": "In cantina",
+    "totalInCellar": "Totale in magazzino",
+    "ringTotal": "Totale",
+    "sliceFree": "Libero",
+    "sliceHeld": "Riservato",
+    "sliceAwaiting": "In attesa di ritiro",
+    "sliceSold": "Venduto",
+    "soldThisYear": "Venduto quest'anno",
+    "given": "Dato",
+    "formTitle": "Forma",
+    "formBulk": "Sfuso",
+    "form16": "16L",
+    "form17": "17L",
+    "formTins": "Totale",
+    "pieces_one": "{{count}} latta",
+    "pieces_other": "{{count}} latte",
+    "moneyTitle": "Soldi",
+    "revenue": "Incassi",
+    "unpaid": "Non pagato",
+    "freeHeldLine": "{{free}} L liberi · {{held}} L riservati"
   },
   "actions": {
     "give": "Dai / Vendi",
+    "verbGive": "Dai",
     "hold": "Riserva",
+    "fillVerb": "Riempi latte",
     "fillTins": "Ho riempito latte",
     "more": "Altre azioni",
     "menuTitle": "Cosa vuoi fare?",
@@ -178,7 +210,10 @@
   "commitments": {
     "filters": {
       "all": "Tutti",
+      "waiting": "In attesa",
+      "unpaid": "Non pagati",
       "held": "Riservati",
+      "sold": "Venduti",
       "pending": "In attesa",
       "delivered": "Consegnati"
     },
@@ -251,6 +286,9 @@
     "emptyBody": ""
   },
   "timeline": {
+    "today": "Oggi",
+    "yesterday": "Ieri",
+    "thisWeek": "Questa settimana",
     "produced": "Produzione",
     "filledTins": "Riempimento latte",
     "held": "Riserva",
@@ -293,6 +331,15 @@
     "title": "Dai o vendi",
     "subtitle": "",
     "who": "A chi?",
+    "inside": "Nell'app",
+    "insideHint": "Persone dell'oliveto",
+    "insideEmpty": "Nessun altro ha un account.",
+    "outside": "Fuori dall'app",
+    "outsideHint": "Scrivi un nome o sceglilo dal telefono",
+    "outsidePlaceholder": "Nome",
+    "importContact": "Contatti",
+    "savedContact": "Salvato nei tuoi contatti",
+    "yourContacts": "I tuoi contatti",
     "forSomeone": "Qualcuno",
     "forHome": "Casa",
     "noName": "Senza nome",
@@ -396,5 +443,17 @@
     "correction": "Correction (+)",
     "returned": "Returned (+)",
     "save": "Save"
+  },
+  "where": {
+    "title": "Dov'è finito l'olio?",
+    "waiting": "In attesa",
+    "delivered": "Consegnati",
+    "paid": "Pagati",
+    "waitingPill": "In attesa di consegna"
+  },
+  "attention": {
+    "title": "Richiede attenzione",
+    "door": "Richiede attenzione",
+    "doorDetail": "{{count}} in sospeso"
   }
 }

@@ -164,9 +164,9 @@
 
 .landing-brand .landing-brand-lockup,
 .landing-brand .brand-logo {
-  height: 34px;
+  height: 48px;
   width: auto;
-  max-width: min(220px, 42vw);
+  max-width: min(300px, 55vw);
 }
 
 .landing-app-icon {
@@ -1412,9 +1412,9 @@
 
 .landing-footer-brand .landing-footer-lockup,
 .landing-footer-brand .brand-logo {
-  height: 30px;
+  height: 44px;
   width: auto;
-  max-width: 200px;
+  max-width: 280px;
 }
 
 .landing-footer p {

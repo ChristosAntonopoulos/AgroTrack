@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { motion, spacing, typography } from '../../theme';
+import { appFonts, motion, spacing } from '../../theme';
 import HeaderIconButton from '../layout/HeaderIconButton';
 
 type Props = {
@@ -26,7 +27,7 @@ type Props = {
 };
 
 /**
- * Compact period masthead — Calendar grammar, shared HeaderIconButton for filters.
+ * Period masthead — same row as Χρήματα: circular controls, one title.
  */
 const ChronologioJournalHeader: React.FC<Props> = ({
   periodLabel,
@@ -47,75 +48,47 @@ const ChronologioJournalHeader: React.FC<Props> = ({
   captureLabel = 'New record',
 }) => {
   const { colors, fontScaleMultiplier } = useTheme();
-  const titleSize = (compact ? 20 : 26) * fontScaleMultiplier;
+  const { t } = useTranslation('common');
+  const titleSize = (compact ? 20 : 22) * fontScaleMultiplier;
 
   return (
     <View style={[styles.wrap, compact && styles.wrapCompact]}>
       <View style={styles.topRow}>
+        {showPeriodNav ? (
+          <HeaderIconButton
+            icon="chevron-back"
+            accessibilityLabel={t('previous', { defaultValue: 'Previous' })}
+            onPress={() => onPrevPeriod?.()}
+            disabled={!canPrevPeriod}
+          />
+        ) : null}
+
         <View style={styles.titleBlock}>
-          <View style={styles.titleRow}>
-            {showPeriodNav ? (
-              <Pressable
-                onPress={onPrevPeriod}
-                disabled={!canPrevPeriod}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Previous period"
-                style={({ pressed }) => [
-                  styles.chevron,
-                  {
-                    opacity: !canPrevPeriod ? 0.28 : pressed ? motion.pressOpacity : 0.65,
-                  },
-                ]}
-              >
-                <Ionicons name="chevron-back" size={18} color={colors.textPrimary} />
-              </Pressable>
-            ) : null}
-
-            <Pressable
-              onPress={onPressPeriod}
-              disabled={!onPressPeriod}
-              hitSlop={4}
-              style={({ pressed }) => [
-                styles.titleHit,
-                { opacity: pressed && onPressPeriod ? motion.pressOpacity : 1 },
+          <Pressable
+            onPress={onPressPeriod}
+            disabled={!onPressPeriod}
+            hitSlop={4}
+            style={({ pressed }) => [
+              styles.titleHit,
+              { opacity: pressed && onPressPeriod ? motion.pressOpacity : 1 },
+            ]}
+            accessibilityRole={onPressPeriod ? 'button' : 'header'}
+          >
+            <Text
+              style={[
+                styles.title,
+                {
+                  color: colors.textPrimary,
+                  fontSize: titleSize,
+                  lineHeight: titleSize * 1.2,
+                },
               ]}
-              accessibilityRole={onPressPeriod ? 'button' : undefined}
+              numberOfLines={1}
+              accessibilityRole="header"
             >
-              <Text
-                style={[
-                  styles.title,
-                  {
-                    color: colors.textPrimary,
-                    fontSize: titleSize,
-                    lineHeight: titleSize * 1.15,
-                    letterSpacing: typography.letterSpacing.title,
-                  },
-                ]}
-                numberOfLines={1}
-              >
-                {periodLabel}
-              </Text>
-            </Pressable>
-
-            {showPeriodNav ? (
-              <Pressable
-                onPress={onNextPeriod}
-                disabled={!canNextPeriod}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Next period"
-                style={({ pressed }) => [
-                  styles.chevron,
-                  {
-                    opacity: !canNextPeriod ? 0.28 : pressed ? motion.pressOpacity : 0.65,
-                  },
-                ]}
-              >
-                <Ionicons name="chevron-forward" size={18} color={colors.textPrimary} />
-              </Pressable>
-            ) : null}
-          </View>
+              {periodLabel}
+            </Text>
+          </Pressable>
 
           <Pressable
             onPress={onPressContext}
@@ -139,28 +112,32 @@ const ChronologioJournalHeader: React.FC<Props> = ({
             >
               {contextLabel}
             </Text>
-            <Ionicons name="chevron-down" size={12} color={colors.textTertiary} />
+            <Ionicons name="chevron-down" size={14} color={colors.textTertiary} />
           </Pressable>
         </View>
 
-        <View style={styles.actions}>
-          {onPressCapture ? (
-            <HeaderIconButton
-              compact
-              icon="add-outline"
-              accessibilityLabel={captureLabel}
-              onPress={onPressCapture}
-            />
-          ) : null}
+        {showPeriodNav ? (
           <HeaderIconButton
-            compact
-            icon="options-outline"
-            accessibilityLabel={filtersLabel}
-            onPress={onPressFilters}
-            active={filtersActive}
-            badge={filtersCount > 0 ? filtersCount : undefined}
+            icon="chevron-forward"
+            accessibilityLabel={t('next', { defaultValue: 'Next' })}
+            onPress={() => onNextPeriod?.()}
+            disabled={!canNextPeriod}
           />
-        </View>
+        ) : null}
+        {onPressCapture ? (
+          <HeaderIconButton
+            icon="add"
+            accessibilityLabel={captureLabel}
+            onPress={onPressCapture}
+          />
+        ) : null}
+        <HeaderIconButton
+          icon="options-outline"
+          accessibilityLabel={filtersLabel}
+          onPress={onPressFilters}
+          active={filtersActive}
+          badge={filtersCount > 0 ? filtersCount : undefined}
+        />
       </View>
     </View>
   );
@@ -176,31 +153,21 @@ const styles = StyleSheet.create({
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.sm,
+    minHeight: 44,
   },
   titleBlock: {
     flex: 1,
     minWidth: 0,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 0,
-    marginLeft: -4,
-  },
-  chevron: {
-    width: 24,
-    height: 32,
-    alignItems: 'center',
     justifyContent: 'center',
   },
   titleHit: {
-    flexShrink: 1,
-    maxWidth: '100%',
+    alignSelf: 'stretch',
   },
   title: {
+    fontFamily: appFonts.bold,
     fontWeight: '700',
+    letterSpacing: -0.2,
     textTransform: 'capitalize',
   },
   contextRow: {
@@ -208,19 +175,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 4,
-    marginTop: 2,
-    marginLeft: 2,
+    marginTop: 1,
     maxWidth: '100%',
   },
   context: {
+    fontFamily: appFonts.medium,
     fontWeight: '500',
     flexShrink: 1,
     letterSpacing: -0.1,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
   },
 });
 

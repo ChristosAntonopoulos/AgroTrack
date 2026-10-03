@@ -1,6 +1,6 @@
 {
   "title": "Settings",
-  "subtitle": "Make OLEACHRON work the way you like.",
+  "subtitle": "Make The Olive Lot work the way you like.",
   "autosaveHint": "Changes save automatically",
   "saved": "Saved",
   "saveError": "Could not save.",
@@ -81,7 +81,7 @@
     "dateFormat": "Date format"
   },
   "startup": {
-    "label": "When I open OLEACHRON",
+    "label": "When I open The Olive Lot",
     "options": {
       "fields": "Fields",
       "chronologio": "History"
@@ -108,7 +108,7 @@
       "yyyy-MM-dd": "2026-09-09",
       "medium": "9 Sep 2026"
     },
-    "defaultView": "When I open OLEACHRON",
+    "defaultView": "When I open The Olive Lot",
     "defaultViews": {
       "dashboard": "Dashboard",
       "fields": "Fields",
@@ -129,7 +129,7 @@
   "notifications": {
     "title": "Notifications",
     "accountHint": "Saved to your account with your inbox. The same choices apply on every device where you sign in.",
-    "accountHintDemo": "Saved to this demo account in the browser, with sample assignment and approval notices. On a live OLEACHRON account they follow you to every device.",
+    "accountHintDemo": "Saved to this demo account in the browser, with sample assignment and approval notices. On a live The Olive Lot account they follow you to every device.",
     "email": "Email Notifications",
     "taskAssignment": "Task Assignment Notifications",
     "deadline": "Deadline Reminders",
@@ -158,12 +158,12 @@
     "exportWorking": "Preparing your file…",
     "exportDone": "Download started.",
     "supportTitle": "Ask support",
-    "supportBody": "For a correction, a complete archive, or written confirmation that grove data was deleted, email OLEACHRON support. Include the account email you sign in with.",
+    "supportBody": "For a correction, a complete archive, or written confirmation that grove data was deleted, email The Olive Lot support. Include the account email you sign in with.",
     "supportAction": "Email support"
   },
   "sessions": {
     "thisDevice": "This device",
-    "thisDeviceHint": "OLEACHRON only tracks the session on this browser. Sign out to end it."
+    "thisDeviceHint": "The Olive Lot only tracks the session on this browser. Sign out to end it."
   },
   "danger": {
     "deleteHelp": "Closing your account signs you out and removes your name and email from the login. Grove records stay until support confirms they were deleted.",
@@ -178,7 +178,7 @@
   },
   "technical": {
     "purpose": "Share the app version with support if something goes wrong.",
-    "supportHint": "Mention this version when you contact OLEACHRON support."
+    "supportHint": "Mention this version when you contact The Olive Lot support."
   },
   "demo": {
     "title": "Demo",

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import type { ChronologioTimelineRow } from '../../utils/chronologioTimeline';
-import { spacing } from '../../theme';
+import { appFonts, spacing } from '../../theme';
 
 const RAIL_WIDTH = 34;
 const LINE_LEFT = 16;
@@ -93,6 +93,8 @@ const ChronologioTimelineRowView: React.FC<Props> = ({
                 styles.dayLabel,
                 {
                   color: isToday ? colors.primary : colors.textPrimary,
+                  fontFamily:
+                    isToday || row.dayKind === 'yesterday' ? appFonts.bold : appFonts.semibold,
                   fontWeight: isToday || row.dayKind === 'yesterday' ? '700' : '600',
                 },
               ]}
@@ -188,9 +190,10 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   yearLabel: {
+    fontFamily: appFonts.bold,
     fontSize: 22,
     fontWeight: '700',
-    letterSpacing: -0.4,
+    letterSpacing: -0.2,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
     paddingBottom: spacing.xs,
@@ -201,6 +204,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   monthLabel: {
+    fontFamily: appFonts.semibold,
     fontSize: 14,
     fontWeight: '600',
     letterSpacing: -0.1,
@@ -216,11 +220,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   dayLabel: {
+    fontFamily: appFonts.bold,
     fontSize: 18,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
     lineHeight: 24,
   },
   daySub: {
+    fontFamily: appFonts.medium,
     fontSize: 13,
     fontWeight: '500',
     marginTop: 2,

@@ -28,10 +28,27 @@
     "settings": "Settings",
     "help": "Help",
     "thisHarvest": "Harvest",
-    "myOil": "My oil",
+    "myOil": "Storage",
     "chronologio": "History",
     "more": "More",
     "inbox": "Inbox"
+  },
+  "hints": {
+    "chronologio": "The full trail",
+    "fields": "Your groves",
+    "tasks": "What needs doing",
+    "harvest": "Sacks, crop and oil",
+    "harvestLive": "Harvest is open",
+    "myOil": "Oil stocks",
+    "money": "Costs and income",
+    "photos": "Photos from the field",
+    "partners": "People with access",
+    "settings": "Account preferences",
+    "help": "Guides and support",
+    "feedback": "Tell us what you need",
+    "dataSources": "Data sources and links",
+    "campaigns": "System messages",
+    "userFeedback": "User feedback"
   },
   "breadcrumb": {
     "new": "New",

@@ -854,6 +854,30 @@
   pointer-events: auto;
 }
 
+.boundary-stage-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-1, #fff) 94%, transparent);
+  color: var(--text-primary, #1e261c);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(12px);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.boundary-stage-back:focus-visible {
+  outline: 2px solid var(--olive-primary, #3d7a4a);
+  outline-offset: 2px;
+}
+
 .boundary-stage-top .grove-setup-level {
   align-self: flex-start;
   max-width: 100%;
@@ -1008,6 +1032,12 @@
   .boundary-search-block.is-in-stage {
     flex: 1;
     max-width: 28rem;
+  }
+}
+
+@media (max-width: 899px) {
+  .field-boundary-step.is-stage.has-back .leaflet-top.leaflet-left {
+    top: 11.5rem;
   }
 }
 

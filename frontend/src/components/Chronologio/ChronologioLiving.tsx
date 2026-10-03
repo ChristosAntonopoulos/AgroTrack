@@ -70,6 +70,8 @@ import { useChronologioLivingState } from '../../chronologio/useChronologioLivin
 import { getSeasonStartYear } from '../../utils/harvestSeason';
 import type { SupportedLocale } from '../../i18n/config';
 import { useCaptureOptional } from '../../context/CaptureContext';
+import { useRegisterCapturePage } from '../../context/CapturePageContext';
+import { resolveChronologioCaptureDate } from '../../chronologio/captureContext';
 import { CAPTURE_SAVED_EVENT } from '../../capture/types';
 import { readWorkProfileDraft } from '../../utils/fieldWorkProfileDraft';
 import WorkSetupBanner from '../fields/WorkSetupBanner';
@@ -160,6 +162,25 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const nowYear = new Date().getFullYear();
   const nowMonth = new Date().getMonth() + 1;
 
+  const chronologioCaptureDate = useMemo(
+    () =>
+      resolveChronologioCaptureDate({
+        zoom: living.zoom,
+        focusDate: living.focusDate,
+        language: i18n.language,
+      }),
+    [living.zoom, living.focusDate, i18n.language]
+  );
+
+  useRegisterCapturePage({
+    sourcePage: fieldMode ? 'grove' : 'chronologio',
+    fieldId: scopedFieldId || undefined,
+    occurredAt: chronologioCaptureDate.occurredAt,
+    dateDefaultedToToday: chronologioCaptureDate.dateDefaultedToToday,
+    dateNeedsChoice: chronologioCaptureDate.dateNeedsChoice,
+    periodLabel: chronologioCaptureDate.periodLabel,
+  });
+
   useEffect(() => {
     saveChronologioFocus({
       focusDate: living.focusDate,
@@ -174,7 +195,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
       setWorkSetupDismissed(false);
       return;
     }
-    const dismissKey = `oleachron.workSetupBanner.dismissed.${scopedFieldId}`;
+    const dismissKey = `The Olive Lot.workSetupBanner.dismissed.${scopedFieldId}`;
     if (localStorage.getItem(dismissKey) === '1') {
       setWorkSetup(null);
       setWorkSetupDismissed(true);
@@ -290,8 +311,9 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
 
   const isLiveJournalMonth = living.monthYear === nowYear && living.month === nowMonth;
   const harvestTab = living.filters.category === 'harvest';
-  const showTodaySummary =
-    living.zoom === 'month' && isLiveJournalMonth && !harvestTab;
+  // Still load today weather for the strip; do not pin an attention card above the timeline.
+  const todayBriefLive = living.zoom === 'month' && isLiveJournalMonth && !harvestTab;
+  const showTodaySummary = false;
 
   const fetchJournalPage = useCallback(
     async (offset: number) => {
@@ -299,7 +321,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
       const filters = {
         to: isLiveJournalMonth ? undefined : to,
         category: apiCategoryParam(living.filters.category),
-        lifecycleYear: living.filters.lifecycleYear || undefined,
+        lifecycleYear: undefined,
         fieldId: !fieldMode ? living.filters.fieldId : undefined,
         limit: PAGE_SIZE,
         offset,
@@ -371,7 +393,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
             from,
             to,
             category: apiCategoryParam(living.filters.category),
-            lifecycleYear: living.filters.lifecycleYear || undefined,
+            lifecycleYear: undefined,
             fieldId: !fieldMode ? living.filters.fieldId : undefined,
             limit: 200,
           };
@@ -847,29 +869,31 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         ) : (
           <Button
             variant="primary"
-            onClick={() => capture?.openCapture({ fieldId: starterGrove.id })}
+            onClick={() =>
+              capture?.openCapture({
+                fieldId: starterGrove.id,
+                sourcePage: fieldMode ? 'grove' : 'chronologio',
+                occurredAt: chronologioCaptureDate.occurredAt,
+                dateDefaultedToToday: chronologioCaptureDate.dateDefaultedToToday,
+                dateNeedsChoice: chronologioCaptureDate.dateNeedsChoice,
+                periodLabel: chronologioCaptureDate.periodLabel,
+              })
+            }
             disabled={!capture}
           >
             {t('chronologio:firstGrove.primary')}
           </Button>
         )}
       </div>
-    ) : capture ? (
-    <Button
-      variant="primary"
-      onClick={() => capture.openCapture({ fieldId: scopedFieldId || fieldId })}
-    >
-      {t('capture:ctaPlus')}
-    </Button>
-  ) : fieldMode && fieldId ? (
+    ) : fieldMode && fieldId ? (
     <Button variant="primary" to={`/fields/${fieldId}`}>
       {t('chronologio:backToField')}
     </Button>
-  ) : (
+  ) : noStory ? (
     <Button to="/fields" variant="primary">
       {t('chronologio:ctaViewFields')}
     </Button>
-  );
+  ) : null;
 
   const visibleYearEntries = useMemo(
     () => yearEntries.filter((entry) => entryMatchesChronologioTypes(entry, living.filters.category)),
@@ -879,7 +903,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
   const panelBusy = booted && readyScope !== null && readyScope !== viewScope;
 
   const today = useTodaySummary({
-    enabled: showTodaySummary && booted && !error,
+    enabled: todayBriefLive && booted && !error,
     fieldId: scopedFieldId,
     fields,
   });
@@ -1090,7 +1114,6 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
         periodYear={living.periodYear}
         axis={living.axis}
         embedded={embedded}
-        onBack={embedded || !fieldId ? undefined : () => navigate(`/fields/${fieldId}`)}
         onSetZoom={living.setZoom}
         onSetFilters={living.setFilters}
         onJumpToDate={(isoDate) => living.jumpToDate(isoDate)}
@@ -1103,7 +1126,7 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
           fieldId={scopedFieldId}
           resume={workSetup.resume}
           onDismiss={() => {
-            localStorage.setItem(`oleachron.workSetupBanner.dismissed.${scopedFieldId}`, '1');
+            localStorage.setItem(`The Olive Lot.workSetupBanner.dismissed.${scopedFieldId}`, '1');
             setWorkSetupDismissed(true);
             setWorkSetup(null);
           }}

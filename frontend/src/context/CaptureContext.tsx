@@ -1,12 +1,12 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { CaptureContext, CaptureSavedDetail, CaptureSavedOptions, CaptureType } from '../capture/types';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
+import { buildCaptureOpenContext } from '../capture/openContext';
 import CaptureDrawer from '../components/Capture/CaptureDrawer';
 import { getFinancialTransactionService } from '../services/serviceFactory';
-import { useHarvestCampaignOptional } from './HarvestCampaignContext';
-import { shouldRouteCaptureToHarvest } from '../harvestCampaign/routeCapture';
+import { CapturePageProvider, useCapturePageOptional } from './CapturePageContext';
 import '../components/Capture/Capture.css';
 
 type CaptureApi = {
@@ -23,22 +23,28 @@ type ToastState = {
 
 const CaptureContextValue = createContext<CaptureApi | null>(null);
 
-export const CaptureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const CaptureProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { t } = useTranslation(['capture']);
-  const navigate = useNavigate();
-  const harvest = useHarvestCampaignOptional();
+  const location = useLocation();
+  const page = useCapturePageOptional();
   const [open, setOpen] = useState(false);
   const [context, setContext] = useState<CaptureContext>({});
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  const openCapture = useCallback((ctx?: CaptureContext) => {
-    if (harvest?.isLive && shouldRouteCaptureToHarvest(ctx?.preferredType)) {
-      navigate('/harvest?add=1');
-      return;
-    }
-    setContext(ctx || {});
-    setOpen(true);
-  }, [harvest?.isLive, navigate]);
+  const openCapture = useCallback(
+    (ctx?: CaptureContext) => {
+      setContext(
+        buildCaptureOpenContext({
+          pathname: location.pathname,
+          search: location.search,
+          explicit: ctx,
+          page: page?.snapshot,
+        })
+      );
+      setOpen(true);
+    },
+    [location.pathname, location.search, page?.snapshot]
+  );
 
   const closeCapture = useCallback(() => {
     setOpen(false);
@@ -108,7 +114,7 @@ export const CaptureProvider: React.FC<{ children: React.ReactNode }> = ({ child
           ) : null}
           {toast.addAnother ? (
             <button type="button" className="capture-toast-action" onClick={toast.addAnother}>
-              {t('capture:money.addAnother')}
+              {t('capture:addAnother')}
             </button>
           ) : null}
         </div>
@@ -116,6 +122,12 @@ export const CaptureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     </CaptureContextValue.Provider>
   );
 };
+
+export const CaptureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <CapturePageProvider>
+    <CaptureProviderInner>{children}</CaptureProviderInner>
+  </CapturePageProvider>
+);
 
 export const useCapture = (): CaptureApi => {
   const ctx = useContext(CaptureContextValue);

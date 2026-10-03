@@ -16,6 +16,7 @@ import {
 import OwnerActivationHost from '../onboarding/OwnerActivationHost';
 import ActivationGate from '../onboarding/ActivationGate';
 import NavCoach from '../onboarding/NavCoach';
+import CaptureFab from '../Capture/CaptureFab';
 import { useIsMobile } from '../../hooks/useBreakpoint';
 import './MainLayout.css';
 
@@ -82,6 +83,7 @@ const MainLayoutChrome: React.FC = () => {
       {isMobile && !hideAppNav ? (
         <MobileBottomNav onMoreClick={toggleMore} moreOpen={moreOpen} />
       ) : null}
+      {!hideAppNav ? <CaptureFab obscured={moreOpen} /> : null}
       <ActivationGate />
       <OwnerActivationHost />
       <NavCoach />

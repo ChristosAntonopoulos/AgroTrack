@@ -20,6 +20,15 @@ export const convertOliveOilKgToLitres = (kg: number): number => {
   return kg / OLIVE_OIL_KG_PER_LITRE;
 };
 
+/** Numeric litres only — pair with a separate unit label (λίτρα). */
+export const formatOilLitresAmountFromKg = (kg: number, locale = 'el'): string => {
+  const litres = convertOliveOilKgToLitres(kg);
+  if (litres <= 0) return '—';
+  if (litres >= 100) return String(Math.round(litres));
+  const rounded = Math.round(litres * 10) / 10;
+  return new Intl.NumberFormat(localeTagFor(locale), { maximumFractionDigits: 1 }).format(rounded);
+};
+
 export const oilKgFromAmount = (amount: number, unit: HarvestOilUnit): number => {
   if (!Number.isFinite(amount) || amount < 0) return 0;
   return unit === 'litres' ? convertOliveOilLitresToKg(amount) : amount;

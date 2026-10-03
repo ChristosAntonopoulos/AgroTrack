@@ -12,6 +12,7 @@ import {
   presentChronologioEvent,
   presentExpenseChip,
   presentHarvestQuality,
+  presentMetaLabel,
 } from '../../chronologio/eventPresentation';
 import type { SupportedLocale } from '../../i18n/config';
 import { resolveFieldColor } from '../../utils/fieldColors';
@@ -161,13 +162,16 @@ const ChronologioEntryCard: React.FC<Props> = ({
   const actorName = presentActorName(entry.actor?.displayName, i18n.language);
   const fieldLabel =
     showField && entry.field?.name ? friendlyFieldLabel(entry.field.name) : null;
-  const typeLabel = isPeriodReview
-    ? t(
-        entry.eventType === 'weather.yearReview'
-          ? 'chronologio:weatherReview.yearReport'
-          : 'chronologio:weatherReview.monthReport'
-      )
-    : presented.shortLabel;
+  const typeLabel = presentMetaLabel(
+    isPeriodReview
+      ? t(
+          entry.eventType === 'weather.yearReview'
+            ? 'chronologio:weatherReview.yearReport'
+            : 'chronologio:weatherReview.monthReport'
+        )
+      : presented.shortLabel,
+    i18n.language
+  );
   const title = weatherTile
     ? entry.field?.name
       ? friendlyFieldLabel(entry.field.name)
@@ -247,10 +251,12 @@ const ChronologioEntryCard: React.FC<Props> = ({
             )}
           </div>
 
-          {/* 2. title */}
-          <h3 className={`chronologio-card-title${weatherTile ? ' weather-pick-title' : ''}`}>
-            {title}
-          </h3>
+          {/* 2. title — skip when it only repeats the category meta label */}
+          {title && title.toLowerCase() !== typeLabel.toLowerCase() ? (
+            <h3 className={`chronologio-card-title${weatherTile ? ' weather-pick-title' : ''}`}>
+              {title}
+            </h3>
+          ) : null}
 
           {/* Type-specific metrics sit between title and shared meta slots */}
           {category === 'harvest' && harvest ? (

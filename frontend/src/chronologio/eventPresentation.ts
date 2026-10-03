@@ -42,7 +42,7 @@ const CATEGORY_EL: Record<string, string> = {
   note: 'Παρατήρηση',
   observation: 'Παρατήρηση',
   weather: 'Καιρός',
-  intelligence: 'OLEACHRON',
+  intelligence: 'The Olive Lot',
   lifecycle: 'Αλλαγές ελαιώνα',
   collaborator: 'Αλλαγές ελαιώνα',
   activity: 'Αλλαγές ελαιώνα',
@@ -60,7 +60,7 @@ const CATEGORY_EN: Record<string, string> = {
   note: 'Note',
   observation: 'Note',
   weather: 'Weather',
-  intelligence: 'OLEACHRON',
+  intelligence: 'The Olive Lot',
   lifecycle: 'Field change',
   collaborator: 'Field change',
   activity: 'Field change',
@@ -178,6 +178,17 @@ export const presentCategory = (category: string, language = 'el'): string => {
   const primary = presentPrimaryCategory(category, language, true);
   if (primary) return primary;
   return isEnglish(language) ? 'Activity' : 'Δραστηριότητα';
+};
+
+/** Uppercase meta labels without Greek τόνοι (ΣΥΓΚΟΜΙΔΗ, not ΣΥΓΚΟΜΙΔΉ). */
+export const presentMetaLabel = (label: string, language = 'el'): string => {
+  const text = (label || '').trim();
+  if (!text) return '';
+  const locale = isEnglish(language) ? 'en' : 'el-GR';
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleUpperCase(locale);
 };
 
 export const presentExpenseCategory = (category?: string | null, language = 'el'): string => {
@@ -331,17 +342,16 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
   if (category === 'harvest') {
     if (isMergedHarvestDayEntry(entry)) {
       return {
-        // Category as title — date lives in the card meta; avoid "Ημέρα συγκομιδής · 21 Σεπ" twice.
-        label: presentCategory('harvest', language),
+        // Category already in the meta row — numbers render below; no repeated title.
+        label: '',
         shortLabel: presentCategory('harvest', language),
         icon,
         accent,
-        // Sack totals render as stats; keep summary only when it adds non-sack facts.
         description: undefined,
       };
     }
     return {
-      label: presentCategory('harvest', language),
+      label: '',
       shortLabel,
       icon,
       accent,
@@ -364,10 +374,12 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
       entry.details.expense?.expenseCategoryLabel ||
       presentExpenseCategory(entry.details.expense?.expenseCategory, language);
     const titled = humanTitle(entry.title, language, '');
+    const stripped = titled.replace(/^[''΄`«»\s]+/, '');
     const genericMoneyTitle =
       !titled ||
       titled === shortLabel ||
-      titled.toLowerCase().startsWith(shortLabel.toLowerCase());
+      stripped === shortLabel ||
+      stripped.toLowerCase().startsWith(shortLabel.toLowerCase());
     const label = genericMoneyTitle
       ? categoryLabel || titled || shortLabel
       : titled;

@@ -70,6 +70,8 @@ export const photosPath = (opts?: { fieldId?: string; photoId?: string }): strin
 
 export const harvestPath = (opts?: {
   add?: boolean;
+  /** Open this harvest capture directly (sacks, mill, oil, people, expense, income, note). */
+  kind?: string;
   evening?: boolean | string;
   fieldId?: string;
   harvestId?: string;
@@ -79,6 +81,7 @@ export const harvestPath = (opts?: {
 }): string =>
   `/harvest${qs([
     ['add', opts?.add],
+    ['kind', opts?.kind],
     ['evening', opts?.evening === true ? '1' : opts?.evening],
     ['fieldId', opts?.fieldId],
     ['harvestId', opts?.harvestId],
@@ -86,9 +89,12 @@ export const harvestPath = (opts?: {
     ['view', opts?.view],
   ])}`;
 
-/** Personal oil cellar. Optional `field` filters the by-grove list. */
-export const myOilPath = (opts?: { field?: string }): string =>
-  `/my-oil${qs([['field', opts?.field]])}`;
+/** Personal oil cellar. `do` opens give, sell, hold, fill, or count. */
+export const myOilPath = (opts?: { field?: string; do?: string }): string =>
+  `/my-oil${qs([
+    ['field', opts?.field],
+    ['do', opts?.do],
+  ])}`;
 
 export const harvestReviewPath = (opts?: { season?: number }): string =>
   `/this-harvest/review${qs([['season', opts?.season]])}`;

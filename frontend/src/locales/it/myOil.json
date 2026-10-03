@@ -1,15 +1,15 @@
 {
-  "title": "La tua cantina",
-  "pageSupport": "La tua cantina — non del campo.",
+  "title": "Il tuo magazzino",
+  "pageSupport": "Il tuo magazzino — non del campo.",
   "seasonLabel": "Raccolta {{season}}",
   "tabs": {
-    "stock": "Scorte",
-    "holds": "Riserve",
+    "stock": "Dentro",
+    "holds": "In attesa",
     "movements": "Movimenti"
   },
   "byGrove": {
-    "title": "Per campo",
-    "hint": "Da dove viene l'olio",
+    "title": "Scaffali",
+    "hint": "Olio per campo di origine",
     "shared": "Condiviso · {{names}}",
     "unassigned": "Senza campo",
     "noneFree": "Niente libero",
@@ -23,15 +23,19 @@
     "harvest": "Raccolta",
     "money": "Entrate"
   },
+  "attention": {
+    "title": "Serve attenzione"
+  },
   "shareInbox": {
     "title": "Famiglia chiede olio",
+    "hint": "Accetta per spostarlo nella loro cantina",
     "someone": "Qualcuno",
     "asking": "Chiede una quota",
     "accept": "Accetta",
     "reject": "Rifiuta"
   },
   "hero": {
-    "onHandLabel": "In cantina",
+    "onHandLabel": "In magazzino",
     "freeOfTotal": "{{amount}} L liberi",
     "available": "Libero",
     "holds": "In riserva"
@@ -46,7 +50,7 @@
     "sell": "Vendi",
     "hold": "Riserva",
     "fillTins": "Ho riempito latte",
-    "count": "Conta le scorte",
+    "count": "Conta in magazzino",
     "delivered": "L'hanno preso",
     "cancelHold": "Annulla"
   },
@@ -130,17 +134,17 @@
     "wasUndone": "Annullato"
   },
   "count": {
-    "title": "Conta le scorte",
-    "subtitle": "Scrivi quello che hai trovato davvero in cantina.",
-    "expected": "Secondo i registri",
-    "actual": "Quello che hai contato",
-    "matches": "Coincide con i registri",
-    "surplus": "{{amount}} L in più dei registri",
-    "shortfall": "{{amount}} L in meno dei registri",
+    "title": "Conta in magazzino",
+    "subtitle": "Scrivi quello che hai trovato davvero in magazzino.",
+    "expected": "Quello che risultava",
+    "actual": "Quello che ho trovato",
+    "matches": "Coincide con il registro",
+    "surplus": "{{amount}} L in più del registro",
+    "shortfall": "{{amount}} L in meno del registro",
     "reason": "Perché?",
     "reasonPlaceholder": "es. perdita, errore di registrazione",
     "save": "Registra la conta",
-    "defaultReason": "Conta delle scorte"
+    "defaultReason": "Conta magazzino"
   },
   "deliverAllPrompt": "L'hanno preso tutto?",
   "deliverAll": "Sì, tutti {{count}}",
@@ -233,9 +237,9 @@
   "emptyCta": "Registra olio",
   "loading": "Caricamento…",
   "error": "Impossibile caricare l'olio. Riprova.",
-  "seeMyOil": "Vedi la cantina",
+  "seeMyOil": "Vedi il magazzino",
   "seeIncome": "Vedi l'entrata",
-  "seeCellar": "Vedi la cantina",
+  "seeCellar": "Vedi il magazzino",
   "tin": "{{count}} × {{size}}L",
   "bulk": "{{amount}} L sfusi",
   "litres": "{{amount}} L"

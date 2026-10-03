@@ -64,6 +64,9 @@ export const formatHarvestYieldPercent = (
 export const TIN_16_LITRES = 16;
 export const TIN_17_LITRES = 17;
 
+/** Sizes offered when packing a pressing. 16 L and 17 L are cellar tins. */
+export const OIL_TIN_SIZES = [1, 5, 10, 16, 17] as const;
+
 export type OilSplitPartKey = 'stored' | 'tin16' | 'tin17' | 'bulk' | 'mill';
 
 export type OilSplitPart = {

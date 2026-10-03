@@ -193,3 +193,65 @@ export async function geocodeFirstPlace(query: string): Promise<GeocodedPlace | 
   const places = await searchPlaces(query, 1);
   return places[0] ?? null;
 }
+
+/**
+ * Resolve a human place label for a pin / GPS coordinate (village, municipality, …).
+ * Prefer this over free-typed search text when saving locationText.
+ */
+export async function reverseGeocode(
+  latitude: number,
+  longitude: number,
+  opts?: { signal?: AbortSignal; language?: string }
+): Promise<GeocodedPlace | null> {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+
+  const params = new URLSearchParams({
+    format: 'jsonv2',
+    addressdetails: '1',
+    // Rural grove scale — village / locality rather than country.
+    zoom: '14',
+    lat: String(latitude),
+    lon: String(longitude),
+  });
+
+  const res = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+    signal: opts?.signal,
+    headers: {
+      Accept: 'application/json',
+      'Accept-Language': acceptLanguage(opts?.language),
+      'User-Agent': USER_AGENT,
+    },
+  });
+  if (!res.ok) return null;
+
+  const hit = (await res.json()) as NominatimHit & { error?: string };
+  if (!hit || hit.error) return null;
+
+  const label = formatPlaceLabel(hit);
+  const lat = Number.parseFloat(hit.lat || String(latitude));
+  const lon = Number.parseFloat(hit.lon || String(longitude));
+  if (!label || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+  return { label, latitude: lat, longitude: lon };
+}
+
+/** GPS / map placeholders that should be replaced with a reverse-geocoded place name. */
+export function isPlaceholderLocationText(
+  text: string | null | undefined,
+  knownLabels: string[] = []
+): boolean {
+  const value = (text || '').trim().toLocaleLowerCase();
+  if (!value) return true;
+  const defaults = [
+    'near me',
+    'my location',
+    'point on the map',
+    'κοντά μου',
+    'η τοποθεσία μου',
+    'σημείο στον χάρτη',
+  ];
+  const labels = [...defaults, ...knownLabels.map((l) => l.trim().toLocaleLowerCase())].filter(
+    Boolean
+  );
+  return labels.includes(value);
+}

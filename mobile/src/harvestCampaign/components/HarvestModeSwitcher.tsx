@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { createElevation, motion, radii } from '../../theme';
+import { appFonts, motion, spacing } from '../../theme';
 import type { HarvestModeView } from '../types';
 
 type Props = {
@@ -15,7 +15,7 @@ type Props = {
 };
 
 /**
- * Simple Today / Totals segmented control — labels only, dark olive selected.
+ * Today / Totals — quiet text tabs, not a second chrome layer.
  */
 export function HarvestModeSwitcher({
   value,
@@ -41,15 +41,7 @@ export function HarvestModeSwitcher({
     <View
       accessibilityRole="tablist"
       accessibilityLabel={ariaLabel}
-      style={[
-        styles.track,
-        {
-          backgroundColor: colors.surfaceElevated,
-          borderColor: colors.border,
-          minHeight: Math.max(50, tapMin),
-          ...createElevation(colors, 'sm'),
-        },
-      ]}
+      style={[styles.track, { minHeight: Math.max(40, tapMin - 4) }]}
     >
       {options.map((opt) => {
         const selected = value === opt.id;
@@ -65,8 +57,8 @@ export function HarvestModeSwitcher({
             style={({ pressed }) => [
               styles.option,
               {
-                minHeight: Math.max(44, tapMin - 4),
-                backgroundColor: selected ? colors.primary : 'transparent',
+                minHeight: Math.max(36, tapMin - 12),
+                borderBottomColor: selected ? colors.primary : 'transparent',
                 opacity: pressed && !selected ? motion.pressOpacity : 1,
               },
             ]}
@@ -75,8 +67,9 @@ export function HarvestModeSwitcher({
               style={[
                 styles.label,
                 {
-                  color: selected ? colors.onOlive : colors.textPrimary,
+                  color: selected ? colors.textPrimary : colors.textSecondary,
                   fontSize: 15 * scale,
+                  fontWeight: selected ? '700' : '600',
                 },
               ]}
               numberOfLines={1}
@@ -93,21 +86,16 @@ export function HarvestModeSwitcher({
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    gap: 4,
-    padding: 4,
-    borderRadius: radii.lg,
-    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'stretch',
+    gap: spacing.md,
   },
   option: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: radii.md,
+    paddingHorizontal: 2,
+    paddingVertical: 6,
+    borderBottomWidth: 2,
   },
   label: {
-    fontWeight: '800',
-    letterSpacing: -0.15,
+    fontFamily: appFonts.semibold,
+    letterSpacing: -0.1,
   },
 });

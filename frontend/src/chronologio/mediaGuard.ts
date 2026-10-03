@@ -1,4 +1,4 @@
-/** True only for app-hosted /uploads media — never stock photography. */
+/** True for app-hosted photo bytes — never stock photography. */
 export const isRealChronologioMediaUrl = (url?: string | null): boolean => {
   if (!url || !url.trim()) return false;
   const u = url.trim().toLowerCase();
@@ -8,6 +8,7 @@ export const isRealChronologioMediaUrl = (url?: string | null): boolean => {
   return (
     u.startsWith('/uploads/') ||
     u.includes('/uploads/') ||
+    u.includes('/api/v1/photos/') ||
     u.startsWith('blob:') ||
     u.startsWith('data:image/')
   );

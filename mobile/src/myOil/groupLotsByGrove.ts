@@ -36,6 +36,22 @@ export const groveGroupLabel = (
   return copy.shared(names.join(' + '));
 };
 
+/** Shelf title, and the groves inside a shared shelf. */
+export const groveShelfTitle = (
+  group: Pick<GroveOilGroup, 'fieldIds'>,
+  fieldNames: Record<string, string>,
+  copy: { shared: string; unassigned: string }
+): { title: string; subtitle?: string } => {
+  if (group.fieldIds.length === 0) return { title: copy.unassigned };
+  const names = group.fieldIds.map((id) => fieldNames[id] || id).filter(Boolean);
+  if (names.length <= 1) return { title: names[0] || copy.unassigned };
+  return { title: copy.shared, subtitle: names.join(' + ') };
+};
+
+/** Fullest shelf first — what you see when you open the cellar. */
+export const orderShelves = (groups: GroveOilGroup[]): GroveOilGroup[] =>
+  [...groups].sort((a, b) => b.onHand.litres - a.onHand.litres || a.key.localeCompare(b.key));
+
 export const groupLotsByGrove = (lots: OilLot[]): GroveOilGroup[] => {
   const map = new Map<string, GroveOilGroup>();
 

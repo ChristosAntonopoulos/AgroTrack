@@ -12,12 +12,7 @@
 .invite-accept-brand {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
   margin-bottom: 1.1rem;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.12em;
-  font-size: 0.78rem;
-  font-weight: 700;
 }
 
 .invite-accept-title {

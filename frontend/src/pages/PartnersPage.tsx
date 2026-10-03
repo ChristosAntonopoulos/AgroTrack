@@ -254,9 +254,11 @@ const PartnersPage: React.FC = () => {
       <div className="people-page">
         <header className="people-header">
           <div>
+            <h1 className="people-title">{t('partners:peoplePage.title')}</h1>
+            <p className="people-subtitle">{t('partners:peoplePage.focusLead')}</p>
             {fields.length > 1 ? (
               <select
-                className="people-grove-select"
+                className="people-grove-select people-grove-select--control"
                 aria-label={t('partners:peoplePage.switchGrove')}
                 value={selected?.id || ''}
                 onChange={(event) => onFieldChange(event.target.value)}
@@ -267,12 +269,9 @@ const PartnersPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-            ) : (
-              <h1 className="people-title">
-                {selected ? friendlyFieldLabel(selected.name) : t('partners:peoplePage.title')}
-              </h1>
-            )}
-            <p className="people-subtitle">{t('partners:peoplePage.focusLead')}</p>
+            ) : selected ? (
+              <p className="people-grove-title">{friendlyFieldLabel(selected.name)}</p>
+            ) : null}
           </div>
         </header>
 

@@ -19,6 +19,7 @@ import { usePreferences } from '../../context/PreferencesContext';
 import { resolveFieldCenter } from '../../utils/fieldGeo';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { RootStackParamList } from '../../navigation/types';
+import HeaderIconButton from '../layout/HeaderIconButton';
 import { spacing } from '../../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -34,6 +35,13 @@ type Props = {
   canViewEnvironmentalData: boolean;
   onDelete?: () => void;
   onOpenChronologio: () => void;
+  /** Match StackScreenHeader paper controls (field page header). */
+  headerStyle?: boolean;
+  /** Controlled open — keep Modal in the screen body, not the native header. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Hide built-in trigger when the parent owns the header button. */
+  hideTrigger?: boolean;
 };
 
 type Action = {
@@ -55,12 +63,22 @@ const FieldMoreMenu: React.FC<Props> = ({
   canViewEnvironmentalData,
   onDelete,
   onOpenChronologio,
+  headerStyle = false,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
 }) => {
   const { t } = useTranslation(['fields', 'common', 'chronologio', 'partners', 'nav']);
   const { colors } = useTheme();
   const { tapMin, fontScaleMultiplier } = usePreferences();
   const navigation = useNavigation<Nav>();
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const controlled = typeof openProp === 'boolean';
+  const open = controlled ? openProp : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (!controlled) setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
   const center = resolveFieldCenter(field);
   const title = friendlyFieldLabel(field.name);
 
@@ -156,21 +174,34 @@ const FieldMoreMenu: React.FC<Props> = ({
 
   return (
     <>
-      <Pressable
-        onPress={() => setOpen(true)}
-        accessibilityRole="button"
-        accessibilityLabel={t('common:actions', { defaultValue: 'More' })}
-        style={{
-          minHeight: tapMin,
-          minWidth: tapMin,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons name="ellipsis-horizontal" size={22} color={colors.textPrimary} />
-      </Pressable>
+      {!hideTrigger ? (
+        headerStyle ? (
+          <HeaderIconButton
+            icon="ellipsis-horizontal"
+            paper
+            compact
+            accessibilityLabel={t('common:actions', { defaultValue: 'More' })}
+            onPress={() => setOpen(true)}
+          />
+        ) : (
+          <Pressable
+            onPress={() => setOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('common:actions', { defaultValue: 'More' })}
+            style={{
+              minHeight: tapMin,
+              minWidth: tapMin,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={22} color={colors.textPrimary} />
+          </Pressable>
+        )
+      ) : null}
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
+      {open ? (
+      <Modal visible transparent animationType="slide" onRequestClose={close}>
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -250,6 +281,7 @@ const FieldMoreMenu: React.FC<Props> = ({
           </View>
         </KeyboardAvoidingView>
       </Modal>
+      ) : null}
     </>
   );
 };

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { Plus, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { useCaptureOptional } from '../context/CaptureContext';
@@ -27,6 +26,7 @@ import { parseFieldPageTab, parseFieldResultYear, type FieldPageTab } from '../u
 import { writeFieldViewPreferences } from '../utils/fieldViewPreferences';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
+import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
 import FieldHeader from '../components/fields/FieldHeader';
 import FieldLocalNavigation from '../components/fields/FieldLocalNavigation';
@@ -44,7 +44,7 @@ import SpatialLoadingPanel from '../components/onboarding/SpatialLoadingPanel';
 import WorkSetupBanner from '../components/fields/WorkSetupBanner';
 import '../components/fields/FieldPageShell.css';
 
-const DISMISS_KEY = (fieldId: string) => `oleachron.workSetupBanner.dismissed.${fieldId}`;
+const DISMISS_KEY = (fieldId: string) => `The Olive Lot.workSetupBanner.dismissed.${fieldId}`;
 
 const FieldDetailPage: React.FC = () => {
   const { t, i18n } = useTranslation(['fields', 'common', 'capture', 'chronologio', 'settings', 'tasks', 'partners']);
@@ -247,7 +247,7 @@ const FieldDetailPage: React.FC = () => {
   };
 
   const openCapture = () => {
-    if (field) capture?.openCapture({ fieldId: field.id });
+    if (field) capture?.openCapture({ fieldId: field.id, sourcePage: 'grove' });
   };
 
   const handleDelete = async () => {
@@ -277,9 +277,7 @@ const FieldDetailPage: React.FC = () => {
       <PageContainer maxWidth="full" padding="none">
         <div className="error-container">
           <div className="error-message">{error || t('fields:controlRoom.failedLoad')}</div>
-          <Button to="/fields" icon={<ArrowLeft />} variant="outline">
-            {t('fields:controlRoom.backToFields')}
-          </Button>
+          <BackLink to="/fields">{t('fields:controlRoom.backToFields')}</BackLink>
         </div>
       </PageContainer>
     );
@@ -289,6 +287,7 @@ const FieldDetailPage: React.FC = () => {
     <PageContainer maxWidth="full" padding="none">
       <div className="field-page">
         <Breadcrumbs />
+        <BackLink to="/fields">{t('fields:controlRoom.backToFields')}</BackLink>
 
         {groveReady ? (
           <section className="grove-ready-banner" role="status">
@@ -317,7 +316,6 @@ const FieldDetailPage: React.FC = () => {
           canManageAccess={canManageAccess}
           showYearControl={tab === 'overview'}
           onYearChange={setYear}
-          onCapture={canCapture ? openCapture : undefined}
           phenology={phenology}
         />
 
@@ -461,12 +459,6 @@ const FieldDetailPage: React.FC = () => {
             />
           </div>
         ) : null}
-
-        {canCapture ? <div className="field-sticky-capture">
-          <Button icon={<Plus />} variant="primary" onClick={openCapture}>
-            {t('fields:page.capture')}
-          </Button>
-        </div> : null}
       </div>
     </PageContainer>
   );

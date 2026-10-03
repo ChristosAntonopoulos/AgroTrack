@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams, useSearchParams, useBlocker } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams, useBlocker } from 'react-router-dom';
 import { getFieldService } from '../services/serviceFactory';
 import {
   CreateFieldDto,
@@ -11,6 +11,7 @@ import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
 import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
+import BackLink from '../components/Common/BackLink';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import BasicFieldDetailsStep from '../components/fields/BasicFieldDetailsStep';
 import FieldBoundaryMapStep from '../components/fields/FieldBoundaryMapStep';
@@ -19,7 +20,7 @@ import GroveSetupLevel, {
   SetupLevelKey,
   SetupLevelState,
 } from '../components/fields/GroveSetupLevel';
-import { ArrowLeft, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolveFieldAreaSqm, hectaresFromSqm } from '../utils/area';
 import { fieldHasBoundary, isListedGrove } from '../utils/fieldDisplay';
@@ -38,6 +39,7 @@ const FieldFormPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common']);
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const activation = useOwnerActivationOptional();
   const isEdit = !!id;
@@ -237,6 +239,23 @@ const FieldFormPage: React.FC = () => {
     navigate(path, state ? { state } : undefined);
   };
 
+  // The drawing map is portaled over the page, which hides "Back to groves".
+  const exitBoundaryDraw = () => {
+    allowLeaveRef.current = true;
+    setDirty(false);
+    const historyIndex = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (historyIndex > 0) {
+      navigate(-1);
+      return;
+    }
+    const fieldId = id || draftFieldId;
+    navigate(fieldId ? `/fields/${fieldId}` : '/fields');
+  };
+
+  useEffect(() => {
+    allowLeaveRef.current = false;
+  }, [location.pathname, location.search]);
+
   const continueToBoundary = async () => {
     if (!nameValid) {
       setError(t('fields:form.errors.nameRequired'));
@@ -248,7 +267,7 @@ const FieldFormPage: React.FC = () => {
       const fieldId = await ensureDraftField();
       await getFieldService().updateField(fieldId, fieldPayload());
       setFieldStatus((prev) => prev || 'Draft');
-      activation?.markFieldsDirty();
+      activation?.markFieldsDirty({ groveCreatedFieldId: fieldId });
       allowLeaveRef.current = true;
       setDirty(false);
       setCreateScreen('boundary');
@@ -428,17 +447,9 @@ const FieldFormPage: React.FC = () => {
       <div className={`field-form-page${boundaryStage ? ' is-boundary-stage' : ''}`}>
         <Breadcrumbs />
         <header className="field-form-header">
+          <BackLink to="/fields">{t('fields:createGrove.backToGroves')}</BackLink>
           <div className="field-form-title-row">
             <h1>{pageTitle}</h1>
-            <Button
-              to="/fields"
-              variant="outline"
-              size="sm"
-              className="field-form-back"
-              icon={<ArrowLeft size={14} />}
-            >
-              {t('fields:createGrove.backToGroves')}
-            </Button>
           </div>
           {pageSubtitle ? <p className="field-form-subtitle">{pageSubtitle}</p> : null}
         </header>
@@ -530,6 +541,7 @@ const FieldFormPage: React.FC = () => {
                   activation?.eligible && !activation.completion.drawBoundary
                 )}
                 setupRail={boundaryStage ? setupLevel : undefined}
+                onBack={boundaryStage ? exitBoundaryDraw : undefined}
               />
               {!finishingFirstBoundary ? (
                 <div className="field-form-nav">

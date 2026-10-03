@@ -1,12 +1,10 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { createElevation, harvestPipelinePalette, radii, spacing } from '../../theme';
-import { formatKg } from '../../utils/harvestUtils';
+import { appFonts, radii, spacing } from '../../theme';
+import { formatCompactMassKg, formatOilLitresFromKg } from '../../utils/harvestUtils';
 import { FieldNameRow, type FieldNameRef } from '../../components/fields/FieldName';
-import { HARVEST_ACTION_ICONS } from '../harvestActions';
 import type { HarvestDaySummary as DayTotals } from '../totals';
 
 type Props = {
@@ -18,18 +16,17 @@ type Props = {
   onAddOil?: () => void;
 };
 
-type Step = {
-  key: keyof typeof harvestPipelinePalette;
-  title: string;
+type Column = {
+  key: string;
   value: string;
-  detail: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  hint: string;
+  muted: boolean;
   onPress?: () => void;
-  muted?: boolean;
 };
 
 /**
- * Day pipeline — same language as Συνολικά, scoped to one day.
+ * One day’s harvest at a glance — three columns in a single card.
  */
 export function HarvestDaySummary({
   day,
@@ -43,157 +40,145 @@ export function HarvestDaySummary({
   const { colors, fontScaleMultiplier: scale, tapMin } = useTheme();
   const empty = day.sacks <= 0 && day.officialKg <= 0 && day.oilKg <= 0 && day.people <= 0;
 
-  const steps: Step[] = [
+  const columns: Column[] = [
     {
       key: 'sacks',
-      title: t('harvestCampaign.pipeline.sacks'),
-      value: String(day.sacks),
-      detail:
+      value: day.sacks > 0 ? String(day.sacks) : '—',
+      label: t('harvestCampaign.pipeline.sacks'),
+      hint:
         day.sacks > 0
           ? t('harvestCampaign.pipeline.sacksOk')
           : t('harvestCampaign.dayGuide.tapAdd'),
-      icon: HARVEST_ACTION_ICONS.sacks,
-      onPress: day.sacks <= 0 ? onAddSacks : undefined,
       muted: day.sacks <= 0,
+      onPress: day.sacks <= 0 ? onAddSacks : undefined,
     },
     {
       key: 'fruit',
-      title: t('harvestCampaign.pipeline.fruit'),
-      value: formatKg(day.officialKg),
-      detail:
+      value: day.officialKg > 0 ? formatCompactMassKg(day.officialKg) : '—',
+      label: t('harvestCampaign.pipeline.fruitShort', {
+        defaultValue: t('harvestCampaign.pipeline.fruit'),
+      }),
+      hint:
         day.officialKg > 0
           ? t('harvestCampaign.pipeline.fruitUnit')
           : day.estimatedKg > 0
-            ? t('harvestCampaign.approx', { kg: formatKg(day.estimatedKg) })
+            ? t('harvestCampaign.approx', { kg: formatCompactMassKg(day.estimatedKg) })
             : t('harvestCampaign.dayGuide.tapAdd'),
-      icon: HARVEST_ACTION_ICONS.mill,
-      onPress: day.officialKg <= 0 ? onAddMill : undefined,
       muted: day.officialKg <= 0,
+      onPress: day.officialKg <= 0 ? onAddMill : undefined,
     },
     {
       key: 'oil',
-      title: t('harvestCampaign.pipeline.oil'),
-      value: formatKg(day.oilKg),
-      detail:
-        day.oilKg > 0 ? t('harvestCampaign.pipeline.oilKg') : t('harvestCampaign.dayGuide.tapAdd'),
-      icon: HARVEST_ACTION_ICONS.oil,
-      onPress: day.oilKg <= 0 ? onAddOil : undefined,
+      value: day.oilKg > 0 ? formatOilLitresFromKg(day.oilKg) : '—',
+      label: t('harvestCampaign.pipeline.oil'),
+      hint:
+        day.oilKg > 0
+          ? t('harvestCampaign.pipeline.oilLitres')
+          : t('harvestCampaign.pipeline.oilPending'),
       muted: day.oilKg <= 0,
+      onPress: day.oilKg <= 0 ? onAddOil : undefined,
     },
   ];
 
   return (
-    <View style={styles.root}>
-      <Text style={[styles.kicker, { color: colors.textSecondary, fontSize: 12 * scale }]}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surfaceElevated,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <Text style={[styles.kicker, { color: colors.textSecondary, fontSize: 11 * scale }]}>
         {isToday ? t('harvestCampaign.dayNav.today') : t('harvestCampaign.today.label')}
       </Text>
-      <View style={styles.pipeline}>
-        {steps.map((step, index) => {
-          const tone = harvestPipelinePalette[step.key];
-          return (
-            <React.Fragment key={step.key}>
-              {index > 0 ? (
-                <View style={styles.arrowWrap} accessibilityElementsHidden>
-                  <Ionicons name="caret-forward" size={14} color={colors.primaryDark} />
-                </View>
-              ) : null}
-              <Pressable
-                disabled={!step.onPress}
-                onPress={step.onPress}
-                accessibilityRole={step.onPress ? 'button' : undefined}
-                accessibilityLabel={`${step.title}: ${step.value}. ${step.detail}`}
-                style={({ pressed }) => [
-                  styles.step,
+
+      <View style={styles.columns}>
+        {columns.map((col, index) => (
+          <React.Fragment key={col.key}>
+            {index > 0 ? (
+              <View style={[styles.sep, { backgroundColor: colors.borderLight }]} />
+            ) : null}
+            <Pressable
+              disabled={!col.onPress}
+              onPress={col.onPress}
+              accessibilityRole={col.onPress ? 'button' : undefined}
+              accessibilityLabel={`${col.label}: ${col.value}. ${col.hint}`}
+              style={({ pressed }) => [
+                styles.col,
+                {
+                  minHeight: Math.max(64, tapMin + 12),
+                  opacity: pressed && col.onPress ? 0.88 : 1,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.value,
                   {
-                    minHeight: Math.max(96, tapMin + 48),
-                    backgroundColor: step.muted ? colors.surfaceMuted : tone.bg,
-                    ...createElevation(colors, 'sm'),
-                    opacity: pressed && step.onPress ? 0.9 : 1,
+                    color: col.muted ? colors.textTertiary : colors.textPrimary,
+                    fontSize: 24 * scale,
                   },
                 ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
               >
-                <View style={[styles.stepIcon, { backgroundColor: colors.surfaceElevated }]}>
-                  <Ionicons
-                    name={step.icon}
-                    size={20}
-                    color={step.muted ? colors.textSecondary : tone.icon}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.stepTitle,
-                    {
-                      color: step.muted ? colors.textSecondary : tone.icon,
-                      fontSize: 11 * scale,
-                    },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {step.title}
-                </Text>
-                <Text
-                  style={[
-                    styles.stepValue,
-                    {
-                      color: step.muted ? colors.textTertiary : colors.textPrimary,
-                      fontSize: 26 * scale,
-                    },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {step.value}
-                </Text>
-                <Text
-                  style={[
-                    styles.stepDetail,
-                    {
-                      color: step.muted ? colors.textTertiary : colors.textSecondary,
-                      fontSize: 11 * scale,
-                    },
-                  ]}
-                  numberOfLines={2}
-                >
-                  {step.detail}
-                </Text>
-              </Pressable>
-            </React.Fragment>
-          );
-        })}
+                {col.value}
+              </Text>
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    color: col.muted ? colors.textTertiary : colors.textPrimary,
+                    fontSize: 13 * scale,
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {col.label}
+              </Text>
+              <Text
+                style={[
+                  styles.hint,
+                  {
+                    color: colors.textSecondary,
+                    fontSize: 11 * scale,
+                  },
+                ]}
+                numberOfLines={2}
+              >
+                {col.hint}
+              </Text>
+            </Pressable>
+          </React.Fragment>
+        ))}
       </View>
 
       {!empty && fieldRefs.length > 0 ? (
-        <View style={styles.fields}>
-          <FieldNameRow fields={fieldRefs} size="md" />
+        <View style={[styles.fields, { borderTopColor: colors.borderLight }]}>
+          <Text style={[styles.fieldsLabel, { color: colors.textSecondary, fontSize: 11 * scale }]}>
+            {t('harvestCampaign.today.fieldsLabel')}
+          </Text>
+          <FieldNameRow fields={fieldRefs} size="sm" variant="legend" />
         </View>
       ) : null}
 
       {!empty && (day.expenseEur > 0 || day.people > 0) ? (
-        <View style={styles.metaRow}>
+        <View style={styles.metaLine}>
           {day.people > 0 ? (
-            <View
-              style={[
-                styles.metaPill,
-                { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder },
-              ]}
-            >
-              <Ionicons name={HARVEST_ACTION_ICONS.people} size={14} color={colors.primary} />
-              <Text style={[styles.metaText, { color: colors.textPrimary }]}>
-                {t('harvestCampaign.today.people', { count: day.people })}
-              </Text>
-            </View>
+            <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+              {t('harvestCampaign.today.people', { count: day.people })}
+            </Text>
+          ) : null}
+          {day.people > 0 && day.expenseEur > 0 ? (
+            <Text style={{ color: colors.borderLight }}>·</Text>
           ) : null}
           {day.expenseEur > 0 ? (
-            <View
-              style={[
-                styles.metaPill,
-                { backgroundColor: colors.eventExpenseSoft, borderColor: colors.borderLight },
-              ]}
-            >
-              <Ionicons name="wallet-outline" size={14} color={colors.eventExpense} />
-              <Text style={[styles.metaText, { color: colors.textPrimary }]}>
-                {t('harvestCampaign.today.expense', { amount: day.expenseEur })}
-              </Text>
-            </View>
+            <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+              {t('harvestCampaign.today.expense', { amount: day.expenseEur })}
+            </Text>
           ) : null}
         </View>
       ) : null}
@@ -202,73 +187,75 @@ export function HarvestDaySummary({
 }
 
 const styles = StyleSheet.create({
-  root: {
+  card: {
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.md,
     gap: spacing.sm,
   },
   kicker: {
-    fontWeight: '800',
+    fontFamily: appFonts.semibold,
+    fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  pipeline: {
+  columns: {
     flexDirection: 'row',
     alignItems: 'stretch',
   },
-  arrowWrap: {
-    width: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+  sep: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    marginVertical: 4,
   },
-  step: {
+  col: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 6,
-    borderRadius: radii.lg,
+    gap: 2,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
-  stepIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  stepTitle: {
+  value: {
+    fontFamily: appFonts.bold,
     fontWeight: '800',
-    letterSpacing: 0.15,
-  },
-  stepValue: {
-    fontWeight: '700',
     letterSpacing: -0.5,
     fontVariant: ['tabular-nums'],
+    textAlign: 'center',
+    width: '100%',
   },
-  stepDetail: {
-    fontWeight: '600',
+  label: {
+    fontFamily: appFonts.semibold,
+    fontWeight: '650' as '600',
+    textAlign: 'center',
+  },
+  hint: {
+    fontFamily: appFonts.medium,
+    fontWeight: '500',
     textAlign: 'center',
     lineHeight: 14,
   },
   fields: {
-    marginTop: 2,
+    gap: 6,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  metaRow: {
+  fieldsLabel: {
+    fontFamily: appFonts.semibold,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  metaLine: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-  },
-  metaPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: radii.full,
-    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
   },
   metaText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: appFonts.medium,
+    fontWeight: '500',
   },
 });

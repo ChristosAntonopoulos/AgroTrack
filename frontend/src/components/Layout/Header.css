@@ -37,9 +37,9 @@
 
 .header-logo-lockup {
   display: block;
-  height: 36px !important;
+  height: 52px !important;
   width: auto !important;
-  max-width: 100%;
+  max-width: min(280px, 100%);
   object-fit: contain;
   object-position: left center;
 }
@@ -378,11 +378,11 @@
   }
 
   .header-brand {
-    width: min(200px, 58vw);
+    width: min(240px, 62vw);
   }
 
   .header-logo-lockup {
-    height: 32px !important;
+    height: 44px !important;
   }
 
   .page-title {

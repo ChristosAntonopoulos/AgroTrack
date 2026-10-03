@@ -1,7 +1,7 @@
 import type { ChronologioZoom } from './livingTypes';
 
-const SCROLL_KEY_PREFIX = 'oleachron.chronologio.scroll.v1.';
-const FOCUS_KEY = 'oleachron.chronologio.focus.v1';
+const SCROLL_KEY_PREFIX = 'The Olive Lot.chronologio.scroll.v1.';
+const FOCUS_KEY = 'The Olive Lot.chronologio.focus.v1';
 
 export type ChronologioFocusSnapshot = {
   focusDate: string;

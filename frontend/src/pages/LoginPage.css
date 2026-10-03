@@ -289,11 +289,12 @@
   flex-direction: column;
   align-items: center;
   gap: 0.55rem;
-  margin: 0 auto 0.65rem;
-  width: min(100%, 240px);
+  margin: 0 auto 0.85rem;
+  width: min(100%, 280px);
 }
 
 .login-card-wordmark {
+  /* Kept for any residual text lockups; prefer BrandLogo stacked/horizontal. */
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 1.2rem;
   font-weight: 700;
@@ -721,8 +722,8 @@
   }
 
   .login-card-lockup {
-    width: min(100%, 200px);
-    margin-bottom: 0.85rem;
+    width: min(100%, 260px);
+    margin-bottom: 1rem;
   }
 
   .login-card-motto {

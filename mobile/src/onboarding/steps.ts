@@ -47,7 +47,7 @@ export const emptyPersisted = (): OwnerActivationPersisted => ({
   navCoachPhase: null,
 });
 
-export const storageKeyFor = (userId: string) => `oleachron.ownerActivation.v1.${userId}`;
+export const storageKeyFor = (userId: string) => `The Olive Lot.ownerActivation.v1.${userId}`;
 
 export const ONBOARDING_TARGETS = {
   groveName: 'grove-name',

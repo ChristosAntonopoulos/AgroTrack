@@ -197,7 +197,7 @@
     "created": "Creato",
     "updated": "Ultima modifica",
     "cadastre": "Catasto",
-    "cadastreNote": "L’estratto catastale è solo un riferimento — non una prova legale in Oleachron.",
+    "cadastreNote": "L’estratto catastale è solo un riferimento — non una prova legale in The Olive Lot.",
     "areaHint": "Mappa {{measured}} · catasto {{official}}",
     "measuredHint": "Misurato sulla mappa: {{measured}}",
     "yearsOld": "{{count}} anni",
@@ -215,11 +215,11 @@
     "sourceAria": "Origine di questo numero",
     "spatialPending": "Quota e mappe del suolo da modello non sono ancora pronte per questo confine.",
     "cadastreSources": {
-      "Manual": "Estratto catastale (inserito in Oleachron)",
+      "Manual": "Estratto catastale (inserito in The Olive Lot)",
       "HellenicCadastre": "Catasto ellenico"
     },
     "sourceType": {
-      "recorded": "Inserito in Oleachron",
+      "recorded": "Inserito in The Olive Lot",
       "reference": "Riferimento ufficiale",
       "declared": "Dichiarato dal produttore",
       "modelled": "Modellato",
@@ -230,7 +230,7 @@
     "sources": {
       "title": "Fonti dei dati",
       "intro": "Ogni dato in questa pagina ha una fonte. I numeri da satellite e suolo sono un primo sguardo — verifica in campo se qualcosa non torna.",
-      "oleachron": "Scheda Oleachron",
+      "oleachron": "SchedThe Olive Lot",
       "fieldRecord": "Dettagli dell'oliveto",
       "fieldRecordNote": "Nome, alberi, irrigazione e accesso come inseriti dal team.",
       "workProfile": "Profilo di lavoro",
@@ -355,7 +355,8 @@
     "name": "Field Name",
     "area": "Area (stremmi)",
     "location": "Location",
-    "save": "Save Field"
+    "save": "Save Field",
+    "back": "Indietro"
   },
   "people": {
     "title": "Persone su questo campo",
@@ -876,9 +877,9 @@
       "yieldLine": "{{olives}} kg olive → {{oil}} kg olio · Resa {{yield}}%",
       "estimatedKg": "Circa {{kg}} kg (stima densità)",
       "save": "Registra {{amount}} {{unit}} di olio",
-      "cellarTitle": "Dove va? (predefinito: admin)",
-      "cellarYou": "Nella tua cantina",
-      "cellarOf": "Nella cantina di {{name}}",
+      "cellarTitle": "Quale magazzino?",
+      "cellarYou": "Nel tuo magazzino",
+      "cellarOf": "Nel magazzino di {{name}}",
       "cellarAssigned": "L'olio è andato nella cantina di {{name}}.",
       "splitOn": "Dividilo tra le cantine",
       "splitOff": "Una sola cantina prende tutto",
@@ -1179,7 +1180,7 @@
   },
   "createGrove": {
     "title": "Aggiungi oliveto",
-    "firstTitle": "Metti il tuo primo oliveto in Oleachron",
+    "firstTitle": "Metti il tuo primo oliveto in The Olive Lot",
     "subtitle": "Prima il nome. Poi dov’è e il suo confine.",
     "placeHeading": "Dov’è?",
     "continueToPlace": "Continua",
@@ -1238,7 +1239,7 @@
       "noResults": "Non abbiamo trovato quel luogo. Prova un altro nome o tocca la mappa."
     },
     "details": {
-      "subtitle": "A few details that help Oleachron give you more useful reminders. You do not need them to start.",
+      "subtitle": "A few details that help The Olive Lot give you more useful reminders. You do not need them to start.",
       "varietyHint": "Helps organise harvest and observations.",
       "treeCountLabel": "About how many trees does it have?",
       "treeCountHint": "If you are not sure, leave it blank."
@@ -1280,7 +1281,7 @@
       "boundaryAction": "Draw boundary",
       "boundaryLater": "Later",
       "detailsTitle": "Add variety and trees",
-      "detailsBody": "A few details that help Oleachron give you more useful reminders.",
+      "detailsBody": "A few details that help The Olive Lot give you more useful reminders.",
       "detailsAction": "Add details"
     }
   }

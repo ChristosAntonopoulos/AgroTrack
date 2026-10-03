@@ -73,7 +73,7 @@ export function OilStockActivityBar({
     label: string;
     value: string;
   }[] = [
-    { icon: 'business-outline', label: t('activity.warehouse'), value: warehouseLine },
+    { icon: 'cube-outline', label: t('activity.warehouse'), value: warehouseLine },
     { icon: 'home-outline', label: t('activity.household'), value: homeLine },
     { icon: 'bookmark-outline', label: t('activity.holds'), value: othersLine },
     {
@@ -109,14 +109,11 @@ export function OilStockPageHeader({ season }: { season: string }) {
   const { t } = useTranslation('myOil');
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
-  const support = t('pageSupport');
   return (
     <View style={styles.header}>
-      {support ? (
-        <Text style={[styles.sectionIntro, styles.headerSupport]} numberOfLines={1}>
-          {support}
-        </Text>
-      ) : null}
+      <Text style={styles.pageTitle} numberOfLines={1}>
+        {t('title')}
+      </Text>
       <View style={styles.seasonBadge}>
         <Text style={styles.seasonText} numberOfLines={1}>
           {t('seasonLabel', { season })}

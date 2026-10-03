@@ -53,6 +53,7 @@ import {
 import { formatLongTaskDate } from '../utils/taskFormDates';
 import { taskDisplayTitle } from '../utils/taskDisplayTitle';
 import { notebookStatus, type NotebookAction } from '../utils/taskNotebook';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
 
 type Route = RouteProp<MainTabParamList, 'Tasks'>;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -82,6 +83,12 @@ const TaskListScreen = () => {
   const [fieldFilter, setFieldFilter] = useState(() => parseTaskFieldId(route.params?.fieldId));
   const [assigneeFilter, setAssigneeFilter] = useState(() => parseTaskAssigneeId(undefined));
   const [createdId, setCreatedId] = useState(route.params?.created || '');
+
+  useRegisterCapturePage({
+    sourcePage: 'tasks',
+    fieldId: fieldFilter || undefined,
+  });
+
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<'mine' | 'everyone'>('everyone');
 

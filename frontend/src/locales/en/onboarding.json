@@ -11,7 +11,7 @@
     "expand": "Show setup",
     "dismiss": "Done for now",
     "celebrateTitle": "Boundary saved — you can explore",
-    "celebrateBody": "Your όρια unlock the rest of Oleachron. Weather and satellite will appear on the field map.",
+    "celebrateBody": "Your όρια unlock the rest of The Olive Lot. Weather and satellite will appear on the field map.",
     "continueTitle": "Finish grove setup",
     "continueBody": "Draw the όρια to unlock History, photos and the rest of the app.",
     "continueCta": "Continue setup"
@@ -50,6 +50,11 @@
       "title": "Draw the boundary",
       "body": "Tap 3–6 points around the grove. When the shape looks right, continue to History.",
       "cue": "Tap the corners on the map."
+    },
+    "saveBoundary": {
+      "title": "Save the boundary",
+      "body": "The shape looks right. Continue to History to save it.",
+      "cue": "Tap Continue to History to save."
     },
     "firstObservation": {
       "title": "Record your first note",
@@ -115,25 +120,25 @@
     "openGrove": "Open the map"
   },
   "mapExplore": {
-    "caption": "Look around — layers and weather are yours.",
-    "cta": "Continue to History"
+    "caption": "This is your grove on the map. Try a picture below, then open History.",
+    "cta": "Open History"
   },
   "coach": {
     "progress": "{{current}} of {{total}}",
-    "team": "From the Oleachron team",
+    "team": "From the The Olive Lot team",
     "fieldsNav": {
       "title": "Welcome",
       "body": "In about a minute your grove is on the map. Tap Fields in the menu and we’ll start.",
       "cue": "Tap Fields to start."
     },
     "createField": {
-      "title": "A name of its own",
-      "body": "Tap the button and write what you call it. You can change it whenever you like.",
-      "cue": "Tap here and name the grove."
+      "title": "Your first grove",
+      "body": "Tap the “Add grove” button and write what you call it. You can change it whenever you like.",
+      "cue": "Tap “+ Add grove” to name your first grove."
     },
     "homeButton": {
       "title": "You always know the way back",
-      "body": "The logo at the top left brings you home. That’s how you move around Oleachron.",
+      "body": "The logo at the top left brings you home. That’s how you move around The Olive Lot.",
       "cue": "This logo brings you home."
     },
     "historyNav": {

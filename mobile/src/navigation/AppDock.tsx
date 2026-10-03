@@ -12,16 +12,19 @@ import { motion } from '../theme';
 import { useDock } from './DockContext';
 import { FOOTER_LIFT, getDockMetrics } from './dockMetrics';
 import type { RootStackParamList } from './types';
-import { captureContextForRoute, type FocusedRoute } from './dockRoute';
+import type { FocusedRoute } from './dockRoute';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 
 type Props = {
   route: FocusedRoute;
 };
 
+const INK = '#1F2820';
+const IVORY = '#F4F0E6';
+
 /**
- * Workspace mark and the record button, side by side above the safe area.
- * The launcher already is the menu, so only the + shows there.
+ * Workspace mark and the capture control, side by side above the safe area.
+ * The launcher already is the menu, so only + shows there.
  * A screen can replace the + action through DockContext.
  */
 const AppDock: React.FC<Props> = ({ route }) => {
@@ -57,46 +60,47 @@ const AppDock: React.FC<Props> = ({ route }) => {
             accessibilityRole="button"
             accessibilityLabel={t('launcher.home')}
             onPress={() => navigation.navigate('Main', { screen: 'Launcher' })}
-            style={({ pressed }) => [{ transform: [{ scale: pressed ? motion.fabPressScale : 1 }] }]}
+            style={({ pressed }) => [{ opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] }]}
           >
             <View
               style={[
-                styles.orb,
-                styles.menuOrb,
+                styles.menuPlate,
                 {
                   width: size,
                   height: size,
-                  backgroundColor: colors.surfaceElevated,
-                  borderColor: isDark ? 'rgba(235, 239, 230, 0.55)' : colors.primary,
+                  backgroundColor: isDark ? colors.surfaceElevated : IVORY,
+                  borderColor: isDark ? 'rgba(244, 240, 230, 0.35)' : 'rgba(31, 40, 32, 0.18)',
                 },
               ]}
             >
-              <BrandLogo variant="mark" tone={isDark ? 'on-dark' : 'on-light'} size={Math.round(size * 0.62)} />
+              <BrandLogo variant="mark" tone={isDark ? 'on-dark' : 'on-light'} size={Math.round(size * 0.7)} />
             </View>
           </Pressable>
         ) : null}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t('capture', { defaultValue: 'Record' })}
+          accessibilityLabel={t('log', { defaultValue: 'Add' })}
           onPress={() => {
             if (dockAdd?.onAdd) dockAdd.onAdd();
-            else capture?.openCapture(captureContextForRoute(route));
+            else capture?.openCapture();
           }}
-          style={({ pressed }) => [{ transform: [{ scale: pressed ? motion.fabPressScale : 1 }] }]}
+          style={({ pressed }) => [
+            { opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? motion.fabPressScale : 1 }] },
+          ]}
         >
           <View
             style={[
-              styles.orb,
-              styles.addOrb,
+              styles.addPlate,
               {
                 width: size,
                 height: size,
                 backgroundColor: colors.primary,
-                borderColor: 'transparent',
+                borderColor: isDark ? 'rgba(244, 240, 230, 0.22)' : 'rgba(31, 40, 32, 0.28)',
+                shadowColor: INK,
               },
             ]}
           >
-            <Ionicons name="add" size={34} color={colors.onOlive} />
+            <Ionicons name="add" size={30} color={IVORY} />
           </View>
         </Pressable>
       </View>
@@ -117,25 +121,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 18,
+    gap: 16,
     backgroundColor: 'transparent',
   },
-  orb: {
-    borderRadius: 999,
-    borderWidth: 0,
+  menuPlate: {
+    borderRadius: 14,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
   },
-  menuOrb: {
-    borderWidth: 1.5,
-  },
-  addOrb: {
-    shadowColor: '#273625',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    elevation: 3,
+  addPlate: {
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 6,
   },
 });
 

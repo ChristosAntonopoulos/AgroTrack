@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { formatOilNumber, formatOilPack } from '../../myOil/formatOilPack';
+import { formatOilNumber } from '../../myOil/formatOilPack';
 import {
   canReverseMovement,
   groupMovementsByDay,
@@ -11,13 +11,14 @@ import {
   undoneMovementIds,
 } from '../../myOil/commitmentCopy';
 import { OilSectionHeader } from './OilStockChrome';
-import type { OilLot, StockMovement } from '../../services/oilStockService';
+import type { OilCommitment, OilLot, StockMovement } from '../../services/oilStockService';
 import type { PackLabels } from './types';
 import { createMyOilStyles } from './myOilStyles';
 
 type Props = {
   movements: StockMovement[];
   lots: OilLot[];
+  commitments?: OilCommitment[];
   fieldNames: Record<string, string>;
   packLabels: PackLabels;
   preview?: boolean;
@@ -44,6 +45,7 @@ const ACTION_ICON: Record<string, React.ComponentProps<typeof Ionicons>['name']>
 export function MovementsTab({
   movements,
   lots,
+  commitments = [],
   fieldNames,
   packLabels,
   preview,
@@ -61,8 +63,9 @@ export function MovementsTab({
   const groups = useMemo(
     () =>
       groupMovementsByDay(shown, i18n.language, {
-        today: t('common:today', { defaultValue: 'Today' }),
-        yesterday: t('common:yesterday', { defaultValue: 'Yesterday' }),
+        today: t('timeline.today'),
+        yesterday: t('timeline.yesterday'),
+        thisWeek: t('timeline.thisWeek'),
       }),
     [shown, i18n.language, t]
   );
@@ -79,29 +82,35 @@ export function MovementsTab({
   }
 
   const detailFor = (m: StockMovement) => {
-    const action = movementActionKey(m.kind);
-    if (action === 'produced') {
-      const lot = lots.find((l) => l.id === m.oilLotId);
-      const where = lot?.fieldIds.map((id) => fieldNames[id]).filter(Boolean).join(' · ');
-      return where || undefined;
-    }
-    if (action === 'filledTins') {
-      const tins = Math.abs(m.packDelta.tin16) + Math.abs(m.packDelta.tin17);
-      const bulk = Math.abs(m.packDelta.bulkLitres);
-      if (tins > 0) {
-        return t('timeline.bulkToTins', {
-          bulk: `${formatOilNumber(bulk || tins * 16, i18n.language)} L`,
-          tins,
-        });
-      }
-    }
+    const person = commitments.find((c) => c.id === m.oilCommitmentId)?.counterpartyName?.trim();
+    const lot = lots.find((l) => l.id === m.oilLotId);
+    const grove = lot?.fieldIds.map((id) => fieldNames[id]).filter(Boolean).join(' · ');
+    const where = [person, grove].filter(Boolean).join(' · ');
+    if (where) return where;
     if (m.notes && !/oil lot|created|batch|allocation/i.test(m.notes)) return m.notes;
     return undefined;
   };
 
+  const packLines = (m: StockMovement) => {
+    const bits: string[] = [];
+    const sign = (n: number) => (n > 0 ? '+' : '−');
+    if (Math.abs(m.packDelta.bulkLitres) > 0.05) {
+      bits.push(
+        `${sign(m.packDelta.bulkLitres)}${formatOilNumber(Math.abs(m.packDelta.bulkLitres), i18n.language)} L ${t('hero.formBulk')}`
+      );
+    }
+    if (m.packDelta.tin16) {
+      bits.push(`${sign(m.packDelta.tin16)}${Math.abs(m.packDelta.tin16)} × 16L`);
+    }
+    if (m.packDelta.tin17) {
+      bits.push(`${sign(m.packDelta.tin17)}${Math.abs(m.packDelta.tin17)} × 17L`);
+    }
+    return bits;
+  };
+
   return (
     <View>
-      <OilSectionHeader titleKey="recent.title" icon="pulse-outline" />
+      {preview ? <OilSectionHeader titleKey="recent.title" icon="pulse-outline" /> : null}
       <View style={styles.timeline}>
         {groups.map((g) => (
           <View key={g.dayKey} style={styles.timelineDay}>
@@ -109,14 +118,9 @@ export function MovementsTab({
             {g.items.map((m, idx) => {
               const action = movementActionKey(m.kind);
               const icon = ACTION_ICON[action] ?? 'pulse-outline';
-              const packAbs = {
-                tin16: Math.abs(m.packDelta.tin16),
-                tin17: Math.abs(m.packDelta.tin17),
-                bulkLitres: Math.abs(m.packDelta.bulkLitres),
-                litres: Math.abs(m.litresDelta),
-              };
               const detail = detailFor(m);
-              const hasDelta = Math.abs(m.litresDelta) > 0.05;
+              const parts = packLines(m);
+              const hasDelta = Math.abs(m.litresDelta) > 0.05 && parts.length === 0;
               const positive = m.litresDelta > 0;
               const delta = hasDelta
                 ? `${positive ? '+' : '−'}${formatOilNumber(Math.abs(m.litresDelta), i18n.language)} L`
@@ -138,10 +142,8 @@ export function MovementsTab({
                         </Text>
                       ) : null}
                     </View>
-                    {packAbs.tin16 + packAbs.tin17 + packAbs.bulkLitres > 0.05 ? (
-                      <Text style={styles.timelineDetail}>
-                        {formatOilPack(packAbs, packLabels)}
-                      </Text>
+                    {parts.length > 0 ? (
+                      <Text style={styles.timelineDetail}>{parts.join('  ·  ')}</Text>
                     ) : null}
                     {detail ? <Text style={styles.timelineDetail}>{detail}</Text> : null}
                     {m.reversalOfMovementId ? (

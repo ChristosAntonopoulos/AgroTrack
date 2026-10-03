@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
+import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import OnboardingChoiceList from '../components/FieldWork/OnboardingChoiceList';
@@ -156,9 +156,9 @@ const FieldWorkProfilePage: React.FC = () => {
     return (
       <PageContainer>
         <p className="fw-setup-status is-error">{error || t('tasks:fieldWork.profile.loadFailed')}</p>
-        <Button to="/fields" icon={<ArrowLeft />} variant="outline">
+        <BackLink to="/fields">
           {t('fields:controlRoom.backToFields', { defaultValue: 'Πίσω' })}
-        </Button>
+        </BackLink>
       </PageContainer>
     );
   }
@@ -238,13 +238,9 @@ const FieldWorkProfilePage: React.FC = () => {
     <PageContainer>
       <Breadcrumbs />
       <div className="fw-setup fw-profile">
-        <button
-          type="button"
-          className="fw-setup-exit"
-          onClick={() => navigate(`/fields/${fieldId}`)}
-        >
-          {t('tasks:fieldWork.onboarding.exit')}
-        </button>
+        <BackLink to={`/fields/${fieldId}`}>
+          {t('tasks:fieldWork.onboarding.backToField')}
+        </BackLink>
 
         <h1 className="fw-setup-question">{t('tasks:fieldWork.profile.title')}</h1>
         <p className="fw-setup-field-meta">{friendlyFieldLabel(field.name)}</p>

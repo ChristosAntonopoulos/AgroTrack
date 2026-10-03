@@ -1034,14 +1034,14 @@ public class FieldPeopleService : IFieldPeopleService
 
         try
         {
-            var who = string.IsNullOrWhiteSpace(invitedByName) ? "OleaChron" : invitedByName;
+            var who = string.IsNullOrWhiteSpace(invitedByName) ? "The Olive Lot" : invitedByName;
             var hasAccount = !string.IsNullOrWhiteSpace(invite.TargetUserId);
             var subject = hasAccount
                 ? $"{who} σε προσκαλεί στο {invite.FieldName}"
-                : $"Πρόσκληση στο {invite.FieldName} — Oleachron";
+                : $"Πρόσκληση στο {invite.FieldName} — The Olive Lot";
             var intro = hasAccount
-                ? $"{who} σε προσκαλεί στο {invite.FieldName} στο Oleachron. Έχεις ήδη λογαριασμό — άνοιξε την πρόσκληση για να αποδεχτείς."
-                : $"{who} σε προσκαλεί στο {invite.FieldName} στο Oleachron. Δημιούργησε λογαριασμό και μπες στην ομάδα.";
+                ? $"{who} σε προσκαλεί στο {invite.FieldName} στο The Olive Lot. Έχεις ήδη λογαριασμό — άνοιξε την πρόσκληση για να αποδεχτείς."
+                : $"{who} σε προσκαλεί στο {invite.FieldName} στο The Olive Lot. Δημιούργησε λογαριασμό και μπες στην ομάδα.";
             var body =
                 $"{intro}\n\n" +
                 $"Άνοιξε: {dto.ShareUrl}\n" +
@@ -1058,11 +1058,11 @@ public class FieldPeopleService : IFieldPeopleService
 
     private static FieldInviteDto ToInviteDto(FieldInvite invite, string? publicAppBaseUrl, string? invitedByName = null)
     {
-        var baseUrl = string.IsNullOrWhiteSpace(publicAppBaseUrl) ? "https://app.oleachron.local" : publicAppBaseUrl.TrimEnd('/');
+        var baseUrl = string.IsNullOrWhiteSpace(publicAppBaseUrl) ? "https://app.The Olive Lot.local" : publicAppBaseUrl.TrimEnd('/');
         var shareUrl = $"{baseUrl}/invite/{invite.Token}";
         var message = string.IsNullOrWhiteSpace(invitedByName)
-            ? $"Σε προσκάλεσαν στο {invite.FieldName} στο Oleachron. Άνοιξε: {shareUrl}"
-            : $"{invitedByName} σε προσκαλεί στο {invite.FieldName} στο Oleachron. Άνοιξε: {shareUrl}";
+            ? $"Σε προσκάλεσαν στο {invite.FieldName} στο The Olive Lot. Άνοιξε: {shareUrl}"
+            : $"{invitedByName} σε προσκαλεί στο {invite.FieldName} στο The Olive Lot. Άνοιξε: {shareUrl}";
         if (!string.IsNullOrWhiteSpace(invite.Code))
         {
             message += $" Κωδικός: {invite.Code}";
@@ -1073,7 +1073,7 @@ public class FieldPeopleService : IFieldPeopleService
         if (!string.IsNullOrWhiteSpace(invite.Email))
         {
             mailto =
-                $"mailto:{Uri.EscapeDataString(invite.Email)}?subject={Uri.EscapeDataString($"Πρόσκληση στο {invite.FieldName} — Oleachron")}&body={Uri.EscapeDataString(message)}";
+                $"mailto:{Uri.EscapeDataString(invite.Email)}?subject={Uri.EscapeDataString($"Πρόσκληση στο {invite.FieldName} — The Olive Lot")}&body={Uri.EscapeDataString(message)}";
         }
 
         return new FieldInviteDto

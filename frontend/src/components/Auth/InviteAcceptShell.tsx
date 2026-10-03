@@ -25,8 +25,7 @@ const InviteAcceptShell: React.FC<InviteAcceptShellProps> = ({
     <PageContainer maxWidth="sm" className="invite-accept-page">
       <Card className="invite-accept-card">
         <div className="invite-accept-brand">
-          <BrandLogo variant="mark" size="sm" alt="" />
-          <span>OLEACHRON</span>
+          <BrandLogo variant="horizontal" size="md" alt="The Olive Lot" />
         </div>
         {error ? <p className="invite-accept-error">{error}</p> : null}
         {children ? (

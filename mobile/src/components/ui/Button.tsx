@@ -45,9 +45,9 @@ const Button: React.FC<ButtonProps> = ({
     switch (variant) {
       case 'primary':
         return {
-          backgroundColor: touchableDisabled ? colors.primaryLight : colors.primary,
-          borderColor: 'transparent',
-          textColor: touchableDisabled ? colors.textSecondary : colors.onOlive,
+          backgroundColor: touchableDisabled ? colors.surfaceMuted : colors.primary,
+          borderColor: touchableDisabled ? colors.border : 'transparent',
+          textColor: touchableDisabled ? colors.textTertiary : colors.onOlive,
         };
       case 'secondary':
         return {
@@ -128,7 +128,8 @@ const Button: React.FC<ButtonProps> = ({
 
   const variantStyles = getVariantStyles();
   const sizeStyles = getSizeStyles();
-  const bordered = variant === 'outline' || variant === 'secondary';
+  const bordered =
+    variant === 'outline' || variant === 'secondary' || (variant === 'primary' && touchableDisabled);
 
   return (
     <TouchableOpacity
@@ -142,7 +143,7 @@ const Button: React.FC<ButtonProps> = ({
           paddingHorizontal: sizeStyles.paddingHorizontal,
           minHeight: sizeStyles.minHeight,
           width: fullWidth ? '100%' : 'auto',
-          opacity: touchableDisabled ? 0.55 : 1,
+          opacity: touchableDisabled && variant !== 'primary' ? 0.55 : 1,
         },
         variant === 'primary' && !touchableDisabled ? createElevation(colors, 'sm') : null,
         style,

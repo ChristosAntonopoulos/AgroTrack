@@ -2,15 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { roleHomePath } from '../../navigation/navConfig';
+import { roleHomePath, AppRole } from '../../navigation/navConfig';
 import { User, LogOut, Menu, MoreVertical, Plus } from 'lucide-react';
 import HarvestHeaderButton from './HarvestHeaderButton';
 import BrandLogo from '../Common/BrandLogo';
 import NotificationBell from '../Notifications/NotificationBell';
-import { resolvePageTitle, AppRole } from '../../navigation/navConfig';
 import { useTheme } from '../../context/ThemeContext';
 import { useCaptureOptional } from '../../context/CaptureContext';
-import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import { useFeedbackOptional } from '../../context/FeedbackContext';
 import { useActiveFieldCollaboratorLabel } from '../../hooks/useActiveFieldAccess';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
@@ -29,7 +27,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const { user, logout } = useAuth();
   const { resolvedTheme } = useTheme();
   const capture = useCaptureOptional();
-  const harvest = useHarvestCampaignOptional();
   const feedback = useFeedbackOptional();
   const activation = useOwnerActivationOptional();
   const hideChromeExtras = Boolean(activation?.locked);
@@ -38,20 +35,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const role = (user?.role || '') as AppRole;
-  const pageTitle = resolvePageTitle(location.pathname, role, t);
-  const hidePageTitle =
-    location.pathname === '/tasks' ||
-    location.pathname === '/tasks/new' ||
-    location.pathname === '/chronologio' ||
-    location.pathname === '/harvest';
-  const hideHeaderCapture =
-    location.pathname === '/chronologio' ||
-    location.pathname === '/harvest' ||
-    location.pathname.startsWith('/harvest/') ||
-    Boolean(harvest?.isLive);
-  const fieldDetailMatch = /^\/fields\/([^/]+)$/.exec(location.pathname);
-  const captureFieldId =
-    fieldDetailMatch && fieldDetailMatch[1] !== 'new' ? fieldDetailMatch[1] : undefined;
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
 
@@ -112,24 +95,20 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
             className="header-logo-lockup"
             variant="horizontal"
             tone={logoTone}
-            size="sm"
+            size="md"
             alt={tCommon('appName')}
           />
         </Link>
       </div>
 
       <div className="header-main">
-        {hidePageTitle ? null : <h1 className="page-title">{pageTitle}</h1>}
-
         <div className="header-right">
           {!hideChromeExtras ? <HarvestHeaderButton /> : null}
-          {capture && !hideHeaderCapture && !hideChromeExtras ? (
+          {capture && !hideChromeExtras ? (
             <button
               type="button"
-              className="capture-header-cta"
-              onClick={() =>
-                capture.openCapture(captureFieldId ? { fieldId: captureFieldId } : undefined)
-              }
+              className="capture-header-cta u-hide-below-md"
+              onClick={() => capture.openCapture()}
             >
               <Plus size={18} aria-hidden />
               {tCapture('cta')}

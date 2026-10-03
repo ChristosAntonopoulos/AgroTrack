@@ -43,6 +43,8 @@ export type GuideRect = {
 
 type NavRef = React.RefObject<NavigationContainerRef<RootStackParamList> | null>;
 
+type SpotlightScreen = 'create' | 'boundary' | 'spatial';
+
 type OwnerActivationContextValue = {
   eligible: boolean;
   /** False until fields and saved setup state are loaded — checklist must not paint on a guess. */
@@ -60,7 +62,9 @@ type OwnerActivationContextValue = {
   skippedSteps: OwnerActivationStepId[];
   spatialStatus: SpatialReadiness;
   spotlightStep: OwnerActivationStepId | null;
-  setSpotlightScreen: (screen: 'create' | 'boundary' | 'spatial' | null) => void;
+  setSpotlightScreen: (screen: SpotlightScreen | null) => void;
+  /** Clears the screen only if it is still the one that asked — a replaced screen unmounts late. */
+  releaseSpotlightScreen: (screen: SpotlightScreen) => void;
   /** Soft post-spatial guide: free map look → History → first observation. */
   awaitingFirstObservation: boolean;
   navCoachPhase: NavCoachPhase | null;
@@ -81,7 +85,7 @@ type OwnerActivationContextValue = {
   setCollapsed: (collapsed: boolean) => void;
   goToStep: (step: OwnerActivationStepId) => void;
   clearCelebration: () => void;
-  markFieldsDirty: (opts?: { boundarySavedFieldId?: string }) => void;
+  markFieldsDirty: (opts?: { boundarySavedFieldId?: string; groveCreatedFieldId?: string }) => void;
   beginFirstObservationGuide: () => void;
   completeFirstObservation: () => void;
 };
@@ -104,9 +108,12 @@ export const OwnerActivationProvider: React.FC<{
   const [fieldsHydrated, setFieldsHydrated] = useState(false);
   const [persistedHydrated, setPersistedHydrated] = useState(false);
   const [optimisticBoundaryFieldId, setOptimisticBoundaryFieldId] = useState<string | null>(null);
-  const [spotlightScreen, setSpotlightScreen] = useState<'create' | 'boundary' | 'spatial' | null>(
-    null
-  );
+  /** Draft grove saved on the name step — bridges the gap until the fields list refetches. */
+  const [optimisticGroveFieldId, setOptimisticGroveFieldId] = useState<string | null>(null);
+  const [spotlightScreen, setSpotlightScreen] = useState<SpotlightScreen | null>(null);
+  const releaseSpotlightScreen = useCallback((screen: SpotlightScreen) => {
+    setSpotlightScreen((current) => (current === screen ? null : current));
+  }, []);
   const [routeName, setRouteName] = useState('');
   const [routeMode, setRouteMode] = useState('');
   const [guideRect, setGuideRect] = useState<GuideRect | null>(null);
@@ -122,6 +129,7 @@ export const OwnerActivationProvider: React.FC<{
       setFieldsHydrated(false);
       setPersistedHydrated(false);
       setOptimisticBoundaryFieldId(null);
+      setOptimisticGroveFieldId(null);
       return;
     }
     let cancelled = false;
@@ -202,8 +210,16 @@ export const OwnerActivationProvider: React.FC<{
         firstObservationDone:
           Boolean(persisted.firstObservationDoneAt) ||
           persisted.skippedSteps.includes('firstObservation'),
+        knownGroveFieldId: optimisticGroveFieldId,
       }),
-    [fields, primaryField, spatialStatus, persisted.firstObservationDoneAt, persisted.skippedSteps]
+    [
+      fields,
+      primaryField,
+      spatialStatus,
+      persisted.firstObservationDoneAt,
+      persisted.skippedSteps,
+      optimisticGroveFieldId,
+    ]
   );
 
   const doneCount = OWNER_ACTIVATION_STEPS.filter((s) => completion[s]).length;
@@ -296,6 +312,12 @@ export const OwnerActivationProvider: React.FC<{
       setOptimisticBoundaryFieldId(null);
     }
   }, [fields, userId, optimisticBoundaryFieldId]);
+
+  useEffect(() => {
+    if (optimisticGroveFieldId && fields.some((f) => f.id === optimisticGroveFieldId)) {
+      setOptimisticGroveFieldId(null);
+    }
+  }, [fields, optimisticGroveFieldId]);
 
   const ready = fieldsHydrated && persistedHydrated;
   const visible = ready && eligible && (persisted.forceShow || !setupUnlocked);
@@ -512,7 +534,7 @@ export const OwnerActivationProvider: React.FC<{
       if (step === 'loadData' && primaryField) {
         nav.navigate('FieldDetail', {
           fieldId: primaryField.id,
-          mode: 'vegetation',
+          mode: 'field',
           activation: 'spatial',
         });
         return;
@@ -568,9 +590,12 @@ export const OwnerActivationProvider: React.FC<{
     setCelebrating(false);
   }, [persist, persisted]);
 
-  const markFieldsDirty = useCallback((opts?: { boundarySavedFieldId?: string }) => {
+  const markFieldsDirty = useCallback((opts?: { boundarySavedFieldId?: string; groveCreatedFieldId?: string }) => {
     if (opts?.boundarySavedFieldId) {
       setOptimisticBoundaryFieldId(opts.boundarySavedFieldId);
+    }
+    if (opts?.groveCreatedFieldId) {
+      setOptimisticGroveFieldId(opts.groveCreatedFieldId);
     }
     setFieldsEpoch((n) => n + 1);
   }, []);
@@ -593,6 +618,7 @@ export const OwnerActivationProvider: React.FC<{
       spatialStatus,
       spotlightStep,
       setSpotlightScreen,
+      releaseSpotlightScreen,
       awaitingFirstObservation: persisted.awaitingFirstObservation,
       navCoachPhase: persisted.navCoachPhase,
       guideBeat,
@@ -633,6 +659,7 @@ export const OwnerActivationProvider: React.FC<{
       activeStep,
       spatialStatus,
       spotlightStep,
+      releaseSpotlightScreen,
       refresh,
       skipStep,
       dismiss,

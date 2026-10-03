@@ -178,19 +178,46 @@ public class LocalFileStorageService : IFileStorageService
     private string? NormalizeRelativePath(string relativeUrl)
     {
         var path = relativeUrl.Trim();
-        if (Uri.TryCreate(path, UriKind.Absolute, out var absolute))
+        if (Uri.TryCreate(path, UriKind.Absolute, out var absolute)
+            && absolute.IsAbsoluteUri
+            && !string.IsNullOrEmpty(absolute.Host))
         {
-            path = absolute.AbsolutePath;
+            path = Uri.UnescapeDataString(absolute.AbsolutePath);
         }
 
-        var marker = _publicBasePath.TrimEnd('/');
-        var idx = path.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-        if (idx >= 0)
+        // PublicBasePath may be "/uploads" or "https://api.example/uploads".
+        // Compare path segments only — the host is not part of the file path.
+        var marker = PublicBasePathMarker(_publicBasePath);
+        if (marker.Length > 0)
         {
-            path = path[(idx + marker.Length)..];
+            var idx = path.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0)
+            {
+                path = path[(idx + marker.Length)..];
+            }
         }
 
-        path = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        path = path.TrimStart('/', '\\')
+            .Replace('/', Path.DirectorySeparatorChar)
+            .Replace('\\', Path.DirectorySeparatorChar);
         return string.IsNullOrWhiteSpace(path) ? null : path;
+    }
+
+    internal static string PublicBasePathMarker(string? publicBasePath)
+    {
+        var value = string.IsNullOrWhiteSpace(publicBasePath) ? "/uploads" : publicBasePath.Trim();
+        if (Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            && uri.IsAbsoluteUri
+            && !string.IsNullOrEmpty(uri.Host))
+        {
+            value = uri.AbsolutePath;
+        }
+
+        if (!value.StartsWith('/'))
+        {
+            value = "/" + value;
+        }
+
+        return value.TrimEnd('/');
     }
 }

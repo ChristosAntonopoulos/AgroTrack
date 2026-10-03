@@ -279,7 +279,7 @@ export function GiveOilSheet({
   ];
 
   const whoOptions: Array<[WhoMode, string]> = [
-    ...(hasPlatform ? ([['platform', t('give.forPlatform')]] as const) : []),
+    ...(hasPlatform ? [['platform', t('give.forPlatform')] as [WhoMode, string]] : []),
     ['someone', t('give.forSomeone')],
     ['home', t('give.forHome')],
     ['unnamed', t('give.noName')],

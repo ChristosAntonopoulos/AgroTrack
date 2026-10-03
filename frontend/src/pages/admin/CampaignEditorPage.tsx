@@ -216,11 +216,10 @@ const CampaignEditorPage: React.FC = () => {
         <PageHeader
           title={title}
           subtitle={t('admin:campaigns.editorSubtitle')}
+          backTo="/admin/campaigns"
+          backLabel={t('common:back')}
           actions={
             <div className="admin-header-actions">
-              <Button to="/admin/campaigns" variant="ghost">
-                {t('common:back')}
-              </Button>
               {status !== 'archived' && (
                 <Button variant="outline" loading={saving} onClick={() => void save(false)}>
                   {t('common:save')}

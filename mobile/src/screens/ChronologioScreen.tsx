@@ -20,9 +20,7 @@ import ChronologioPeekSheet, {
   ChronologioPeekTarget,
 } from '../components/chronologio/ChronologioPeekSheet';
 import ChronologioDaysTimeline from '../components/chronologio/ChronologioDaysTimeline';
-import ChronologioJournalHeader from '../components/chronologio/ChronologioJournalHeader';
 import ChronologioZoomTabs from '../components/chronologio/ChronologioZoomTabs';
-import ChronologioDateRail from '../components/chronologio/ChronologioDateRail';
 import ChronologioMonthChapterCard from '../components/chronologio/ChronologioMonthChapterCard';
 import ChronologioYearChapterCard from '../components/chronologio/ChronologioYearChapterCard';
 import ChronologioZoomPager from '../components/chronologio/ChronologioZoomPager';
@@ -30,18 +28,19 @@ import TodaySummary from '../components/chronologio/TodaySummary';
 import WeatherPeekSheet from '../components/weather/WeatherPeekSheet';
 import FilterChips from '../components/ui/FilterChips';
 import Button from '../components/ui/Button';
-import FormDateField from '../components/forms/FormDateField';
+import HeaderIconButton from '../components/layout/HeaderIconButton';
 import DismissibleChip from '../components/ui/DismissibleChip';
 import Sheet from '../components/ui/Sheet';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
 import { useHarvestCampaignOptional } from '../context/HarvestCampaignContext';
 import { usePreferences } from '../context/PreferencesContext';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { fieldHasBoundary } from '../utils/fieldDisplay';
-import { spacing, radii } from '../theme';
+import { appFonts, spacing, radii } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { getChronologioService, getFieldService, getFieldWorkService } from '../services/serviceFactory';
 import WorkSetupBanner from '../components/fields/WorkSetupBanner';
@@ -163,8 +162,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   const [booted, setBooted] = useState(false);
   const bootedRef = useRef(false);
   const [reloadToken, setReloadToken] = useState(0);
-  const [headerCompact, setHeaderCompact] = useState(false);
-  const [visibleMonth, setVisibleMonth] = useState<{ year: number; month: number } | null>(null);
   const [weatherByDate, setWeatherByDate] = useState<Record<string, DayWeatherInput>>({});
   const [todayWeatherPeek, setTodayWeatherPeek] = useState(false);
   const [focusDate, setFocusDate] = useState(() => athensCalendarDateKey(new Date()));
@@ -175,9 +172,8 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
       const stored = await readChronologioFilters();
       if (cancelled) return;
       if (stored.category) setFilterCategory(stored.category);
-      if (stored.lifecycleYear === 'low' || stored.lifecycleYear === 'high') {
-        setLifecycleYear(stored.lifecycleYear);
-      }
+      // Light/heavy year filter retired — drop any stored value.
+      setLifecycleYear('');
       if (!fieldMode && stored.fieldId) setFilterFieldId(stored.fieldId);
       setFiltersReady(true);
     })();
@@ -191,12 +187,12 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     void writeChronologioFilters(
       {
         category: filterCategory,
-        lifecycleYear,
+        lifecycleYear: '',
         fieldId: filterFieldId,
       },
       { preserveFieldId: fieldMode }
     );
-  }, [fieldMode, filterCategory, filterFieldId, filtersReady, lifecycleYear]);
+  }, [fieldMode, filterCategory, filterFieldId, filtersReady]);
 
   useEffect(() => {
     if (!fieldId) {
@@ -225,6 +221,25 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     activation?.awaitingFirstObservation && !activation.completion.firstObservation
       ? scopedFieldId || activation.primaryField?.id
       : undefined;
+
+  const chronologioCaptureDate = useMemo(
+    () =>
+      resolveChronologioCaptureDate({
+        zoom,
+        focusDate,
+        language: i18n.language,
+      }),
+    [zoom, focusDate, i18n.language]
+  );
+
+  useRegisterCapturePage({
+    sourcePage: fieldMode ? 'grove' : 'chronologio',
+    fieldId: scopedFieldId || undefined,
+    occurredAt: chronologioCaptureDate.occurredAt,
+    dateDefaultedToToday: chronologioCaptureDate.dateDefaultedToToday,
+    dateNeedsChoice: chronologioCaptureDate.dateNeedsChoice,
+    periodLabel: chronologioCaptureDate.periodLabel,
+  });
 
   useEffect(() => {
     if (!scopedFieldId) {
@@ -256,7 +271,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   }, [scopedFieldId]);
 
   const filtersDirty =
-    filterCategory !== 'all' || Boolean(lifecycleYear) || (!fieldMode && Boolean(filterFieldId));
+    filterCategory !== 'all' || (!fieldMode && Boolean(filterFieldId));
 
   const starterGrove = useMemo(() => {
     const named = fields.filter((f) => f.status !== 'Archived' && Boolean(f.name?.trim()));
@@ -270,10 +285,9 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   const journalFilterParams = useMemo(
     () => ({
       category: apiCategoryParam(filterCategory),
-      lifecycleYear: lifecycleYear || undefined,
       fieldId: !fieldMode ? filterFieldId || undefined : undefined,
     }),
-    [fieldMode, filterCategory, filterFieldId, lifecycleYear]
+    [fieldMode, filterCategory, filterFieldId]
   );
 
   const summaryFilterParams = useMemo(
@@ -418,7 +432,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     if (!landing) return;
     setMonthYear(landing.year);
     setMonth(landing.month);
-    setVisibleMonth(null);
   }, [month, monthYear, now, periodYear]);
 
   const setZoomAndPage = useCallback(
@@ -519,7 +532,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
       to,
       limit: focus ? 40 : 8,
       ...(focusCategory ? { category: focusCategory } : {}),
-      ...(!focusCategory ? journalFilterParams : { lifecycleYear: journalFilterParams.lifecycleYear, fieldId: journalFilterParams.fieldId }),
+      ...(!focusCategory ? journalFilterParams : { fieldId: journalFilterParams.fieldId }),
     };
     const req = scopedFieldId
       ? svc.getFieldChronologio(scopedFieldId, filters)
@@ -587,7 +600,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     setMonthYear(y);
     setMonth(m);
     setPeriodYear(agriculturalYearFor(new Date(Date.UTC(y, m - 1, Number(match[3])))));
-    setVisibleMonth({ year: y, month: m });
     setZoomAndPage('month');
   };
 
@@ -601,6 +613,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     capture.openCapture({
       fieldId: scopedFieldId || fieldId,
       preferredType: preferredCaptureTypeFromCategory(filterCategory),
+      sourcePage: fieldMode ? 'grove' : 'chronologio',
       occurredAt: captureDate.occurredAt,
       dateNeedsChoice: captureDate.dateNeedsChoice,
       dateDefaultedToToday: captureDate.dateDefaultedToToday,
@@ -619,9 +632,11 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
       };
 
   const harvestTab = filterCategory === 'harvest';
-  const showTodaySummary = zoom === 'month' && journalLive && !harvestTab;
+  // Still load today weather for the strip; do not pin an attention card above the timeline.
+  const todayBriefLive = zoom === 'month' && journalLive && !harvestTab;
+  const showTodaySummary = false;
   const today = useTodaySummary({
-    enabled: showTodaySummary && booted,
+    enabled: todayBriefLive && booted,
     fieldId: scopedFieldId,
     fields,
   });
@@ -783,92 +798,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   }, [fields, scopedFieldId]);
 
   const filtersCount =
-    selectedTypes.length +
-    (lifecycleYear ? 1 : 0) +
-    (!fieldMode && filterFieldId ? 1 : 0);
-
-  const contextLabel = fieldMode
-    ? fieldName || t('chronologio:taglineField')
-    : filterFieldId
-      ? fields.find((f) => f.id === filterFieldId)?.name || t('chronologio:living.allFields')
-      : t('chronologio:living.allFields', { defaultValue: 'All fields' });
-
-
-  const periodLabel = useMemo(() => {
-    if (zoom === 'years') {
-      return t('chronologio:living.zoom.years');
-    }
-    if (zoom === 'year') {
-      return String(periodYear);
-    }
-    const focusYear = visibleMonth?.year ?? monthYear;
-    const focusMonth = visibleMonth?.month ?? month;
-    const onLiveMonth =
-      journalLive && focusYear === nowYear && focusMonth === nowMonth;
-    if (onLiveMonth) return t('chronologio:today');
-    return new Date(Date.UTC(focusYear, focusMonth - 1, 1)).toLocaleDateString(i18n.language, {
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    });
-  }, [
-    i18n.language,
-    journalLive,
-    month,
-    monthYear,
-    nowMonth,
-    nowYear,
-    periodYear,
-    t,
-    visibleMonth,
-    zoom,
-  ]);
-
-  const jumpToYear = (year: number) => {
-    setPeriodYear(year);
-    setVisibleMonth(null);
-    if (zoom === 'month') {
-      const landing = daysLandingMonth(year, { year: monthYear, month }, now);
-      if (landing) {
-        setMonthYear(landing.year);
-        setMonth(landing.month);
-      } else {
-        setMonthYear(year);
-      }
-    }
-  };
-
-  const railActiveYear = zoom === 'month' ? visibleMonth?.year ?? monthYear : periodYear;
-
-  const shiftPeriod = (dir: -1 | 1) => {
-    if (zoom === 'years') {
-      setPeriodYear((y) => y + dir);
-      setZoomAndPage('year');
-      return;
-    }
-    if (zoom === 'year') {
-      setPeriodYear((y) => {
-        const next = y + dir;
-        if (dir > 0 && next > nowYear) return y;
-        return next;
-      });
-      return;
-    }
-    const d = new Date(Date.UTC(monthYear, month - 1 + dir, 1));
-    const y = d.getUTCFullYear();
-    const m = d.getUTCMonth() + 1;
-    if (y > nowYear || (y === nowYear && m > nowMonth)) return;
-    setMonthYear(y);
-    setMonth(m);
-    setPeriodYear(y);
-    setVisibleMonth(null);
-  };
-
-  const canPrevPeriod = true;
-  const canNextPeriod =
-    zoom === 'month'
-      ? !(monthYear === nowYear && month === nowMonth)
-      : periodYear < nowYear;
+    selectedTypes.length + (!fieldMode && filterFieldId ? 1 : 0);
 
   const zoomIndex = ZOOM_DISPLAY_ORDER.indexOf(zoom);
 
@@ -881,49 +811,28 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     [setZoomAndPage, zoom]
   );
 
-  const handleVisibleMonth = useCallback((year: number, monthNum: number) => {
-    setVisibleMonth((prev) =>
-      prev?.year === year && prev?.month === monthNum ? prev : { year, month: monthNum }
-    );
-  }, []);
-
-  const handleScrollY = useCallback((y: number) => {
-    setHeaderCompact(y > 48);
-  }, []);
-
   const body = (
     <View style={styles.shell}>
-      {embedded ? null : (
-        <ChronologioJournalHeader
-          periodLabel={periodLabel}
-          contextLabel={contextLabel}
-          onPressContext={() => setFiltersOpen(true)}
-          onPressFilters={() => setFiltersOpen(true)}
-          filtersActive={filtersDirty}
-          filtersCount={filtersCount}
-          compact={headerCompact}
-          showPeriodNav={zoom !== 'years'}
-          onPrevPeriod={() => shiftPeriod(-1)}
-          onNextPeriod={() => shiftPeriod(1)}
-          canPrevPeriod={canPrevPeriod}
-          canNextPeriod={canNextPeriod}
-          onPressPeriod={() => {
-            if (zoom === 'month') setZoomAndPage('year');
-            else if (zoom === 'year') setZoomAndPage('years');
-          }}
-          filtersLabel={t('chronologio:filters')}
+      <View style={styles.tabsRow}>
+        <View style={styles.tabsGrow}>
+          <ChronologioZoomTabs
+            value={zoom}
+            accessibilityLabel={t('chronologio:living.zoomLabel', { defaultValue: 'View' })}
+            options={ZOOM_DISPLAY_ORDER.map((z) => ({
+              value: z,
+              label: t(`chronologio:living.zoom.${z}`),
+            }))}
+            onChange={(z) => setZoomAndPage(z)}
+          />
+        </View>
+        <HeaderIconButton
+          icon="options-outline"
+          accessibilityLabel={t('chronologio:filters')}
+          onPress={() => setFiltersOpen(true)}
+          active={filtersDirty}
+          badge={filtersCount > 0 ? filtersCount : undefined}
         />
-      )}
-
-      <ChronologioZoomTabs
-        value={zoom}
-        accessibilityLabel={t('chronologio:living.zoomLabel', { defaultValue: 'View' })}
-        options={ZOOM_DISPLAY_ORDER.map((z) => ({
-          value: z,
-          label: t(`chronologio:living.zoom.${z}`),
-        }))}
-        onChange={(z) => setZoomAndPage(z)}
-      />
+      </View>
 
       {observationFieldId ? (
         <View style={{ paddingHorizontal: spacing.base }}>
@@ -943,23 +852,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
           />
         </View>
       ) : null}
-
-      {zoom !== 'years' ? (
-        <ChronologioDateRail
-          summaries={years}
-          activePeriodYear={railActiveYear}
-          onJumpToYear={jumpToYear}
-        />
-      ) : null}
-
-      <View style={styles.toolsRow}>
-        <FormDateField
-          compact
-          label={t('chronologio:living.jumpToDate')}
-          value={focusDate}
-          onValueChange={jumpToDate}
-        />
-      </View>
 
       {filtersDirty ? (
         <View style={styles.activeFilters} accessibilityLabel={t('chronologio:activeFilters')}>
@@ -982,14 +874,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                 filterFieldId
               )}
               onDismiss={() => setFilterFieldId('')}
-            />
-          ) : null}
-          {lifecycleYear ? (
-            <DismissibleChip
-              label={
-                lifecycleYear === 'low' ? t('chronologio:seasonLow') : t('chronologio:seasonHigh')
-              }
-              onDismiss={() => setLifecycleYear('')}
             />
           ) : null}
           <Pressable
@@ -1065,8 +949,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
                 hasMore={hasMore}
                 onLoadMore={loadMore}
                 onPressEntry={(entry) => setPeek({ mode: 'event', entry })}
-                onScrollY={handleScrollY}
-                onVisibleMonth={handleVisibleMonth}
                 focusDate={focusDate}
                 weatherByDate={weatherByDate}
                 todayWeather={todayWeather}
@@ -1295,75 +1177,31 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
         }
       >
         {!fieldMode && fields.length > 0 ? (
-          <>
-            <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>
-              {t('chronologio:allFields')}
-            </Text>
-            <FilterChips
-              compact
-              selected={filterFieldId || ''}
-              onSelect={setFilterFieldId}
-              style={{ marginBottom: 12 }}
-              options={[
-                { value: '', label: t('chronologio:allFields') },
-                ...fields.map((f) => ({
-                  value: f.id,
-                  label: f.name,
-                  dotColor: resolveFieldColor(f.color, f.id),
-                })),
-              ]}
-            />
-          </>
+          <FilterChips
+            wrap
+            compact
+            selected={filterFieldId || ''}
+            onSelect={setFilterFieldId}
+            style={{ marginBottom: 16 }}
+            options={[
+              { value: '', label: t('chronologio:allFields') },
+              ...fields.map((f) => ({
+                value: f.id,
+                label: f.name,
+                dotColor: resolveFieldColor(f.color, f.id),
+              })),
+            ]}
+          />
         ) : null}
-
-        <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>
-          {t('chronologio:living.lifecycleYear')}
-        </Text>
-        <FilterChips
-          wrap
-          compact
-          selected={lifecycleYear}
-          onSelect={(v) => setLifecycleYear(v as '' | 'low' | 'high')}
-          contentStyle={{ marginBottom: 12 }}
-          options={[
-            { value: '', label: t('chronologio:allSeasons') },
-            { value: 'low', label: t('chronologio:seasonLow') },
-            { value: 'high', label: t('chronologio:seasonHigh') },
-          ]}
-        />
 
         <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>
           {t('chronologio:filtersTitle')}
         </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-          {(
-            [
-              ['fieldWork', ['work', 'observation', 'photo']],
-              ['harvestStory', ['harvest', 'money', 'photo']],
-              ['decisions', ['observation', 'weather', 'work']],
-              ['people', ['work', 'collaborator']],
-            ] as const
-          ).map(([key, ids]) => (
-            <TouchableOpacity
-              key={key}
-              onPress={() => setFilterCategory(chronologioTypesParam([...ids]))}
-              style={[
-                styles.filterAction,
-                {
-                  borderColor: colors.borderLight,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  backgroundColor: colors.surfaceMuted,
-                  minHeight: 36,
-                  paddingHorizontal: 10,
-                },
-              ]}
-            >
-              <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 12 }}>
-                {t(`chronologio:living.preset.${key}`)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Text style={[styles.filterHint, { color: colors.textTertiary }]}>
+          {t('chronologio:living.typesHint', {
+            defaultValue: 'Pick what appears in History.',
+          })}
+        </Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
           {FILTER_TYPE_IDS.map((id) => {
             const selected = id === 'all' ? selectedTypes.length === 0 : selectedTypes.includes(id as ChronologioTypeId);
@@ -1371,16 +1209,13 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
               <TouchableOpacity
                 key={id}
                 onPress={() => toggleType(id)}
-                style={{
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: selected ? colors.oliveBorder : colors.borderLight,
-                  backgroundColor: selected ? colors.primaryLight : colors.surface,
-                  borderRadius: 999,
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  minHeight: 36,
-                  justifyContent: 'center',
-                }}
+                style={[
+                  styles.filterChip,
+                  {
+                    borderColor: selected ? colors.oliveBorder : colors.borderLight,
+                    backgroundColor: selected ? colors.primaryLight : colors.surfaceElevated,
+                  },
+                ]}
               >
                 <Text
                   style={{
@@ -1460,22 +1295,24 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   firstGroveTitle: {
+    fontFamily: appFonts.bold,
     fontSize: 18,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   firstGroveBody: {
     fontSize: 14,
     lineHeight: 20,
   },
-  toolsRow: {
+  tabsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 14,
-    marginBottom: spacing.xs,
-    marginTop: 2,
     alignItems: 'center',
-    flexGrow: 0,
-    flexShrink: 0,
+    gap: 10,
+    marginBottom: spacing.sm,
+  },
+  tabsGrow: {
+    flex: 1,
+    minWidth: 0,
   },
   activeFilters: {
     flexDirection: 'row',
@@ -1506,9 +1343,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   yearHeroTitle: {
+    fontFamily: appFonts.bold,
     fontSize: 28,
     fontWeight: '700',
-    letterSpacing: -0.6,
+    letterSpacing: -0.2,
   },
   seasonMark: {
     flexDirection: 'row',
@@ -1522,8 +1360,9 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   seasonMarkLabel: {
+    fontFamily: appFonts.semibold,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
@@ -1538,7 +1377,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  filterHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  filterSubLabel: {
+    fontSize: 12,
+    fontWeight: '600',
     marginBottom: 8,
+  },
+  filterChip: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 36,
+    justifyContent: 'center',
   },
   filterAction: {
     borderRadius: radii.lg,

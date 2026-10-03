@@ -13,7 +13,6 @@ import {
   partitionTasks,
   type BriefProposal,
 } from '../today/buildDailyBrief';
-import { useHarvestCampaignOptional } from '../context/HarvestCampaignContext';
 import { isActiveTask, isTaskOverdue } from '../utils/taskListUtils';
 
 export type AttentionKind = 'warning' | 'task' | 'proposal' | 'calm';
@@ -125,7 +124,6 @@ const pickAttention = (input: {
 };
 
 export const useTodaySummary = (input: { enabled: boolean; fieldId?: string; fields: Field[] }) => {
-  const harvest = useHarvestCampaignOptional();
   const { enabled, fieldId, fields } = input;
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -198,32 +196,25 @@ export const useTodaySummary = (input: { enabled: boolean; fieldId?: string; fie
     return picked;
   }, [dueToday, openTasks, partitioned.nextTasks, partitioned.overdue]);
 
-  const attention = useMemo(() => {
-    const base = pickAttention({
-      weather,
-      overdue: partitioned.overdue,
+  const attention = useMemo(
+    () =>
+      pickAttention({
+        weather,
+        overdue: partitioned.overdue,
+        dueToday,
+        nextTasks: partitioned.nextTasks,
+        featured: proposals.featured,
+        rainConflictCount,
+      }),
+    [
       dueToday,
-      nextTasks: partitioned.nextTasks,
-      featured: proposals.featured,
+      partitioned.nextTasks,
+      partitioned.overdue,
+      proposals.featured,
       rainConflictCount,
-    });
-    if (base.kind === 'warning' || !harvest?.isLive) return base;
-    return {
-      kind: 'proposal' as const,
-      titleKey: 'fields:harvestCampaign.status.active',
-      reasonKey: 'fields:harvestCampaign.nudge.daytimeReason',
-      action: 'harvest_add' as const,
-    };
-  }, [
-    dueToday,
-    harvest?.campaign,
-    harvest?.isLive,
-    partitioned.nextTasks,
-    partitioned.overdue,
-    proposals.featured,
-    rainConflictCount,
-    weather,
-  ]);
+      weather,
+    ]
+  );
 
   const conditions = useMemo(
     () =>

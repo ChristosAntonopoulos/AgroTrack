@@ -61,9 +61,16 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.65rem;
+}
+
+.my-oil-shelf {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
 .my-oil-grove-card {
@@ -75,15 +82,18 @@
   border: 1px solid var(--my-oil-border-soft);
   background: var(--my-oil-surface);
   border-radius: 14px;
-  padding: 0.85rem 1rem;
+  padding: 0.95rem 1rem;
   cursor: pointer;
   color: inherit;
   font: inherit;
+  min-height: 5.5rem;
+  box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--my-oil-accent) 18%, transparent);
 }
 
 .my-oil-grove-card.is-focus {
   border-color: color-mix(in srgb, var(--my-oil-accent) 45%, var(--my-oil-border));
   background: var(--my-oil-action);
+  box-shadow: inset 0 -3px 0 var(--my-oil-accent);
 }
 
 .my-oil-grove-card__icon {
@@ -94,22 +104,66 @@
 .my-oil-grove-card__body {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.2rem;
   min-width: 0;
 }
 
-.my-oil-grove-card__body strong {
-  font-weight: 650;
+.my-oil-grove-card__pack {
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
 }
 
-.my-oil-grove-card__body em {
+.my-oil-grove-card__where {
   font-style: normal;
+  font-size: 0.9rem;
   color: var(--my-oil-text-secondary);
 }
 
 .my-oil-grove-card__meta {
   font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
   color: var(--my-oil-text-muted);
+}
+
+.my-oil-shelf__fill {
+  align-self: flex-start;
+  margin-left: 0.25rem;
+}
+
+.my-oil-attention {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem 1rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--status-warning, #c4a035) 35%, var(--my-oil-border-soft));
+  background: color-mix(in srgb, var(--status-warning, #c4a035) 8%, var(--my-oil-surface));
+}
+
+.my-oil-attention__head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: color-mix(in srgb, var(--status-warning, #a07a20) 70%, var(--my-oil-text));
+}
+
+.my-oil-attention__head h2 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.my-oil-attention__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.my-oil-attention .my-oil-panel {
+  margin: 0;
+  box-shadow: none;
 }
 
 .my-oil-pending-cta {

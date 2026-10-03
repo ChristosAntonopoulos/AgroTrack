@@ -1,4 +1,4 @@
-const READ_KEY = 'oleachron_inbox_read_v1';
+const READ_KEY = 'The Olive Lot_inbox_read_v1';
 
 type ReadMap = Record<string, string[]>;
 

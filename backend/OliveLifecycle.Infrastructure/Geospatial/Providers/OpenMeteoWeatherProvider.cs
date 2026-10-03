@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net.Http.Json;
+using System.Net.Sockets;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -37,9 +38,7 @@ public class OpenMeteoWeatherProvider : IWeatherProvider
         if (!string.IsNullOrEmpty(_options.ApiKey))
             url += $"&apikey={_options.ApiKey}";
 
-        var response = await _httpClient.GetAsync(url, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
+        var json = await GetJsonAsync(url, cancellationToken);
 
         var hourly = json.GetProperty("hourly");
         var times = hourly.GetProperty("time").EnumerateArray()
@@ -109,9 +108,7 @@ public class OpenMeteoWeatherProvider : IWeatherProvider
         if (!string.IsNullOrEmpty(_options.ApiKey))
             url += $"&apikey={_options.ApiKey}";
 
-        var response = await _httpClient.GetAsync(url, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
+        var json = await GetJsonAsync(url, cancellationToken);
 
         if (!json.TryGetProperty("daily", out var daily))
         {
@@ -155,6 +152,56 @@ public class OpenMeteoWeatherProvider : IWeatherProvider
             Model = "era5_seamless",
             Days = days
         };
+    }
+
+    /// <summary>
+    /// Open-Meteo occasionally resets the socket during the TLS handshake
+    /// (SocketException 10054) before any HTTP status exists. One retry absorbs that.
+    /// </summary>
+    private async Task<JsonElement> GetJsonAsync(string url, CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 3;
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                using var response = await _httpClient.GetAsync(url, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
+            }
+            catch (Exception ex) when (attempt < maxAttempts && IsTransient(ex) && !cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Open-Meteo request failed on attempt {Attempt} of {MaxAttempts}; retrying",
+                    attempt,
+                    maxAttempts);
+                await Task.Delay(TimeSpan.FromMilliseconds(200 * attempt), cancellationToken);
+            }
+        }
+    }
+
+    private static bool IsTransient(Exception exception)
+    {
+        for (Exception? current = exception; current != null; current = current.InnerException)
+        {
+            if (current is HttpRequestException http)
+            {
+                if (http.StatusCode is { } status)
+                {
+                    var code = (int)status;
+                    return code == 429 || code >= 500;
+                }
+
+                return true;
+            }
+
+            if (current is IOException or SocketException)
+                return true;
+        }
+
+        // HttpClient turns a timed-out connect into TaskCanceledException without cancelling the caller's token.
+        return exception is TaskCanceledException;
     }
 
     private static double? GetArrayDouble(JsonElement parent, string name, int index)

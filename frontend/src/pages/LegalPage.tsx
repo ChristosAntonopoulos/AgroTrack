@@ -15,7 +15,7 @@ const LegalPage: React.FC<{ kind: Kind }> = ({ kind }) => {
     <main className="legal-page">
       <header className="legal-header">
         <Link to="/" className="legal-brand">
-          <BrandLogo variant="horizontal" tone="on-light" size="sm" alt="Oleachron" />
+          <BrandLogo variant="horizontal" tone="on-light" size="md" alt="The Olive Lot" />
         </Link>
       </header>
       <article className="legal-body">
@@ -26,7 +26,7 @@ const LegalPage: React.FC<{ kind: Kind }> = ({ kind }) => {
         ))}
         <p>
           {t('contact')}{' '}
-          <a href="mailto:hello@oleachron.com">hello@oleachron.com</a>
+          <a href="mailto:hello@The Olive Lot.com">hello@The Olive Lot.com</a>
         </p>
         <p>
           <Link to="/">{t('back')}</Link>

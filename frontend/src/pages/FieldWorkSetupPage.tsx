@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
+import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import OnboardingChoiceList from '../components/FieldWork/OnboardingChoiceList';
@@ -493,9 +493,7 @@ const FieldWorkSetupPage: React.FC = () => {
       <PageContainer>
         <div className="error-container">
           <div className="error-message">{error}</div>
-          <Button to="/fields" icon={<ArrowLeft />} variant="outline">
-            {t('fields:controlRoom.backToFields')}
-          </Button>
+          <BackLink to="/fields">{t('fields:controlRoom.backToFields')}</BackLink>
         </div>
       </PageContainer>
     );
@@ -508,6 +506,11 @@ const FieldWorkSetupPage: React.FC = () => {
     <PageContainer>
       <div className="fw-setup">
         <Breadcrumbs />
+        {step !== 'personalizing' && fieldId ? (
+          <BackLink to={`/fields/${fieldId}`}>
+            {t('tasks:fieldWork.onboarding.backToField')}
+          </BackLink>
+        ) : null}
         <div className="fw-setup-top">
           {progress != null ? (
             <span className="fw-setup-progress">
@@ -518,13 +521,6 @@ const FieldWorkSetupPage: React.FC = () => {
             </span>
           ) : (
             <span className="fw-setup-progress" />
-          )}
-          {step !== 'personalizing' ? (
-            <button type="button" className="fw-setup-exit" onClick={exitToField}>
-              {t('tasks:fieldWork.onboarding.exit')}
-            </button>
-          ) : (
-            <span />
           )}
         </div>
 

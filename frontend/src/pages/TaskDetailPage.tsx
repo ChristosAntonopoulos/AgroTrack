@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
 import {
   getFieldService,
   getFieldWorkService,
@@ -20,6 +19,7 @@ import { taskExpenseCaptureContext } from '../utils/taskExpenseContext';
 import { formatCompactTaskPeriod } from '../utils/taskDateRange';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
+import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import TaskCategoryMark from '../components/Tasks/TaskCategoryMark';
@@ -166,9 +166,7 @@ const TaskDetailPage: React.FC = () => {
         <Breadcrumbs />
         <div className="task-detail-page">
           <p className="task-form-help">{error || t('detail.notFound')}</p>
-          <Button to="/tasks" icon={<ArrowLeft />} variant="outline" size="lg">
-            {t('detail.backToTasks')}
-          </Button>
+          <BackLink to="/tasks">{t('detail.backToTasks')}</BackLink>
         </div>
       </PageContainer>
     );
@@ -222,9 +220,7 @@ const TaskDetailPage: React.FC = () => {
       <Breadcrumbs />
       <div className="task-work-screen">
         <header className="task-work-head">
-          <Button to="/tasks" icon={<ArrowLeft />} variant="outline" size="lg">
-            {t('detail.backToTasks')}
-          </Button>
+          <BackLink to="/tasks">{t('detail.backToTasks')}</BackLink>
           <div className="task-work-head-row">
             <TaskCategoryMark templateCode={task.templateCode} size={22} />
             <div>

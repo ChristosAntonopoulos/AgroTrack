@@ -8,7 +8,7 @@ import { formatOilPack } from '../../myOil/formatOilPack';
 import {
   commitmentStoryKey,
   deliverButtonKey,
-  type CommitmentFilter,
+  type CommitmentView,
 } from '../../myOil/commitmentCopy';
 import { commitmentFieldLabel } from '../../myOil/fieldPools';
 import type { OilCommitment, OilLot } from '../../services/oilStockService';
@@ -23,11 +23,40 @@ type Props = {
   busy: boolean;
   packLabels: PackLabels;
   formatDate: (iso: string) => string;
+  /** Commitment ids that need action soon — floated to the top of waiting. */
+  urgentIds?: string[];
   onDeliver: (c: OilCommitment) => void;
   onCancel: (c: OilCommitment) => void;
   onGive: () => void;
 };
 
+type Pill = 'waiting' | 'paid' | 'delivered' | 'held' | 'unpaid';
+
+const isOpen = (c: OilCommitment) =>
+  !c.cancelled && c.derivedStatus !== 'delivered' && c.derivedStatus !== 'cancelled';
+
+const isPaid = (c: OilCommitment) =>
+  c.isSale && ((c.amount != null && c.amount > 0) || Boolean(c.financialTransactionId));
+
+const pillFor = (c: OilCommitment): Pill => {
+  if (isOpen(c) && c.derivedStatus === 'pending_delivery') return 'waiting';
+  if (c.isSale && !isPaid(c)) return 'unpaid';
+  if (!isOpen(c) && isPaid(c)) return 'paid';
+  if (!isOpen(c)) return 'delivered';
+  return 'held';
+};
+
+const PILL_KEY: Record<Pill, string> = {
+  waiting: 'where.waitingPill',
+  paid: 'where.paid',
+  delivered: 'commitments.delivered',
+  held: 'commitments.held',
+  unpaid: 'hero.unpaid',
+};
+
+/**
+ * Where the oil went: kind (all / held / sold) and whether it is still waiting or already handed over.
+ */
 export function CommitmentsTab({
   open,
   closed = [],
@@ -36,30 +65,41 @@ export function CommitmentsTab({
   busy,
   packLabels,
   formatDate,
+  urgentIds = [],
   onDeliver,
   onCancel,
   onGive,
 }: Props) {
-  const { t } = useTranslation(['myOil', 'common']);
+  const { t, i18n } = useTranslation(['myOil', 'common']);
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
-  const [filter, setFilter] = useState<CommitmentFilter>('all');
+  const [view, setView] = useState<CommitmentView>('all');
   const [detail, setDetail] = useState<OilCommitment | null>(null);
 
-  const delivered = useMemo(
-    () =>
-      closed.length
-        ? closed
-        : [...open, ...closed].filter((c) => c.derivedStatus === 'delivered' || c.cancelled),
-    [open, closed]
-  );
+  const urgent = useMemo(() => new Set(urgentIds), [urgentIds]);
+
+  const shortDate = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
+  };
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return open;
-    if (filter === 'held') return open.filter((c) => c.derivedStatus === 'reserved');
-    if (filter === 'pending') return open.filter((c) => c.derivedStatus === 'pending_delivery');
-    return delivered;
-  }, [filter, open, delivered]);
+    const pool = [...open, ...closed].filter((c) => !c.cancelled);
+    const rows = pool.filter((c) => {
+      if (view === 'waiting') return isOpen(c);
+      if (view === 'delivered') return c.derivedStatus === 'delivered';
+      if (view === 'unpaid') return c.isSale && !isPaid(c);
+      return true;
+    });
+    return [...rows].sort((a, b) => {
+      const rank = Number(isOpen(b)) - Number(isOpen(a));
+      if (rank !== 0) return rank;
+      const urgentRank = Number(urgent.has(b.id)) - Number(urgent.has(a.id));
+      if (urgentRank !== 0) return urgentRank;
+      return +new Date(b.createdAt) - +new Date(a.createdAt);
+    });
+  }, [view, open, closed, urgent]);
 
   const storyFor = (c: OilCommitment) => {
     const key = commitmentStoryKey(c);
@@ -75,33 +115,39 @@ export function CommitmentsTab({
   const placeFor = (c: OilCommitment) =>
     commitmentFieldLabel(c.allocations, lots, fieldNames, t('lots.noField'));
 
-  const filters: CommitmentFilter[] = ['all', 'held', 'pending', 'delivered'];
+  const nameFor = (c: OilCommitment) =>
+    (c.counterpartyName || '').trim() || t('give.unnamed');
+
+  const views: CommitmentView[] = ['all', 'waiting', 'delivered', 'unpaid'];
 
   return (
     <View>
-      <View style={styles.chipsRow} accessibilityRole="tablist">
-        {filters.map((f) => (
-          <Pressable
-            key={f}
-            onPress={() => setFilter(f)}
-            style={[styles.chipFilter, filter === f && styles.chipFilterOn]}
-          >
-            <Text style={[styles.chipFilterText, filter === f && styles.chipFilterTextOn]}>
-              {t(`commitments.filters.${f}`)}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={styles.kindRow} accessibilityRole="tablist">
+        {views.map((id) => {
+          const on = view === id;
+          return (
+            <Pressable
+              key={id}
+              onPress={() => setView(id)}
+              style={[styles.kindChip, on && styles.kindChipOn]}
+            >
+              <Text style={[styles.kindChipText, on && styles.kindChipTextOn]}>
+                {t(`commitments.filters.${id}`)}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {filtered.length === 0 ? (
         <View style={styles.panel}>
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>
-              {filter === 'delivered'
+              {view === 'delivered'
                 ? t('commitments.emptyDeliveredTitle')
                 : t('commitments.emptyTitle')}
             </Text>
-            {filter !== 'delivered' ? (
+            {view === 'all' || view === 'waiting' ? (
               <>
                 <Text style={styles.emptyBody}>{t('commitments.emptyBody')}</Text>
                 <Pressable
@@ -117,42 +163,56 @@ export function CommitmentsTab({
       ) : (
         <View style={styles.waiting}>
           {filtered.map((c) => {
-          const place = placeFor(c);
-          return (
-            <Pressable key={c.id} style={styles.holdCard} onPress={() => setDetail(c)}>
-              <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
-                <Text style={styles.waitingName} numberOfLines={1}>
-                  {(c.counterpartyName || '').trim() ||
-                    t('commitments.unnamedHold', { defaultValue: t('commitments.unnamed') })}
-                </Text>
-                {place ? (
-                  <Text style={styles.waitingStory} numberOfLines={1}>
-                    {place}
-                  </Text>
-                ) : null}
-                <Text style={styles.waitingPack}>
-                  {formatOilPack(
-                    c.derivedStatus === 'delivered' ? c.requested : c.remaining,
-                    packLabels
-                  )}
-                </Text>
-                <Text style={styles.waitingStory} numberOfLines={1}>
-                  {storyFor(c)}
-                </Text>
-              </View>
-              {c.derivedStatus !== 'delivered' && !c.cancelled ? (
-                <Pressable
-                  disabled={busy}
-                  onPress={() => onDeliver(c)}
-                  style={[styles.btnPrimary, styles.btnSm, busy && styles.btnPrimaryDisabled]}
-                >
-                  <Text style={styles.btnPrimaryText}>{t(deliverButtonKey(c))}</Text>
-                </Pressable>
-              ) : (
-                <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-              )}
-            </Pressable>
-          );
+            const place = placeFor(c);
+            const pill = pillFor(c);
+            const openRow = isOpen(c);
+            const calm = pill === 'paid' || pill === 'delivered';
+            return (
+              <Pressable
+                key={c.id}
+                style={[styles.whereCard, urgent.has(c.id) && openRow && styles.holdCardUrgent]}
+                onPress={() => setDetail(c)}
+              >
+                <View style={styles.whereTop}>
+                  <View style={styles.whereIcon}>
+                    <Ionicons name="person-outline" size={16} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <View style={styles.holdCardTop}>
+                      <Text style={styles.waitingName} numberOfLines={1}>
+                        {nameFor(c)}
+                      </Text>
+                      <Text style={styles.holdPack} numberOfLines={1}>
+                        {formatOilPack(openRow ? c.remaining : c.requested, packLabels)}
+                      </Text>
+                    </View>
+                    {place ? (
+                      <Text style={styles.whereMeta} numberOfLines={1}>
+                        {place}
+                      </Text>
+                    ) : null}
+                    <Text style={styles.whereMeta}>{shortDate(c.createdAt)}</Text>
+                  </View>
+                </View>
+                <View style={styles.whereFoot}>
+                  <View style={[styles.statusPill, calm ? styles.statusPillOk : styles.statusPillWait]}>
+                    <Text style={[styles.statusPillText, calm ? styles.statusPillTextOk : styles.statusPillTextWait]}>
+                      {t(PILL_KEY[pill])}
+                    </Text>
+                  </View>
+                  {openRow ? (
+                    <Pressable
+                      disabled={busy}
+                      onPress={() => onDeliver(c)}
+                      style={[styles.holdDeliver, busy && styles.btnPrimaryDisabled]}
+                      hitSlop={6}
+                    >
+                      <Text style={styles.holdDeliverText}>{t(deliverButtonKey(c))}</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
           })}
         </View>
       )}
@@ -163,18 +223,10 @@ export function CommitmentsTab({
         edge="end"
         size="lg"
         accent
-        title={
-          detail
-            ? (detail.counterpartyName || '').trim() ||
-              t('commitments.unnamedHold', { defaultValue: t('commitments.unnamed') })
-            : undefined
-        }
+        title={detail ? nameFor(detail) : undefined}
         subtitle={
           detail
-            ? formatOilPack(
-                detail.derivedStatus === 'delivered' ? detail.requested : detail.remaining,
-                packLabels
-              )
+            ? formatOilPack(isOpen(detail) ? detail.remaining : detail.requested, packLabels)
             : undefined
         }
         icon={<Ionicons name="bookmark-outline" size={18} color={colors.primary} />}
@@ -184,7 +236,7 @@ export function CommitmentsTab({
               <Pressable onPress={() => setDetail(null)} style={styles.btnSecondary}>
                 <Text style={styles.btnSecondaryText}>{t('cancel')}</Text>
               </Pressable>
-              {detail.derivedStatus !== 'delivered' && !detail.cancelled ? (
+              {isOpen(detail) ? (
                 <Pressable
                   disabled={busy}
                   onPress={() => {
@@ -209,7 +261,7 @@ export function CommitmentsTab({
                 {t('commitments.paidOn', { date: formatDate(detail.createdAt) })}
               </Text>
             ) : null}
-            {detail.derivedStatus !== 'delivered' ? (
+            {isOpen(detail) ? (
               <Text style={styles.waitingStory}>{t('commitments.notDeliveredYet')}</Text>
             ) : (
               <Text style={styles.waitingStory}>{t('commitments.delivered')}</Text>

@@ -33,7 +33,13 @@ const isRealMedia = (url?: string | null) => {
   if (!url) return false;
   const u = url.toLowerCase();
   if (u.includes('unsplash') || u.includes('picsum') || u.includes('placeholder')) return false;
-  return u.includes('/uploads/') || u.startsWith('file:') || u.startsWith('content:');
+  return (
+    u.includes('/uploads/') ||
+    u.includes('/api/v1/photos/') ||
+    u.startsWith('/') ||
+    u.startsWith('file:') ||
+    u.startsWith('content:')
+  );
 };
 
 const FactChip: React.FC<{

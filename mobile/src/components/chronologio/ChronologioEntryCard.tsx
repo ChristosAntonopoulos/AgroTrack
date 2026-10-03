@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
@@ -9,6 +9,7 @@ import {
   presentChronologioEvent,
   presentExpenseChip,
   presentActorName,
+  presentMetaLabel,
 } from '../../chronologio/eventPresentation';
 import { eventAccentToken, eventCardSize } from '../../chronologio/eventCardLayout';
 import { accentColorsForToken } from '../../utils/chronologioCategoryAccents';
@@ -18,7 +19,7 @@ import WeatherMonthSnapshot from './WeatherMonthSnapshot';
 import HarvestDayJourney from './HarvestDayJourney';
 import { resolvePublicAssetUrl } from '../../config/env';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
-import { createElevation, motion, radii, spacing } from '../../theme';
+import { appFonts, createElevation, motion, radii, spacing } from '../../theme';
 import {
   extremeKindFromEventType,
   extremeMetricLine,
@@ -39,6 +40,8 @@ type Props = {
   dateStyle?: 'time' | 'dayMonth';
   /** Field-first weather pick tile (same report card family, choose grove). */
   weatherTile?: boolean;
+  /** Inside a labeled report cluster — skip repeating the report title. */
+  embeddedReport?: boolean;
   selected?: boolean;
   onPress: () => void;
 };
@@ -112,6 +115,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
   density = 'default',
   dateStyle = 'time',
   weatherTile = false,
+  embeddedReport = false,
   selected = false,
   onPress,
 }) => {
@@ -225,31 +229,65 @@ const ChronologioEntryCard: React.FC<Props> = ({
     minHeight ?? (weatherTile ? 88 : compact ? 44 : featured ? 72 : 52);
 
   if (weatherTile) {
+    const isYear = entry.eventType === 'weather.yearReview';
+    const reportLabel = t(
+      isYear ? 'chronologio:weatherReview.yearReport' : 'chronologio:weatherReview.monthReport',
+      { defaultValue: isYear ? 'Yearly report' : 'Monthly report' }
+    );
     return (
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
         accessibilityState={{ selected }}
+        accessibilityLabel={[reportLabel, presented.label, fieldLabel].filter(Boolean).join(', ')}
         style={({ pressed }) => [
-          styles.weatherTile,
+          styles.reportTile,
           {
-            backgroundColor: softBg,
+            backgroundColor: embeddedReport ? softBg : colors.surfaceElevated,
             borderColor: selected
               ? fieldAccent
-              : hexToRgba(fieldAccent || categoryAccent, 0.42),
+              : hexToRgba(categoryAccent, embeddedReport ? 0.28 : 0.35),
             opacity: pressed ? motion.pressOpacity : 1,
             ...createElevation(colors, 'sm'),
           },
         ]}
       >
+        {!embeddedReport ? (
+          <View style={[styles.reportBadge, { backgroundColor: hexToRgba(categoryAccent, 0.14) }]}>
+            <Ionicons name="calendar-outline" size={13} color={categoryAccent} />
+            <Text style={[styles.reportBadgeText, { color: categoryAccent }]} numberOfLines={1}>
+              {reportLabel}
+            </Text>
+          </View>
+        ) : null}
+
+        {!embeddedReport ? (
+          <Text style={[styles.reportPeriod, { color: colors.textPrimary }]} numberOfLines={1}>
+            {presented.label}
+          </Text>
+        ) : null}
+
         <View style={styles.weatherPickField}>
           <View style={[styles.fieldDotLg, { backgroundColor: fieldAccent }]} />
-          <Text style={[styles.weatherPickTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+          <Text
+            style={[
+              embeddedReport ? styles.weatherPickTitle : styles.reportField,
+              { color: embeddedReport ? colors.textPrimary : colors.textSecondary },
+            ]}
+            numberOfLines={1}
+          >
             {fieldLabel || presented.label}
           </Text>
         </View>
+
         {weather ? (
-          <View style={styles.weatherPickMetrics}>
+          <View
+            style={[
+              styles.weatherPickMetrics,
+              styles.reportMetrics,
+              { borderTopColor: hexToRgba(categoryAccent, 0.16) },
+            ]}
+          >
             {weather.rainfallMm != null ? (
               <View style={styles.pickMetric}>
                 <Text style={[styles.pickValue, { color: colors.eventWeather }]} numberOfLines={1}>
@@ -299,6 +337,75 @@ const ChronologioEntryCard: React.FC<Props> = ({
             </View>
           </View>
         ) : null}
+
+        <View style={styles.reportCtaRow}>
+          <Text style={[styles.reportCta, { color: categoryAccent }]}>
+            {t('chronologio:weatherReview.openReport', { defaultValue: 'Open report' })}
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={categoryAccent} />
+        </View>
+      </Pressable>
+    );
+  }
+
+  if (isPeriodReview) {
+    const isYear = entry.eventType === 'weather.yearReview';
+    const reportLabel = t(
+      isYear ? 'chronologio:weatherReview.yearReport' : 'chronologio:weatherReview.monthReport',
+      { defaultValue: isYear ? 'Yearly report' : 'Monthly report' }
+    );
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={[reportLabel, presented.label, fieldLabel].filter(Boolean).join(', ')}
+        style={({ pressed }) => [
+          styles.reportCard,
+          {
+            backgroundColor: colors.surfaceElevated,
+            borderColor: hexToRgba(categoryAccent, 0.38),
+            opacity: pressed ? motion.pressOpacity : 1,
+            transform: [{ scale: pressed ? motion.pressScale : 1 }],
+            ...createElevation(colors, 'sm'),
+          },
+        ]}
+      >
+        <View style={[styles.reportCardHeader, { backgroundColor: hexToRgba(categoryAccent, 0.12) }]}>
+          <View style={[styles.reportHeaderIcon, { backgroundColor: colors.surface }]}>
+            <Ionicons name="document-text-outline" size={18} color={categoryAccent} />
+          </View>
+          <View style={styles.reportHeaderCopy}>
+            <Text style={[styles.reportBadgeText, { color: categoryAccent }]}>{reportLabel}</Text>
+            <Text style={[styles.reportPeriod, { color: colors.textPrimary }]} numberOfLines={1}>
+              {presented.label}
+            </Text>
+          </View>
+        </View>
+        {showField && fieldLabel ? (
+          <View style={[styles.weatherPickField, { paddingHorizontal: 14, paddingTop: 10 }]}>
+            <View style={[styles.fieldDotLg, { backgroundColor: fieldAccent }]} />
+            <Text style={[styles.reportField, { color: colors.textSecondary }]} numberOfLines={1}>
+              {fieldLabel}
+            </Text>
+          </View>
+        ) : null}
+        {weather ? (
+          <View style={{ paddingHorizontal: 10, paddingBottom: 4 }}>
+            <WeatherMonthSnapshot
+              weather={weather}
+              eventType={entry.eventType}
+              numberLocale={numberLocale}
+              locale={i18n.language}
+              variant="card"
+            />
+          </View>
+        ) : null}
+        <View style={[styles.reportCtaRow, { paddingHorizontal: 14, paddingBottom: 12 }]}>
+          <Text style={[styles.reportCta, { color: categoryAccent }]}>
+            {t('chronologio:weatherReview.openReport', { defaultValue: 'Open report' })}
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={categoryAccent} />
+        </View>
       </Pressable>
     );
   }
@@ -311,7 +418,7 @@ const ChronologioEntryCard: React.FC<Props> = ({
         compact && styles.cardCompact,
         featured && styles.cardFeatured,
         {
-          backgroundColor: pressed ? colors.surfaceMuted : softBg,
+          backgroundColor: pressed ? colors.surfaceMuted : colors.surfaceElevated,
           borderColor: selected
             ? hexToRgba(categoryAccent, 0.62)
             : hexToRgba(categoryAccent, 0.4),
@@ -355,16 +462,19 @@ const ChronologioEntryCard: React.FC<Props> = ({
             <Text style={{ color: colors.textTertiary }}> · </Text>
             <Text style={{ color: categoryAccent, fontWeight: '700' }}>
               {isPeriodReview
-                ? t(
-                    entry.eventType === 'weather.yearReview'
-                      ? 'chronologio:weatherReview.yearReport'
-                      : 'chronologio:weatherReview.monthReport',
-                    {
-                      defaultValue:
-                        entry.eventType === 'weather.yearReview' ? 'Year report' : 'Month report',
-                    }
+                ? presentMetaLabel(
+                    t(
+                      entry.eventType === 'weather.yearReview'
+                        ? 'chronologio:weatherReview.yearReport'
+                        : 'chronologio:weatherReview.monthReport',
+                      {
+                        defaultValue:
+                          entry.eventType === 'weather.yearReview' ? 'Year report' : 'Month report',
+                      }
+                    ),
+                    i18n.language
                   )
-                : presented.shortLabel}
+                : presentMetaLabel(presented.shortLabel, i18n.language)}
             </Text>
             {note?.pinned ? (
               <Text style={{ color: colors.textTertiary }}>
@@ -373,17 +483,20 @@ const ChronologioEntryCard: React.FC<Props> = ({
             ) : null}
           </Text>
 
-          <Text
-            style={[
-              styles.title,
-              compact && styles.titleCompact,
-              featured && styles.titleFeatured,
-              { color: colors.textPrimary },
-            ]}
-            numberOfLines={compact ? 1 : 2}
-          >
-            {presented.label}
-          </Text>
+          {presented.label &&
+          presented.label.toLowerCase() !== presented.shortLabel.toLowerCase() ? (
+            <Text
+              style={[
+                styles.title,
+                compact && styles.titleCompact,
+                featured && styles.titleFeatured,
+                { color: colors.textPrimary },
+              ]}
+              numberOfLines={compact ? 1 : 2}
+            >
+              {presented.label}
+            </Text>
+          ) : null}
 
           {category === 'harvest' && harvest ? (
             <HarvestDayJourney
@@ -454,24 +567,12 @@ const ChronologioEntryCard: React.FC<Props> = ({
           ) : null}
 
           {category === 'weather' ? (
-            isPeriodReview && weather ? (
-              <View style={{ marginTop: 8 }}>
-                <WeatherMonthSnapshot
-                  weather={weather}
-                  eventType={entry.eventType}
-                  numberLocale={numberLocale}
-                  locale={i18n.language}
-                  variant="card"
-                />
-              </View>
-            ) : (
-              <Text style={[styles.summary, { color: colors.textSecondary }]} numberOfLines={1}>
-                {entry.summary ||
-                  (weather?.rainfallMm != null
-                    ? `${weather.rainfallMm} mm`
-                    : t('chronologio:categoryLabel.weather', { defaultValue: 'Weather' }))}
-              </Text>
-            )
+            <Text style={[styles.summary, { color: colors.textSecondary }]} numberOfLines={1}>
+              {entry.summary ||
+                (weather?.rainfallMm != null
+                  ? `${weather.rainfallMm} mm`
+                  : t('chronologio:categoryLabel.weather', { defaultValue: 'Weather' }))}
+            </Text>
           ) : null}
 
           {category !== 'harvest' &&
@@ -541,41 +642,108 @@ const ChronologioEntryCard: React.FC<Props> = ({
   );
 };
 
-/** Horizontal weather field-pick cluster — same card family, choose which grove. */
+/** Monthly / yearly weather report — compact grove chips when several fields share the month. */
 export const ChronologioWeatherCluster: React.FC<{
   entries: ChronologioEntry[];
   numberLocale: string;
   onPressEntry: (entry: ChronologioEntry) => void;
 }> = ({ entries, numberLocale, onPressEntry }) => {
-  const { t } = useTranslation('chronologio');
+  const { t, i18n } = useTranslation('chronologio');
   const { colors } = useTheme();
   if (!entries.length) return null;
   const several = entries.length > 1;
+  const lead = entries[0];
+  const isYear = lead.eventType === 'weather.yearReview';
+  const reportLabel = t(
+    isYear ? 'weatherReview.yearReport' : 'weatherReview.monthReport',
+    { defaultValue: isYear ? 'Yearly report' : 'Monthly report' }
+  );
+  const periodTitle = presentChronologioEvent(lead, i18n.language).label;
+
   return (
-    <View style={styles.cluster}>
+    <View
+      style={[
+        styles.cluster,
+        {
+          backgroundColor: colors.surfaceElevated,
+          borderColor: hexToRgba(colors.eventWeather, 0.28),
+        },
+      ]}
+    >
+      <View style={[styles.clusterHeader, { backgroundColor: hexToRgba(colors.eventWeather, 0.1) }]}>
+        <View style={[styles.clusterHeaderIcon, { backgroundColor: colors.surface }]}>
+          <Ionicons name="calendar-outline" size={16} color={colors.eventWeather} />
+        </View>
+        <View style={styles.clusterHeaderCopy}>
+          <Text style={[styles.clusterBadge, { color: colors.eventWeather }]}>{reportLabel}</Text>
+          <Text style={[styles.clusterTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+            {periodTitle}
+          </Text>
+        </View>
+      </View>
+
       {several ? (
-        <Text style={[styles.clusterKicker, { color: colors.textTertiary }]}>
-          {t('weatherReview.pickGrove', { defaultValue: 'Choose a grove' })}
-        </Text>
-      ) : null}
-      <ScrollView
-        horizontal={several}
-        scrollEnabled={several}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={several ? styles.clusterRow : undefined}
-      >
-        {entries.map(entry => (
-          <View key={entry.id} style={several ? styles.clusterTile : styles.clusterTileSolo}>
-            <ChronologioEntryCard
-              entry={entry}
-              showField
-              numberLocale={numberLocale}
-              weatherTile
-              onPress={() => onPressEntry(entry)}
-            />
+        <View style={styles.clusterPick}>
+          <Text style={[styles.clusterHint, { color: colors.textSecondary }]}>
+            {t('weatherReview.pickGrove', { defaultValue: 'Choose a grove' })}
+          </Text>
+          <View style={styles.groveGrid}>
+            {entries.map((entry) => {
+              const weather = entry.details.weather;
+              const fieldAccent = resolveFieldColor(entry.field?.color, entry.fieldId);
+              const name = entry.field?.name
+                ? friendlyFieldLabel(entry.field.name)
+                : presentChronologioEvent(entry, i18n.language).label;
+              const rain =
+                weather?.rainfallMm != null
+                  ? `${weather.rainfallMm.toLocaleString(numberLocale, {
+                      maximumFractionDigits: 0,
+                    })} mm`
+                  : null;
+              return (
+                <Pressable
+                  key={entry.id}
+                  onPress={() => onPressEntry(entry)}
+                  accessibilityRole="button"
+                  accessibilityLabel={name}
+                  style={({ pressed }) => [
+                    styles.groveChip,
+                    {
+                      backgroundColor: hexToRgba(fieldAccent, 0.1),
+                      borderColor: hexToRgba(fieldAccent, 0.32),
+                      opacity: pressed ? motion.pressOpacity : 1,
+                    },
+                  ]}
+                >
+                  <View style={[styles.groveChipDot, { backgroundColor: fieldAccent }]} />
+                  <View style={styles.groveChipCopy}>
+                    <Text style={[styles.groveChipName, { color: colors.textPrimary }]} numberOfLines={1}>
+                      {name}
+                    </Text>
+                    {rain ? (
+                      <Text style={[styles.groveChipMeta, { color: colors.eventWeather }]} numberOfLines={1}>
+                        {rain}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
+                </Pressable>
+              );
+            })}
           </View>
-        ))}
-      </ScrollView>
+        </View>
+      ) : (
+        <View style={styles.clusterBody}>
+          <ChronologioEntryCard
+            entry={lead}
+            showField
+            numberLocale={numberLocale}
+            weatherTile
+            embeddedReport
+            onPress={() => onPressEntry(lead)}
+          />
+        </View>
+      )}
     </View>
   );
 };
@@ -619,12 +787,19 @@ const styles = StyleSheet.create({
   iconTile: { alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   body: { flex: 1, minWidth: 0, gap: 3 },
   meta: {
+    fontFamily: appFonts.semibold,
     fontSize: 11,
+    fontWeight: '600',
     letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   metaCompact: { fontSize: 10, letterSpacing: 0.3 },
-  title: { fontWeight: '600', fontSize: 16, lineHeight: 21 },
+  title: {
+    fontFamily: appFonts.semibold,
+    fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 21,
+    letterSpacing: -0.15,
+  },
   titleCompact: { fontSize: 15, lineHeight: 20 },
   titleFeatured: { fontSize: 17, lineHeight: 23, letterSpacing: -0.2 },
   summary: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
@@ -682,6 +857,74 @@ const styles = StyleSheet.create({
     gap: 12,
     alignSelf: 'stretch',
   },
+  reportTile: {
+    borderRadius: radii.card,
+    borderWidth: 1.5,
+    padding: 14,
+    gap: 10,
+    alignSelf: 'stretch',
+  },
+  reportCard: {
+    borderRadius: radii.card,
+    borderWidth: 1.5,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  reportCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  reportHeaderIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportHeaderCopy: { flex: 1, minWidth: 0, gap: 2 },
+  reportBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  reportBadgeText: {
+    fontFamily: appFonts.bold,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  reportPeriod: {
+    fontFamily: appFonts.bold,
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    lineHeight: 22,
+  },
+  reportField: { fontSize: 13, fontWeight: '500', flexShrink: 1 },
+  reportMetrics: {
+    marginTop: 2,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  reportCtaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginTop: 2,
+  },
+  reportCta: {
+    fontFamily: appFonts.semibold,
+    fontSize: 13,
+    fontWeight: '650',
+  },
   weatherPickField: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   weatherPickTitle: { fontWeight: '700', fontSize: 16, flexShrink: 1 },
   weatherPickMetrics: { flexDirection: 'row', gap: 8 },
@@ -720,13 +963,95 @@ const styles = StyleSheet.create({
   pickValue: { fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] },
   pickUnit: { fontSize: 12, fontWeight: '600' },
   pickLabel: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
-  cluster: { marginBottom: 12, gap: 8 },
-  clusterKicker: {
+  cluster: {
+    marginBottom: 14,
+    borderRadius: radii.card,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  clusterHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  clusterHeaderIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clusterHeaderCopy: { flex: 1, minWidth: 0, gap: 2 },
+  clusterBadge: {
+    fontFamily: appFonts.bold,
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
-    paddingLeft: 2,
+  },
+  clusterTitle: {
+    fontFamily: appFonts.bold,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.15,
+  },
+  clusterHint: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  clusterBody: {
+    padding: 10,
+    paddingTop: 8,
+  },
+  clusterPick: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  groveGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  groveChip: {
+    flexGrow: 1,
+    flexBasis: '46%',
+    minWidth: '42%',
+    maxWidth: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingLeft: 10,
+    paddingRight: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  groveChipDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 99,
+    flexShrink: 0,
+  },
+  groveChipCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  groveChipName: {
+    fontFamily: appFonts.semibold,
+    fontSize: 14,
+    fontWeight: '650',
+    letterSpacing: -0.1,
+  },
+  groveChipMeta: {
+    fontSize: 11,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
   clusterRow: { gap: 10, paddingRight: 8 },
   clusterTile: { width: 280 },

@@ -108,7 +108,7 @@ const LoginIllustration: React.FC = () => {
       </svg>
       
       <div className="illustration-content">
-        <h2 className="illustration-title">Oleachron</h2>
+        <h2 className="illustration-title">The Olive Lot</h2>
         <p className="illustration-subtitle">
           Manage your olive fields with precision and care
         </p>

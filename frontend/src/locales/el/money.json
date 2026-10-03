@@ -146,6 +146,6 @@
   "unsoldYear": "Χρονιά {{span}}",
   "unsoldTin": "{{count}} × {{size}} L",
   "unsoldBulk": "{{amount}} χύμα",
-  "openMyOil": "Δες το λάδι μου",
+  "openMyOil": "Δες την αποθήκη",
   "oilSaleInCellar": "Συνδεδεμένο με την αποθήκη λαδιού"
 }

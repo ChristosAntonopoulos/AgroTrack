@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Plus,
   BookOpen,
   Wallet,
   Check,
@@ -18,6 +17,9 @@ import PageContainer from '../components/Common/PageContainer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { useHarvestCampaign } from '../context/HarvestCampaignContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
+import { occurredAtForCalendarDay } from '../chronologio/captureContext';
+import { isHarvestCaptureKind } from '../capture/menu';
 import { useLocale } from '../context/LocaleProvider';
 import { useAuth } from '../context/AuthContext';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
@@ -101,7 +103,6 @@ import {
 } from '../harvestCampaign/workingDay';
 import HarvestDayStrip from '../harvestCampaign/HarvestDayStrip';
 import {
-  HarvestAddMenu,
   HarvestProductionWizard,
   HarvestCompleteSheet,
   HarvestMillLinkSheet,
@@ -201,6 +202,16 @@ const HarvestCampaignPage: React.FC = () => {
   const [stripBounds, setStripBounds] = useState<HarvestStripBounds>(() =>
     harvestStripWindow(workingDay, campaign, today)
   );
+
+  useRegisterCapturePage({
+    sourcePage: 'harvest',
+    fieldId:
+      searchParams.get('fieldId')?.trim() ||
+      activeField.fieldId ||
+      undefined,
+    occurredAt: occurredAtForCalendarDay(workingDay),
+    harvestId: searchParams.get('harvestId')?.trim() || undefined,
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -505,9 +516,8 @@ const HarvestCampaignPage: React.FC = () => {
   useEffect(() => {
     if (!isLive) return;
     const add = searchParams.get('add');
-    if (add !== '1') return;
+    if (add !== '1' || searchParams.get('kind')) return;
     setView('today');
-    setSheet('add');
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -518,7 +528,11 @@ const HarvestCampaignPage: React.FC = () => {
       },
       { replace: true }
     );
-  }, [isLive, searchParams, setSearchParams]);
+    moneyCapture?.openCapture({
+      tab: 'day',
+      fieldId: searchParams.get('fieldId') || undefined,
+    });
+  }, [isLive, moneyCapture, searchParams, setSearchParams]);
 
   useEffect(() => {
     const harvestId = searchParams.get('harvestId');
@@ -714,6 +728,13 @@ const HarvestCampaignPage: React.FC = () => {
     if (!ensureDayOpen()) return;
     setEditTarget(null);
     const kind = prefill?.preferredKind;
+    if (!kind) {
+      moneyCapture?.openCapture({
+        tab: 'day',
+        fieldId: searchParams.get('fieldId') || undefined,
+      });
+      return;
+    }
     if (kind === 'expense') {
       openHarvestExpense();
       return;
@@ -737,8 +758,33 @@ const HarvestCampaignPage: React.FC = () => {
       setSheet('produce');
       return;
     }
-    setSheet('add');
+    moneyCapture?.openCapture({
+      tab: 'day',
+      fieldId: searchParams.get('fieldId') || undefined,
+    });
   };
+
+  const requestAddRef = useRef(requestAdd);
+  requestAddRef.current = requestAdd;
+
+  useEffect(() => {
+    if (!isLive) return;
+    const kindRaw = searchParams.get('kind');
+    if (!isHarvestCaptureKind(kindRaw)) return;
+    setView('today');
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('add');
+        next.delete('kind');
+        next.delete('evening');
+        next.delete('view');
+        return next;
+      },
+      { replace: true }
+    );
+    requestAddRef.current({ preferredKind: kindRaw });
+  }, [isLive, searchParams, setSearchParams]);
 
   const openDayEdit = (target: DayActivityEditTarget) => {
     if (target.kind === 'expense' || target.kind === 'income' || target.kind === 'note') return;
@@ -1093,7 +1139,7 @@ const HarvestCampaignPage: React.FC = () => {
   const sheetTitle =
     editTarget != null
       ? t('harvestCampaign.dayActivity.editTitle')
-      : sheet === 'add' || sheet === 'produce'
+      : sheet === 'produce'
         ? t('harvestCampaign.home.whatAdd')
         : sheet === 'mill-link'
           ? t('harvestCampaign.millKg.linkTitle')
@@ -1115,7 +1161,7 @@ const HarvestCampaignPage: React.FC = () => {
         : sheetWorkingDayLabel
       : undefined;
   const sheetSubtitle =
-    sheet && sheet !== 'add' && sheet !== 'produce' && sheet !== 'complete'
+    sheet && sheet !== 'produce' && sheet !== 'complete'
       ? t('harvestCampaign.home.day', { day: days })
       : undefined;
   const SheetIcon =
@@ -1382,20 +1428,6 @@ const HarvestCampaignPage: React.FC = () => {
                   </button>
                 ))}
               </nav>
-                <button
-                  type="button"
-                  className={`hc-record-cta${
-                    dayClosed || harvestCaps.captureKinds.length === 0 ? ' is-locked' : ''
-                  }`}
-                  aria-label={t('harvestCampaign.nav.record')}
-                  onClick={() => {
-                    if (harvestCaps.captureKinds.length === 0) return;
-                    requestAdd();
-                  }}
-                >
-                  <Plus size={18} aria-hidden />
-                  {t('harvestCampaign.nav.record')}
-                </button>
               </div>
               {view === 'today' ? (
                 <HarvestDayStrip
@@ -1551,15 +1583,6 @@ const HarvestCampaignPage: React.FC = () => {
                       </li>
                     ) : null}
                   </ul>
-
-                  {!dayClosed && harvestCaps.captureKinds.length > 0 ? (
-                    <div className="hc-primary-add">
-                      <button type="button" className="hc-start hc-add-primary" onClick={() => requestAdd()}>
-                        <Plus size={20} aria-hidden />
-                        {t('harvestCampaign.home.whatAdd')}
-                      </button>
-                    </div>
-                  ) : null}
                 </section>
 
                 <HarvestDayActivity
@@ -1997,14 +2020,6 @@ const HarvestCampaignPage: React.FC = () => {
               onSaveMill={(input, existingId) => saveMill(input, { existingId, keepOpen: true })}
               onSaveOil={(input, existingId) => saveOil(input, { existingId, keepOpen: true })}
               onOther={(kind) => openCapture(kind)}
-            />
-          ) : null}
-          {sheet === 'add' ? (
-            <HarvestAddMenu
-              campaign={campaign}
-              allowedKinds={harvestCaps.captureKinds}
-              preferredKind={addPrefill?.preferredKind}
-              onPick={openCapture}
             />
           ) : null}
           {sheet === 'sacks' ? (

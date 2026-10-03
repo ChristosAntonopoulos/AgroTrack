@@ -7,9 +7,9 @@ import type { OilStockTab } from '../../myOil/commitmentCopy';
 import { createMyOilStyles } from './myOilStyles';
 
 const TABS: { id: OilStockTab; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
-  { id: 'stock', icon: 'business-outline' },
+  { id: 'stock', icon: 'leaf-outline' },
   { id: 'holds', icon: 'bookmark-outline' },
-  { id: 'movements', icon: 'pulse-outline' },
+  { id: 'movements', icon: 'time-outline' },
 ];
 
 type Props = {

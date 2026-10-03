@@ -1,6 +1,6 @@
 import type { LivingFilters } from './livingTypes';
 
-const STORAGE_KEY = 'oleachron.chronologio.filters';
+const STORAGE_KEY = 'The Olive Lot.chronologio.filters';
 
 export type StoredChronologioFilters = {
   fieldId?: string;

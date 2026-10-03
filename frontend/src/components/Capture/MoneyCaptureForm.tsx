@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp } from 'lucide-react';
 import type { CaptureContext, CaptureSavedDetail } from '../../capture/types';
 import type { Field } from '../../services/fieldService';
 import type { HarvestRecord } from '../../services/harvestService';
@@ -691,6 +691,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
             harvestId,
             preferredType: kind,
             occurredAt: context.occurredAt,
+            sourcePage: context.sourcePage || 'money',
             category,
             description: text,
             harvestCampaignLink: context.harvestCampaignLink,
@@ -834,6 +835,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
           </p>
           {step === 'kind' ? (
             <div className="money-push-list">
+              <p className="money-push-hint">{t('capture:tabPrompt.moneyHint')}</p>
               {canRecordIncome ? (
                 <button
                   type="button"
@@ -843,7 +845,10 @@ const MoneyCaptureForm: React.FC<Props> = ({
                     goNext();
                   }}
                 >
-                  <span>
+                  <span className="money-push-icon" aria-hidden>
+                    <TrendingUp size={24} />
+                  </span>
+                  <span className="money-push-copy">
                     <strong>{t('capture:types.income.title')}</strong>
                     <em>{t('capture:types.income.description')}</em>
                   </span>
@@ -859,7 +864,10 @@ const MoneyCaptureForm: React.FC<Props> = ({
                     goNext();
                   }}
                 >
-                  <span>
+                  <span className="money-push-icon" aria-hidden>
+                    <TrendingDown size={24} />
+                  </span>
+                  <span className="money-push-copy">
                     <strong>{t('capture:types.expense.title')}</strong>
                     <em>{t('capture:types.expense.description')}</em>
                   </span>

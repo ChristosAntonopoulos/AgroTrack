@@ -1,26 +1,28 @@
 /**
- * Mobile My Oil — personal cellar, split into stock / holds / movements like the web page.
+ * Mobile Αποθήκη — how much is here, four actions, shelves, then where the oil went.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   DeviceEventEmitter,
   Pressable,
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { useRoute, type RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import {
   OilStockTabs,
-  OilStockPageHeader,
   OilStockHero,
-  OilPendingSection,
+  OilShelfPreview,
+  OilShelvesSheet,
   OilPendingPressings,
   CommitmentsTab,
   MovementsTab,
@@ -33,7 +35,6 @@ import {
   type GiveOilIntent,
   type GiveOilSaveInput,
 } from '../components/myOil';
-import { OilByGroveSection } from '../components/myOil/OilByGroveSection';
 import { OilShareRequestsSection } from '../components/myOil/OilShareRequestsSection';
 import {
   oilStockService,
@@ -56,7 +57,6 @@ import {
 import { groupLotsByGrove } from '../myOil/groupLotsByGrove';
 import {
   holdState,
-  isHouseholdCommitment,
   needsNowCommitments,
   type OilStockTab,
 } from '../myOil/commitmentCopy';
@@ -71,7 +71,7 @@ import { emptyOilPackInput, type OilPackInput } from '../myOil/packInput';
 import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import { getFieldService } from '../services/serviceFactory';
 import { fieldLabelMap } from '../utils/fieldLabels';
-import { useDock } from '../navigation/DockContext';
+import { openHarvestCampaign } from '../navigation/intents';
 import type { RootStackParamList } from '../navigation/types';
 
 const MyOilScreen = () => {
@@ -79,9 +79,14 @@ const MyOilScreen = () => {
   const { user } = useAuth();
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
-  const { setAdd } = useDock();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'MyOil'>>();
   const focusFieldId = (route.params?.field || '').trim() || null;
+
+  useRegisterCapturePage({
+    sourcePage: 'warehouse',
+    fieldId: focusFieldId || undefined,
+  });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -98,15 +103,38 @@ const MyOilScreen = () => {
   const [showFill, setShowFill] = useState(false);
   const [fillPoolKey, setFillPoolKey] = useState<string | null>(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [adjustLock, setAdjustLock] = useState<string | null>(null);
-  const [adjustKind, setAdjustKind] = useState('home_use');
+  const [adjustLock] = useState<string | null>(null);
+  const [adjustKind] = useState('home_use');
   const [showCount, setShowCount] = useState(false);
+  const [showShelves, setShowShelves] = useState(false);
   const [partialFor, setPartialFor] = useState<OilCommitment | null>(null);
   const [partialPack, setPartialPack] = useState<OilPackInput>(emptyOilPackInput());
   const [busy, setBusy] = useState(false);
 
   const seasonStart = agriculturalYearFor(new Date());
   const seasonLabel = `${seasonStart}/${String(seasonStart + 1).slice(-2)}`;
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('title'),
+      headerRight: () => (
+        <View
+          style={{
+            marginRight: 12,
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 999,
+            backgroundColor: colors.primaryLight,
+            maxWidth: 160,
+          }}
+        >
+          <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }} numberOfLines={1}>
+            {t('seasonLabel', { season: seasonLabel })}
+          </Text>
+        </View>
+      ),
+    });
+  }, [navigation, t, seasonLabel, colors.primary, colors.primaryLight]);
 
   const packLabels = useMemo(
     () => ({
@@ -200,35 +228,20 @@ const MyOilScreen = () => {
     []
   );
 
-  const openAdjust = useCallback((kind: string, poolKey?: string) => {
-    if (!summary?.lots.length) return;
-    setAdjustKind(kind);
-    setAdjustLock(poolKey ?? null);
-    setAdjustOpen(true);
-  }, [summary?.lots.length]);
-
-  const openOilMenu = useCallback(() => {
-    Alert.alert(t('actions.menuTitle', { defaultValue: t('actions.more') }), undefined, [
-      { text: t('actions.give'), onPress: () => openGive('give') },
-      { text: t('actions.homeUse'), onPress: () => openGive('hold', 'home') },
-      {
-        text: t('actions.fillTins'),
-        onPress: () => {
-          setFillPoolKey(null);
-          setShowFill(true);
-        },
-      },
-      { text: t('actions.count'), onPress: () => setShowCount(true) },
-      { text: t('actions.correct'), onPress: () => openAdjust('correction') },
-      { text: t('actions.loss'), onPress: () => openAdjust('consumed') },
-      { text: t('common:cancel'), style: 'cancel' },
-    ]);
-  }, [t, openGive, openAdjust]);
-
   useEffect(() => {
-    setAdd({ hideHome: false, onAdd: openOilMenu });
-    return () => setAdd(null);
-  }, [openOilMenu, setAdd]);
+    if (loading) return;
+    const action = route.params?.do;
+    if (!action) return;
+    if (action === 'fill') {
+      setFillPoolKey(null);
+      setShowFill(true);
+    } else if (action === 'count') {
+      setShowCount(true);
+    } else {
+      openGive(action);
+    }
+    navigation.setParams({ do: undefined });
+  }, [loading, navigation, openGive, route.params?.do]);
 
   const saveGive = async (input: GiveOilSaveInput) => {
     const pool = fieldPools.find((item) => item.key === input.poolKey);
@@ -306,7 +319,6 @@ const MyOilScreen = () => {
 
   const waitingAll = summary?.openCommitments || [];
   const needsNow = needsNowCommitments(waitingAll);
-  const thirdPartyOpen = waitingAll.filter((c) => !isHouseholdCommitment(c));
 
   const hasStock =
     !!summary &&
@@ -315,14 +327,16 @@ const MyOilScreen = () => {
       summary.delivered.litres > 0.05 ||
       waitingAll.length > 0);
 
-  const openHolds = () => setTab('holds');
-
   return (
     <View style={{ flex: 1 }}>
       <ScreenLayout scroll tabBarInset padded>
-        <OilStockPageHeader season={seasonLabel} />
-
-        <OilStockTabs active={tab} onChange={setTab} counts={{ holds: waitingAll.length }} />
+        <OilStockTabs
+          active={tab}
+          onChange={setTab}
+          counts={{
+            holds: waitingAll.length + shareInbox.length + pendingPressings.length,
+          }}
+        />
 
         {loading ? (
           <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
@@ -345,21 +359,54 @@ const MyOilScreen = () => {
           <View style={styles.center}>
             <Text style={styles.emptyTitle}>{t('empty')}</Text>
             <Text style={styles.emptyBody}>{t('emptyHint')}</Text>
-            <Text style={[styles.emptyBody, { marginTop: 8 }]}>{t('emptyCta')}</Text>
+            <Pressable
+              onPress={() => openHarvestCampaign(navigation)}
+              style={[styles.btnPrimary, { marginTop: 16, alignSelf: 'stretch' }]}
+            >
+              <Text style={styles.btnPrimaryText}>{t('emptyCta')}</Text>
+            </Pressable>
           </View>
         ) : (
           <View style={{ gap: 12 }}>
             {tab === 'stock' ? (
               <>
+                {shareInbox.length + pendingPressings.length > 0 ? (
+                  <Pressable onPress={() => setTab('holds')} style={styles.nudge}>
+                    <Ionicons name="alert-circle-outline" size={18} color={colors.accentGold} />
+                    <Text style={styles.nudgeText}>
+                      {t('attention.doorDetail', {
+                        count: shareInbox.length + pendingPressings.length,
+                      })}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                  </Pressable>
+                ) : null}
                 {hasStock ? (
                   <OilStockHero
                     summary={summary!}
-                    closed={closedCommitments}
-                    onOpenHome={openHolds}
-                    onOpenHolds={openHolds}
+                    history={[...waitingAll, ...closedCommitments]}
+                    busy={busy}
+                    onGive={() => openGive('give')}
+                    onSell={() => openGive('sell')}
+                    onHold={() => openGive('hold')}
+                    onFill={() => {
+                      setFillPoolKey(null);
+                      setShowFill(true);
+                    }}
                   />
                 ) : null}
+                <OilShelfPreview
+                  groups={groveGroups}
+                  fieldNames={fieldNames}
+                  packLabels={packLabels}
+                  onOpen={() => setShowShelves(true)}
+                  onOpenShelf={() => setShowShelves(true)}
+                />
+              </>
+            ) : null}
 
+            {tab === 'holds' ? (
+              <View style={{ gap: 12 }}>
                 <OilShareRequestsSection
                   requests={shareInbox}
                   busy={busy}
@@ -367,7 +414,6 @@ const MyOilScreen = () => {
                   onAccept={(r) => void run(() => oilStockService.acceptShareRequest(r.id))}
                   onReject={(r) => void run(() => oilStockService.rejectShareRequest(r.id))}
                 />
-
                 <OilPendingPressings
                   pressings={pendingPressings}
                   fieldNames={fieldNames}
@@ -376,70 +422,27 @@ const MyOilScreen = () => {
                     void run(() => oilStockService.allocatePressing(pressing.id, allocations))
                   }
                 />
-
-                {hasStock && needsNow.length > 0 ? (
-                  <OilPendingSection
-                    waiting={needsNow}
-                    lots={summary!.lots}
-                    fieldNames={fieldNames}
-                    packLabels={packLabels}
-                    onOpen={openHolds}
-                    formatDate={formatDate}
-                  />
-                ) : null}
-
-                {hasStock ? (
-                  <OilByGroveSection
-                    groups={groveGroups}
-                    fieldNames={fieldNames}
-                    packLabels={packLabels}
-                    focusFieldId={focusFieldId}
-                    onSelectGrove={(group) => {
-                      const pool = fieldPools.find(
-                        (p) =>
-                          p.fieldIds.join('|') === group.fieldIds.join('|') ||
-                          (group.primaryFieldId && p.fieldIds.includes(group.primaryFieldId))
-                      );
-                      if (pool) {
-                        setFillPoolKey(pool.key);
-                        setShowFill(true);
-                      }
-                    }}
-                  />
-                ) : null}
-
-                {movements.length > 0 ? (
-                  <MovementsTab
-                    movements={movements}
-                    lots={summary!.lots}
-                    fieldNames={fieldNames}
-                    packLabels={packLabels}
-                    preview
-                    onSeeAll={() => setTab('movements')}
-                  />
-                ) : null}
-              </>
-            ) : null}
-
-            {tab === 'holds' ? (
-              <CommitmentsTab
-                open={thirdPartyOpen}
-                closed={closedCommitments}
-                lots={summary!.lots}
-                fieldNames={fieldNames}
-                busy={busy}
-                packLabels={packLabels}
-                formatDate={formatDate}
-                onDeliver={onDeliverTap}
-                onCancel={(c) => void run(() => oilStockService.cancelCommitment(c.id))}
-                onGive={() => openGive('hold')}
-              />
+                <CommitmentsTab
+                  open={waitingAll}
+                  closed={closedCommitments}
+                  lots={summary?.lots || []}
+                  fieldNames={fieldNames}
+                  busy={busy}
+                  packLabels={packLabels}
+                  formatDate={formatDate}
+                  urgentIds={needsNow.map((c) => c.id)}
+                  onDeliver={onDeliverTap}
+                  onCancel={(c) => void run(() => oilStockService.cancelCommitment(c.id))}
+                  onGive={() => openGive('hold')}
+                />
+              </View>
             ) : null}
 
             {tab === 'movements' ? (
               <MovementsTab
                 movements={movements}
-                lots={summary!.lots}
+                lots={summary?.lots || []}
+                commitments={[...waitingAll, ...closedCommitments]}
                 fieldNames={fieldNames}
                 packLabels={packLabels}
                 busy={busy}
@@ -449,6 +452,34 @@ const MyOilScreen = () => {
           </View>
         )}
       </ScreenLayout>
+
+      <OilShelvesSheet
+        open={showShelves || Boolean(focusFieldId)}
+        groups={groveGroups}
+        fieldNames={fieldNames}
+        focusFieldId={focusFieldId}
+        onClose={() => {
+          setShowShelves(false);
+          if (focusFieldId) navigation.setParams({ field: undefined });
+        }}
+        onFill={() => {
+          setFillPoolKey(null);
+          setShowFill(true);
+          setShowShelves(false);
+        }}
+        onFillGrove={(group) => {
+          const pool = fieldPools.find(
+            (p) =>
+              p.fieldIds.join('|') === group.fieldIds.join('|') ||
+              (group.primaryFieldId && p.fieldIds.includes(group.primaryFieldId))
+          );
+          if (pool) {
+            setFillPoolKey(pool.key);
+            setShowFill(true);
+            setShowShelves(false);
+          }
+        }}
+      />
 
       <GiveOilSheet
         open={showGive}

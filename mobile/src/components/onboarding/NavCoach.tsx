@@ -1,21 +1,51 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
+import { measureViewInWindow, sameRect, type WindowRect } from '../../onboarding/measureSpotlight';
 
+/** Breathing room between the control and the cut-out edge. */
 const PAD = 8;
+/** Space the tip card needs below the hole before it flips above it. */
+const TIP_CLEARANCE = 120;
 
-/** Dims the screen around one control and names the tap, like a game prompt. */
+/**
+ * Dims the screen around one control and names the tap.
+ *
+ * Geometry contract: GuideTarget reports the control in window space, and this
+ * overlay measures its own frame in the same space, so `target - host` is the
+ * exact local position regardless of safe-area padding, headers or banners
+ * above us. Dim cut-out and ring are driven by one rect — never two.
+ */
 const NavCoach: React.FC = () => {
   const activation = useOwnerActivationOptional();
   const { t } = useTranslation('onboarding');
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const hostRef = useRef<View>(null);
   const pulse = useRef(new Animated.Value(0)).current;
+  const [host, setHost] = useState<WindowRect | null>(null);
   const beat = activation?.guideBeat ?? null;
   const rect = activation?.guideRect ?? null;
+  const armed = Boolean(beat && rect);
+
+  const syncHost = useCallback(() => {
+    measureViewInWindow(hostRef.current, (next) => {
+      if (next.width < 1 || next.height < 1) return;
+      setHost((prev) => (sameRect(prev, next) ? prev : next));
+    });
+  }, []);
 
   useEffect(() => {
-    if (!beat || !rect) return;
+    if (!armed) return;
+    const frame = requestAnimationFrame(syncHost);
+    const interval = setInterval(syncHost, 300);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearInterval(interval);
+    };
+  }, [armed, syncHost]);
+
+  useEffect(() => {
+    if (!armed) return;
     pulse.setValue(0);
     const loop = Animated.loop(
       Animated.sequence([
@@ -25,67 +55,86 @@ const NavCoach: React.FC = () => {
     );
     loop.start();
     return () => loop.stop();
-  }, [beat, pulse, rect]);
+  }, [armed, pulse]);
 
-  if (!beat || !rect) return null;
+  // The host stays mounted so its frame is known before the first lesson paints.
+  const hole = beat && rect && host ? cutOut(rect, host) : null;
 
-  const hole = {
-    left: Math.max(0, rect.x - PAD),
-    top: Math.max(0, rect.y - PAD),
-    width: rect.width + PAD * 2,
-    height: rect.height + PAD * 2,
-  };
-  const holeBottom = hole.top + hole.height;
-  const holeRight = hole.left + hole.width;
-  const round = beat === 'homeButton' || beat === 'createField';
-  const radius = round ? Math.max(hole.width, hole.height) / 2 : 18;
-
-  const placeBelow = hole.top < windowHeight * 0.45 || holeBottom + 120 < windowHeight;
-  const cardTop = placeBelow ? holeBottom + 14 : undefined;
-  const cardBottom = placeBelow ? undefined : windowHeight - hole.top + 14;
-
-  const ringScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] });
-  const ringOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.95, 0.35] });
+  // Opacity only: a scaled ring would leave its border outside the cut-out edge
+  // and read as a second, ghost outline.
+  const ringOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] });
 
   return (
-    <View pointerEvents="box-none" style={styles.host}>
-      <Dim style={{ top: 0, left: 0, right: 0, height: hole.top }} />
-      <Dim style={{ top: hole.top, left: 0, width: hole.left, height: hole.height }} />
-      <Dim style={{ top: hole.top, left: holeRight, right: 0, height: hole.height }} />
-      <Dim style={{ top: holeBottom, left: 0, right: 0, bottom: 0 }} />
+    <View
+      ref={hostRef}
+      pointerEvents="box-none"
+      collapsable={false}
+      style={styles.host}
+      onLayout={syncHost}
+    >
+      {hole && host ? (
+        <>
+          {/* Dim blocks taps; the hole holds no view so the real control stays tappable. */}
+          <Dim style={{ top: 0, left: 0, right: 0, height: hole.top }} />
+          <Dim style={{ top: hole.top, left: 0, width: hole.left, height: hole.height }} />
+          <Dim
+            style={{
+              top: hole.top,
+              left: hole.left + hole.width,
+              right: 0,
+              height: hole.height,
+            }}
+          />
+          <Dim style={{ top: hole.top + hole.height, left: 0, right: 0, bottom: 0 }} />
 
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.ring,
-          {
-            left: hole.left,
-            top: hole.top,
-            width: hole.width,
-            height: hole.height,
-            borderRadius: radius,
-            opacity: ringOpacity,
-            transform: [{ scale: ringScale }],
-          },
-        ]}
-      />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.ring,
+              {
+                left: hole.left,
+                top: hole.top,
+                width: hole.width,
+                height: hole.height,
+                borderRadius: beat === 'createField' ? Math.max(hole.width, hole.height) / 2 : 18,
+                opacity: ringOpacity,
+              },
+            ]}
+          />
 
-      <View
-        style={[
-          styles.card,
-          {
-            top: cardTop,
-            bottom: cardBottom,
-            left: 20,
-            right: 20,
-            maxWidth: windowWidth - 40,
-          },
-        ]}
-      >
-        <Text style={styles.title}>{t(`coach.${beat}.cue`)}</Text>
-      </View>
+          <View pointerEvents="none" style={[styles.card, tipPlacement(hole, host)]}>
+            <Text style={styles.title}>{t(`coach.${beat}.cue`)}</Text>
+          </View>
+        </>
+      ) : null}
     </View>
   );
+};
+
+type Hole = { left: number; top: number; width: number; height: number };
+
+/** Target window rect → overlay-local cut-out, clamped to the overlay frame. */
+const cutOut = (target: WindowRect, host: WindowRect): Hole | null => {
+  const left = Math.max(0, target.x - host.x - PAD);
+  const top = Math.max(0, target.y - host.y - PAD);
+  const right = Math.min(host.width, target.x - host.x + target.width + PAD);
+  const bottom = Math.min(host.height, target.y - host.y + target.height + PAD);
+  const width = right - left;
+  const height = bottom - top;
+  // Scrolled out of view, or measured before layout settled.
+  if (width < 8 || height < 8) return null;
+  return { left, top, width, height };
+};
+
+const tipPlacement = (hole: Hole, host: WindowRect) => {
+  const holeBottom = hole.top + hole.height;
+  const below = holeBottom + TIP_CLEARANCE <= host.height;
+  return {
+    left: 20,
+    right: 20,
+    top: below ? holeBottom + 14 : undefined,
+    bottom: below ? undefined : Math.max(14, host.height - hole.top + 14),
+  };
 };
 
 const Dim: React.FC<{ style: object }> = ({ style }) => <View style={[styles.dim, style]} />;
@@ -103,10 +152,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderWidth: 2,
     borderColor: '#e7f0df',
-    shadowColor: '#e7f0df',
-    shadowOpacity: 0.8,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 0 },
   },
   card: {
     position: 'absolute',
@@ -121,23 +166,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.22,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
-  },
-  kicker: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: '#2f5d38',
+    elevation: 6,
   },
   title: {
     fontSize: 17,
     fontWeight: '700',
     color: '#1e261c',
-  },
-  body: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#3d4a38',
   },
 });
 

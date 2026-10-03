@@ -44,9 +44,9 @@ type Props = {
 
 const STAGE_ICON: Record<HarvestFlowNodeKind, React.ComponentProps<typeof Ionicons>['name']> = {
   field: 'leaf',
-  harvest: 'basket',
+  harvest: 'basket-outline',
   mill: 'scale-outline',
-  oil: 'water',
+  oil: 'water-outline',
 };
 
 const KIND_ORDER: HarvestFlowNodeKind[] = ['field', 'harvest', 'mill', 'oil'];

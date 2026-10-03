@@ -1,7 +1,7 @@
 {
   "title": "Help us grow",
   "kicker": "Your voice matters",
-  "intro": "A screenshot, a photo, or a few words — anything you share helps us make OleaChron better for the grove. Thank you for taking the time.",
+  "intro": "A screenshot, a photo, or a few words — anything you share helps us make The Olive Lot better for the grove. Thank you for taking the time.",
   "commentLabel": "What would you like us to know?",
   "commentPlaceholder": "What felt unclear, what you wished for, or what went well…",
   "screenshot": "Capture this screen",
@@ -17,6 +17,6 @@
   "captureFailed": "We couldn’t capture the screen. You can still add a photo or write a note.",
   "sendFailed": "We couldn’t send this just now. Please try again in a moment.",
   "thanksTitle": "Thank you — truly",
-  "thanksBody": "Your note is with us. People who take a minute to share what they see are the reason OleaChron gets better. We’re grateful you joined in.",
+  "thanksBody": "Your note is with us. People who take a minute to share what they see are the reason The Olive Lot gets better. We’re grateful you joined in.",
   "thanksClose": "Back to the grove"
 }

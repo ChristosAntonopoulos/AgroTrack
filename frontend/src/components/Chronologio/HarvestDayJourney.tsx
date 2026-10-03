@@ -1,8 +1,11 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { LucideIcon } from 'lucide-react';
 import type { ChronologioHarvestDetails } from '../../services/chronologioService';
 import { formatGroveMassKg } from '../../utils/groveTotals';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { HARVEST_ACTION_ICONS } from '../../harvestCampaign/harvestActions';
+import { formatOilLitresAmountFromKg } from '../../harvestCampaign/utils/harvestCalculations';
 import '../../pages/HarvestCampaignPage.css';
 
 type JourneyStage = {
@@ -20,6 +23,12 @@ type Props = {
   fieldAccent?: string;
   /** Compact horizontal chain for the timeline card. */
   compact?: boolean;
+};
+
+const STAGE_ICON: Record<JourneyStage['kind'], LucideIcon> = {
+  harvest: HARVEST_ACTION_ICONS.sacks,
+  mill: HARVEST_ACTION_ICONS.mill,
+  oil: HARVEST_ACTION_ICONS.oil,
 };
 
 const stageTitle = (kind: JourneyStage['kind'], t: (key: string) => string) => {
@@ -52,7 +61,7 @@ const HarvestDayJourney: React.FC<Props> = ({
       out.push({
         kind: 'harvest',
         value: String(sacks),
-        unit: t('harvestCampaign.flow.unitSacks'),
+        unit: t('harvestCampaign.sacks.unit'),
         lines: [
           fieldLine,
           harvest.hasOfficialWeight === false && olives > 0
@@ -81,8 +90,8 @@ const HarvestDayJourney: React.FC<Props> = ({
     if (oil > 0) {
       out.push({
         kind: 'oil',
-        value: formatGroveMassKg(oil, numberLocale),
-        unit: t('harvestCampaign.flow.unitOil'),
+        value: formatOilLitresAmountFromKg(oil, numberLocale),
+        unit: t('harvestCampaign.flow.unitOilLitres'),
         lines: [
           fieldLine,
           olives > 0
@@ -110,19 +119,27 @@ const HarvestDayJourney: React.FC<Props> = ({
       <div
         className="chrono-harvest-journey is-compact"
         style={fieldAccent ? ({ '--field-accent': fieldAccent } as React.CSSProperties) : undefined}
+        aria-label={t('harvestCampaign.flow.title')}
       >
-        <p className="chrono-harvest-journey-lead">{t('harvestCampaign.flow.steps')}</p>
-        <div className="chrono-harvest-journey-chain" aria-label={t('harvestCampaign.flow.title')}>
-          {stages.map((stage, index) => (
-            <React.Fragment key={stage.kind}>
-              {index > 0 ? <span className="chrono-harvest-journey-sep" aria-hidden /> : null}
-              <span className={`chrono-harvest-journey-pill is-${stage.kind}`}>
-                <strong>
-                  {stage.value} {stage.unit}
-                </strong>
-              </span>
-            </React.Fragment>
-          ))}
+        <div className="chrono-harvest-journey-metrics">
+          {stages.map((stage, index) => {
+            const Icon = STAGE_ICON[stage.kind];
+            return (
+              <React.Fragment key={stage.kind}>
+                {index > 0 ? (
+                  <span className="chrono-harvest-journey-dot" aria-hidden>
+                    ·
+                  </span>
+                ) : null}
+                <span className={`chrono-harvest-journey-metric is-${stage.kind}`}>
+                  <Icon size={16} strokeWidth={2.4} aria-hidden />
+                  <strong>
+                    {stage.value} <span className="chrono-harvest-journey-unit">{stage.unit}</span>
+                  </strong>
+                </span>
+              </React.Fragment>
+            );
+          })}
         </div>
       </div>
     );

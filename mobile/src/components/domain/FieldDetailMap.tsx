@@ -279,7 +279,10 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
     </View>
     {overlayChips ? (
       <View style={styles.chipBlock}>
-        <View style={styles.chipRow}>
+        <Text style={[styles.chipHeading, { color: colors.textSecondary }]}>
+          {t('fields:mapLayers.dataOverlay')}
+        </Text>
+        <View style={styles.chipGrid}>
           <Pressable
             onPress={() => selectLayer(undefined)}
             style={[
@@ -292,7 +295,13 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
             accessibilityRole="button"
             accessibilityState={{ selected: !activeLayerId }}
           >
-            <Text style={{ color: !activeLayerId ? colors.onOlive : colors.textPrimary, fontSize: 12, fontWeight: '600' }}>
+            <Text
+              style={[
+                styles.chipLabel,
+                { color: !activeLayerId ? colors.onOlive : colors.textPrimary },
+              ]}
+              numberOfLines={1}
+            >
               {t('fields:mapLayers.none')}
             </Text>
           </Pressable>
@@ -312,7 +321,10 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={{ color: active ? colors.onOlive : colors.textPrimary, fontSize: 12, fontWeight: '600' }}>
+                <Text
+                  style={[styles.chipLabel, { color: active ? colors.onOlive : colors.textPrimary }]}
+                  numberOfLines={1}
+                >
                   {t(`fields:mapLayers.names.${definition.id}`, { defaultValue: definition.name })}
                 </Text>
               </Pressable>
@@ -332,15 +344,35 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
   },
-  chipBlock: { gap: 6 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chipBlock: { gap: 8 },
+  chipHeading: {
+    ...typography.styles.caption,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  chipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
+    flexBasis: '47%',
+    flexGrow: 1,
+    flexShrink: 1,
+    maxWidth: '48.5%',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    minHeight: 34,
+    minHeight: 44,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chipLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+    textAlign: 'center',
   },
   map: { flex: 1 },
   toggle: {

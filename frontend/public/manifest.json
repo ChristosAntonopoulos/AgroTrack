@@ -1,6 +1,6 @@
 {
-  "short_name": "Oleachron",
-  "name": "Oleachron — The story of every olive tree lives on",
+  "short_name": "Olive Lot",
+  "name": "The Olive Lot — The story of every olive tree lives on",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#2E4A2E",
-  "background_color": "#F8F7EE"
+  "theme_color": "#1F2820",
+  "background_color": "#F4F0E6"
 }

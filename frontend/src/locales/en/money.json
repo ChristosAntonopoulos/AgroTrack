@@ -146,6 +146,6 @@
   "unsoldYear": "Harvest year {{span}}",
   "unsoldTin": "{{count}} × {{size}} L",
   "unsoldBulk": "{{amount}} bulk",
-  "openMyOil": "See my oil",
+  "openMyOil": "See storage",
   "oilSaleInCellar": "Linked to your oil cellar"
 }

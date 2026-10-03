@@ -186,7 +186,7 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
   const continueToDetails = () => {
     beginDetailsLesson();
     markFieldsDirty();
-    navigation.replace('FieldDetail', { fieldId, mode: 'vegetation' });
+    navigation.replace('FieldDetail', { fieldId, mode: 'field' });
   };
 
   const stageState = (index: number): 'pending' | 'active' | 'done' => {

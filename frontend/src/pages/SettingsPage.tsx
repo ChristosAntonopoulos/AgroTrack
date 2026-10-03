@@ -77,8 +77,8 @@ const SettingsPage: React.FC = () => {
 
   useEffect(() => {
     const sync = () => setPreferences(settingsService.getPreferences());
-    window.addEventListener('oleachron-preferences', sync);
-    return () => window.removeEventListener('oleachron-preferences', sync);
+    window.addEventListener('The Olive Lot-preferences', sync);
+    return () => window.removeEventListener('The Olive Lot-preferences', sync);
   }, []);
 
   useEffect(() => {

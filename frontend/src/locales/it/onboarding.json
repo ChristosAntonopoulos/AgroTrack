@@ -11,7 +11,7 @@
     "expand": "Mostra setup",
     "dismiss": "Per ora basta",
     "celebrateTitle": "Confine salvato — puoi esplorare",
-    "celebrateBody": "I confini sbloccano il resto di Oleachron. Meteo e satellite appariranno sulla mappa del campo.",
+    "celebrateBody": "I confini sbloccano il resto di The Olive Lot. Meteo e satellite appariranno sulla mappa del campo.",
     "continueTitle": "Completa la configurazione",
     "continueBody": "Il nome conta già. Senza confine non si calcola la superficie e non si aprono meteo e satellite.",
     "continueCta": "Continua setup"
@@ -50,6 +50,11 @@
       "title": "Disegna i confini",
       "body": "Tocca 3–6 punti intorno all’oliveto. Quando la forma è giusta, continua sulla Cronologia.",
       "cue": "Tocca gli angoli sulla mappa."
+    },
+    "saveBoundary": {
+      "title": "Salva il confine",
+      "body": "La forma è giusta. Continua per salvarla.",
+      "cue": "Tocca il pulsante per salvare il confine."
     },
     "firstObservation": {
       "title": "Registra la prima nota",
@@ -118,25 +123,25 @@
     "openGrove": "Apri la mappa"
   },
   "mapExplore": {
-    "caption": "Guarda intorno — livelli e meteo sono tuoi.",
-    "cta": "Continua alla Cronologia"
+    "caption": "Questo è il tuo oliveto sulla mappa. Prova un’immagine sotto, poi apri la Cronologia.",
+    "cta": "Apri la Cronologia"
   },
   "coach": {
     "progress": "{{current}} di {{total}}",
-    "team": "Dal team di Oleachron",
+    "team": "Dal team di The Olive Lot",
     "fieldsNav": {
       "title": "Benvenuto",
       "body": "In circa un minuto il tuo oliveto è sulla mappa. Tocca Campi nel menu e iniziamo.",
       "cue": "Tocca Campi per iniziare."
     },
     "createField": {
-      "title": "Un nome tutto suo",
-      "body": "Tocca il pulsante e scrivi come lo chiami. Puoi cambiarlo quando vuoi.",
-      "cue": "Tocca qui e dai un nome."
+      "title": "Il tuo primo oliveto",
+      "body": "Tocca il pulsante «Aggiungi oliveto» e scrivi come lo chiami. Puoi cambiarlo quando vuoi.",
+      "cue": "Tocca «+ Aggiungi oliveto» e dai un nome al primo."
     },
     "homeButton": {
       "title": "Sai sempre come tornare",
-      "body": "Il logo in alto a sinistra ti riporta a casa. È così che ti muovi in Oleachron.",
+      "body": "Il logo in alto a sinistra ti riporta a casa. È così che ti muovi in The Olive Lot.",
       "cue": "Questo logo ti riporta all’inizio."
     },
     "historyNav": {

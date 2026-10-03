@@ -8,7 +8,7 @@ import { clampPackInput, emptyOilPackInput, packLitresOf, type OilPackInput } fr
 import { formatOilNumber } from '../../myOil/formatOilPack';
 import { poolHasFreeOil, poolLabel, type FieldOilPool } from '../../myOil/fieldPools';
 import type { OilPack } from '../../services/oilStockService';
-import SaleBuyerPicker from './SaleBuyerPicker';
+import { OilRecipientStep, type RecipientPlace } from './OilRecipientStep';
 import { createMyOilStyles } from './myOilStyles';
 
 export type GiveOilSaveInput = {
@@ -28,6 +28,90 @@ export type GiveOilIntent = 'hold' | 'give' | 'sell';
 type Step = 'who' | 'howMuch' | 'intent';
 
 const STEPS: Step[] = ['who', 'howMuch', 'intent'];
+
+/** Accepts "12" or "12,5" while the grower is still typing. */
+const countDraftOk = (text: string, decimal: boolean) =>
+  decimal ? /^\d*([,.]\d?)?$/.test(text) : /^\d*$/.test(text);
+
+const countFromDraft = (text: string): number | null => {
+  const trimmed = text.trim().replace(',', '.');
+  if (!trimmed || trimmed === '.') return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+};
+
+function PackStepperInput({
+  value,
+  max,
+  decimal,
+  label,
+  display,
+  onChange,
+  style,
+  color,
+}: {
+  value: number;
+  max?: number;
+  decimal: boolean;
+  label: string;
+  display: string;
+  onChange: (next: number) => void;
+  style: object;
+  color: string;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const draftRef = React.useRef<string | null>(null);
+  const focused = React.useRef(false);
+  const writeDraft = (next: string | null) => {
+    draftRef.current = next;
+    setDraft(next);
+  };
+
+  React.useEffect(() => {
+    const current = draftRef.current;
+    if (!focused.current || current == null || current === '' || /[,.]$/.test(current)) return;
+    const parsed = countFromDraft(current);
+    if (parsed == null || Math.abs(parsed - value) > 0.05) writeDraft(null);
+  }, [value]);
+
+  const commit = (text: string) => {
+    const parsed = countFromDraft(text);
+    const next = parsed == null ? 0 : decimal ? Math.round(parsed * 10) / 10 : Math.round(parsed);
+    const capped = max == null ? Math.max(0, next) : Math.min(max, Math.max(0, next));
+    onChange(capped);
+    writeDraft(null);
+  };
+
+  return (
+    <TextInput
+      value={draft ?? display}
+      onFocus={() => {
+        focused.current = true;
+        writeDraft(display);
+      }}
+      onBlur={() => {
+        focused.current = false;
+        commit(draftRef.current ?? display);
+      }}
+      onChangeText={(text) => {
+        if (!countDraftOk(text, decimal)) return;
+        writeDraft(text);
+        const parsed = countFromDraft(text);
+        if (parsed == null) {
+          onChange(0);
+          return;
+        }
+        const next = decimal ? Math.round(parsed * 10) / 10 : Math.round(parsed);
+        onChange(max == null ? Math.max(0, next) : Math.min(max, Math.max(0, next)));
+      }}
+      keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
+      inputMode={decimal ? 'decimal' : 'numeric'}
+      selectTextOnFocus
+      accessibilityLabel={label}
+      style={[style, { color }]}
+    />
+  );
+}
 
 type Props = {
   open: boolean;
@@ -59,6 +143,7 @@ export function GiveOilSheet({
   const styles = createMyOilStyles(colors, tapMin);
   const [step, setStep] = useState<Step>('who');
   const [whoMode, setWhoMode] = useState<WhoMode>(initialWho);
+  const [place, setPlace] = useState<RecipientPlace>('outside');
   const [name, setName] = useState('');
   const [pack, setPack] = useState<OilPackInput>(emptyOilPackInput());
   const [intent, setIntent] = useState<GiveOilIntent>(initialIntent);
@@ -80,6 +165,7 @@ export function GiveOilSheet({
   useEffect(() => {
     if (!open) return;
     setWhoMode(initialWho);
+    setPlace('outside');
     setName('');
     setPack(emptyOilPackInput());
     setIntent(initialWho === 'home' && initialIntent === 'sell' ? 'hold' : initialIntent);
@@ -107,13 +193,11 @@ export function GiveOilSheet({
     });
   };
 
-  const chooseWho = (mode: WhoMode) => {
-    setWhoMode(mode);
-    if (mode === 'home' && intent === 'sell') setIntent('hold');
+  const setCount = (key: keyof OilPackInput, raw: number) => {
+    setPack((prev) => clampPackInput({ ...prev, [key]: raw }, max));
   };
 
-  const nameOk =
-    whoMode === 'home' || whoMode === 'unnamed' || (whoMode === 'someone' && name.trim().length > 0);
+  const nameOk = whoMode === 'home' || name.trim().length > 0;
   const isSale = intent === 'sell' && whoMode !== 'home';
   const alreadyDelivered = intent === 'give' || (isSale && sellTaken);
   const canContinueWho = nameOk;
@@ -122,7 +206,6 @@ export function GiveOilSheet({
 
   const resolvedName = useMemo(() => {
     if (whoMode === 'home') return t('give.homeName');
-    if (whoMode === 'unnamed') return t('give.unnamed');
     return name.trim();
   }, [whoMode, name, t]);
 
@@ -152,7 +235,7 @@ export function GiveOilSheet({
 
   const goBack = () => {
     if (step === 'intent') setStep('howMuch');
-    else if (step === 'howMuch') setStep('who');
+    else if (step === 'howMuch' && whoMode !== 'home') setStep('who');
     else requestClose();
   };
 
@@ -222,7 +305,9 @@ export function GiveOilSheet({
       edge="end"
       size="lg"
       accent
-      title={t('give.title')}
+      title={
+        intent === 'sell' ? t('actions.sell') : intent === 'give' ? t('actions.verbGive') : t('actions.hold')
+      }
       subtitle={subtitle}
       icon={<Ionicons name="water-outline" size={18} color={colors.primary} />}
       footer={
@@ -257,37 +342,7 @@ export function GiveOilSheet({
         </View>
 
         {step === 'who' ? (
-          <>
-            <Text style={[styles.flowStep, styles.flowStepFirst]}>{t('give.who')}</Text>
-            <View style={styles.toggle}>
-              {(
-                [
-                  ['someone', t('give.forSomeone')],
-                  ['home', t('give.forHome')],
-                  ['unnamed', t('give.noName')],
-                ] as const
-              ).map(([mode, label]) => (
-                <Pressable
-                  key={mode}
-                  onPress={() => chooseWho(mode)}
-                  style={[styles.toggleBtn, whoMode === mode && styles.toggleBtnOn]}
-                >
-                  <Text style={[styles.toggleBtnText, whoMode === mode && styles.toggleBtnTextOn]}>
-                    {label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {whoMode === 'someone' ? (
-              <View style={styles.field}>
-                <SaleBuyerPicker value={name} onChange={setName} compact />
-              </View>
-            ) : (
-              <Text style={styles.flowHint}>
-                {whoMode === 'home' ? t('give.homeName') : t('give.unnamed')}
-              </Text>
-            )}
-          </>
+          <OilRecipientStep place={place} onPlace={setPlace} name={name} onName={setName} />
         ) : null}
 
         {step === 'howMuch' ? (
@@ -310,11 +365,20 @@ export function GiveOilSheet({
                       >
                         <Text style={styles.stepperValue}>−</Text>
                       </Pressable>
-                      <Text style={styles.stepperValue}>
-                        {key === 'bulkLitres'
-                          ? formatOilNumber(pack.bulkLitres, locale)
-                          : pack[key] || 0}
-                      </Text>
+                      <PackStepperInput
+                        value={pack[key]}
+                        max={max ? (key === 'bulkLitres' ? max.bulkLitres : max[key]) : undefined}
+                        decimal={key === 'bulkLitres'}
+                        label={label}
+                        display={
+                          key === 'bulkLitres'
+                            ? formatOilNumber(pack.bulkLitres, locale)
+                            : String(pack[key] || 0)
+                        }
+                        onChange={(next) => setCount(key, next)}
+                        style={styles.stepperInput}
+                        color={colors.textPrimary}
+                      />
                       <Pressable
                         accessibilityLabel="+"
                         onPress={() => bump(key, 1)}

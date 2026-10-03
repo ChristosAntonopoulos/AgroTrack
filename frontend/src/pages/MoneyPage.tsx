@@ -24,6 +24,7 @@ import type { YearFinancialSummary } from '../services/financialSummaryService';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { fieldLabelMap } from '../utils/fieldLabels';
 import { readFieldId } from '../navigation/intents';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
 import { agriculturalYearFor, agriculturalYearRangeLabel } from '../chronologio/agriculturalYear';
 import { harvestMonthTitle, harvestYearSpan } from '../finance/harvestYear';
 import { UNASSIGNED_FIELD_QUERY, overlayUnassignedSummary } from '../finance/buildYearSummary';
@@ -73,6 +74,14 @@ const MoneyPage: React.FC = () => {
   const taskFilter = searchParams.get('task') || '';
   const harvestFilter = searchParams.get('harvest') || '';
   const txId = searchParams.get('tx') || '';
+
+  useRegisterCapturePage({
+    sourcePage: 'money',
+    fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined,
+    taskId: taskFilter || undefined,
+    harvestId: harvestFilter || undefined,
+  });
+
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -289,10 +298,13 @@ const MoneyPage: React.FC = () => {
     Boolean(selected && (selected.createdByUserId === user?.userId || selected.ownerUserId === user?.userId));
 
   const openCapture = (preferredType: 'money' | 'income' | 'expense' = 'money') => {
+    const filteredField =
+      fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined;
     capture?.openCapture({
       preferredType,
-      fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : visibleFields[0]?.id,
+      fieldId: filteredField,
       taskId: taskFilter || undefined,
+      sourcePage: 'money',
     });
   };
 
@@ -351,7 +363,7 @@ const MoneyPage: React.FC = () => {
     summary.draftCount === 0 &&
     transactions.length === 0;
 
-  const shell = (body: React.ReactNode, captureEnabled = true) => (
+  const shell = (body: React.ReactNode) => (
     <PageContainer maxWidth="full" padding="none">
       <div className="money-page">
         <Breadcrumbs />
@@ -359,7 +371,6 @@ const MoneyPage: React.FC = () => {
           fields={visibleFields}
           fieldId={fieldId}
           onFieldChange={(next) => patch({ fieldId: next || null })}
-          onCapture={captureEnabled ? () => openCapture() : undefined}
         />
         {body}
       </div>
@@ -388,8 +399,7 @@ const MoneyPage: React.FC = () => {
 
   if (visibleFields.length === 0) {
     return shell(
-      <EmptyState title={t('money:emptyFieldsTitle')} description={t('money:emptyFieldsHint')} />,
-      false
+      <EmptyState title={t('money:emptyFieldsTitle')} description={t('money:emptyFieldsHint')} />
     );
   }
 
@@ -401,7 +411,6 @@ const MoneyPage: React.FC = () => {
           fields={visibleFields}
           fieldId={fieldId}
           onFieldChange={(next) => patch({ fieldId: next || null })}
-          onCapture={() => openCapture()}
           onExport={() => void exportLedger()}
           exporting={exporting}
         />

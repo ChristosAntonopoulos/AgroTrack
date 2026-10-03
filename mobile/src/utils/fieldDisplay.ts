@@ -140,9 +140,15 @@ export const formatSignedMoney = (value: number, currency: string, locale: strin
 export const formatRelativeTime = (value: Date | string, locale: string): string => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
+  // Hermes Android often lacks RelativeTimeFormat — `new undefined()` throws
+  // "Cannot read property 'prototype' of undefined" on the field page.
+  const RelativeTimeFormat = (Intl as typeof Intl | undefined)?.RelativeTimeFormat;
+  if (typeof RelativeTimeFormat !== 'function') {
+    return formatCompactDate(date, locale);
+  }
   const deltaMs = Date.now() - date.getTime();
   const minutes = Math.round(deltaMs / 60000);
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const rtf = new RelativeTimeFormat(locale, { numeric: 'auto' });
   if (Math.abs(minutes) < 60) return rtf.format(-minutes, 'minute');
   const hours = Math.round(minutes / 60);
   if (Math.abs(hours) < 24) return rtf.format(-hours, 'hour');

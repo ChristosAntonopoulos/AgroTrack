@@ -102,8 +102,8 @@ const MoreMenuPanel: React.FC = () => {
     });
     workItems.push({
       id: 'my-oil',
-      icon: 'water-outline',
-      label: t('nav:myOil', { defaultValue: 'My oil' }),
+      icon: 'cube-outline',
+      label: t('nav:myOil', { defaultValue: 'Storage' }),
       onPress: () => navigation.navigate('MyOil'),
       showArrow: true,
     });
@@ -186,7 +186,7 @@ const MoreMenuPanel: React.FC = () => {
             <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
               <Text style={[styles.avatarText, { color: colors.primary }]}>{initials}</Text>
             </View>
-            <BrandLogo variant="horizontal" tone={isDark ? 'on-dark' : 'on-light'} size={18} />
+            <BrandLogo variant="horizontal" tone={isDark ? 'on-dark' : 'on-light'} size={34} />
           </View>
         }
       />

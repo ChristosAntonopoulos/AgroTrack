@@ -14,6 +14,7 @@ import { OilPendingSection } from '../components/myOil/OilOverviewSections';
 import { OilPendingPressings } from '../components/myOil/OilPendingPressings';
 import { OilByGroveSection } from '../components/myOil/OilByGroveSection';
 import { OilShareRequestsSection } from '../components/myOil/OilShareRequestsSection';
+import { OilAttentionBlock } from '../components/myOil/OilAttentionBlock';
 import { CommitmentsTab } from '../components/myOil/CommitmentsTab';
 import { MovementsTab } from '../components/myOil/MovementsTab';
 import { StockCountSheet } from '../components/myOil/StockCountSheet';
@@ -58,6 +59,8 @@ import { clampPackInput, emptyOilPackInput, packLitresOf, type OilPackInput } fr
 import { fieldLabelMap } from '../utils/fieldLabels';
 import { useDrawerPresence } from '../hooks/useDrawerPresence';
 import { harvestPath, moneyPath } from '../navigation/intents';
+import { isWarehouseAction } from '../capture/menu';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
 import './MyOilPage.css';
 
 const MyOilPage: React.FC = () => {
@@ -66,6 +69,11 @@ const MyOilPage: React.FC = () => {
   const pageGuard = useModulePageGuard({ module: 'money' });
   const [searchParams, setSearchParams] = useSearchParams();
   const focusFieldId = (searchParams.get('field') || searchParams.get('fieldId') || '').trim() || null;
+
+  useRegisterCapturePage({
+    sourcePage: 'warehouse',
+    fieldId: focusFieldId || undefined,
+  });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -134,6 +142,30 @@ const MyOilPage: React.FC = () => {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    if (loading) return;
+    const action = searchParams.get('do');
+    if (!isWarehouseAction(action)) return;
+    if (action === 'fill') {
+      setFillLot(null);
+      setShowFill(true);
+    } else if (action === 'count') {
+      setShowCount(true);
+    } else {
+      setGiveIntent(action);
+      setGiveWho('someone');
+      setShowGive(true);
+    }
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('do');
+        return next;
+      },
+      { replace: true }
+    );
+  }, [loading, searchParams, setSearchParams]);
 
   useEffect(() => {
     const onSaved = () => void reload();
@@ -359,33 +391,41 @@ const MyOilPage: React.FC = () => {
                   />
                 ) : null}
 
-                <OilShareRequestsSection
-                  requests={shareInbox}
-                  busy={busy}
-                  packLabels={packLabels}
-                  onAccept={(r) => void run(() => oilStockService.acceptShareRequest(r.id))}
-                  onReject={(r) => void run(() => oilStockService.rejectShareRequest(r.id))}
-                />
-
-                <OilPendingPressings
-                  pressings={pendingPressings}
-                  fieldNames={fieldNames}
-                  busy={busy}
-                  onAllocate={(pressing, allocations) =>
-                    void run(() => oilStockService.allocatePressing(pressing.id, allocations))
+                <OilAttentionBlock
+                  show={
+                    shareInbox.length > 0 ||
+                    pendingPressings.length > 0 ||
+                    (hasStock && needsNow.length > 0)
                   }
-                />
-
-                {hasStock && needsNow.length > 0 ? (
-                  <OilPendingSection
-                    waiting={needsNow}
+                >
+                  <OilShareRequestsSection
+                    requests={shareInbox}
                     busy={busy}
                     packLabels={packLabels}
-                    onDeliver={onDeliverTap}
-                    onDetails={() => setTab('holds')}
-                    formatDate={formatDate}
+                    onAccept={(r) => void run(() => oilStockService.acceptShareRequest(r.id))}
+                    onReject={(r) => void run(() => oilStockService.rejectShareRequest(r.id))}
                   />
-                ) : null}
+
+                  <OilPendingPressings
+                    pressings={pendingPressings}
+                    fieldNames={fieldNames}
+                    busy={busy}
+                    onAllocate={(pressing, allocations) =>
+                      void run(() => oilStockService.allocatePressing(pressing.id, allocations))
+                    }
+                  />
+
+                  {hasStock && needsNow.length > 0 ? (
+                    <OilPendingSection
+                      waiting={needsNow}
+                      busy={busy}
+                      packLabels={packLabels}
+                      onDeliver={onDeliverTap}
+                      onDetails={() => setTab('holds')}
+                      formatDate={formatDate}
+                    />
+                  ) : null}
+                </OilAttentionBlock>
 
                 {focusFieldName ? (
                   <div className="my-oil-field-filter">
@@ -411,19 +451,6 @@ const MyOilPage: React.FC = () => {
                     setShowFill(true);
                   }}
                 />
-
-                {movements.length > 0 ? (
-                  <section className="my-oil-panel">
-                    <MovementsTab
-                      movements={movements}
-                      lots={summary!.lots}
-                      fieldNames={fieldNames}
-                      packLabels={packLabels}
-                      preview
-                      onSeeAll={() => setTab('movements')}
-                    />
-                  </section>
-                ) : null}
 
                 <nav className="my-oil-quick-links" aria-label={t('quickLinks.aria')}>
                   <Link to={harvestPath()}>{t('quickLinks.harvest')}</Link>

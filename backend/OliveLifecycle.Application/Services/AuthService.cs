@@ -135,10 +135,10 @@ public class AuthService : IAuthService
 
         var publicBase = (_configuration["App:PublicWebBaseUrl"] ?? "http://localhost:3000").TrimEnd('/');
         var resetUrl = $"{publicBase}/reset-password?token={Uri.EscapeDataString(token)}";
-        var subject = "OleaChron — επαναφορά κωδικού / password reset";
+        var subject = "The Olive Lot — επαναφορά κωδικού / password reset";
         var body =
-            $"Λάβαμε αίτημα επαναφοράς κωδικού για τον λογαριασμό OleaChron.\n" +
-            $"We received a request to reset the password for your OleaChron account.\n\n" +
+            $"Λάβαμε αίτημα επαναφοράς κωδικού για τον λογαριασμό The Olive Lot.\n" +
+            $"We received a request to reset the password for your The Olive Lot account.\n\n" +
             $"{resetUrl}\n\n" +
             $"Ο σύνδεσμος ισχύει για {PasswordResetHours} ώρα.\n" +
             $"This link expires in {PasswordResetHours} hour.\n\n" +

@@ -141,6 +141,6 @@
   "unsoldYear": "Annata {{span}}",
   "unsoldTin": "{{count}} × {{size}} L",
   "unsoldBulk": "{{amount}} sfuso",
-  "openMyOil": "Vedi il mio olio",
+  "openMyOil": "Vedi il magazzino",
   "oilSaleInCellar": "Collegato alla cantina dell'olio"
 }

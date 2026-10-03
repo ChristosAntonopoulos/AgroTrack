@@ -65,6 +65,42 @@ const hexToRgb = (hex: string) => {
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 };
 
+const rgbToHex = (r: number, g: number, b: number) =>
+  `#${[r, g, b]
+    .map((channel) => Math.round(channel).toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase()}`;
+
+const linearChannel = (channel: number) => {
+  const s = channel / 255;
+  return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+};
+
+const luminance = (hex: string) => {
+  const { r, g, b } = hexToRgb(hex);
+  return 0.2126 * linearChannel(r) + 0.7152 * linearChannel(g) + 0.0722 * linearChannel(b);
+};
+
+/**
+ * Grove swatches are often pale yellow. On ivory they disappear as text and
+ * look like a highlighter as a bar. Pull light colours toward umber until the
+ * stripe still reads as that grove, but holds contrast.
+ */
+export const readableFieldColor = (color: string): string => {
+  if (!isFieldColor(color)) return color;
+  let next = normalizeHex(color);
+  const ink = hexToRgb('#3A2914');
+  for (let i = 0; i < 8 && luminance(next) > 0.18; i += 1) {
+    const current = hexToRgb(next);
+    next = rgbToHex(
+      current.r + (ink.r - current.r) * 0.38,
+      current.g + (ink.g - current.g) * 0.38,
+      current.b + (ink.b - current.b) * 0.38
+    );
+  }
+  return next;
+};
+
 const colourDistance = (a: string, b: string) => {
   const left = hexToRgb(a);
   const right = hexToRgb(b);

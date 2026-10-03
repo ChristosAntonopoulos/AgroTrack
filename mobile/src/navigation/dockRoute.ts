@@ -1,5 +1,6 @@
 import type { NavigationState, PartialState } from '@react-navigation/native';
 import type { CaptureContext } from '../capture/types';
+import { sourcePageFromRoute } from '../capture/openContext';
 
 export type DockTab = 'ChronologioTab' | 'Fields' | 'Tasks' | 'More';
 
@@ -62,11 +63,22 @@ export const dockTabForRoute = (name: string): DockTab => {
 export const dockHiddenForRoute = (name: string): boolean => HIDDEN_ROUTES.has(name);
 
 /** Record opens already pointed at the place the user is looking at. */
-export const captureContextForRoute = (route: FocusedRoute): CaptureContext => {
+export const captureContextForRoute = (
+  route: FocusedRoute,
+  _opts?: { isHarvestLive?: boolean }
+): CaptureContext => {
   const params = route.params || {};
-  const fieldId = typeof params.fieldId === 'string' ? params.fieldId : undefined;
+  const fieldId =
+    typeof params.fieldId === 'string'
+      ? params.fieldId
+      : typeof params.field === 'string'
+        ? params.field
+        : undefined;
   const taskId = typeof params.taskId === 'string' ? params.taskId : undefined;
-  if (route.name === 'TaskDetail' && taskId) return { taskId, fieldId };
-  if (fieldId) return { fieldId };
-  return {};
+  const sourcePage = sourcePageFromRoute(route.name);
+  if (route.name === 'TaskDetail' && taskId) {
+    return { taskId, fieldId, sourcePage: sourcePage || 'tasks' };
+  }
+  if (fieldId) return { fieldId, sourcePage };
+  return { sourcePage };
 };

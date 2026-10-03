@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Card from '../components/Common/Card';
+import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -93,6 +94,7 @@ const PartnerSearchPage: React.FC = () => {
     <PageContainer>
       <div className="partners-page">
         <Breadcrumbs />
+        <BackLink to="/partners">{t('common:back')}</BackLink>
         <h1>{t('partners:resultsTitle')}</h1>
         {data?.fieldApproximateArea && (
           <p className="partners-lead">{data.fieldApproximateArea}</p>

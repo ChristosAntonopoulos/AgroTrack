@@ -15,6 +15,7 @@ import { uploadCapturePhotoUris } from '../../capture/photos';
 import { useTheme } from '../../context/ThemeContext';
 import Button from '../ui/Button';
 import FormDateField from '../forms/FormDateField';
+import { CaptureActionCard } from './CaptureChrome';
 import type { Field } from '../../services/fieldService';
 import type { FieldTask } from '../../services/fieldWorkService';
 import type { HarvestRecord } from '../../services/harvestService';
@@ -77,7 +78,7 @@ import { resolveFieldColor } from '../../utils/fieldColors';
 import FieldColorMark from '../fields/FieldColorMark';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { oilStockService } from '../../services/oilStockService';
-import { spacing, typography } from '../../theme';
+import { typography } from '../../theme';
 
 const LARGE_AMOUNT = 2000;
 type Props = {
@@ -690,66 +691,35 @@ const MoneyCaptureForm: React.FC<Props> = ({
   if (!kind || activeStep === 'kind') {
     return (
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.prompt, { color: colors.textSecondary }]}>{t('capture:money.stepKind')}</Text>
+        <Text style={[styles.prompt, { color: colors.textPrimary }]}>{t('capture:money.stepKind')}</Text>
+        <Text style={[styles.promptHint, { color: colors.textSecondary }]}>
+          {t('capture:tabPrompt.moneyHint')}
+        </Text>
         {!canRecordIncome && !canRecordExpense ? (
           <Text style={{ color: colors.textSecondary }}>{t('capture:money.noPermission')}</Text>
         ) : (
           <>
             {canRecordIncome ? (
-              <Pressable
-                style={[
-                  styles.typeCard,
-                  {
-                    borderColor: colors.eventIncome,
-                    backgroundColor: colors.eventIncomeSoft,
-                    minHeight: Math.max(96, tapMin + 28),
-                  },
-                ]}
+              <CaptureActionCard
+                title={financialTypeLabel('income', language)}
+                description={financialTypeHelp('income', language)}
+                icon="trending-up"
+                accent={colors.eventIncome}
+                soft={colors.eventIncomeSoft}
+                featured
                 onPress={() => applyCategoryKind('income')}
-                accessibilityRole="button"
-                accessibilityLabel={`${financialTypeLabel('income', language)}. ${financialTypeHelp('income', language)}`}
-              >
-                <View style={[styles.typeIcon, { backgroundColor: colors.surface }]}>
-                  <Ionicons name="trending-up" size={26} color={colors.eventIncome} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
-                    {financialTypeLabel('income', language)}
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, lineHeight: 20 }}>
-                    {financialTypeHelp('income', language)}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.eventIncome} />
-              </Pressable>
+              />
             ) : null}
             {canRecordExpense ? (
-              <Pressable
-                style={[
-                  styles.typeCard,
-                  {
-                    borderColor: colors.eventExpense,
-                    backgroundColor: colors.eventExpenseSoft,
-                    minHeight: Math.max(96, tapMin + 28),
-                  },
-                ]}
+              <CaptureActionCard
+                title={financialTypeLabel('expense', language)}
+                description={financialTypeHelp('expense', language)}
+                icon="trending-down"
+                accent={colors.eventExpense}
+                soft={colors.eventExpenseSoft}
+                featured
                 onPress={() => applyCategoryKind('expense')}
-                accessibilityRole="button"
-                accessibilityLabel={`${financialTypeLabel('expense', language)}. ${financialTypeHelp('expense', language)}`}
-              >
-                <View style={[styles.typeIcon, { backgroundColor: colors.surface }]}>
-                  <Ionicons name="trending-down" size={26} color={colors.eventExpense} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
-                    {financialTypeLabel('expense', language)}
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, lineHeight: 20 }}>
-                    {financialTypeHelp('expense', language)}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.eventExpense} />
-              </Pressable>
+              />
             ) : null}
           </>
         )}
@@ -1289,25 +1259,9 @@ const MoneyCaptureForm: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  body: { padding: spacing.md, paddingBottom: 24 },
-  prompt: { fontSize: 16, marginBottom: 12 },
-  typeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-  },
-  typeIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  typeTitle: { fontSize: 17, fontWeight: '700', marginBottom: 2 },
+  body: { paddingBottom: 24 },
+  prompt: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, marginBottom: 4, marginTop: 2 },
+  promptHint: { fontSize: 14, lineHeight: 20, marginBottom: 14 },
   kindBanner: {
     flexDirection: 'row',
     alignItems: 'center',

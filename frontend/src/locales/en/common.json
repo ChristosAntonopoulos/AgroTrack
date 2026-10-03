@@ -1,5 +1,5 @@
 {
-  "appName": "Oleachron",
+  "appName": "The Olive Lot",
   "home": "Home",
   "breadcrumb": "Breadcrumb",
   "loading": "Loading...",
@@ -40,6 +40,7 @@
   "nextTask": "Next",
   "toggleMenu": "Toggle menu",
   "moreNav": "More",
+  "menuNav": "Menu",
   "moreMenu": "More options",
   "mobileNav": "Primary navigation",
   "logout": "Logout",

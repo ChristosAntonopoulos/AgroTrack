@@ -15,7 +15,7 @@ import {
   Images,
   Megaphone,
   MessageSquareHeart,
-  Droplets,
+  Warehouse,
 } from 'lucide-react';
 import { settingsService, pathForDefaultView } from '../services/settingsService';
 import { CHRONOLOGIO_HOME } from './homePath';
@@ -84,7 +84,7 @@ export const navItems: NavItem[] = [
   {
     path: '/my-oil',
     labelKey: 'items.myOil',
-    icon: <Droplets />,
+    icon: <Warehouse />,
     roles: ['FieldOwner', 'Producer', 'Administrator'],
     section: 'primary',
   },
@@ -211,13 +211,69 @@ export const isNavActive = (pathname: string, itemPath: string) => {
   return pathname.startsWith(itemPath);
 };
 
+/** Normalize pathname for exact route comparisons (strip trailing slash). */
+export const normalizeAppPath = (pathname: string) => {
+  if (!pathname || pathname === '/') return pathname || '/';
+  return pathname.replace(/\/+$/, '') || '/';
+};
+
+/**
+ * First-level app destinations (sidebar / bottom-nav roots).
+ * These own their in-page title — no global header title, no back, no breadcrumbs.
+ */
+export const isTopLevelAppPath = (pathname: string) => {
+  const path = normalizeAppPath(pathname);
+  if (path === '/' || path === '/chronologio') return true;
+  return navItems.some((item) => !item.path.startsWith('__') && !item.action && path === item.path);
+};
+
+/**
+ * Global Header never owns the page title — every MainLayout page renders its own.
+ * Kept as a function so callers/tests stay explicit about the chrome contract.
+ */
+export const shouldHideGlobalPageTitle = (_pathname: string) => true;
+
+/**
+ * Fixed parent for nested routes. Used by BackLink defaults and breadcrumbs policy.
+ * Returns null for top-level destinations.
+ */
+export const resolveParentPath = (pathname: string): string | null => {
+  const path = normalizeAppPath(pathname);
+  if (isTopLevelAppPath(path)) return null;
+
+  if (path === '/this-harvest/review' || path.startsWith('/harvest/')) return '/harvest';
+  if (path.startsWith('/admin/campaigns/')) return '/admin/campaigns';
+  if (path.startsWith('/admin/')) return '/admin/campaigns';
+
+  if (path.startsWith('/partners/')) return '/partners';
+  if (path.startsWith('/tasks/')) return '/tasks';
+  if (path.startsWith('/fields/')) {
+    const parts = path.split('/').filter(Boolean);
+    // /fields/:id/weather|work-setup|work-profile → field detail
+    // /fields/:id/edit and /fields/new → fields list (same as create/edit chrome)
+    if (parts.length >= 3 && parts[1] !== 'new' && parts[2] !== 'edit') {
+      return `/fields/${parts[1]}`;
+    }
+    return '/fields';
+  }
+
+  // Fallback: nearest nav module root by prefix
+  const matched = navItems
+    .filter((i) => !i.path.startsWith('__') && !i.action && path.startsWith(`${i.path}/`))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+  return matched?.path ?? null;
+};
+
 export const resolvePageTitle = (pathname: string, role: AppRole, t: TFunction<'nav'>) => {
+  const path = normalizeAppPath(pathname);
+  if (path === '/this-harvest/review') return t('items.thisHarvest');
+
   const matched = navItems.find((i) => isNavActive(pathname, i.path));
   if (matched) return resolveNavItemLabel(matched, role, t);
   if (pathname.includes('/chronologio')) return t('nav:breadcrumb.chronologio');
   if (pathname.includes('/new')) return t('breadcrumb.new');
   if (pathname.includes('/edit')) return t('breadcrumb.edit');
-  return t('common:appName', { defaultValue: 'Oleachron' });
+  return t('common:appName', { defaultValue: 'The Olive Lot' });
 };
 
 export const resolveBreadcrumbLabel = (

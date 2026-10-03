@@ -14,7 +14,6 @@ import {
   rankAndPresentProposals,
   type BriefProposal,
 } from '../today/buildDailyBrief';
-import { useHarvestCampaignOptional } from '../context/HarvestCampaignContext';
 import { getDismissedProposalIds } from '../today/dismissStore';
 import { isActiveTask, isTaskOverdue } from '../utils/taskListUtils';
 import { normalizeTaskStatus } from '../utils/categoryNormalize';
@@ -134,7 +133,6 @@ export const useTodaySummary = (input: {
   fieldId?: string;
   fields: Field[];
 }) => {
-  const harvest = useHarvestCampaignOptional();
   const { enabled, fieldId, fields } = input;
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -209,32 +207,25 @@ export const useTodaySummary = (input: {
     return picked;
   }, [openTasks, partitioned.dueToday, partitioned.nextTasks, partitioned.overdue]);
 
-  const attention = useMemo(() => {
-    const base = pickAttention({
-      weather,
-      overdue: partitioned.overdue,
-      dueToday: partitioned.dueToday,
-      nextTasks: partitioned.nextTasks,
-      featured: proposals.featured,
+  const attention = useMemo(
+    () =>
+      pickAttention({
+        weather,
+        overdue: partitioned.overdue,
+        dueToday: partitioned.dueToday,
+        nextTasks: partitioned.nextTasks,
+        featured: proposals.featured,
+        rainConflictCount,
+      }),
+    [
+      partitioned.dueToday,
+      partitioned.nextTasks,
+      partitioned.overdue,
+      proposals.featured,
       rainConflictCount,
-    });
-    if (base.kind === 'warning' || !harvest?.isLive) return base;
-    return {
-      kind: 'proposal' as const,
-      titleKey: 'fields:harvestCampaign.status.active',
-      reasonKey: 'fields:harvestCampaign.nudge.daytimeReason',
-      action: 'harvest_add' as const,
-    };
-  }, [
-    harvest?.campaign,
-    harvest?.isLive,
-    partitioned.dueToday,
-    partitioned.nextTasks,
-    partitioned.overdue,
-    proposals.featured,
-    rainConflictCount,
-    weather,
-  ]);
+      weather,
+    ]
+  );
 
   const conditions = useMemo(
     () =>

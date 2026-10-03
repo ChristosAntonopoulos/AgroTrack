@@ -12,7 +12,7 @@
   "stillStuck": "Still stuck?",
   "stillStuckBody": "A short note or picture helps us fix what gets in the way.",
   "quick": {
-    "record": "Record",
+    "record": "Log",
     "chronologio": "History",
     "fields": "Fields",
     "tasks": "Tasks",
@@ -25,8 +25,8 @@
       "body": "The home grid is your grove menu. Tap a card to open that part of the app. Settings, feedback, and help sit under Account at the bottom."
     },
     "record": {
-      "title": "The + button",
-      "body": "Use Record to leave a note, photo, work, money, or harvest entry. It saves on History for the field you chose."
+      "title": "The Log button",
+      "body": "Use Log to leave a note, photo, work, money, or harvest entry. It saves on History for the field you chose."
     },
     "chronologio": {
       "title": "History",
@@ -66,7 +66,7 @@
     },
     "feedback": {
       "title": "Tell us what you saw",
-      "body": "If something is unclear or broken, send a short note or picture. That is how Oleachron gets clearer in the grove."
+      "body": "If something is unclear or broken, send a short note or picture. That is how The Olive Lot gets clearer in the grove."
     }
   }
 }

@@ -26,6 +26,8 @@ type Props = {
   settlement: OilSettlement | null;
   unit: HarvestOilUnit;
   locale: string;
+  /** Parent already chose tins, so the all-vs-tins switch stays hidden. */
+  hideMode?: boolean;
 };
 
 /**
@@ -45,6 +47,7 @@ export function HarvestOilPackSection({
   settlement,
   unit,
   locale,
+  hideMode = false,
 }: Props) {
   const { t } = useTranslation('fields');
   const { colors, tapMin, fontScaleMultiplier: scale } = useTheme();
@@ -65,24 +68,26 @@ export function HarvestOilPackSection({
 
   return (
     <View style={styles.root}>
-      <HarvestSegmentedControl
-        value={storageMode}
-        label={t('harvestCampaign.oil.storedTitle')}
-        ariaLabel={t('harvestCampaign.oil.storedTitle')}
-        onChange={onStorageMode}
-        options={[
-          {
-            value: 'all',
-            label: t('harvestCampaign.oil.storedAll'),
-            detail: t('harvestCampaign.oil.storedAllDetail'),
-          },
-          {
-            value: 'tins',
-            label: t('harvestCampaign.oil.storedTins'),
-            detail: t('harvestCampaign.oil.storedTinsDetail'),
-          },
-        ]}
-      />
+      {hideMode ? null : (
+        <HarvestSegmentedControl
+          value={storageMode}
+          label={t('harvestCampaign.oil.storedTitle')}
+          ariaLabel={t('harvestCampaign.oil.storedTitle')}
+          onChange={onStorageMode}
+          options={[
+            {
+              value: 'all',
+              label: t('harvestCampaign.oil.storedAll'),
+              detail: t('harvestCampaign.oil.storedAllDetail'),
+            },
+            {
+              value: 'tins',
+              label: t('harvestCampaign.oil.storedTins'),
+              detail: t('harvestCampaign.oil.storedTinsDetail'),
+            },
+          ]}
+        />
+      )}
 
       {storageMode === 'tins' ? (
         <>

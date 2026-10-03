@@ -1,4 +1,4 @@
-# Oleachron
+# The Olive Lot
 
 A comprehensive platform for managing olive cultivation through a biennial (2-year) lifecycle with repeatable annual operations.
 

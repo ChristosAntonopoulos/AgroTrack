@@ -8,6 +8,11 @@ export const openChronologioHome = (navigation: RootNav): void => {
   navigation.navigate('Main', { screen: 'ChronologioTab' });
 };
 
+/** Open Chronologio locked to one field (History shortcut from the field page). */
+export const openChronologioForField = (navigation: RootNav, fieldId: string): void => {
+  navigation.navigate('Main', { screen: 'ChronologioTab', params: { fieldId } });
+};
+
 /** Open harvest inside the Fields tab so ScreenHeader + MainTabs stay. */
 export const openHarvestCampaign = (navigation: RootNav, params?: HarvestCampaignParams): void => {
   navigation.navigate('Main', {

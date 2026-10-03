@@ -70,6 +70,8 @@ export type HarvestOilEntry = {
   millKept?: number;
   tin16Count?: number;
   tin17Count?: number;
+  /** Tin sizes the farmer counted, including sizes other than 16 L and 17 L. */
+  tinLines?: { sizeLitres: number; count: number }[];
   /** Legacy single-size tin entry. */
   tinSizeLitres?: 16 | 17;
   tinCount?: number;
