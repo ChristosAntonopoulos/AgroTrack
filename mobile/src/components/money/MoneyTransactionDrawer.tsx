@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Sheet from '../ui/Sheet';
 import Button from '../ui/Button';
+import FormDateField from '../forms/FormDateField';
 import { useTheme } from '../../context/ThemeContext';
 import type { FinancialTransaction } from '../../services/financialTransactionService';
+import type { CreateFinancialTransactionInput } from '../../services/financialTransactionService';
+import type { Field } from '../../services/fieldService';
 import {
+  categoriesForType,
   financialCategoryLabel,
   financialSourceLabel,
   financialStatusLabel,
@@ -16,7 +20,9 @@ import {
 } from '../../finance/display';
 import { formatOfficialAmount } from '../../finance/format';
 import { formatQuantityLine } from '../../finance/moneyUi';
+import { parseDecimal } from '../../finance/quantityCalculator';
 import { harvestYearRangeLabel, harvestYearSpan } from '../../finance/harvestYear';
+import { agriculturalYearFor } from '../../chronologio/agriculturalYear';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { radii, spacing, typography } from '../../theme';
 
@@ -26,10 +32,15 @@ type Props = {
   relatedTaskTitle?: string;
   relatedHarvestTitle?: string;
   canManage: boolean;
+  fields?: Field[];
   onClose: () => void;
   onVoid: (id: string, reason: string) => Promise<void>;
   onPostDraft: (id: string) => Promise<void>;
   onDeleteDraft: (id: string) => Promise<void>;
+  onUpdate: (
+    id: string,
+    input: Partial<CreateFinancialTransactionInput> & { clearField?: boolean }
+  ) => Promise<void>;
   onOpenTask?: (taskId: string) => void;
   onOpenHarvest?: (payload: { fieldId?: string; harvestId?: string; day: string }) => void;
 };
@@ -43,10 +54,12 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
   relatedTaskTitle,
   relatedHarvestTitle,
   canManage,
+  fields = [],
   onClose,
   onVoid,
   onPostDraft,
   onDeleteDraft,
+  onUpdate,
   onOpenTask,
   onOpenHarvest,
 }) => {
@@ -56,15 +69,49 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
   const [error, setError] = useState<string | null>(null);
   const [confirmVoid, setConfirmVoid] = useState(false);
   const [voidReason, setVoidReason] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [description, setDescription] = useState('');
+  const [amountText, setAmountText] = useState('');
+  const [occurredOn, setOccurredOn] = useState('');
+  const [notes, setNotes] = useState('');
+  const [counterparty, setCounterparty] = useState('');
+  const [category, setCategory] = useState('');
+  const [fieldId, setFieldId] = useState('');
   const locale = i18n.language;
 
   useEffect(() => {
-    if (transaction) return;
     setBusy(false);
     setError(null);
     setConfirmVoid(false);
     setVoidReason('');
-  }, [transaction]);
+    setEditing(false);
+    if (!transaction) return;
+    setDescription(transaction.description || '');
+    setAmountText(
+      new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(transaction.amount)
+    );
+    setOccurredOn(transaction.occurredOn.slice(0, 10));
+    setNotes(transaction.notes || '');
+    setCounterparty(transaction.counterpartyName || '');
+    setCategory(transaction.category || '');
+    setFieldId(transaction.fieldId || '');
+  }, [locale, transaction]);
+
+  const canEdit = Boolean(transaction && canManage && transaction.status !== 'void');
+
+  const seedEditor = () => {
+    if (!transaction) return;
+    setDescription(transaction.description || '');
+    setAmountText(
+      new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(transaction.amount)
+    );
+    setOccurredOn(transaction.occurredOn.slice(0, 10));
+    setNotes(transaction.notes || '');
+    setCounterparty(transaction.counterpartyName || '');
+    setCategory(transaction.category || '');
+    setFieldId(transaction.fieldId || '');
+    setError(null);
+  };
 
   const quantityLine = useMemo(
     () =>
@@ -78,6 +125,32 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
         : null,
     [locale, transaction]
   );
+
+  const saveEdit = async () => {
+    if (!transaction) return;
+    const amount = parseDecimal(amountText);
+    if (!amount || amount <= 0 || !description.trim() || !category) {
+      setError(t('money:editInvalid'));
+      return;
+    }
+    await run(async () => {
+      await onUpdate(transaction.id, {
+        description: description.trim(),
+        amount,
+        occurredOn: `${occurredOn}T00:00:00`,
+        resultYear: agriculturalYearFor(occurredOn),
+        category,
+        notes: notes.trim(),
+        counterpartyName: counterparty.trim(),
+        calculationMode: 'total_only',
+        quantity: transaction.quantity ?? undefined,
+        quantityUnit: transaction.quantityUnit ?? undefined,
+        unitPrice: transaction.unitPrice ?? undefined,
+        ...(fieldId ? { fieldId } : { clearField: true }),
+      });
+      setEditing(false);
+    });
+  };
 
   const run = async (action: () => Promise<void>) => {
     try {
@@ -117,7 +190,32 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
       footer={
         transaction && canManage ? (
           <View style={{ gap: spacing.sm }}>
-            {transaction.status === 'draft' ? (
+            {editing ? (
+              <>
+                <Button title={t('money:saveEntry')} disabled={busy} onPress={() => void saveEdit()} />
+                <Button
+                  title={t('common:cancel', { defaultValue: 'Cancel' })}
+                  variant="outline"
+                  disabled={busy}
+                  onPress={() => {
+                    seedEditor();
+                    setEditing(false);
+                  }}
+                />
+              </>
+            ) : null}
+            {!editing && canEdit ? (
+              <Button
+                title={t('money:editEntry')}
+                variant="outline"
+                disabled={busy}
+                onPress={() => {
+                  seedEditor();
+                  setEditing(true);
+                }}
+              />
+            ) : null}
+            {!editing && transaction.status === 'draft' ? (
               <>
                 <Button
                   title={t('money:postDraft')}
@@ -141,7 +239,7 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
                 />
               </>
             ) : null}
-            {transaction.status === 'posted' ? (
+            {!editing && transaction.status === 'posted' ? (
               confirmVoid ? (
                 <>
                   <Button
@@ -167,7 +265,115 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
         ) : undefined
       }
     >
-      {transaction ? (
+      {transaction && editing ? (
+        <View style={styles.detail}>
+          <Text style={[styles.detailLabel, { color: colors.textTertiary }]}>{t('money:amount')}</Text>
+          <TextInput
+            value={amountText}
+            onChangeText={setAmountText}
+            keyboardType="decimal-pad"
+            style={[
+              styles.voidInput,
+              { color: colors.textPrimary, borderColor: colors.borderLight, backgroundColor: colors.surfaceElevated },
+            ]}
+          />
+          <Text style={[styles.detailLabel, { color: colors.textTertiary }]}>{t('money:description')}</Text>
+          <TextInput
+            value={description}
+            onChangeText={setDescription}
+            style={[
+              styles.voidInput,
+              { color: colors.textPrimary, borderColor: colors.borderLight, backgroundColor: colors.surfaceElevated },
+            ]}
+          />
+          <FormDateField label={t('money:date')} value={occurredOn} onValueChange={setOccurredOn} />
+          <Text style={[styles.detailLabel, { color: colors.textTertiary }]}>{t('money:category')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+            {categoriesForType(transaction.type).map((item) => {
+              const on = category === item;
+              return (
+                <Pressable
+                  key={item}
+                  onPress={() => setCategory(item)}
+                  style={[
+                    styles.chip,
+                    {
+                      borderColor: on ? colors.oliveBorder : colors.borderLight,
+                      backgroundColor: on ? colors.primaryLight : colors.surface,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: on ? colors.primary : colors.textSecondary, fontWeight: '600' }}>
+                    {financialCategoryLabel(item, locale)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <Text style={[styles.detailLabel, { color: colors.textTertiary }]}>{t('money:field')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+            <Pressable
+              onPress={() => setFieldId('')}
+              style={[
+                styles.chip,
+                {
+                  borderColor: !fieldId ? colors.oliveBorder : colors.borderLight,
+                  backgroundColor: !fieldId ? colors.primaryLight : colors.surface,
+                },
+              ]}
+            >
+              <Text style={{ color: !fieldId ? colors.primary : colors.textSecondary, fontWeight: '600' }}>
+                {unassignedFieldLabel(locale)}
+              </Text>
+            </Pressable>
+            {fields.map((field) => {
+              const on = fieldId === field.id;
+              return (
+                <Pressable
+                  key={field.id}
+                  onPress={() => setFieldId(field.id)}
+                  style={[
+                    styles.chip,
+                    {
+                      borderColor: on ? colors.oliveBorder : colors.borderLight,
+                      backgroundColor: on ? colors.primaryLight : colors.surface,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: on ? colors.primary : colors.textSecondary, fontWeight: '600' }}>
+                    {friendlyFieldLabel(field.name)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <Text style={[styles.detailLabel, { color: colors.textTertiary }]}>{t('money:counterparty')}</Text>
+          <TextInput
+            value={counterparty}
+            onChangeText={setCounterparty}
+            style={[
+              styles.voidInput,
+              { color: colors.textPrimary, borderColor: colors.borderLight, backgroundColor: colors.surfaceElevated },
+            ]}
+          />
+          <Text style={[styles.detailLabel, { color: colors.textTertiary }]}>{t('money:notes')}</Text>
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            style={[
+              styles.voidInput,
+              {
+                color: colors.textPrimary,
+                borderColor: colors.borderLight,
+                backgroundColor: colors.surfaceElevated,
+                minHeight: 72,
+              },
+            ]}
+          />
+          {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+        </View>
+      ) : transaction ? (
         <View style={styles.detail}>
           <Text
             style={{
@@ -364,6 +570,13 @@ const styles = StyleSheet.create({
   detailLine: { gap: 4 },
   detailLabel: { ...typography.styles.overline },
   voidBox: { gap: spacing.sm },
+  chipRow: { gap: spacing.sm, paddingVertical: 2 },
+  chip: {
+    borderRadius: radii.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
   voidInput: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.md,

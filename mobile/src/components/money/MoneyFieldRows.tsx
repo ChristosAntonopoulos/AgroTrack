@@ -75,11 +75,26 @@ const MoneyFieldRows: React.FC<Props> = ({
               <Text style={[styles.name, { color: colors.textPrimary, fontSize: 15 * fontScaleMultiplier }]}>
                 {name}
               </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 12 * fontScaleMultiplier }}>
-                {t('income')} {formatOfficialAmount(row.income, currency, locale, unknown)}
-                {' · '}
-                {t('expenses')} {formatOfficialAmount(row.expenses, currency, locale, unknown)}
-              </Text>
+              <View style={styles.metrics}>
+                <View style={styles.metric}>
+                  <Text style={[styles.metricLabel, { color: colors.textTertiary }]}>{t('income')}</Text>
+                  <Text
+                    style={[styles.metricValue, { color: colors.eventIncome, fontSize: 14 * fontScaleMultiplier }]}
+                    numberOfLines={1}
+                  >
+                    {formatOfficialAmount(row.income, currency, locale, unknown)}
+                  </Text>
+                </View>
+                <View style={styles.metric}>
+                  <Text style={[styles.metricLabel, { color: colors.textTertiary }]}>{t('expenses')}</Text>
+                  <Text
+                    style={[styles.metricValue, { color: colors.eventExpense, fontSize: 14 * fontScaleMultiplier }]}
+                    numberOfLines={1}
+                  >
+                    {formatOfficialAmount(row.expenses, currency, locale, unknown)}
+                  </Text>
+                </View>
+              </View>
               {missingArea ? (
                 <Text style={{ color: colors.textTertiary, fontSize: 12 * fontScaleMultiplier }}>
                   {t('missingAreaRow')}
@@ -125,8 +140,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   swatch: { width: 10, height: 10, borderRadius: radii.full },
-  body: { flex: 1, minWidth: 0, gap: 2 },
+  body: { flex: 1, minWidth: 0, gap: 6 },
   name: { fontWeight: '700' },
+  metrics: { flexDirection: 'row', gap: spacing.md },
+  metric: { flex: 1, minWidth: 0, gap: 2 },
+  metricLabel: { ...typography.styles.overline },
+  metricValue: { fontWeight: '700', fontVariant: ['tabular-nums'] },
 });
 
 export default MoneyFieldRows;

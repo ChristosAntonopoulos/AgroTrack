@@ -15,6 +15,8 @@ type Props = {
   seasonLine?: string | null;
   kind: MoneyKindFilter;
   hideIncome?: boolean;
+  /** Entries tab already has the year cycle above it. */
+  hideYear?: boolean;
   tapMin: number;
   onYearChange: (year: number) => void;
   onKindChange: (kind: MoneyKindFilter) => void;
@@ -29,6 +31,7 @@ const MoneyContextBar: React.FC<Props> = ({
   seasonLine,
   kind,
   hideIncome,
+  hideYear = false,
   tapMin,
   onYearChange,
   onKindChange,
@@ -53,6 +56,8 @@ const MoneyContextBar: React.FC<Props> = ({
 
   return (
     <View style={styles.wrap}>
+      {hideYear ? null : (
+      <>
       <View
         style={[
           styles.yearTabs,
@@ -111,6 +116,8 @@ const MoneyContextBar: React.FC<Props> = ({
           {seasonLine}
         </Text>
       ) : null}
+      </>
+      )}
 
       <ScrollView
         horizontal

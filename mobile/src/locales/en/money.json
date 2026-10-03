@@ -139,6 +139,23 @@
   "exportFailed": "Could not export. Try again.",
   "harvestExpenseHere": "Recorded in Harvest. Change the amount here.",
   "openHarvestDay": "Open the harvest day",
+  "tabs": {
+    "overview": "Overview",
+    "entries": "Entries"
+  },
+  "availableOil": "Oil on hand",
+  "addEntry": "Add",
+  "addEntryHint": "One income or one expense",
+  "cycleAria": "Harvest year cycle",
+  "cycleStages": {
+    "afterHarvest": "After",
+    "spring": "Spring",
+    "summer": "Summer",
+    "harvest": "Harvest"
+  },
+  "editEntry": "Edit",
+  "saveEntry": "Save",
+  "editInvalid": "Enter a description, a category, and a positive amount.",
   "unsoldTitle": "Still unsold",
   "unsoldHint": "Still in the warehouse. It becomes income when it is sold.",
   "unsoldThisYear": "This harvest year",

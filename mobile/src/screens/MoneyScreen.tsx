@@ -20,14 +20,15 @@ import Sheet from '../components/ui/Sheet';
 import DismissibleChip from '../components/ui/DismissibleChip';
 import FieldColorMark from '../components/fields/FieldColorMark';
 import MoneyContextBar, { type MoneyKindFilter } from '../components/money/MoneyContextBar';
-import MoneySummaryCards from '../components/money/MoneySummaryCards';
+import MoneyTabs, { type MoneyPageTab } from '../components/money/MoneyTabs';
+import MoneyCycleBar from '../components/money/MoneyCycleBar';
+import MoneyStatGrid from '../components/money/MoneyStatGrid';
 import MoneyTrustStrip from '../components/money/MoneyTrustStrip';
 import MoneyMonthStrip from '../components/money/MoneyMonthStrip';
 import MoneyFieldRows from '../components/money/MoneyFieldRows';
 import MoneyCategoryBreakdown from '../components/money/MoneyCategoryBreakdown';
 import MoneyExpandableSection from '../components/money/MoneyExpandableSection';
 import OliveOilEconomicsCard from '../components/money/OliveOilEconomicsCard';
-import UnsoldOilStock from '../components/money/UnsoldOilStock';
 import MoneyTransactionRow from '../components/money/MoneyTransactionRow';
 import MoneyTransactionDrawer from '../components/money/MoneyTransactionDrawer';
 import { useAuth } from '../context/AuthContext';
@@ -61,13 +62,13 @@ import {
 } from '../finance/harvestYear';
 import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import type { RootStackParamList } from '../navigation/types';
-import { appFonts, createElevation, radii, spacing, typography } from '../theme';
+import { createElevation, radii, spacing, typography } from '../theme';
 
 const PAGE_SIZE = 20;
 
 const MoneyScreen = () => {
-  const { t, i18n } = useTranslation(['money', 'capture', 'common', 'myOil']);
-  const { colors, tapMin, fontScaleMultiplier } = useTheme();
+  const { t, i18n } = useTranslation(['money', 'capture', 'common']);
+  const { colors, tapMin } = useTheme();
   const { user } = useAuth();
   const capture = useCaptureOptional();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -100,6 +101,7 @@ const MoneyScreen = () => {
   const [month, setMonth] = useState(0);
   const [category, setCategory] = useState('');
   const [kind, setKind] = useState<MoneyKindFilter>('all');
+  const [tab, setTab] = useState<MoneyPageTab>('overview');
   const [selected, setSelected] = useState<FinancialTransaction | null>(null);
   const [relatedTitles, setRelatedTitles] = useState<{ task?: string; harvest?: string }>({});
   const [fieldPickerOpen, setFieldPickerOpen] = useState(false);
@@ -257,14 +259,13 @@ const MoneyScreen = () => {
   }, [fields, locale, selected, t]);
 
   const fieldNames = useMemo(() => fieldLabelMap(fields), [fields]);
-  const myOilLink = !summaryForbidden ? (
-    <Pressable
-      onPress={() => navigation.navigate('MyOil')}
-      style={{ paddingVertical: 10, marginBottom: 8 }}
-    >
-      <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('myOil:seeMyOil')}</Text>
-    </Pressable>
-  ) : null;
+  const availableOilLitres = useMemo(() => {
+    const scoped =
+      fieldId && fieldId !== UNASSIGNED_FIELD_QUERY
+        ? oilLots.filter((lot) => lot.fieldIds.includes(fieldId))
+        : oilLots;
+    return scoped.reduce((sum, lot) => sum + (lot.available?.litres || 0), 0);
+  }, [fieldId, oilLots]);
   const emptyYear =
     !summaryForbidden &&
     summary &&
@@ -414,20 +415,22 @@ const MoneyScreen = () => {
         <EmptyState title={t('money:emptyFieldsTitle')} description={t('money:emptyFieldsHint')} />
       ) : (
         <View style={styles.stack}>
-          <MoneyContextBar
+          <MoneyTabs
+            active={tab}
+            onChange={setTab}
+            entryCount={summary?.transactionCount || totalCount}
+          />
+          <MoneyCycleBar
             year={year}
             yearSpan={span}
             yearRangeLabel={harvestYearRangeLabel(year, locale)}
             yearStatus={yearStatus}
             seasonLine={seasonLine}
-            kind={kind}
-            hideIncome={summaryForbidden}
             tapMin={tapMin}
             onYearChange={(next) => {
               setYear(next);
               setMonth(0);
             }}
-            onKindChange={setKind}
           />
 
           <View style={styles.scopeRow}>
@@ -475,60 +478,23 @@ const MoneyScreen = () => {
             ) : null}
           </View>
 
-          {summaryForbidden ? (
-            <EmptyState title={t('money:collaboratorTitle')} description={t('money:collaboratorHint')} />
-          ) : emptyYear ? (
-            <>
-              {!summaryForbidden ? (
-                <UnsoldOilStock
-                  year={year}
-                  lots={oilLots}
-                  fieldNames={fieldNames}
-                  locale={locale}
-                  onOpenMyOil={() => navigation.navigate('MyOil')}
-                />
-              ) : (
-                myOilLink
-              )}
+          {tab === 'overview' ? (
+            summaryForbidden ? (
               <EmptyState
-                title={t('money:emptyTitle', { span })}
-                description={t('money:emptyHint')}
-                action={capture ? { label: t('capture:money.cta'), onPress: () => openCapture('money') } : undefined}
+                title={t('money:collaboratorTitle')}
+                description={t('money:collaboratorHint')}
+                action={capture ? { label: t('money:addEntry'), onPress: () => openCapture('expense') } : undefined}
               />
-            </>
-          ) : summary ? (
-            <>
-              <UnsoldOilStock
-                year={year}
-                lots={oilLots}
-                fieldNames={fieldNames}
-                locale={locale}
-                onOpenMyOil={() => navigation.navigate('MyOil')}
-              />
-              <MoneySummaryCards
-                summary={summary}
-                locale={locale}
-                onAddIncome={capture ? () => openCapture('income') : undefined}
-              />
-
-              <MoneyTrustStrip
-                summary={summary}
-                fieldCount={trustFieldCount}
-                onOpenDrafts={() => setKind('draft')}
-              />
-
-              {summary.dataAvailability.hasPostedRecords ? (
-                <MoneyMonthStrip
-                  year={year}
-                  months={summary.monthlyResults}
-                  currency={summary.currency}
+            ) : summary ? (
+              <>
+                <MoneyStatGrid
+                  summary={summary}
+                  oilLitres={availableOilLitres}
                   locale={locale}
-                  selectedMonth={month}
-                  onSelectMonth={setMonth}
+                  onAdd={capture ? () => openCapture('money') : undefined}
+                  onOpenOil={() => navigation.navigate('MyOil')}
                 />
-              ) : null}
 
-              {!fieldId ? (
                 <MoneyFieldRows
                   rows={summary.fieldResults}
                   currency={summary.currency}
@@ -538,117 +504,150 @@ const MoneyScreen = () => {
                   missingAreaFieldIds={summary.dataAvailability.missingAreaFieldIds ?? []}
                   onSelectField={setFieldId}
                 />
-              ) : null}
 
-              {summary.expenseByCategory.length > 0 ? (
-                <View
-                  style={[
-                    styles.card,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.borderLight,
-                      ...createElevation(colors, 'flat'),
-                    },
-                  ]}
-                >
-                  <MoneyCategoryBreakdown
-                    expenses={summary.expenseByCategory}
-                    income={[]}
+                <MoneyTrustStrip
+                  summary={summary}
+                  fieldCount={trustFieldCount}
+                  onOpenDrafts={() => {
+                    setKind('draft');
+                    setTab('entries');
+                  }}
+                />
+
+                {summary.dataAvailability.hasPostedRecords ? (
+                  <MoneyMonthStrip
+                    year={year}
+                    months={summary.monthlyResults}
                     currency={summary.currency}
                     locale={locale}
-                    expensesOnly
-                    onSelectCategory={(value) => {
-                      setCategory(value);
-                      setKind('all');
-                    }}
+                    selectedMonth={month}
+                    onSelectMonth={setMonth}
                   />
-                </View>
-              ) : null}
+                ) : null}
 
-              {hasUnitEconomics ||
-              summary.oliveOil?.hasProductionOrSales ||
-              summary.incomeByCategory.length > 0 ? (
-                <MoneyExpandableSection title={t('money:moreDetails')}>
-                  {hasUnitEconomics ? (
-                    <View style={{ gap: 6 }}>
-                      <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>
-                        {t('money:unitEconomicsTitle')}
-                      </Text>
-                      {summary.costPerHectare != null ? (
-                        <Text style={{ color: colors.textPrimary }}>
-                          {t('money:costPerHectare')}:{' '}
-                          {formatOfficialAmount(
-                            perAreaForDisplay(summary.costPerHectare, locale),
-                            summary.currency,
-                            locale,
-                            unknown
-                          )}
-                        </Text>
-                      ) : null}
-                      {summary.incomePerHectare != null ? (
-                        <Text style={{ color: colors.textPrimary }}>
-                          {t('money:incomePerHectare')}:{' '}
-                          {formatOfficialAmount(
-                            perAreaForDisplay(summary.incomePerHectare, locale),
-                            summary.currency,
-                            locale,
-                            unknown
-                          )}
-                        </Text>
-                      ) : null}
-                      {summary.netPerHectare != null ? (
-                        <Text style={{ color: colors.textPrimary }}>
-                          {t('money:netPerHectare')}:{' '}
-                          {formatOfficialAmount(
-                            perAreaForDisplay(summary.netPerHectare, locale),
-                            summary.currency,
-                            locale,
-                            unknown
-                          )}
-                        </Text>
-                      ) : null}
-                      {summary.costPerKilogramOfOil != null ? (
-                        <Text style={{ color: colors.textPrimary }}>
-                          {t('money:costPerKg')}:{' '}
-                          {formatOfficialAmount(
-                            summary.costPerKilogramOfOil,
-                            summary.currency,
-                            locale,
-                            unknown
-                          )}
-                        </Text>
-                      ) : summary.costPerKilogramMessage ? (
-                        <Text style={{ color: colors.textTertiary }}>{summary.costPerKilogramMessage}</Text>
-                      ) : null}
-                    </View>
-                  ) : null}
-                  {summary.oliveOil?.hasProductionOrSales ? (
-                    <OliveOilEconomicsCard year={year} oil={summary.oliveOil} locale={locale} embedded />
-                  ) : null}
-                  {summary.incomeByCategory.length > 0 ? (
+                {summary.expenseByCategory.length > 0 ? (
+                  <View
+                    style={[
+                      styles.card,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.borderLight,
+                        ...createElevation(colors, 'flat'),
+                      },
+                    ]}
+                  >
                     <MoneyCategoryBreakdown
-                      expenses={[]}
-                      income={summary.incomeByCategory}
+                      expenses={summary.expenseByCategory}
+                      income={[]}
                       currency={summary.currency}
                       locale={locale}
+                      expensesOnly
                       onSelectCategory={(value) => {
                         setCategory(value);
                         setKind('all');
+                        setTab('entries');
                       }}
                     />
-                  ) : null}
-                </MoneyExpandableSection>
-              ) : null}
-            </>
-          ) : null}
+                  </View>
+                ) : null}
 
-          {!emptyYear || summaryForbidden ? (
+                {hasUnitEconomics ||
+                summary.oliveOil?.hasProductionOrSales ||
+                summary.incomeByCategory.length > 0 ? (
+                  <MoneyExpandableSection title={t('money:moreDetails')}>
+                    {hasUnitEconomics ? (
+                      <View style={{ gap: 6 }}>
+                        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>
+                          {t('money:unitEconomicsTitle')}
+                        </Text>
+                        {summary.costPerHectare != null ? (
+                          <Text style={{ color: colors.textPrimary }}>
+                            {t('money:costPerHectare')}:{' '}
+                            {formatOfficialAmount(
+                              perAreaForDisplay(summary.costPerHectare, locale),
+                              summary.currency,
+                              locale,
+                              unknown
+                            )}
+                          </Text>
+                        ) : null}
+                        {summary.incomePerHectare != null ? (
+                          <Text style={{ color: colors.textPrimary }}>
+                            {t('money:incomePerHectare')}:{' '}
+                            {formatOfficialAmount(
+                              perAreaForDisplay(summary.incomePerHectare, locale),
+                              summary.currency,
+                              locale,
+                              unknown
+                            )}
+                          </Text>
+                        ) : null}
+                        {summary.netPerHectare != null ? (
+                          <Text style={{ color: colors.textPrimary }}>
+                            {t('money:netPerHectare')}:{' '}
+                            {formatOfficialAmount(
+                              perAreaForDisplay(summary.netPerHectare, locale),
+                              summary.currency,
+                              locale,
+                              unknown
+                            )}
+                          </Text>
+                        ) : null}
+                        {summary.costPerKilogramOfOil != null ? (
+                          <Text style={{ color: colors.textPrimary }}>
+                            {t('money:costPerKg')}:{' '}
+                            {formatOfficialAmount(
+                              summary.costPerKilogramOfOil,
+                              summary.currency,
+                              locale,
+                              unknown
+                            )}
+                          </Text>
+                        ) : summary.costPerKilogramMessage ? (
+                          <Text style={{ color: colors.textTertiary }}>{summary.costPerKilogramMessage}</Text>
+                        ) : null}
+                      </View>
+                    ) : null}
+                    {summary.oliveOil?.hasProductionOrSales ? (
+                      <OliveOilEconomicsCard year={year} oil={summary.oliveOil} locale={locale} embedded />
+                    ) : null}
+                    {summary.incomeByCategory.length > 0 ? (
+                      <MoneyCategoryBreakdown
+                        expenses={[]}
+                        income={summary.incomeByCategory}
+                        currency={summary.currency}
+                        locale={locale}
+                        onSelectCategory={(value) => {
+                          setCategory(value);
+                          setKind('all');
+                          setTab('entries');
+                        }}
+                      />
+                    ) : null}
+                  </MoneyExpandableSection>
+                ) : null}
+              </>
+            ) : null
+          ) : (
             <View style={styles.stack}>
-              <Text style={[styles.entriesTitle, { color: colors.textPrimary, fontSize: 18 * fontScaleMultiplier }]}>
-                {t('money:entries')}
-              </Text>
+              <MoneyContextBar
+                year={year}
+                yearSpan={span}
+                yearStatus={yearStatus}
+                kind={kind}
+                hideIncome={summaryForbidden}
+                hideYear
+                tapMin={tapMin}
+                onYearChange={(next) => {
+                  setYear(next);
+                  setMonth(0);
+                }}
+                onKindChange={setKind}
+              />
               {transactions.length === 0 ? (
-                <Text style={{ color: colors.textSecondary }}>{t('money:noMatchingEntries')}</Text>
+                <Text style={{ color: colors.textSecondary }}>
+                  {emptyYear ? t('money:emptyHint') : t('money:noMatchingEntries')}
+                </Text>
               ) : (
                 groupedTransactions.map((group) => (
                   <View key={group.key} style={styles.monthGroup}>
@@ -675,7 +674,7 @@ const MoneyScreen = () => {
                 />
               ) : null}
             </View>
-          ) : null}
+          )}
         </View>
       )}
 
@@ -727,7 +726,13 @@ const MoneyScreen = () => {
         relatedTaskTitle={relatedTitles.task}
         relatedHarvestTitle={relatedTitles.harvest}
         canManage={canManage}
+        fields={fields}
         onClose={() => setSelected(null)}
+        onUpdate={async (id, input) => {
+          const updated = await getFinancialTransactionService().update(id, input);
+          setSelected(updated);
+          setReloadToken((n) => n + 1);
+        }}
         onVoid={async (id, reason) => {
           await getFinancialTransactionService().void(id, reason);
           setSelected(null);
@@ -775,12 +780,6 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...typography.styles.overline,
-  },
-  entriesTitle: {
-    fontFamily: appFonts.bold,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    marginTop: spacing.sm,
   },
   monthGroup: { gap: spacing.sm },
   monthHeading: {
