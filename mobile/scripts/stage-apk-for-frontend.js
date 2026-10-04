@@ -55,7 +55,7 @@ const repoRoot = process.env.BUILD_SOURCESDIRECTORY
   : path.resolve(__dirname, '../..');
 const mobileDir = path.join(repoRoot, 'mobile');
 const downloadsDir = path.join(repoRoot, 'frontend', 'public', 'downloads');
-const defaultApk = path.join(mobileDir, 'oleachron-mobile.apk');
+const defaultApk = path.join(mobileDir, 'theolivelot.apk');
 const gradleApkRoot = path.join(mobileDir, 'android', 'app', 'build', 'outputs', 'apk');
 const gradleApkCandidates = [
   path.join(gradleApkRoot, 'release', 'app-release.apk'),
@@ -63,7 +63,7 @@ const gradleApkCandidates = [
   path.join(gradleApkRoot, 'debug', 'app-debug.apk'),
 ];
 const buildInfoPath = path.join(mobileDir, 'build-info.json');
-const latestFilename = process.env.APK_FILENAME || 'oleachron-alpha.apk';
+const latestFilename = process.env.APK_FILENAME || 'theolivelot.apk';
 const pipelineBuildId = process.env.BUILD_ID || '';
 
 let apkSource = process.env.APK_SOURCE ? path.resolve(process.env.APK_SOURCE) : defaultApk;
@@ -104,10 +104,15 @@ if (fs.existsSync(buildInfoPath)) {
 
 const version = buildInfo.version || '1.0.0';
 const versionCode = buildInfo.versionCode || pipelineBuildId;
-const archiveName = `olivecycle-${version}-b${versionCode}.apk`;
+const archiveName = `theolivelot-${version}-b${versionCode}.apk`;
 
 fs.copyFileSync(apkSource, path.join(downloadsDir, latestFilename));
 fs.copyFileSync(apkSource, path.join(downloadsDir, archiveName));
+// Keep the previous download name so old landing links and bookmarks still work.
+const legacyFilename = 'oleachron-alpha.apk';
+if (legacyFilename !== latestFilename) {
+  fs.copyFileSync(apkSource, path.join(downloadsDir, legacyFilename));
+}
 
 const manifest = {
   available: true,
@@ -120,6 +125,8 @@ const manifest = {
   url: `/downloads/${latestFilename}`,
   archiveFilename: archiveName,
   archiveUrl: `/downloads/${archiveName}`,
+  legacyFilename,
+  legacyUrl: `/downloads/${legacyFilename}`,
   apiUrl: buildInfo.apiUrl,
 };
 

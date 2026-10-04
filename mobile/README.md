@@ -1,6 +1,6 @@
 # Mobile — Olive Lifecycle (Expo)
 
-Production APKs are built as **release** on the Azure CI agent (JS bundle embedded, no Metro). Served from the web frontend at `/downloads/Oleachron-alpha.apk`. **EAS is not used.**
+Production APKs are built as **release** on the Azure CI agent (JS bundle embedded, no Metro). Served from the web frontend at `/downloads/theolivelot.apk`. **EAS is not used.**
 
 ## Run locally
 

@@ -75,7 +75,7 @@ variables:
   - name: frontendDockerContext
     value: 'frontend'
   - name: apkFilename
-    value: 'oleachron-alpha.apk'
+    value: 'theolivelot.apk'
   # Self-hosted agent has Docker but no buildx. Classic builder only.
   - name: DOCKER_BUILDKIT
     value: '0'
@@ -154,7 +154,7 @@ stages:
         source mobile/scripts/setup-java.sh
         echo "##vso[task.setvariable variable=JAVA_HOME]${JAVA_HOME}"
         mobile/scripts/build-and-stage-apk.sh
-        test -f mobile/oleachron-mobile.apk
+        test -f mobile/theolivelot.apk
         test -f frontend/public/downloads/$(apkFilename)
       displayName: 'Build and stage APK for frontend /downloads'
       env:
@@ -170,7 +170,7 @@ stages:
       displayName: 'Publish APK as artifact'
       condition: succeeded()
       inputs:
-        pathToPublish: 'mobile/oleachron-mobile.apk'
+        pathToPublish: 'mobile/theolivelot.apk'
         artifactName: 'mobile-apk'
         publishLocation: 'Container'
 

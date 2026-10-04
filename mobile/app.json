@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "The Olive Lot",
-    "slug": "olive-lifecycle",
+    "name": "TheOliveLot",
+    "slug": "theolivelot",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

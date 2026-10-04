@@ -2,7 +2,7 @@
 
 ## Public download (latest)
 
-- **URL:** `/downloads/oleachron-alpha.apk`
+- **URL:** `/downloads/theolivelot.apk`
 - **Manifest:** `/downloads/latest.json` (version, build id, timestamp)
 
 ## How CI builds it (no EAS)
@@ -21,9 +21,9 @@ One atomic pipeline step runs `mobile/scripts/build-and-stage-apk.sh`:
 1. Bump `"version"` in `mobile/app.json` when you want a new user-visible release (e.g. `1.0.1`)
 2. `versionCode` is set automatically from the pipeline `Build.BuildId`
 3. Push to `main` and enable **Build Android APK on agent** when queueing the pipeline
-4. Install from the landing page or `/downloads/oleachron-alpha.apk`
+4. Install from the landing page or `/downloads/theolivelot.apk`
 
-Archived copy per build: `/downloads/olivecycle-{version}-b{versionCode}.apk`
+Archived copy per build: `/downloads/theolivelot-{version}-b{versionCode}.apk`
 
 ## Local build (developer machine)
 
