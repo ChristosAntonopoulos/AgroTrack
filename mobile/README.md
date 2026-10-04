@@ -27,7 +27,7 @@ Optional Windows helper (dot-source in PowerShell): `. .\scripts\setup-java.ps1`
 ```bash
 npm install
 chmod +x scripts/*.sh
-BACKEND_API_URL=https://api.oleachron.com BUILD_BUILDID=1 BUILD_ID=1 ./scripts/build-and-stage-apk.sh
+BACKEND_API_URL=https://api.theolivelot.com BUILD_BUILDID=1 BUILD_ID=1 ./scripts/build-and-stage-apk.sh
 ```
 
 APK lands in `../frontend/public/downloads/`.

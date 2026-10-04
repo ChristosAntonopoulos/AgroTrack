@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
-/** Public API. The website is https://oleachron.com; the API is the api host. */
-export const PRODUCTION_API_ORIGIN = 'https://api.oleachron.com';
+/** Public API. The website is https://theolivelot.com; the API is the api host. */
+export const PRODUCTION_API_ORIGIN = 'https://api.theolivelot.com';
 
 const DEV_API_PORT = 5149;
 
