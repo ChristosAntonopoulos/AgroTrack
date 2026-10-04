@@ -12,6 +12,8 @@ type Props = {
   fieldNames: Record<string, string>;
   category: string;
   month: number;
+  monthLabel?: string;
+  filters?: React.ReactNode;
   onClearFilters: () => void;
   onOpen: (id: string) => void;
   onLoadMore: () => void;
@@ -25,6 +27,8 @@ const TransactionSection: React.FC<Props> = ({
   fieldNames,
   category,
   month,
+  monthLabel,
+  filters,
   onClearFilters,
   onOpen,
   onLoadMore,
@@ -47,13 +51,17 @@ const TransactionSection: React.FC<Props> = ({
   return (
     <section className="money-ledger">
       <header className="money-ledger-head">
-        <h2>{t('entries')}</h2>
+        <div>
+          <h2>{t('entries')}</h2>
+          {filters}
+        </div>
         {filtered ? (
           <button type="button" className="money-text-link" onClick={onClearFilters}>
             {t('clearFilters')}
           </button>
         ) : null}
       </header>
+      {monthLabel ? <p className="money-summary-note">{t('showingMonth', { month: monthLabel })}</p> : null}
 
       {items.length === 0 ? (
         <p className="money-summary-note">{t('noMatchingEntries')}</p>

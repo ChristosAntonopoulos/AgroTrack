@@ -10,6 +10,12 @@ describe('migrateLegacyHomePath', () => {
     expect(migrateLegacyHomePath('/today?field=abc')).toBe('/chronologio?field=abc&focus=today');
   });
 
+  it('sends dashboard and notes to Chronologio', () => {
+    expect(migrateLegacyHomePath('/dashboard')).toBe(CHRONOLOGIO_HOME);
+    expect(migrateLegacyHomePath('/notes')).toBe(CHRONOLOGIO_HOME);
+    expect(migrateLegacyHomePath('/dashboard?field=abc')).toBe('/chronologio?field=abc');
+  });
+
   it('leaves Chronologio and other paths alone', () => {
     expect(migrateLegacyHomePath('/chronologio?view=days')).toBe('/chronologio?view=days');
     expect(migrateLegacyHomePath('/tasks')).toBe('/tasks');

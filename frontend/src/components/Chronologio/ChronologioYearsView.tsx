@@ -14,16 +14,18 @@ import ChronologioClosedYearCard from './ChronologioClosedYearCard';
 type Props = {
   summaries: ChronologioPeriodSummary[];
   numberLocale: string;
+  allFields?: boolean;
   onOpenYear: (periodYear: number) => void;
 };
 
-const ChronologioYearsView: React.FC<Props> = ({ summaries, numberLocale, onOpenYear }) => {
+const ChronologioYearsView: React.FC<Props> = ({ summaries, numberLocale, allFields, onOpenYear }) => {
   const { t } = useTranslation('chronologio');
   const currentAgri = useMemo(() => agriculturalYearFor(new Date()), []);
   const years = useMemo(() => ensureCurrentAgriculturalYear(summaries), [summaries]);
 
   return (
     <div className="chrono-years chrono-years-feed">
+      <p className="chrono-control-hint chrono-years-axis-hint">{t('dateControl.agriYearOpens')}</p>
       {years.map((row) => {
         const isLive = row.periodYear === currentAgri;
         const state = agriculturalYearState(row.periodYear, row);
@@ -49,7 +51,9 @@ const ChronologioYearsView: React.FC<Props> = ({ summaries, numberLocale, onOpen
           />
         );
       })}
-      <p className="chrono-years-origin">{t('living.historyStartsHere')}</p>
+      <p className="chrono-years-origin">
+        {allFields ? t('living.historyStartsHereAll') : t('living.historyStartsHere')}
+      </p>
     </div>
   );
 };

@@ -1,0 +1,216 @@
+.notes-sheet-drawer {
+  --event-accent: var(--event-observation, #755d8c);
+  --event-accent-soft: var(--event-observation-soft, rgba(117, 93, 140, 0.16));
+}
+
+.notes-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.notes-sheet-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--event-accent, var(--olive-primary));
+}
+
+.notes-sheet-write {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.notes-sheet-textarea {
+  width: 100%;
+  min-height: 11.5rem;
+  resize: vertical;
+  margin: 0;
+  padding: 0.95rem 1rem 2rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--event-accent) 32%, var(--border-subtle, var(--color-border)));
+  background: color-mix(in srgb, var(--event-accent-soft) 55%, var(--surface-1, var(--color-surface)));
+  color: var(--text-primary, var(--color-text-primary));
+  font: inherit;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+}
+
+.notes-sheet-textarea::placeholder {
+  color: var(--text-muted, var(--color-text-secondary));
+}
+
+.notes-sheet-textarea:focus {
+  outline: none;
+  border-color: var(--event-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--event-accent) 28%, transparent);
+}
+
+.notes-sheet-count {
+  align-self: flex-end;
+  margin-top: -1.85rem;
+  margin-right: 0.75rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted, var(--color-text-secondary));
+  pointer-events: none;
+}
+
+.notes-sheet-block {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.notes-sheet-hint {
+  margin: 0.3rem 0 0.55rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--text-secondary, var(--color-text-secondary));
+}
+
+.notes-sheet-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.notes-sheet-fields button {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, var(--color-border));
+  background: var(--surface-1, var(--color-surface));
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notes-sheet-fields button.is-selected {
+  border-color: color-mix(in srgb, var(--event-accent) 55%, var(--border-default, var(--color-border)));
+  background: color-mix(in srgb, var(--event-accent-soft) 70%, var(--surface-1));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--event-accent) 35%, transparent);
+}
+
+.notes-sheet-fields button:focus {
+  outline: none;
+}
+
+.notes-sheet-fields button:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--event-accent) 35%, transparent);
+}
+
+.notes-sheet-field-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.notes-sheet-field-dot.is-none {
+  background: transparent;
+  border: 1.5px dashed var(--text-muted, var(--color-text-secondary));
+}
+
+.notes-sheet-pin {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.7rem 0.8rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle, var(--color-border));
+  background: var(--surface-1, var(--color-surface));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notes-sheet-pin.is-on {
+  border-color: color-mix(in srgb, var(--event-accent) 50%, var(--border-default));
+  background: color-mix(in srgb, var(--event-accent-soft) 75%, var(--surface-1));
+}
+
+.notes-sheet-pin:focus {
+  outline: none;
+}
+
+.notes-sheet-pin:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--event-accent) 35%, transparent);
+}
+
+.notes-sheet-pin-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--surface-2, var(--color-surface-elevated));
+  color: var(--text-secondary, var(--color-text-secondary));
+}
+
+.notes-sheet-pin.is-on .notes-sheet-pin-icon {
+  background: var(--event-accent);
+  color: #fff;
+}
+
+.notes-sheet-pin-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.notes-sheet-pin-copy strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.notes-sheet-pin-copy small {
+  font-size: 0.8rem;
+  color: var(--text-secondary, var(--color-text-secondary));
+}
+
+.notes-sheet-error {
+  margin: 0;
+  color: var(--color-error, var(--status-danger));
+  font-weight: 650;
+}
+
+.notes-sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.notes-sheet-footer-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.notes-sheet-drawer .notes-sheet-footer .btn {
+  flex: 0 1 auto;
+}

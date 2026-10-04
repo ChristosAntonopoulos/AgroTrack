@@ -27,6 +27,24 @@ public class UserDocument
     [BsonElement("preferences")]
     public UserExperiencePreferencesDocument Preferences { get; set; } = new();
 
+    [BsonElement("passwordResetTokenHash")]
+    public string? PasswordResetTokenHash { get; set; }
+
+    [BsonElement("passwordResetExpiresAt")]
+    public DateTime? PasswordResetExpiresAt { get; set; }
+
+    [BsonElement("pendingEmail")]
+    public string? PendingEmail { get; set; }
+
+    [BsonElement("emailChangeTokenHash")]
+    public string? EmailChangeTokenHash { get; set; }
+
+    [BsonElement("emailChangeExpiresAt")]
+    public DateTime? EmailChangeExpiresAt { get; set; }
+
+    [BsonElement("deletedAt")]
+    public DateTime? DeletedAt { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -50,4 +68,28 @@ public class UserExperiencePreferencesDocument
 
     [BsonElement("language")]
     public string Language { get; set; } = "en";
+
+    [BsonElement("notifications")]
+    public NotificationPreferencesDocument? Notifications { get; set; }
+}
+
+public class NotificationPreferencesDocument
+{
+    [BsonElement("taskAssignment")]
+    public bool TaskAssignment { get; set; } = true;
+
+    [BsonElement("approval")]
+    public bool Approval { get; set; } = true;
+
+    [BsonElement("harvest")]
+    public bool Harvest { get; set; } = true;
+
+    [BsonElement("financial")]
+    public bool Financial { get; set; } = true;
+
+    [BsonElement("satelliteWeather")]
+    public bool SatelliteWeather { get; set; } = true;
+
+    [BsonElement("marketingSystem")]
+    public bool MarketingSystem { get; set; } = true;
 }

@@ -26,7 +26,7 @@ const getCurrentUser = () => {
 };
 
 export const mockFieldService = {
-  getFields: async (): Promise<Field[]> => {
+  getFields: async (module?: string): Promise<Field[]> => {
     await simulateDelay();
     demoStore.ensureSeeded();
     const fields = demoStore.getFields();
@@ -37,13 +37,13 @@ export const mockFieldService = {
       return [];
     }
 
+    let list: Field[];
+
     // FieldOwners get their owned fields
     if (user.role === 'FieldOwner' || user.role === 'Administrator') {
-      return fields.filter(f => f.ownerId === user.userId || f.ownerId === user.id);
-    }
-    
-    // Producers get fields where they are assigned (or have assigned tasks)
-    if (user.role === 'Producer') {
+      list = fields.filter(f => f.ownerId === user.userId || f.ownerId === user.id);
+    } else if (user.role === 'Producer') {
+      // Producers get fields where they are assigned (or have assigned tasks)
       const userId = user.userId || user.id;
       const assignedFieldIds = Object.entries(assignments)
         .filter(([, producerIds]) => producerIds.includes(userId))
@@ -51,11 +51,15 @@ export const mockFieldService = {
 
       const taskFieldIds = Array.from(new Set(tasks.filter(t => t.assignedUserId === userId).map(t => t.fieldId)));
       const fieldIds = Array.from(new Set([...assignedFieldIds, ...taskFieldIds]));
-      return fields.filter(f => fieldIds.includes(f.id));
+      list = fields.filter(f => fieldIds.includes(f.id));
+    } else {
+      // Default: return all fields (for Agronomist, etc.)
+      list = [...fields];
     }
 
-    // Default: return all fields (for Agronomist, etc.)
-    return [...fields];
+    // Demo mode has no per-seat module matrix; module filter is a no-op identity filter.
+    void module;
+    return list;
   },
 
   getField: async (id: string): Promise<Field> => {
@@ -90,7 +94,6 @@ export const mockFieldService = {
     demoStore.ensureSeeded();
     const user = getCurrentUser();
     const userId = user?.userId || user?.id || DEMO_OWNER_ID;
-    const worksMyself = data.worksThisFieldMyself !== false;
     
     const newField: Field = {
       id: `field${Date.now()}`,
@@ -105,7 +108,9 @@ export const mockFieldService = {
         {
           userId,
           displayName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Owner' : 'Owner',
-          capacities: worksMyself ? ['own', 'work'] : ['own'],
+          role: 'Admin',
+          modules: ['fields', 'tasks', 'photos', 'documents', 'money', 'chronologio', 'harvest'],
+          accessLevel: 'work',
           status: 'active',
           createdAt: new Date().toISOString(),
         },

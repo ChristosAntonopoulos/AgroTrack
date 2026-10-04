@@ -1,11 +1,9 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
-import Button from '../Common/Button';
+import type { FieldPhenology } from '../../services/fieldWorkService';
 import FieldIdentity from './FieldIdentity';
 import FieldMoreMenu from './FieldMoreMenu';
-import FieldModeSegment from './FieldModeSegment';
 import FieldResultYearControl from './FieldResultYearControl';
 import './FieldPageShell.css';
 
@@ -13,50 +11,38 @@ type Props = {
   field: Field;
   year: number;
   canOwn: boolean;
+  canManageAccess?: boolean;
+  showYearControl?: boolean;
   onYearChange: (year: number) => void;
-  onCapture: () => void;
-  onDocuments: () => void;
-  onDelete?: () => void;
+  phenology?: FieldPhenology | null;
 };
 
 const FieldHeader: React.FC<Props> = ({
   field,
   year,
   canOwn,
+  canManageAccess = false,
+  showYearControl = true,
   onYearChange,
-  onCapture,
-  onDocuments,
-  onDelete,
+  phenology,
 }) => {
   const { t } = useTranslation('fields');
-  const isDraft = field.status === 'Draft';
+  const isDraft = field.status === 'Draft' || field.status === 'NeedsBoundaryConfirmation' || field.status === 'NeedsAreaReview';
 
   return (
     <header className="field-header">
       <div className="field-header-identity">
         {isDraft ? <p className="field-header-draft">{t('page.draftField')}</p> : null}
-        <FieldIdentity field={field} size="page" />
-        <p className="field-header-year-label">{t('page.yearLabel', { year })}</p>
-        <div className="field-header-controls">
-          <FieldResultYearControl year={year} onYearChange={onYearChange} />
-          <FieldModeSegment />
-        </div>
+        <FieldIdentity field={field} size="page" phenology={phenology} />
       </div>
       <div className="field-header-actions">
-        <Button
-          icon={<Plus />}
-          variant="primary"
-          size="md"
-          className="field-header-capture"
-          onClick={onCapture}
-        >
-          {t('page.capture')}
-        </Button>
+        {showYearControl ? (
+          <FieldResultYearControl year={year} onYearChange={onYearChange} />
+        ) : null}
         <FieldMoreMenu
           field={field}
           canOwn={canOwn}
-          onDocuments={onDocuments}
-          onDelete={canOwn ? onDelete : undefined}
+          canManageAccess={canManageAccess}
         />
       </div>
     </header>

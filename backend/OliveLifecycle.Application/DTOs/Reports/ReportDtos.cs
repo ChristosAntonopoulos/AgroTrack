@@ -39,10 +39,13 @@ public class HarvestRecordDto
     public double KgPerHa { get; set; }
     public string? MillName { get; set; }
     public double? OilKg { get; set; }
+    public double? OilLitres { get; set; }
     public double? OilYieldPercent { get; set; }
     public string QualityGrade { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public string Status { get; set; } = "posted";
+    public string? BatchId { get; set; }
+    public double? AllocationWeight { get; set; }
 }
 
 public class ProfitLossReportDto
@@ -54,6 +57,7 @@ public class ProfitLossReportDto
     public List<FieldProfitDto> ProfitByField { get; set; } = new();
     public Dictionary<string, decimal> ExpensesByBucket { get; set; } = new();
     public Dictionary<string, decimal> ExpensesByCategory { get; set; } = new();
+    public Dictionary<string, decimal> IncomeByCategory { get; set; } = new();
 }
 
 public class FieldProfitDto
@@ -130,6 +134,8 @@ public class FieldYearlyOperationsDto
     public int? WettestMonth { get; set; }
     public double? RainVsPreviousPercent { get; set; }
     public double? NdviMean { get; set; }
+    public double Et0TotalMm { get; set; }
+    public double? WaterBalanceMm { get; set; }
     public List<double> MonthlyRainMm { get; set; } = new();
     public decimal TotalCost { get; set; }
     public decimal Revenue { get; set; }

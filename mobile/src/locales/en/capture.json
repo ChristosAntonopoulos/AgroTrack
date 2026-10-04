@@ -1,14 +1,63 @@
 {
   "cta": "Record",
+  "ctaPlus": "+ Record",
   "title": "Record",
+  "newRecord": "New record",
+  "allRecords": "All records",
+  "moreRecords": "More records",
   "whatToRecord": "What do you want to record?",
+  "alsoRecord": "Also",
+  "recentSection": "Recent",
+  "dateChip": "Date",
+  "addAnother": "+ Another record",
+  "today": "Today",
+  "quickDomain": {
+    "harvest": "Harvest",
+    "grove": "Grove",
+    "money": "Money",
+    "warehouse": "Cellar"
+  },
+  "catalogSections": {
+    "harvest": "Harvest",
+    "grove": "Grove",
+    "money": "Money",
+    "warehouse": "Cellar"
+  },
+  "tabs": {
+    "day": "Day",
+    "grove": "Grove",
+    "warehouse": "Cellar",
+    "money": "Money"
+  },
+  "tabPrompt": {
+    "day": "What are you adding to today’s harvest?",
+    "grove": "What happened in the grove?",
+    "warehouse": "What are you doing in the cellar?",
+    "money": "What are you recording?",
+    "moneyHint": "Pick income or expense — one tap, then continue."
+  },
+  "dayEmpty": "Harvest is not open. Start the season when you are ready to pick.",
+  "openHarvest": "Open this harvest",
+  "tabLocked": "You cannot record this here.",
+  "warehouseHint": {
+    "give": "Oil to someone",
+    "sell": "A sale from storage",
+    "hold": "Set some aside",
+    "fill": "From bulk into tins",
+    "count": "Correct what is there"
+  },
   "types": {
     "observation": { "title": "Observation", "description": "A note or photos from the grove" },
     "work": { "title": "Work", "description": "Pruning, spraying, fertilizing…" },
     "expense": { "title": "Expense", "description": "Labor, materials, fuel…" },
     "income": { "title": "Income", "description": "Oil, fruit, or subsidy…" },
     "harvest": { "title": "Harvest", "description": "Olives, oil, and yield" },
-    "money": { "title": "Money", "description": "Income or expense" }
+    "money": { "title": "Money", "description": "Income or expense" },
+    "oilSale": { "title": "Oil sale", "description": "Income from olive oil" },
+    "payment": { "title": "Payment", "description": "Labor or other payment" },
+    "voice": { "title": "Voice message", "description": "A recording saved on the timeline" },
+    "document": { "title": "Document", "description": "Upload a file with a name" },
+    "photo": { "title": "Photo", "description": "A photo from the grove" }
   },
   "fieldLabel": "Grove",
   "fieldPrompt": "Which grove?",
@@ -26,8 +75,32 @@
     "addPhoto": "Add photo",
     "saved": "Observation recorded."
   },
+  "photos": {
+    "limit": "Up to {{count}} photos",
+    "remove": "Remove photo"
+  },
+  "photo": {
+    "saved": "{{count}} photo(s) uploaded.",
+    "harvestHint": "Photos are saved to the Photos hub for this field."
+  },
+  "voice": {
+    "hint": "Tap record and speak. The message appears on the timeline.",
+    "record": "Record",
+    "stop": "Stop",
+    "rerecord": "Record again",
+    "clear": "Clear",
+    "noteBody": "Voice message",
+    "saved": "Voice message recorded."
+  },
+  "document": {
+    "nameLabel": "Document name",
+    "namePlaceholder": "e.g. Soil analysis",
+    "chooseFile": "Choose file",
+    "saved": "Document recorded."
+  },
   "work": {
     "whatWork": "What work was done?",
+    "chooseType": "Choose the kind of work.",
     "optionalCost": "Cost (optional)",
     "optionalNote": "Note (optional)",
     "saved": "Work recorded."
@@ -40,7 +113,10 @@
   },
   "harvest": {
     "olives": "Olives (kg)",
+    "olivesQuestion": "How many olives?",
     "oil": "Oil (kg)",
+    "oilQuestion": "How much oil?",
+    "oilOptional": "Leave this empty if it has not been pressed yet.",
     "yield": "Yield",
     "mill": "Mill",
     "notes": "Notes",
@@ -49,9 +125,14 @@
   "errors": {
     "fieldRequired": "Choose a grove.",
     "observationEmpty": "Add a note or a photo.",
+    "voiceEmpty": "Record a voice message first.",
+    "documentNameRequired": "Enter a document name.",
+    "documentFileRequired": "Choose a file.",
+    "micDenied": "Microphone permission is required.",
     "workTypeRequired": "Choose the work that was done.",
     "amountRequired": "Enter an amount.",
     "oliveRequired": "Enter olive kilograms.",
+    "photoRequired": "Choose at least one photo.",
     "saveFailed": "Could not save. Try again."
   },
   "income": {
@@ -83,6 +164,53 @@
     "undo": "Undo",
     "addAnother": "Add another",
     "undoReason": "Undo entry",
-    "noPermission": "You cannot record money here."
+    "noPermission": "You cannot record money here.",
+    "fromThisOil": "Which oil?",
+    "oilSold": "Sold",
+    "oilSaleHint": "Tap every oil that was sold",
+    "packTitle": "What are you selling?",
+    "packHint": "Mix bulk and tins if you want.",
+    "packAll": "All",
+    "packBulk": "Bulk",
+    "packTin16": "16 L tins",
+    "packTin17": "17 L tins",
+    "packTinValue_one": "{{count}} tin",
+    "packTinValue_other": "{{count}} tins",
+    "packAvailable": "you have {{amount}}",
+    "noHarvestOil": "There is no oil in the harvest yet. Enter the litres and the price.",
+    "unitPrice": "Price per {{unit}}",
+    "litresSold": "Litres sold",
+    "qtyTimesPrice": "Quantity × price",
+    "totalOnly": "Total only",
+    "quantity": "Quantity",
+    "unit": "Unit",
+    "total": "Total",
+    "yearLine": "Harvest year {{span}}",
+    "harvestYearOverride": "This entry is counted in a different harvest year than the date suggests.",
+    "oilHarvestYearHint": "The harvest year follows the oil (1 Feb – 31 Jan), not the sale date.",
+    "splitOne": "One field",
+    "splitAcross": "Split across fields",
+    "splitEqual": "Equally",
+    "splitByArea": "By area",
+    "splitNeedTwo": "Choose at least two fields.",
+    "splitMissingArea": "{{name}} has no area, so it stays out of a split by area.",
+    "splitMissingAreaShort": "A split by area needs at least two fields with area.",
+    "splitNote": "Split across {{count}} fields",
+    "repeatOnce": "Once",
+    "repeatMonthly": "Each month this harvest year",
+    "repeatNote": "Repeated {{count}} times this harvest year",
+    "seriesPreview": "This records {{count}} entries, {{amount}} € in total.",
+    "seriesSaved": "{{count}} entries recorded.",
+    "seriesPartial": "Saved {{saved}} of {{total}}. The rest did not save.",
+    "seriesTooMany": "That is too many entries at once.",
+    "whichField": "Which field?",
+    "whenDidItHappen": "When did it happen?",
+    "whenSold": "When was it sold?",
+    "continue": "Continue",
+    "stepKind": "What are you recording?",
+    "stepCategoryExpense": "What expense?",
+    "stepCategoryIncome": "What income?",
+    "stepAmount": "How much?",
+    "stepProgress": "Step {{current}} of {{total}}"
   }
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, parseISO, subDays, subYears } from 'date-fns';
+import { el, enUS, it } from 'date-fns/locale';
 import {
   DailyWeatherSnapshot,
   FieldSatelliteObservation,
@@ -29,6 +30,12 @@ type VegetationPoint = {
   ndmi?: number;
 };
 
+const dateFnsLocale = (language: string) => {
+  if (language.startsWith('el')) return el;
+  if (language.startsWith('it')) return it;
+  return enUS;
+};
+
 const rangeStart = (range: HistoryRange): Date => {
   const now = new Date();
   if (range === '90d') return subDays(now, 90);
@@ -44,11 +51,16 @@ const toDate = (value: string): Date => {
 const round = (value: number | undefined, digits = 1): number | undefined =>
   value == null || Number.isNaN(value) ? undefined : Number(value.toFixed(digits));
 
-const aggregateWeather = (snapshots: DailyWeatherSnapshot[], range: HistoryRange): WeatherPoint[] => {
+const aggregateWeather = (
+  snapshots: DailyWeatherSnapshot[],
+  range: HistoryRange,
+  language: string
+): WeatherPoint[] => {
+  const locale = dateFnsLocale(language);
   const sorted = [...snapshots].sort((a, b) => toDate(a.date).getTime() - toDate(b.date).getTime());
   if (range === '90d') {
     return sorted.map((day) => ({
-      label: format(toDate(day.date), 'd MMM'),
+      label: format(toDate(day.date), 'd MMM', { locale }),
       min: round(day.minTemperatureC),
       max: round(day.maxTemperatureC),
       rain: round(day.rainTotalMm),
@@ -69,7 +81,7 @@ const aggregateWeather = (snapshots: DailyWeatherSnapshot[], range: HistoryRange
   }
 
   return [...months.values()].map((month) => ({
-    label: format(month.date, 'MMM yyyy'),
+    label: format(month.date, 'MMM yyyy', { locale }),
     min: month.min.length ? round(month.min.reduce((a, b) => a + b, 0) / month.min.length) : undefined,
     max: month.max.length ? round(month.max.reduce((a, b) => a + b, 0) / month.max.length) : undefined,
     rain: round(month.rain),
@@ -80,13 +92,14 @@ const aggregateWeather = (snapshots: DailyWeatherSnapshot[], range: HistoryRange
 type Props = {
   fieldId: string;
   fieldName?: string;
+  compact?: boolean;
 };
 
 /**
  * Multi-year weather + vegetation charts (relocated from Field History).
  */
-const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) => {
-  const { t } = useTranslation(['chronologio']);
+const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName, compact = false }) => {
+  const { t, i18n } = useTranslation(['chronologio']);
   const [snapshots, setSnapshots] = useState<DailyWeatherSnapshot[]>([]);
   const [observations, setObservations] = useState<FieldSatelliteObservation[]>([]);
   const [range, setRange] = useState<HistoryRange>('1y');
@@ -144,24 +157,30 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
     return () => window.clearInterval(timer);
   }, [fieldId, range, loading, gathering]);
 
-  const weatherPoints = useMemo(() => aggregateWeather(snapshots, range), [snapshots, range]);
+  const weatherPoints = useMemo(
+    () => aggregateWeather(snapshots, range, i18n.language),
+    [snapshots, range, i18n.language]
+  );
   const vegetationPoints = useMemo<VegetationPoint[]>(() => {
     const start = rangeStart(range).getTime();
+    const locale = dateFnsLocale(i18n.language);
     return observations
       .filter((item) => item.isUsable && item.ndvi && toDate(item.observationDate).getTime() >= start)
       .sort((a, b) => toDate(a.observationDate).getTime() - toDate(b.observationDate).getTime())
       .map((item) => ({
-        label: format(toDate(item.observationDate), range === '90d' ? 'd MMM' : 'MMM yyyy'),
+        label: format(toDate(item.observationDate), range === '90d' ? 'd MMM' : 'MMM yyyy', { locale }),
         ndvi: round(item.ndvi?.mean, 2),
         ndmi: round(item.ndmi?.mean, 2),
       }));
-  }, [observations, range]);
+  }, [observations, range, i18n.language]);
 
   const ranges: { id: HistoryRange; label: string }[] = [
     { id: '90d', label: t('chronologio:weatherVegetation.range90d') },
     { id: '1y', label: t('chronologio:weatherVegetation.range1y') },
     { id: '3y', label: t('chronologio:weatherVegetation.range3y') },
   ];
+
+  const chartH = compact ? 168 : 300;
 
   if (loading) {
     return (
@@ -179,15 +198,15 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
   const hasVegetation = vegetationPoints.length > 0;
 
   return (
-    <section className="field-wv-panel">
+    <section className={`field-wv-panel${compact ? ' field-wv-panel--compact' : ''}`}>
       <header className="field-wv-header">
-        <p className="field-wv-kicker">{t('chronologio:weatherVegetation.kicker')}</p>
+        {compact ? null : <p className="field-wv-kicker">{t('chronologio:weatherVegetation.kicker')}</p>}
         <h2>
           {fieldName
             ? t('chronologio:weatherVegetation.title', { name: fieldName })
             : t('chronologio:weatherVegetation.kicker')}
         </h2>
-        <p className="field-wv-desc">{t('chronologio:weatherVegetation.description')}</p>
+        {compact ? null : <p className="field-wv-desc">{t('chronologio:weatherVegetation.description')}</p>}
       </header>
 
       {gathering ? <p className="field-wv-gathering">{t('chronologio:weatherVegetation.gathering')}</p> : null}
@@ -216,10 +235,12 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
         <div className="field-wv-charts">
           {hasWeather ? (
             <>
+              {compact ? null : <p className="field-wv-plain">{t('chronologio:weatherVegetation.plainWeather')}</p>}
               <LineChart
                 data={weatherPoints}
                 dataKey="max"
                 xAxisKey="label"
+                height={chartH}
                 title={t('chronologio:weatherVegetation.temperatureTitle')}
                 lines={[
                   { dataKey: 'max', name: t('chronologio:weatherVegetation.maxTemp'), color: getCssToken('--temperature') },
@@ -229,6 +250,7 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
               <BarChart
                 data={weatherPoints}
                 xAxisKey="label"
+                height={chartH}
                 title={t('chronologio:weatherVegetation.rainTitle')}
                 bars={[{ dataKey: 'rain', name: t('chronologio:weatherVegetation.rainMm'), color: getCssToken('--rain') }]}
               />
@@ -236,6 +258,7 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
                 data={weatherPoints}
                 dataKey="et0"
                 xAxisKey="label"
+                height={chartH}
                 title={t('chronologio:weatherVegetation.etTitle')}
                 lines={[{ dataKey: 'et0', name: t('chronologio:weatherVegetation.et0Mm'), color: getChartPalette().olive }]}
               />
@@ -243,16 +266,20 @@ const FieldWeatherVegetationCharts: React.FC<Props> = ({ fieldId, fieldName }) =
           ) : null}
 
           {hasVegetation ? (
-            <LineChart
-              data={vegetationPoints}
-              dataKey="ndvi"
-              xAxisKey="label"
-              title={t('chronologio:weatherVegetation.vegetationTitle')}
-              lines={[
-                { dataKey: 'ndvi', name: t('chronologio:weatherVegetation.ndvi'), color: getChartPalette().olive },
-                { dataKey: 'ndmi', name: t('chronologio:weatherVegetation.ndmi'), color: getChartPalette().weather },
-              ]}
-            />
+            <>
+              {compact ? null : <p className="field-wv-plain">{t('chronologio:weatherVegetation.plainVegetation')}</p>}
+              <LineChart
+                data={vegetationPoints}
+                dataKey="ndvi"
+                xAxisKey="label"
+                height={chartH}
+                title={t('chronologio:weatherVegetation.vegetationTitle')}
+                lines={[
+                  { dataKey: 'ndvi', name: t('chronologio:weatherVegetation.ndvi'), color: getChartPalette().olive },
+                  { dataKey: 'ndmi', name: t('chronologio:weatherVegetation.ndmi'), color: getChartPalette().weather },
+                ]}
+              />
+            </>
           ) : (
             <EmptyState
               title={t('chronologio:weatherVegetation.vegetationEmptyTitle')}

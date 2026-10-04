@@ -1,0 +1,22 @@
+{
+  "title": "Aiutaci a crescere",
+  "kicker": "La tua voce conta",
+  "intro": "Uno screenshot, una foto o poche parole — qualunque cosa condividi ci aiuta a migliorare The Olive Lot per l’oliveto. Grazie per il tempo che ci dedichi.",
+  "commentLabel": "Cosa vorresti farci sapere?",
+  "commentPlaceholder": "Cosa non era chiaro, cosa vorresti, o cosa è andato bene…",
+  "screenshot": "Cattura questa schermata",
+  "screenshotHint": "Faremo una foto di quello che vedi ora — utile quando qualcosa non torna.",
+  "screenshotBusy": "Cattura in corso…",
+  "photo": "Aggiungi una foto",
+  "photoHint": "Dalla galleria o dai file.",
+  "removeImage": "Rimuovi",
+  "submit": "Invia con grazie",
+  "sending": "Invio…",
+  "cancel": "Non ora",
+  "needSomething": "Aggiungi un commento, uno screenshot o una foto — anche una nota breve aiuta.",
+  "captureFailed": "Non siamo riusciti a catturare lo schermo. Puoi comunque aggiungere una foto o scrivere una nota.",
+  "sendFailed": "Non è stato possibile inviare ora. Riprova tra un momento.",
+  "thanksTitle": "Grazie — davvero",
+  "thanksBody": "Il tuo messaggio è arrivato. Chi dedica un minuto a condividere quello che vede è il motivo per cui The Olive Lot migliora. Siamo grati che tu partecipi.",
+  "thanksClose": "Torna all’oliveto"
+}

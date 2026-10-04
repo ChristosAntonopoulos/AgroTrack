@@ -1,6 +1,6 @@
 {
   "title": "Impostazioni",
-  "subtitle": "Adatta OLEACHRON come ti è comodo.",
+  "subtitle": "AdattThe Olive Lot come ti è comodo.",
   "autosaveHint": "Le modifiche vengono salvate automaticamente",
   "saved": "Salvato",
   "saveError": "Impossibile salvare.",
@@ -10,6 +10,10 @@
     "appearance": "Aspetto",
     "locale": "Lingua e area",
     "startup": "Avvio",
+    "notifications": "Notifiche",
+    "privacy": "Privacy e dati",
+    "sessions": "Dispositivi connessi",
+    "danger": "Zona pericolosa",
     "technical": "Informazioni tecniche",
     "demo": "Demo"
   },
@@ -17,7 +21,34 @@
     "editProfile": "Modifica profilo",
     "myServices": "I miei servizi",
     "userId": "ID utente",
-    "appVersion": "Versione app"
+    "appVersion": "Versione app",
+    "profileTitle": "Profilo",
+    "profileHelp": "È il nome che le altre persone vedono sul tuo lavoro.",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "saveName": "Salva nome",
+    "nameSaved": "Nome salvato.",
+    "nameRequired": "Inserisci il nome.",
+    "emailTitle": "Email",
+    "emailHelp": "Inviamo un codice al nuovo indirizzo. Diventa l'email di accesso solo dopo che inserisci il codice.",
+    "verified": "Verificata",
+    "newEmail": "Nuova email",
+    "currentPassword": "Password attuale",
+    "sendCode": "Invia codice",
+    "codeSent": "Inserisci il codice di 6 cifre inviato a {{email}}.",
+    "codeLabel": "Codice di verifica",
+    "confirmEmail": "Conferma nuova email",
+    "emailUpdated": "Email aggiornata. Usala per accedere anche sugli altri dispositivi.",
+    "devCode": "In questa build l'email non viene inviata. Il codice è {{code}}.",
+    "passwordTitle": "Password",
+    "passwordHelp": "Scegli una nuova password. Resti connesso su questo dispositivo.",
+    "newPassword": "Nuova password",
+    "confirmPassword": "Conferma nuova password",
+    "changePassword": "Cambia password",
+    "passwordUpdated": "Password aggiornata.",
+    "passwordMismatch": "Le due password nuove non coincidono.",
+    "passwordTooShort": "Usa almeno 8 caratteri.",
+    "passwordResetLink": "Password dimenticata?"
   },
   "appearance": {
     "theme": "Tema",
@@ -31,13 +62,6 @@
       "light": "Usa un aspetto chiaro.",
       "dark": "Usa un aspetto scuro."
     },
-    "detailLevel": "Livello di dettaglio",
-    "simple": "Semplice",
-    "simpleShort": "Semplice",
-    "simpleDesc": "Mostra solo le informazioni e azioni essenziali.",
-    "full": "Completo",
-    "fullShort": "Completo",
-    "fullDesc": "Mostra più dati, strumenti e opzioni.",
     "fontScale": "Dimensione testo",
     "fontScales": {
       "default": "Normale",
@@ -45,19 +69,22 @@
       "xl": "Extra grande"
     },
     "largeControls": "Pulsanti più grandi",
-    "largeControlsDesc": "Aree di tocco più grandi per un uso più facile."
+    "largeControlsDesc": "Aree di tocco più grandi per un uso più facile.",
+    "easyUsePreset": "Uso facile",
+    "easyUsePresetDesc": "Attiva testo grande e controlli grandi insieme.",
+    "easyUseApply": "Applica Uso facile",
+    "resetDefaults": "Ripristina predefiniti",
+    "livePreviewNote": "Le modifiche si applicano subito in questa pagina."
   },
   "locale": {
     "language": "Lingua",
     "dateFormat": "Formato data"
   },
   "startup": {
-    "label": "Quando apro OLEACHRON",
+    "label": "Quando apro The Olive Lot",
     "options": {
-      "today": "Oggi",
-      "dashboard": "Dashboard",
       "fields": "Campi",
-      "chronologio": "Cronologio"
+      "chronologio": "Cronologia"
     }
   },
   "profile": {
@@ -81,14 +108,14 @@
       "yyyy-MM-dd": "2026-09-09",
       "medium": "9 set 2026"
     },
-    "defaultView": "Quando apro OLEACHRON",
+    "defaultView": "Quando apro The Olive Lot",
     "defaultViews": {
       "dashboard": "Dashboard",
       "fields": "Campi",
       "tasks": "Attività",
-      "calendar": "Calendario",
+      "calendar": "Cronologia",
       "today": "Oggi",
-      "chronologio": "Cronologio"
+      "chronologio": "Cronologia"
     },
     "language": "Lingua",
     "fontScale": "Dimensione testo",
@@ -101,11 +128,57 @@
   },
   "notifications": {
     "title": "Notifiche",
+    "accountHint": "Salvate sul tuo account insieme alla casella. Le stesse scelte valgono su ogni dispositivo in cui accedi.",
+    "accountHintDemo": "Salvate su questo account demo nel browser, con esempi di assegnazioni e approvazioni. Su un account The Olive Lot reale ti seguono su ogni dispositivo.",
     "email": "Notifiche email",
     "taskAssignment": "Notifiche assegnazione attività",
     "deadline": "Promemoria scadenze",
     "lifecycle": "Avvisi ciclo di vita",
-    "report": "Notifiche generazione report"
+    "report": "Notifiche generazione report",
+    "prefs": {
+      "taskAssignment": "Assegnazione attività",
+      "approval": "Approvazioni",
+      "harvest": "Raccolta",
+      "financial": "Finanziario",
+      "satelliteWeather": "Satellite e meteo",
+      "marketingSystem": "Marketing e messaggi di sistema"
+    },
+    "prefsHints": {
+      "taskAssignment": "Quando ti viene assegnato lavoro sul campo.",
+      "approval": "Quando un'attività richiede o riceve approvazione.",
+      "harvest": "Aggiornamenti campagna e registrazione raccolta.",
+      "financial": "Avvisi su soldi e costi.",
+      "satelliteWeather": "Avvisi meteo e satellitari.",
+      "marketingSystem": "Annunci prodotto e messaggi di sistema."
+    }
+  },
+  "privacy": {
+    "exportHelp": "Scarica una copia di profilo, preferenze di notifica, campi e notifiche. Foto e registri di denaro si chiedono al supporto.",
+    "exportButton": "Scarica i miei dati",
+    "exportWorking": "Preparazione del file…",
+    "exportDone": "Download avviato.",
+    "supportTitle": "Chiedi al supporto",
+    "supportBody": "Per una correzione, un archivio completo o la conferma scritta che i dati dell'oliveto sono stati cancellati, scrivi al supporto The Olive Lot. Includi l'email di accesso.",
+    "supportAction": "Email al supporto"
+  },
+  "sessions": {
+    "thisDevice": "Questo dispositivo",
+    "thisDeviceHint": "The Olive Lot traccia solo la sessione in questo browser. Esci per terminarla."
+  },
+  "danger": {
+    "deleteHelp": "Chiudere l'account ti disconnette e toglie nome ed email dall'accesso. I dati dell'oliveto restano finché il supporto non conferma la cancellazione.",
+    "deleteButton": "Chiudi account",
+    "confirmTitle": "Chiudere questo account?",
+    "confirmBody": "Inserisci la password e digita l'email per confermare. Verrai disconnesso.",
+    "confirmEmail": "Digita la tua email",
+    "deletePassword": "Password",
+    "deleteAction": "Chiudi account in modo permanente",
+    "cancel": "Annulla",
+    "emailMismatch": "Non corrisponde alla tua email."
+  },
+  "technical": {
+    "purpose": "Condividi la versione dell'app con l'assistenza se qualcosa non va.",
+    "supportHint": "Indica questa versione quando contatti l'assistenzThe Olive Lot."
   },
   "demo": {
     "title": "Demo",
@@ -114,29 +187,16 @@
     "resetConfirm": "Ripristinare i dati demo? Verranno ripristinati campi, attività e assegnazioni originali."
   },
   "experience": {
-    "label": "Livello di dettaglio",
-    "everyday": "Semplice",
-    "everydayShort": "Semplice",
-    "everydayDesc": "Mostra solo le informazioni e azioni essenziali.",
-    "everydayHint": "Consigliato per la maggior parte delle persone",
-    "full": "Completo",
-    "fullShort": "Completo",
-    "fullDesc": "Mostra più dati, strumenti e opzioni.",
-    "fullHint": "Per agronomi e pianificazione dettagliata",
-    "chooserTitle": "Come vuoi che appaia Oleachron?",
-    "chooserSubtitle": "Stessi campi e attività. Tu scegli la densità.",
-    "chooserFooter": "Puoi cambiarlo dopo nelle Impostazioni.",
-    "comfortTitle": "Quanto grande deve essere il testo?",
-    "comfortSubtitle": "Puoi cambiarlo in qualsiasi momento. Grande aiuta all'aperto.",
-    "comfortSkip": "Mantieni dimensione normale",
-    "onrampTitle": "Vuoi più dettaglio?",
-    "onrampBody": "Hai aperto i dettagli del campo alcune volte. Passa quando vuoi mappe e strumenti più densi.",
-    "onrampSwitch": "Passa a Completo",
-    "onrampDismiss": "Non ora",
-    "peekMoreAboutField": "Altro su questo campo",
-    "switchForDetails": "Passa a Completo per i dettagli",
+    "fontScale": "Dimensione testo",
+    "fontScales": {
+      "default": "Normale",
+      "large": "Grande",
+      "xl": "Extra grande"
+    },
+    "largeControls": "Pulsanti più grandi",
+    "largeControlsDesc": "Aree di tocco più grandi per un uso più facile.",
     "setupPhoneTitle": "Configura questo telefono",
-    "setupPhoneBody": "Semplice · Testo grande · Pulsanti più grandi · Il Cronologio è la home"
+    "setupPhoneBody": "Testo grande · Pulsanti più grandi · La Cronologia è la home"
   },
   "saveButton": "Salva modifiche",
   "savedLegacy": "Modifiche salvate"

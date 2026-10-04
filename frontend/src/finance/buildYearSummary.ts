@@ -1,11 +1,14 @@
 import type { FinancialTransaction } from '../services/financialTransactionService';
 import type { YearFinancialSummary } from '../services/financialSummaryService';
+import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import {
   financialCategoryLabel,
   noMonthEntriesLabel,
   resultLabel,
   unassignedFieldLabel,
 } from './display';
+
+const HARVEST_INCOME_CATEGORIES = new Set(['olive_oil_sale', 'olive_sale']);
 
 const roundMoney = (value: number) => Math.round(value * 100) / 100;
 
@@ -129,6 +132,10 @@ export function buildYearSummaryFromTransactions(
       .sort((a, b) => b.amount - a.amount);
   };
 
+  const hasHarvestIncome = posted.some(
+    (row) => row.type === 'income' && row.category && HARVEST_INCOME_CATEGORIES.has(row.category)
+  );
+
   return {
     year,
     currency: posted[0]?.currency || 'EUR',
@@ -136,7 +143,11 @@ export function buildYearSummaryFromTransactions(
     totalIncome: income,
     totalExpenses: expenses,
     netResult: net,
-    resultLabel: resultLabel(net, hasPosted, language),
+    resultLabel: resultLabel(net, hasPosted, language, {
+      isActiveYear: year === agriculturalYearFor(new Date()),
+      totalIncome: income,
+      hasHarvestIncome,
+    }),
     transactionCount: posted.length,
     draftCount: drafts.length,
     lastPostedAt: posted

@@ -1,0 +1,159 @@
+{
+  "checklist": {
+    "title": "Set up your grove",
+    "short": {
+      "createGrove": "Name",
+      "drawBoundary": "Boundary",
+      "loadData": "Ready"
+    },
+    "progress": "{{done}} of {{total}}",
+    "collapse": "Hide",
+    "expand": "Show setup",
+    "dismiss": "Done for now",
+    "celebrateTitle": "Boundary saved — you can explore",
+    "celebrateBody": "Your όρια unlock the rest of The Olive Lot. Weather and satellite will appear on the field map.",
+    "continueTitle": "Finish grove setup",
+    "continueBody": "Draw the όρια to unlock History, photos and the rest of the app.",
+    "continueCta": "Continue setup"
+  },
+  "steps": {
+    "createGrove": {
+      "title": "Add your first grove",
+      "body": "Give it a name you will recognise. Then find where it is and draw the boundary."
+    },
+    "drawBoundary": {
+      "title": "Draw the boundary",
+      "body": "Search for the place, then mark the corners for area, slope and satellite."
+    },
+    "loadData": {
+      "title": "Load grove data",
+      "body": "We are fetching soil, slope and satellite for your boundary."
+    },
+    "firstObservation": {
+      "title": "First observation",
+      "body": "Leave a short note — it starts your History."
+    }
+  },
+  "spotlight": {
+    "skip": "Later",
+    "createGrove": {
+      "title": "What shall we call it?",
+      "body": "Write the name inside the field. Next we find where it is.",
+      "cue": "Write the name, then continue."
+    },
+    "locatePlace": {
+      "title": "Find the place",
+      "body": "Type a village or area and pick from the list. Then draw the boundary on the map.",
+      "cue": "Search a village, then pick it."
+    },
+    "drawBoundary": {
+      "title": "Draw the boundary",
+      "body": "Tap 3–6 points around the grove. When the shape looks right, continue to History.",
+      "cue": "Tap the corners on the map."
+    },
+    "saveBoundary": {
+      "title": "Save the boundary",
+      "body": "The shape looks right. Continue to History to save it.",
+      "cue": "Tap Continue to History to save."
+    },
+    "firstObservation": {
+      "title": "Record your first note",
+      "body": "A short observation starts History — you can post the suggested text as-is."
+    }
+  },
+  "spatial": {
+    "kicker": "Just before History",
+    "title": "Getting its first page ready",
+    "titleNamed": "Building “{{name}}”",
+    "body": "The boundary is in. We are bringing the weather and how the trees look.",
+    "bodyNamed": "“{{name}}” is on the map. Weather, trees from above, and the place itself are on the way.",
+    "firstDataHint": "When this is ready, you write a short note and History begins.",
+    "area": "Area",
+    "slope": "Slope",
+    "satellite": "Satellite",
+    "waiting": "On its way…",
+    "stayHere": "A moment — nothing to tap yet.",
+    "retrying": "Something stalled. We’re trying again.",
+    "ready": "Ready",
+    "beats": {
+      "weather0": "Rain, heat and wind for this grove…",
+      "weather1": "Reading today’s weather here…",
+      "satellite0": "Looking at these trees from above…",
+      "satellite1": "Waiting for a clear pass…",
+      "personalized0": "Measuring this boundary’s area…",
+      "personalized1": "Reading the slope of this grove…",
+      "personalized2": "Looking at the soil under these trees…"
+    },
+    "failed": "Could not load yet",
+    "retry": "Try again",
+    "openMapAnyway": "Continue anyway",
+    "continueAnyway": "Continue anyway",
+    "successTitle": "Your grove data is ready",
+    "successBody": "Next you write a short note and History begins.",
+    "openChronologio": "Open History",
+    "stay": "Stay here",
+    "stages": {
+      "weather": {
+        "title": "Weather here",
+        "body": "Rain, heat and wind around the trees."
+      },
+      "satellite": {
+        "title": "Trees from above",
+        "body": "How green they look, when the sky is clear."
+      },
+      "personalized": {
+        "title": "This place",
+        "body": "Area, slope and soil of this grove."
+      }
+    }
+  },
+  "welcome": {
+    "kicker": "Welcome in",
+    "groveFallback": "your grove",
+    "title": "“{{grove}}” is ready",
+    "titleNamed": "{{name}}, “{{grove}}” is ready",
+    "body": "Have a look on the map. When you’re ready, we open History.",
+    "pointWeather": "Its weather is already here",
+    "pointSatellite": "The trees show when the sky is clear",
+    "pointMap": "What you write stays in its story",
+    "openMap": "Open the map",
+    "openGrove": "Open the map"
+  },
+  "mapExplore": {
+    "caption": "This is your grove on the map. Try a picture below, then open History.",
+    "cta": "Open History"
+  },
+  "coach": {
+    "progress": "{{current}} of {{total}}",
+    "team": "From the The Olive Lot team",
+    "fieldsNav": {
+      "title": "Welcome",
+      "body": "In about a minute your grove is on the map. Tap Fields in the menu and we’ll start.",
+      "cue": "Tap Fields to start."
+    },
+    "createField": {
+      "title": "Your first grove",
+      "body": "Tap the “Add grove” button and write what you call it. You can change it whenever you like.",
+      "cue": "Tap “+ Add grove” to name your first grove."
+    },
+    "homeButton": {
+      "title": "You always know the way back",
+      "body": "The logo at the top left brings you home. That’s how you move around The Olive Lot.",
+      "cue": "This logo brings you home."
+    },
+    "historyNav": {
+      "title": "The story starts with a few words",
+      "body": "Tap History and leave a short note. It becomes the first page of the grove.",
+      "cue": "Tap History — then leave the first note."
+    }
+  },
+  "firstObservation": {
+    "title": "Write the first note",
+    "body": "One short note starts History for this grove.",
+    "cta": "Write the note",
+    "prefill": "My first observation in the grove — History begins here."
+  },
+  "settings": {
+    "showTips": "Show grove setup tips"
+  }
+}

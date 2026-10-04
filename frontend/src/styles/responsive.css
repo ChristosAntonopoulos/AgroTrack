@@ -17,7 +17,8 @@
 
 @media (max-width: 768px) {
   :root {
-    --bottom-nav-height: 56px;
+    /* Tall enough for the docked capture / menu machine buttons. */
+    --bottom-nav-height: 76px;
   }
 }
 
@@ -219,6 +220,35 @@
   .u-form-grid .u-form-span-2,
   .u-form-grid .form-span-2 {
     grid-column: 1 / -1;
+  }
+}
+
+/* Phones: the illustrated canvas shows in the gaps around cards.
+   A firmer edge keeps the frame readable in light, sunny harvest, and dark. */
+@media (max-width: 768px) {
+  :root,
+  [data-theme='light'] {
+    --border-subtle: #C4BDAE;
+    --card-edge: #A89E86;
+  }
+
+  [data-theme='dark'] {
+    --border-subtle: rgba(235, 239, 230, 0.26);
+    --card-edge: rgba(210, 220, 198, 0.52);
+  }
+
+  html[data-harvest-mode='active'][data-theme='light'],
+  html[data-harvest-mode='paused'][data-theme='light'],
+  html[data-harvest-mode='active']:not([data-theme='dark']),
+  html[data-harvest-mode='paused']:not([data-theme='dark']) {
+    --border-subtle: #C9B08C;
+    --card-edge: #B08654;
+  }
+
+  html[data-harvest-mode='active'][data-theme='dark'],
+  html[data-harvest-mode='paused'][data-theme='dark'] {
+    --border-subtle: #6A5644;
+    --card-edge: #A08068;
   }
 }
 

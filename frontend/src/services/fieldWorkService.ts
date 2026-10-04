@@ -6,7 +6,8 @@ export type FieldTaskStatus =
   | 'in_progress'
   | 'blocked'
   | 'completed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'skipped';
 
 export interface TaskProposal {
   id: string;
@@ -69,6 +70,20 @@ export interface FieldPhenology {
   notes?: string;
 }
 
+export interface FieldPhenologyObservation {
+  id: string;
+  fieldId: string;
+  stageCode: string;
+  stageLabel: string;
+  observedOn: string;
+  source: string;
+  confidence: string;
+  confidenceLabel?: string;
+  photoIds: string[];
+  notes?: string;
+  observedByUserId: string;
+}
+
 export interface FieldYearTaskPlan {
   fieldId: string;
   resultYear: number;
@@ -108,6 +123,13 @@ export interface FieldTask {
   weatherSuitabilityLabel: string;
   latestExecutionId?: string;
   startedAt?: string;
+  /** Soft pause while status remains in_progress — not a fifth status. */
+  isPaused?: boolean;
+  pauseReason?: string;
+  pausedAt?: string;
+  workGroupId?: string;
+  blockedReason?: string;
+  activity?: Array<{ action: string; actorId: string; occurredAt: string; comment?: string }>;
   createdByUserId: string;
   createdAt: string;
   updatedAt: string;
@@ -143,6 +165,7 @@ export interface CreateFieldTaskInput {
   estimatedCost?: number;
   resultYear?: number;
   relatedHarvestId?: string;
+  workGroupId?: string;
 }
 
 export interface AcceptProposalInput {
@@ -496,6 +519,33 @@ export const fieldWorkService = {
     return response.data;
   },
 
+  /** Revert a just-started task with no checklist answers yet. */
+  undoStartFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/undo-start`);
+    return response.data;
+  },
+
+  pauseFieldTask: async (
+    id: string,
+    body: { reason: string; plannedStart?: string; plannedEnd?: string }
+  ): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/pause`, body);
+    return response.data;
+  },
+
+  resumeFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/resume`);
+    return response.data;
+  },
+
+  rescheduleFieldTask: async (
+    id: string,
+    body: { plannedStart?: string; plannedEnd?: string }
+  ): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/reschedule`, body);
+    return response.data;
+  },
+
   completeFieldTask: async (
     id: string,
     body: {
@@ -508,6 +558,7 @@ export const fieldWorkService = {
         boolValue?: boolean;
       }>;
       createFollowUpForRemainder?: boolean;
+      allowIncomplete?: boolean;
     }
   ): Promise<TaskExecution> => {
     const response = await api.post<TaskExecution>(`/api/v1/field-tasks/${id}/complete`, body);
@@ -521,6 +572,41 @@ export const fieldWorkService = {
 
   cancelFieldTask: async (id: string): Promise<FieldTask> => {
     const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/cancel`);
+    return response.data;
+  },
+
+  setChecklistItem: async (id: string, key: string, completed: boolean): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/checklist/${encodeURIComponent(key)}`, {
+      completed,
+    });
+    return response.data;
+  },
+
+  blockFieldTask: async (id: string, reason?: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/block`, { reason });
+    return response.data;
+  },
+
+  skipFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/skip`);
+    return response.data;
+  },
+
+  resolveFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/resolve`);
+    return response.data;
+  },
+
+  reopenFieldTask: async (id: string): Promise<FieldTask> => {
+    const response = await api.post<FieldTask>(`/api/v1/field-tasks/${id}/reopen`);
+    return response.data;
+  },
+
+  updateFieldTask: async (
+    id: string,
+    body: { notes?: string; description?: string; title?: string }
+  ): Promise<FieldTask> => {
+    const response = await api.put<FieldTask>(`/api/v1/field-tasks/${id}`, body);
     return response.data;
   },
 
@@ -544,6 +630,13 @@ export const fieldWorkService = {
   getPhenology: async (fieldId: string): Promise<FieldPhenology> => {
     const response = await api.get<FieldPhenology>(`/api/v1/fields/${fieldId}/phenology`);
     return response.data;
+  },
+
+  listPhenologyObservations: async (fieldId: string): Promise<FieldPhenologyObservation[]> => {
+    const response = await api.get<FieldPhenologyObservation[]>(
+      `/api/v1/fields/${fieldId}/phenology/observations`
+    );
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getWorkProfile: async (fieldId: string): Promise<FieldWorkProfile | null> => {

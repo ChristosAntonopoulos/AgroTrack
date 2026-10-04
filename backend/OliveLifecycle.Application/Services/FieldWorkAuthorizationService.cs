@@ -194,9 +194,8 @@ public class FieldWorkAuthorizationService : IFieldWorkAuthorizationService
             return OwnerAccess();
         }
 
-        var isOwner = field.OwnerId == userId
-            || await _fieldAccess.CanUserModifyFieldAsync(fieldId, userId, cancellationToken)
-            || FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Own);
+        var isOwner = await _fieldAccess.CanUserModifyFieldAsync(fieldId, userId, cancellationToken)
+            || FieldPeopleRules.IsAdmin(field, userId);
 
         if (isOwner)
         {
@@ -210,53 +209,34 @@ public class FieldWorkAuthorizationService : IFieldWorkAuthorizationService
             return OwnerAccess();
         }
 
-        var hasAdvise = FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Advise)
-            || userRole == Roles.Agronomist;
-        if (hasAdvise)
-        {
-            return new FieldWorkAccess
-            {
-                CanView = true,
-                CanManageProposals = false,
-                CanCreateTasks = false,
-                CanOperateAssignedTasks = false,
-                CanRecordPhenology = true,
-                CanEditWorkProfile = false,
-                IsOwner = false,
-                IsAgronomist = true,
-                FinancialCapabilities = []
-            };
-        }
-
         var familyCanView = await _fieldAccess.CanFamilyAccessModuleAsync(
             fieldId, userId, FamilyModules.Tasks, cancellationToken);
-        var hasWork = FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Work)
-            || FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Help)
-            || FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.View);
+        if (!familyCanView)
+        {
+            return FieldWorkAccess.None;
+        }
+
+        var canWriteTasks = await _fieldAccess.CanFamilyWriteModuleAsync(
+            fieldId, userId, FamilyModules.Tasks, requireCreateLevel: false, cancellationToken);
 
         var assignedTasks = await _fieldTasks.QueryAsync(
             new FieldTaskQuery { FieldId = fieldId, AssignedUserId = userId },
             cancellationToken);
         var isAssigned = assignedTasks.Count > 0;
 
-        if (familyCanView || hasWork || isAssigned
-            || await _fieldAccess.CanUserAccessFieldAsync(fieldId, userId, userRole, cancellationToken))
+        return new FieldWorkAccess
         {
-            return new FieldWorkAccess
-            {
-                CanView = true,
-                CanManageProposals = false,
-                CanCreateTasks = false,
-                CanOperateAssignedTasks = isAssigned || hasWork,
-                CanRecordPhenology = hasWork || familyCanView,
-                CanEditWorkProfile = false,
-                IsOwner = false,
-                IsAssignedWorker = isAssigned,
-                FinancialCapabilities = []
-            };
-        }
-
-        return FieldWorkAccess.None;
+            CanView = true,
+            CanManageProposals = false,
+            CanCreateTasks = false,
+            CanOperateAssignedTasks = isAssigned || canWriteTasks,
+            CanRecordPhenology = canWriteTasks || familyCanView,
+            CanEditWorkProfile = false,
+            IsOwner = false,
+            IsAgronomist = userRole == Roles.Agronomist,
+            IsAssignedWorker = isAssigned,
+            FinancialCapabilities = []
+        };
     }
 
     private static FieldWorkAccess OwnerAccess() => new()

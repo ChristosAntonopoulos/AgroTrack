@@ -1,17 +1,21 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Info } from 'lucide-react';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import {
   buildDayWeatherView,
   type DayWeatherInput,
 } from '../../chronologio/dayWeather';
 import { presentChronologioEvent } from '../../chronologio/eventPresentation';
+import { waterGapCopy } from '../../utils/weatherReviewDisplay';
 
 type Props = {
   dateKey: string;
   weather: DayWeatherInput | null;
   events: ChronologioEntry[];
   numberLocale: string;
+  sharedWeatherGrid?: boolean;
+  relatedFieldNames?: string[];
   onSelectEvent?: (entry: ChronologioEntry) => void;
 };
 
@@ -20,6 +24,8 @@ const ChronologioDayWeatherDetail: React.FC<Props> = ({
   weather,
   events,
   numberLocale,
+  sharedWeatherGrid,
+  relatedFieldNames,
   onSelectEvent,
 }) => {
   const { t, i18n } = useTranslation(['chronologio', 'today']);
@@ -39,6 +45,15 @@ const ChronologioDayWeatherDetail: React.FC<Props> = ({
 
   return (
     <div data-date={dateKey}>
+      {sharedWeatherGrid && relatedFieldNames && relatedFieldNames.length > 1 ? (
+        <p className="chrono-drawer-notes" role="note">
+          {t('drawer.sharedWeatherGrid', {
+            fields: relatedFieldNames.join(' · '),
+            defaultValue: 'Same weather data point · {{fields}}',
+          })}
+        </p>
+      ) : null}
+
       {view.missing && !weather ? (
         <p className="chrono-drawer-notes">{t('today.weatherMissing')}</p>
       ) : (
@@ -48,7 +63,7 @@ const ChronologioDayWeatherDetail: React.FC<Props> = ({
             <dd>{view.tempLabel || '—'}</dd>
           </div>
           <div>
-            <dt>{t('weatherReview.rainMm')}</dt>
+            <dt>{t('weatherReview.rainfall', { defaultValue: t('weatherReview.rainMm') })}</dt>
             <dd>{rainLabel}</dd>
           </div>
           {view.windBft != null ? (
@@ -73,10 +88,19 @@ const ChronologioDayWeatherDetail: React.FC<Props> = ({
           ) : null}
           {weather?.et0Mm != null ? (
             <div>
-              <dt>{t('weatherVegetation.et0Mm')}</dt>
+              <dt title={t('weatherVegetation.et0Hint', { defaultValue: '' })}>
+                {t('weatherVegetation.et0Label', { defaultValue: t('weatherVegetation.et0Mm') })}
+                <Info size={12} aria-hidden style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+              </dt>
               <dd>
                 {weather.et0Mm.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} mm
               </dd>
+            </div>
+          ) : null}
+          {weather?.waterBalanceMm != null ? (
+            <div>
+              <dt>{waterGapCopy(weather.waterBalanceMm, numberLocale, t).label}</dt>
+              <dd>{waterGapCopy(weather.waterBalanceMm, numberLocale, t).value}</dd>
             </div>
           ) : null}
           {weather?.frost ? (
@@ -93,7 +117,7 @@ const ChronologioDayWeatherDetail: React.FC<Props> = ({
           ) : null}
           <div>
             <dt>{t('drawer.dataType')}</dt>
-            <dd>{t('drawer.measured')}</dd>
+            <dd>{t('drawer.historicalData', { defaultValue: t('drawer.measured') })}</dd>
           </div>
           {weather?.source ? (
             <div>

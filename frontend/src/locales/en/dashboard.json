@@ -35,7 +35,7 @@
       },
       "step2": {
         "label": "Set up how you work a field",
-        "hint": "Answer a few grove-practice questions so Oleachron can propose the right work.",
+        "hint": "Answer a few grove-practice questions so The Olive Lot can propose the right work.",
         "action": "Open fields"
       },
       "step3": {
@@ -173,6 +173,9 @@
     "pinField": "Pin to grove",
     "noField": "No grove",
     "pinTop": "Keep at top",
+    "pinHint": "Shows first in your notes.",
+    "fieldHint": "Optional. The note stays private.",
+    "charCount": "{{count}} / {{max}}",
     "bodyLabel": "Note",
     "bodyRequired": "Write a short note first.",
     "newTitle": "New note",

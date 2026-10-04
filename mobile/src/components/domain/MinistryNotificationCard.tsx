@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Card from '../ui/Card';
-import { MinistryNotification } from '../../services/ministryNotificationService';
+import { MinistryNotification } from '../../services/ministryApiService';
 import { colors, typography, spacing, spacingPatterns } from '../../theme';
 import { toBoolean } from '../../utils/booleanConverter';
 
@@ -97,9 +97,11 @@ const MinistryNotificationCard: React.FC<MinistryNotificationCardProps> = ({
       </Text>
 
       <View style={styles.footer}>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{notification.category}</Text>
-        </View>
+        {notification.category ? (
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{notification.category}</Text>
+          </View>
+        ) : null}
         {notification.expirationDate ? (
           <Text style={styles.expirationText}>
             Expires: {notification.expirationDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

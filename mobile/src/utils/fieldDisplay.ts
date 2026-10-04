@@ -1,9 +1,56 @@
 import type { TFunction } from 'i18next';
 import type { ChronologioEntry } from '../services/chronologioService';
-import type { Field } from '../services/fieldService';
+import type { Field, FieldStatus } from '../services/fieldService';
 import type { FieldTask } from '../services/fieldWorkService';
 import { isActiveFieldTask } from '../services/fieldWorkService';
 import { formatChronologioMoney } from './chronologioGrouping';
+
+/** Incomplete setup — open the create/edit wizard, not the live field page. */
+export const INCOMPLETE_FIELD_STATUSES: ReadonlySet<FieldStatus> = new Set([
+  'Draft',
+  'NeedsBoundaryConfirmation',
+  'NeedsAreaReview',
+]);
+
+export const isFieldSetupIncomplete = (status?: string | null): boolean =>
+  Boolean(status && INCOMPLETE_FIELD_STATUSES.has(status as FieldStatus));
+
+export const isListedGrove = (field: Pick<Field, 'status' | 'name'>): boolean => {
+  if (field.status === 'Archived' || isFieldSetupIncomplete(field.status)) return false;
+  const name = (field.name || '').trim();
+  if (!name) return false;
+  const leftover = name.length < 8 && !/\s/.test(name) && !/\d/.test(name);
+  return !leftover;
+};
+
+/** Owned fields with a name, including short names and drafts, plus shared finished groves. */
+export const isPartnerScopeField = (
+  field: Pick<Field, 'status' | 'name' | 'ownerId'>,
+  userId: string | undefined | null
+): boolean => {
+  if (field.status === 'Archived') return false;
+  const name = (field.name || '').trim();
+  if (!name) return false;
+  if (userId && field.ownerId === userId) return true;
+  return isListedGrove(field);
+};
+
+export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
+  const ring = field.boundary?.coordinates?.[0];
+  return Boolean(ring && ring.length >= 4);
+};
+
+/** Best wizard step when resuming an incomplete field. */
+export const getFieldSetupResumeStep = (
+  field: Pick<Field, 'name' | 'status' | 'boundary'>
+): 'basics' | 'boundary' | 'review' => {
+  const hasName = Boolean(field.name?.trim());
+  const hasBoundary = fieldHasBoundary(field);
+
+  if (!hasName) return 'basics';
+  if (!hasBoundary || field.status === 'NeedsBoundaryConfirmation') return 'boundary';
+  return 'review';
+};
 
 const startOfLocalDay = (d: Date): Date =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -93,9 +140,15 @@ export const formatSignedMoney = (value: number, currency: string, locale: strin
 export const formatRelativeTime = (value: Date | string, locale: string): string => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
+  // Hermes Android often lacks RelativeTimeFormat — `new undefined()` throws
+  // "Cannot read property 'prototype' of undefined" on the field page.
+  const RelativeTimeFormat = (Intl as typeof Intl | undefined)?.RelativeTimeFormat;
+  if (typeof RelativeTimeFormat !== 'function') {
+    return formatCompactDate(date, locale);
+  }
   const deltaMs = Date.now() - date.getTime();
   const minutes = Math.round(deltaMs / 60000);
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const rtf = new RelativeTimeFormat(locale, { numeric: 'auto' });
   if (Math.abs(minutes) < 60) return rtf.format(-minutes, 'minute');
   const hours = Math.round(minutes / 60);
   if (Math.abs(hours) < 24) return rtf.format(-hours, 'hour');

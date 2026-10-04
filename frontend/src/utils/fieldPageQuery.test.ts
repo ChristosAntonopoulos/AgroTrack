@@ -14,7 +14,8 @@ describe('fieldPageQuery', () => {
     expect(parseFieldPageTab(new URLSearchParams('mode=chronologio'))).toBe('chronologio');
   });
 
-  it('defaults to overview when nothing is stored', () => {
+  it('defaults to overview when the URL has no tab', () => {
+    localStorage.setItem('oleachron.fieldView', JSON.stringify({ lastTab: 'map' }));
     expect(parseFieldPageTab(new URLSearchParams())).toBe('overview');
   });
 

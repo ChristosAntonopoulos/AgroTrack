@@ -68,15 +68,20 @@ public class GeospatialJobQueue : IGeospatialJobQueue
 
     public async Task EnqueueFieldHistoryBackfillAsync(string fieldId, CancellationToken cancellationToken = default)
     {
-        // One key per field so redrawing the boundary or re-activating cannot
-        // launch a second multi-year download.
+        // One stable key per field. A Completed no-op (e.g. activate before όρια) must
+        // not block the real run after the boundary is saved.
         var key = $"fieldhistory_{fieldId}";
-        var job = await TryRecordJobAsync(fieldId, "FieldHistoryBackfill", key, cancellationToken);
+        var job = await TryRecordJobAsync(fieldId, "FieldHistoryBackfill", key, cancellationToken, allowRerunIfEmptyHistory: true);
         if (job == null) return;
         await _fieldHistoryChannel.Writer.WriteAsync(new FieldHistoryWorkItem(fieldId, job.Id), cancellationToken);
     }
 
-    private async Task<GeospatialProcessingJob?> TryRecordJobAsync(string fieldId, string jobType, string idempotencyKey, CancellationToken ct)
+    private async Task<GeospatialProcessingJob?> TryRecordJobAsync(
+        string fieldId,
+        string jobType,
+        string idempotencyKey,
+        CancellationToken ct,
+        bool allowRerunIfEmptyHistory = false)
     {
         using var scope = _scopeFactory.CreateScope();
         var repository = scope.ServiceProvider.GetRequiredService<IGeospatialProcessingJobRepository>();
@@ -84,6 +89,20 @@ public class GeospatialJobQueue : IGeospatialJobQueue
         var existing = await repository.GetByIdempotencyKeyAsync(idempotencyKey, ct);
         if (existing != null && existing.Status != GeospatialProcessingStatus.Failed)
         {
+            if (allowRerunIfEmptyHistory &&
+                existing.Status == GeospatialProcessingStatus.Completed &&
+                await FieldNeedsHistoryRerunAsync(scope.ServiceProvider, fieldId, ct))
+            {
+                existing.Status = GeospatialProcessingStatus.Pending;
+                existing.Attempts++;
+                existing.LastError = null;
+                existing.CompletedAt = null;
+                existing.StartedAt = null;
+                existing.UpdatedAt = DateTime.UtcNow;
+                await repository.UpdateAsync(existing, ct);
+                return existing;
+            }
+
             _logger.LogDebug("Skipping duplicate {JobType} enqueue for field {FieldId}", jobType, fieldId);
             return null;
         }
@@ -108,6 +127,33 @@ public class GeospatialJobQueue : IGeospatialJobQueue
             UpdatedAt = DateTime.UtcNow
         };
         return await repository.CreateAsync(job, ct);
+    }
+
+    /// <summary>
+    /// True when a previous "Completed" backfill left the field without usable Chronologio
+    /// weather history (activate-before-όρια, empty archive, or reviews never compiled).
+    /// </summary>
+    private static async Task<bool> FieldNeedsHistoryRerunAsync(
+        IServiceProvider provider,
+        string fieldId,
+        CancellationToken ct)
+    {
+        var fieldRepository = provider.GetRequiredService<IFieldRepository>();
+        var field = await fieldRepository.GetByIdAsync(fieldId, ct);
+        if (field?.Boundary == null) return false;
+
+        var reviews = provider.GetRequiredService<IFieldWeatherPeriodReviewRepository>();
+        var existingReviews = await reviews.GetByFieldIdsAsync(new[] { fieldId }, null, null, ct);
+        if (existingReviews.Count == 0)
+        {
+            return true;
+        }
+
+        var snapshots = provider.GetRequiredService<IFieldDailyWeatherSnapshotRepository>();
+        var from = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-1));
+        var to = DateOnly.FromDateTime(DateTime.UtcNow);
+        var history = await snapshots.GetHistoryAsync(fieldId, from, to, ct);
+        return history.Count < 60;
     }
 }
 

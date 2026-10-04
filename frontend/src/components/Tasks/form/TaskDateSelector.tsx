@@ -27,6 +27,8 @@ interface TaskDateSelectorProps {
   onStartChange: (iso: string) => void;
   onEndChange: (iso: string) => void;
   onToggleMultiDay: () => void;
+  hideLabel?: boolean;
+  labelId?: string;
 }
 
 const TaskDateSelector: React.FC<TaskDateSelectorProps> = ({
@@ -40,6 +42,8 @@ const TaskDateSelector: React.FC<TaskDateSelectorProps> = ({
   onStartChange,
   onEndChange,
   onToggleMultiDay,
+  hideLabel = false,
+  labelId = 'task-when-label',
 }) => {
   const { t, i18n } = useTranslation('tasks');
   const today = athensTodayIso();
@@ -65,10 +69,12 @@ const TaskDateSelector: React.FC<TaskDateSelectorProps> = ({
 
   return (
     <div className="task-form-field">
-      <p className="task-form-label" id="task-when-label">
-        {t('fieldWork.form.whenQuestion')}
-      </p>
-      <div className="task-date-choices" role="group" aria-labelledby="task-when-label">
+      {hideLabel ? null : (
+        <p className="task-form-label" id="task-when-label">
+          {t('fieldWork.form.whenQuestion')}
+        </p>
+      )}
+      <div className="task-date-choices" role="group" aria-labelledby={labelId}>
         {(
           [
             ['today', t('fieldWork.form.when.today')],

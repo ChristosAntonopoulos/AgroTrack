@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react';
+import { Download } from 'lucide-react';
 import FieldScopeSelector from '../Chronologio/FieldScopeSelector';
 import { UNASSIGNED_FIELD_QUERY } from '../../finance/buildYearSummary';
 import { unassignedFieldLabel } from '../../finance/display';
@@ -12,10 +12,17 @@ type Props = {
   fields: Field[];
   fieldId: string;
   onFieldChange: (fieldId: string) => void;
-  onCapture?: () => void;
+  onExport?: () => void;
+  exporting?: boolean;
 };
 
-const MoneyPageHeader: React.FC<Props> = ({ fields, fieldId, onFieldChange, onCapture }) => {
+const MoneyPageHeader: React.FC<Props> = ({
+  fields,
+  fieldId,
+  onFieldChange,
+  onExport,
+  exporting,
+}) => {
   const { t, i18n } = useTranslation(['money', 'chronologio']);
   return (
     <header className="money-page-header">
@@ -33,10 +40,10 @@ const MoneyPageHeader: React.FC<Props> = ({ fields, fieldId, onFieldChange, onCa
             { value: UNASSIGNED_FIELD_QUERY, label: unassignedFieldLabel(i18n.language) },
           ]}
         />
-        {onCapture ? (
-          <button type="button" className="money-capture-cta" onClick={onCapture}>
-            <Plus size={18} aria-hidden />
-            {t('chronologio:captureNew')}
+        {onExport ? (
+          <button type="button" className="money-export-cta" onClick={onExport} disabled={exporting}>
+            <Download size={16} aria-hidden />
+            {exporting ? t('money:exporting') : t('money:export')}
           </button>
         ) : null}
       </div>

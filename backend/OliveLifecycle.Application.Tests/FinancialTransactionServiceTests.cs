@@ -17,6 +17,7 @@ public class FinancialTransactionServiceTests
 {
     private readonly Mock<IFinancialTransactionRepository> _transactions = new();
     private readonly Mock<IFieldRepository> _fields = new();
+    private readonly Mock<IFieldAccessScopeService> _fieldAccessScope = new();
     private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
     private readonly Mock<IHarvestRecordRepository> _harvests = new();
     private readonly Mock<IFinancialAuthorizationService> _auth = new();
@@ -27,9 +28,13 @@ public class FinancialTransactionServiceTests
     public FinancialTransactionServiceTests()
     {
         _clock.Setup(c => c.UtcNow).Returns(new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc));
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldIdsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
         _service = new FinancialTransactionService(
             _transactions.Object,
             _fields.Object,
+            _fieldAccessScope.Object,
             _fieldTasks.Object,
             _harvests.Object,
             _auth.Object,

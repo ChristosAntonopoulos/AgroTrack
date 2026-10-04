@@ -19,7 +19,7 @@ namespace OliveLifecycle.Application.Tests;
 public class ChronologioServiceTests
 {
     private readonly Mock<IFieldAccessService> _access = new();
-    private readonly Mock<IFieldService> _fieldService = new();
+    private readonly Mock<IFieldAccessScopeService> _fieldAccessScope = new();
     private readonly Mock<IFieldRepository> _fields = new();
     private readonly Mock<ITaskExecutionRepository> _executions = new();
     private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
@@ -30,12 +30,23 @@ public class ChronologioServiceTests
     private readonly Mock<IUserRepository> _users = new();
     private readonly Mock<IMediaAttachmentRepository> _media = new();
     private readonly Mock<IFieldWeatherPeriodReviewRepository> _weatherReviews = new();
+    private readonly Mock<IFieldWeatherExtremeEventRepository> _weatherExtremes = new();
     private readonly Mock<IGeospatialStorageService> _storage = new();
+    private readonly Mock<IPhotoContentUrlSigner> _photoUrlSigner = new();
     private readonly ChronologioService _service;
 
     public ChronologioServiceTests()
     {
         _media.Setup(m => m.GetByOwnersAsync(It.IsAny<MediaOwnerType>(), It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<MediaAttachment>());
+        _weatherExtremes
+            .Setup(r => r.GetByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Core.Entities.Geospatial.FieldWeatherExtremeEvent>());
+        _media.Setup(m => m.GetStandaloneByFieldIdsAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<MediaAttachment>());
         _weatherReviews.Setup(r => r.GetByFieldIdsAsync(
                 It.IsAny<IReadOnlyList<string>>(),
@@ -43,10 +54,23 @@ public class ChronologioServiceTests
                 It.IsAny<DateTime?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<Core.Entities.Geospatial.FieldWeatherPeriodReview>());
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldIdsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string> { "field-1", "field-2", "f1" });
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Field>
+            {
+                new() { Id = "field-1", Name = "Κτήμα Καρύστου", OwnerId = "owner-1", Status = FieldStatus.Active }
+            });
+        _photoUrlSigner
+            .Setup(s => s.CreateUrl(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+            .Returns((string id, string variant, string uid, TimeSpan? _) =>
+                $"/api/v1/photos/{id}/content?variant={variant}&exp=1&uid={uid}&sig=test");
 
         _service = new ChronologioService(
             _access.Object,
-            _fieldService.Object,
+            _fieldAccessScope.Object,
             _fields.Object,
             _executions.Object,
             _fieldTasks.Object,
@@ -57,7 +81,9 @@ public class ChronologioServiceTests
             _users.Object,
             _media.Object,
             _weatherReviews.Object,
+            _weatherExtremes.Object,
             _storage.Object,
+            _photoUrlSigner.Object,
             NullLogger<ChronologioService>.Instance);
 
         _users.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
@@ -86,8 +112,9 @@ public class ChronologioServiceTests
     [Fact]
     public async Task GetForFieldAsync_ThrowsWhenAccessDenied()
     {
-        _access.Setup(a => a.CanUserAccessFieldAsync("field-1", "owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                "owner-1", Roles.FieldOwner, FamilyModules.Chronologio, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Field>());
 
         await Assert.ThrowsAsync<ForbiddenException>(() =>
             _service.GetForFieldAsync("field-1", "owner-1", Roles.FieldOwner, new ChronologioQuery()));
@@ -323,7 +350,7 @@ public class ChronologioServiceTests
         Assert.Equal(2026, harvest.ResultYear);
         Assert.Equal("2026", harvest.LifecycleYear);
         Assert.Contains("4820", harvest.Summary);
-        Assert.Contains("ελιές", harvest.Summary);
+        Assert.Contains("επίσημο βάρος", harvest.Summary);
         Assert.DoesNotContain("olives", harvest.Summary);
     }
 
@@ -471,10 +498,11 @@ public class ChronologioServiceTests
     [Fact]
     public async Task GetForUserAsync_ExcludesDraftFields()
     {
-        _fieldService.Setup(s => s.GetFieldsForUserAsync("owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                "owner-1", Roles.FieldOwner, FamilyModules.Chronologio, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
-                new FieldDto { Id = "draft-1", Name = "Draft grove", OwnerId = "owner-1", Status = "Draft" }
+                new Field { Id = "draft-1", Name = "Draft grove", OwnerId = "owner-1", Status = FieldStatus.Draft }
             });
 
         var entries = await _service.GetForUserAsync(
@@ -524,10 +552,11 @@ public class ChronologioServiceTests
     [Fact]
     public async Task GetForUserAsync_IncludesFieldName()
     {
-        _fieldService.Setup(s => s.GetFieldsForUserAsync("owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                "owner-1", Roles.FieldOwner, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
-                new FieldDto { Id = "field-1", Name = "Κτήμα Καρύστου", OwnerId = "owner-1" }
+                new Field { Id = "field-1", Name = "Κτήμα Καρύστου", OwnerId = "owner-1", Status = FieldStatus.Active }
             });
 
         SetupActiveExecution(
@@ -1262,6 +1291,84 @@ public class ChronologioServiceTests
 
     private static DateTime Nowish() => new(2026, 3, 15, 12, 0, 0, DateTimeKind.Utc);
 
+    [Fact]
+    public async Task GetForFieldAsync_PartnerWithoutMoney_OmitsMoneyEntries()
+    {
+        _access.Setup(a => a.CanUserAccessFieldAsync("field-1", "partner-1", Roles.Producer, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Field { Id = "field-1", Name = "Grove A", OwnerId = "owner-1" });
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                "partner-1", Roles.Producer, FamilyModules.Chronologio, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Field>
+            {
+                new() { Id = "field-1", Name = "Grove A", OwnerId = "owner-1", Status = FieldStatus.Active }
+            });
+
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldIdsAsync(
+                "partner-1", Roles.Producer, FamilyModules.Money, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldIdsAsync(
+                "partner-1", Roles.Producer, FamilyModules.Harvest, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string> { "field-1" });
+
+        SetupActiveExecution(
+            "field-1",
+            new TaskExecution
+            {
+                Id = "exec-1",
+                TaskId = "task-1",
+                FieldId = "field-1",
+                Outcome = TaskExecutionOutcome.Completed,
+                CompletedAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc),
+                RecordedByUserId = "partner-1",
+                CreatedAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc),
+                ResultYear = 2026
+            },
+            new FieldTask
+            {
+                Id = "task-1",
+                FieldId = "field-1",
+                Title = "Ψεκασμός",
+                TemplateCode = "spraying",
+                Status = FieldTaskStatus.Completed,
+                AssignedUserId = "partner-1",
+                CreatedAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc)
+            });
+
+        _finance.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                PostedMoney(
+                    "exp-hidden",
+                    180m,
+                    new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
+                    description: "Should not appear",
+                    category: FinancialTransactionCategory.Fertilizers)
+            });
+        _harvests.Setup(r => r.GetByFieldIdAsync("field-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<HarvestRecord>());
+        _notes.Setup(r => r.GetByOwnerUserIdAsync("partner-1", "field-1", 200, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Note>());
+        _activities.Setup(r => r.GetByFieldIdAsync("field-1", 200, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Activity>());
+
+        var entries = await _service.GetForFieldAsync(
+            "field-1",
+            "partner-1",
+            Roles.Producer,
+            new ChronologioQuery());
+
+        Assert.Contains(entries, e => e.SourceType == ChronologioSourceTypes.TaskExecution);
+        Assert.DoesNotContain(entries, e =>
+            e.SourceType == ChronologioSourceTypes.Expense || e.SourceType == ChronologioSourceTypes.Income);
+        _finance.Verify(
+            r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     private static FinancialTransaction PostedMoney(
         string id,
         decimal amount,
@@ -1298,6 +1405,12 @@ public class ChronologioServiceTests
             .ReturnsAsync(true);
         _fields.Setup(r => r.GetByIdAsync(fieldId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Field { Id = fieldId, Name = name, OwnerId = "owner-1" });
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Field>
+            {
+                new() { Id = fieldId, Name = name, OwnerId = "owner-1", Status = FieldStatus.Active }
+            });
     }
 
     private void SetupEmptySources(string fieldId)

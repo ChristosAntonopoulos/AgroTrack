@@ -78,7 +78,7 @@ public static class FieldWorkCatalogue
                     "It is time to review the previous result year.", "previous_year_review")
             ]),
 
-        Entry("T02", "Χειμερινός έλεγχος χωραφιού", "Winter field inspection", "Inspection",
+        Entry("T02", "Χειμερινός έλεγχος ελαιώνα", "Winter field inspection", "Inspection",
             "Inspect after winter weather before pruning.",
             Month(1, 15, 2, 28), null, "inspection_complete", null, Weather: "winter_inspection",
             Checklist:
@@ -94,7 +94,7 @@ public static class FieldWorkCatalogue
             ],
             Rules:
             [
-                Seasonal("T02_SEASONAL", "Είναι καλή περίοδος για χειμερινό έλεγχο του χωραφιού.",
+                Seasonal("T02_SEASONAL", "Είναι καλή περίοδος για χειμερινό έλεγχο του ελαιώνα.",
                     "It is a good period for a winter field inspection.", "winter_inspection")
             ]),
 
@@ -137,13 +137,9 @@ public static class FieldWorkCatalogue
             Month(2, 15, 4, 30), Bbch(0, 59), "fertilisation_application", "fertilizers", Weather: "surface_fertilisation",
             Checklist:
             [
-                Check("correct_field", "Σωστό χωράφι", "Correct field", type: ChecklistItemType.Confirmation),
-                Check("correct_product", "Σωστό λίπασμα", "Correct fertiliser", type: ChecklistItemType.Confirmation),
-                Check("planned_qty", "Προγραμματισμένη ποσότητα", "Planned quantity", type: ChecklistItemType.QuantityWithUnit),
-                Check("equipment", "Έλεγχος εξοπλισμού", "Equipment checked"),
-                Check("actual_qty", "Πραγματική ποσότητα", "Actual quantity recorded", type: ChecklistItemType.QuantityWithUnit),
-                Check("expense", "Απόδειξη ή έξοδο", "Receipt or expense added", essential: false),
-                Check("photo", "Φωτογραφία", "Photo optional", type: ChecklistItemType.Photo, essential: false)
+                Check("product", "Σωστό λίπασμα", "Correct fertiliser"),
+                Check("quantity", "Καταγράφηκε η ποσότητα", "Quantity recorded"),
+                Check("finished", "Ολοκληρώθηκε ο ελαιώνας", "Field finished")
             ],
             Rules:
             [
@@ -157,13 +153,9 @@ public static class FieldWorkCatalogue
             Month(2, 15, 4, 15), Bbch(0, 54), "pruning_complete", "labor", Weather: "pruning",
             Checklist:
             [
-                Check("objective", "Στόχος κλαδέματος", "Confirm pruning objective", type: ChecklistItemType.Choice),
-                Check("damaged", "Σήμανση κατεστραμμένων/άρρωστων κλαδιών", "Mark damaged/diseased branches"),
-                Check("tools", "Απολύμανση εργαλείων όπου χρειάζεται", "Disinfect tools where required", essential: false),
-                Check("area", "Δέντρα ή έκταση που ολοκληρώθηκε", "Record trees or area completed", type: ChecklistItemType.Text),
-                Check("photos", "Φωτογραφίες πριν/μετά", "Photograph before and after", type: ChecklistItemType.Photo, essential: false),
-                Check("labour", "Καταγραφή εργασίας", "Record labour", type: ChecklistItemType.Number, essential: false),
-                Check("residue_plan", "Σχέδιο υπολειμμάτων", "Record branch-residue plan", essential: false)
+                Check("damaged", "Αφαιρέθηκαν τα κατεστραμμένα κλαδιά", "Damaged branches removed"),
+                Check("tools", "Τα εργαλεία καθαρίστηκαν", "Tools cleaned"),
+                Check("area", "Ολοκληρώθηκε η έκταση", "Area finished")
             ],
             Rules:
             [
@@ -192,14 +184,9 @@ public static class FieldWorkCatalogue
             "Inspect before the first expected irrigation.",
             Month(3, 15, 4, 30), null, "irrigation_inspection", "irrigation",
             [
-                Check("pump", "Λειτουργία αντλίας", "Pump operation"),
-                Check("filters", "Φίλτρα", "Filters"),
-                Check("pipes", "Κύριοι σωλήνες", "Main pipes"),
-                Check("emitters", "Σταλάκτες", "Emitters"),
-                Check("leaks", "Διαρροές", "Leaks"),
-                Check("pressure", "Πίεση", "Pressure", essential: false),
-                Check("meter", "Υδρόμετρο", "Water meter", essential: false),
-                Check("repairs", "Ανάγκες επισκευής", "Record repair needs", type: ChecklistItemType.Text, essential: false)
+                Check("pump", "Η αντλία ξεκινά", "Pump starts"),
+                Check("leaks", "Δεν υπάρχουν διαρροές", "No visible leaks"),
+                Check("pressure", "Η πίεση είναι κανονική", "Pressure is normal")
             ],
             [
                 Seasonal("T08_SEASONAL", "Πριν την πρώτη άρδευση, ελέγξτε το αρδευτικό σύστημα.",
@@ -213,11 +200,9 @@ public static class FieldWorkCatalogue
             Month(4, 1, 6, 15), null, "ground_cover", "fuel_and_energy", Weather: "ground_cover",
             Checklist:
             [
-                Check("area", "Έκταση", "Area", type: ChecklistItemType.Text),
-                Check("method", "Μέθοδος", "Method", type: ChecklistItemType.Choice),
-                Check("hours", "Ώρες", "Hours", type: ChecklistItemType.Number, essential: false),
-                Check("fuel", "Κόστος καυσίμου", "Fuel cost", type: ChecklistItemType.Number, essential: false),
-                Check("photos", "Φωτογραφίες πριν/μετά", "Before/after photos", type: ChecklistItemType.Photo, essential: false)
+                Check("area", "Ολοκληρώθηκε η έκταση", "Area finished"),
+                Check("method", "Καταγράφηκε ο τρόπος", "Method recorded"),
+                Check("photos", "Φωτογραφία αν χρειάζεται", "Photo if needed", type: ChecklistItemType.Photo, essential: false)
             ],
             Rules:
             [
@@ -296,13 +281,9 @@ public static class FieldWorkCatalogue
             "Weekly trap and fruit checks until harvest. Never auto-schedule a spray.",
             Month(6, 1, 12, 31), Bbch(71, 89), "fly_trap_inspect", null,
             [
-                Check("catches", "Συλλήψεις παγίδας", "Trap catches", type: ChecklistItemType.Number),
-                Check("period_days", "Περίοδος παγίδας σε ημέρες", "Trap period in days", type: ChecklistItemType.Number),
-                Check("fruit_sample", "Δειγματοληψία καρπών", "Sampled fruit count", type: ChecklistItemType.Number),
-                Check("affected", "Ύποπτοι καρποί", "Suspected affected fruit count", type: ChecklistItemType.Number, essential: false),
-                Check("warning", "Επίσημη προειδοποίηση", "Official warning", essential: false),
-                Check("photos", "Φωτογραφίες", "Photos", type: ChecklistItemType.Photo, essential: false),
-                Check("decision", "Απόφαση γεωπόνου", "Agronomist decision", type: ChecklistItemType.Text, essential: false)
+                Check("catches", "Καταμετρήθηκαν οι συλλήψεις", "Trap catches counted"),
+                Check("fruit", "Ελέγχθηκαν καρποί", "Fruit checked"),
+                Check("photos", "Φωτογραφία αν υπάρχει ζημιά", "Photo if there is damage", type: ChecklistItemType.Photo, essential: false)
             ],
             [
                 Seasonal("T14_CHECK", "Οι συνθήκες και οι καταγραφές δείχνουν ότι χρειάζεται έλεγχος παγίδων δάκου.",
@@ -322,7 +303,7 @@ public static class FieldWorkCatalogue
             ],
             Rules:
             [
-                Seasonal("T15_BALANCE", "Με τα σημερινά δεδομένα, το χωράφι μπορεί να χρειάζεται νερό σύντομα.",
+                Seasonal("T15_BALANCE", "Με τα σημερινά δεδομένα, ο ελαιώνας μπορεί να χρειάζεται νερό σύντομα.",
                     "With current data, the field may need water soon.", "irrigation_deficit",
                     confidence: ProposalConfidence.WorthChecking, requiresIrrigated: true, allowUnknownPhenology: true)
             ],
@@ -429,19 +410,13 @@ public static class FieldWorkCatalogue
             Month(10, 1, 1, 31), Bbch(80, 89), "harvest_batch", "labor", Weather: "harvest",
             Checklist:
             [
-                Check("date", "Ημερομηνία", "Date", type: ChecklistItemType.Text),
-                Check("area", "Έκταση ή δέντρα", "Area or trees", type: ChecklistItemType.Text),
-                Check("olive_kg", "Κιλά ελιάς", "Olive kilograms", type: ChecklistItemType.Number),
-                Check("destination", "Προορισμός", "Destination", type: ChecklistItemType.Text),
-                Check("mill", "Ελαιοτριβείο", "Mill", type: ChecklistItemType.Text, essential: false),
-                Check("oil", "Κιλά/λίτρα λαδιού", "Oil kilograms/litres", type: ChecklistItemType.Number, essential: false),
-                Check("workers", "Εργάτες", "Workers", type: ChecklistItemType.Number, essential: false),
-                Check("photos", "Φωτογραφίες", "Photos", type: ChecklistItemType.Photo, essential: false),
-                Check("notes", "Σημειώσεις", "Notes", type: ChecklistItemType.Text, essential: false)
+                Check("area", "Ολοκληρώθηκε η έκταση", "Area finished"),
+                Check("olive_kg", "Καταγράφηκαν τα κιλά", "Kilograms recorded"),
+                Check("photos", "Φωτογραφία της συγκομιδής", "Harvest photo", type: ChecklistItemType.Photo, essential: false)
             ],
             Rules:
             [
-                Seasonal("T21_SEASONAL", "Είναι η περίοδος συγκομιδής ανάλογα με το χωράφι και τον στόχο.",
+                Seasonal("T21_SEASONAL", "Είναι η περίοδος συγκομιδής ανάλογα με τον ελαιώνα και τον στόχο.",
                     "Harvest period depending on field and objective.", "harvest_window",
                     confidence: ProposalConfidence.WorthChecking, allowUnknownPhenology: true)
             ]),
@@ -466,7 +441,7 @@ public static class FieldWorkCatalogue
                     confidence: ProposalConfidence.WorthChecking)
             ]),
 
-        Entry("T23", "Μετασυλλεκτικός έλεγχος χωραφιού", "Post-harvest field inspection", "Inspection",
+        Entry("T23", "Μετασυλλεκτικός έλεγχος ελαιώνα", "Post-harvest field inspection", "Inspection",
             "Inspect within about 14 days after harvest. Failed items become proposals, not auto tasks.",
             Month(10, 1, 2, 28), null, "post_harvest_inspection", null,
             [
@@ -481,7 +456,7 @@ public static class FieldWorkCatalogue
                 Check("followup", "Εργασίες παρακολούθησης", "Follow-up work", type: ChecklistItemType.Text, essential: false)
             ],
             [
-                Seasonal("T23_SEASONAL", "Μετά τη συγκομιδή, κάντε έλεγχο του χωραφιού.",
+                Seasonal("T23_SEASONAL", "Μετά τη συγκομιδή, κάντε έλεγχο του ελαιώνα.",
                     "After harvest, inspect the field.", "post_harvest_inspection",
                     confidence: ProposalConfidence.WorthChecking)
             ]),

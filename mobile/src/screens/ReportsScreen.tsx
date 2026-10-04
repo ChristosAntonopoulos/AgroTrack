@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import { useTheme } from '../context/ThemeContext';
@@ -68,7 +67,9 @@ const ReportsScreen = () => {
 
   return (
     <ScreenLayout scroll padded>
-      <ScreenHeader title={t('nav:reports', { defaultValue: 'Reports' })} subtitle={`${season} · ${monthName}`} />
+      <Text style={[styles.period, { color: colors.textSecondary }]}>
+        {season} · {monthName}
+      </Text>
       <View style={styles.row}>
         {types.map((item) => (
           <Pressable
@@ -143,6 +144,7 @@ const ReportsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  period: { fontSize: 13, fontWeight: '600', marginBottom: spacing.sm },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
   chip: { borderWidth: 1, borderRadius: 14, paddingHorizontal: spacing.md, justifyContent: 'center' },
   card: { borderWidth: 1, borderRadius: 14, padding: spacing.md, marginBottom: spacing.sm, gap: 4 },

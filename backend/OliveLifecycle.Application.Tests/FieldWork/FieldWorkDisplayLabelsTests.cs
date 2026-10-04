@@ -7,8 +7,9 @@ namespace OliveLifecycle.Application.Tests.FieldWork;
 public class FieldWorkDisplayLabelsTests
 {
     [Theory]
-    [InlineData(FieldTaskStatus.Planned, "Προγραμματισμένη", "Planned")]
-    [InlineData(FieldTaskStatus.Ready, "Έτοιμη", "Ready")]
+    [InlineData(FieldTaskStatus.Planned, "Να γίνει", "To do")]
+    [InlineData(FieldTaskStatus.Ready, "Να γίνει", "To do")]
+    [InlineData(FieldTaskStatus.Skipped, "Παραλείφθηκε", "Skipped")]
     [InlineData(FieldTaskStatus.InProgress, "Σε εξέλιξη", "In progress")]
     [InlineData(FieldTaskStatus.Blocked, "Δεν μπορεί να γίνει", "Blocked")]
     [InlineData(FieldTaskStatus.Completed, "Ολοκληρώθηκε", "Completed")]
@@ -44,7 +45,7 @@ public class FieldWorkDisplayLabelsTests
     {
         Assert.Equal("Προγραμμάτισέ την", FieldWorkDisplayLabels.ForProposalDecision(TaskProposalDecision.Accept, "el"));
         Assert.Equal("Θύμισέ μου αργότερα", FieldWorkDisplayLabels.ForProposalDecision(TaskProposalDecision.RemindLater, "el"));
-        Assert.Equal("Δεν αφορά αυτό το χωράφι", FieldWorkDisplayLabels.ForProposalDecision(TaskProposalDecision.NotForThisField, "el"));
+        Assert.Equal("Δεν αφορά αυτόν τον ελαιώνα", FieldWorkDisplayLabels.ForProposalDecision(TaskProposalDecision.NotForThisField, "el"));
         Assert.Equal("Όχι φέτος", FieldWorkDisplayLabels.ForProposalDecision(TaskProposalDecision.DismissForYear, "el"));
     }
 

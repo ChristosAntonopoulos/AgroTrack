@@ -45,13 +45,10 @@ public class FieldWorkAuthorizationTests
         _fieldAccess.Setup(a => a.CanUserModifyFieldAsync("field-1", "worker-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         _fieldAccess.Setup(a => a.CanFamilyWriteModuleAsync(
-                "field-1", "worker-1", FamilyModules.Tasks, true, It.IsAny<CancellationToken>()))
+                "field-1", "worker-1", FamilyModules.Tasks, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         _fieldAccess.Setup(a => a.CanFamilyAccessModuleAsync(
                 "field-1", "worker-1", FamilyModules.Tasks, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-        _fieldAccess.Setup(a => a.CanUserAccessFieldAsync(
-                "field-1", "worker-1", Roles.Producer, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _tasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<FieldTask>
@@ -67,25 +64,24 @@ public class FieldWorkAuthorizationTests
     }
 
     [Fact]
-    public async Task Agronomist_CanRecordPhenology_ButNotMoney()
+    public async Task Agronomist_WithoutTasksModule_HasNoFieldWorkAccess()
     {
         var field = ActiveField("owner-1");
-        field.Memberships.Add(new FieldMembership
-        {
-            UserId = "agro-1",
-            Capacities = [FieldCapacities.Advise],
-            Status = "active"
-        });
         _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>())).ReturnsAsync(field);
         _fieldAccess.Setup(a => a.CanUserModifyFieldAsync("field-1", "agro-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         _fieldAccess.Setup(a => a.CanFamilyWriteModuleAsync(
                 "field-1", "agro-1", FamilyModules.Tasks, true, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        _fieldAccess.Setup(a => a.CanFamilyAccessModuleAsync(
+                "field-1", "agro-1", FamilyModules.Tasks, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _tasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<FieldTask>());
 
         var access = await _service.ResolveAsync("field-1", "agro-1", Roles.Agronomist);
-        Assert.True(access.IsAgronomist);
-        Assert.True(access.CanRecordPhenology);
+        Assert.False(access.CanView);
+        Assert.False(access.CanRecordPhenology);
         Assert.False(access.CanCreateTasks);
         Assert.Empty(access.FinancialCapabilities);
     }
@@ -113,14 +109,9 @@ public class FieldWorkAuthorizationTests
         OwnerId = ownerId,
         Status = FieldStatus.Active,
         Name = "Κτήμα Φιλιατρών",
-        Memberships =
+        People =
         [
-            new FieldMembership
-            {
-                UserId = ownerId,
-                Capacities = [FieldCapacities.Own, FieldCapacities.Work],
-                Status = "active"
-            }
+            FieldPeopleRules.CreateAdminSeat(ownerId)
         ]
     };
 }

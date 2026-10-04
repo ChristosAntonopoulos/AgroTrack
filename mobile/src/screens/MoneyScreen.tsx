@@ -1,112 +1,149 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRoute } from '@react-navigation/native';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  Alert,
+  Share,
   DeviceEventEmitter,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
+import HeaderIconButton from '../components/layout/HeaderIconButton';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import Sheet from '../components/ui/Sheet';
+import DismissibleChip from '../components/ui/DismissibleChip';
+import FieldColorMark from '../components/fields/FieldColorMark';
+import MoneyContextBar, { type MoneyKindFilter } from '../components/money/MoneyContextBar';
+import MoneyTabs, { type MoneyPageTab } from '../components/money/MoneyTabs';
+import MoneyCycleBar from '../components/money/MoneyCycleBar';
+import MoneyStatGrid from '../components/money/MoneyStatGrid';
+import MoneyTrustStrip from '../components/money/MoneyTrustStrip';
+import MoneyMonthStrip from '../components/money/MoneyMonthStrip';
+import MoneyFieldRows from '../components/money/MoneyFieldRows';
+import MoneyCategoryBreakdown from '../components/money/MoneyCategoryBreakdown';
+import MoneyExpandableSection from '../components/money/MoneyExpandableSection';
+import OliveOilEconomicsCard from '../components/money/OliveOilEconomicsCard';
+import MoneyTransactionRow from '../components/money/MoneyTransactionRow';
+import MoneyTransactionDrawer from '../components/money/MoneyTransactionDrawer';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences } from '../context/PreferencesContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
 import {
   getFieldService,
+  getFieldWorkService,
   getFinancialSummaryService,
   getFinancialTransactionService,
+  getHarvestService,
 } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import type { FinancialTransaction } from '../services/financialTransactionService';
 import type { YearFinancialSummary } from '../services/financialSummaryService';
+import { oilStockService, type OilLot } from '../services/oilStockService';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { fieldLabelMap, friendlyFieldLabel } from '../utils/fieldLabels';
-import { UNASSIGNED_FIELD_QUERY } from '../finance/buildYearSummary';
-import { formatOfficialAmount, formatOfficialNet, isForbiddenError } from '../finance/format';
+import { overlayUnassignedSummary, UNASSIGNED_FIELD_QUERY } from '../finance/buildYearSummary';
+import { formatOfficialAmount, isForbiddenError, perAreaForDisplay } from '../finance/format';
+import { financialCategoryLabel, unassignedFieldLabel } from '../finance/display';
+import { moneyLedgerCsv } from '../finance/moneyExport';
+import { formatRelatedHarvestLabel } from '../finance/relatedHarvestLabel';
 import {
-  financialCategoryLabel,
-  financialStatusLabel,
-  financialTypeLabel,
-  isRawFinancialValue,
-  resultLabel,
-  unassignedFieldLabel,
-} from '../finance/display';
-import { spacing, typography, radii } from '../theme';
+  currentHarvestStage,
+  harvestMonthTitle,
+  harvestYearRangeLabel,
+  harvestYearSpan,
+  harvestYearStatus,
+} from '../finance/harvestYear';
+import { agriculturalYearFor } from '../chronologio/agriculturalYear';
+import type { RootStackParamList } from '../navigation/types';
+import { createElevation, radii, spacing, typography } from '../theme';
 
-type KindFilter = 'all' | 'income' | 'expense' | 'draft';
-
-const overlayUnassigned = (summary: YearFinancialSummary, language: string): YearFinancialSummary => {
-  const row = summary.fieldResults.find((item) => item.isUnassigned);
-  const hasPosted = Boolean(row && row.transactionCount > 0);
-  return {
-    ...summary,
-    fieldId: null,
-    totalIncome: row?.income ?? null,
-    totalExpenses: row?.expenses ?? null,
-    netResult: row?.netResult ?? null,
-    resultLabel: resultLabel(row?.netResult, hasPosted, language),
-    transactionCount: row?.transactionCount ?? 0,
-    monthlyResults: summary.monthlyResults.map((month) => ({
-      ...month,
-      income: null,
-      expenses: null,
-      netResult: null,
-      hasRecords: false,
-    })),
-    fieldResults: [],
-    incomeByCategory: [],
-    expenseByCategory: [],
-    dataAvailability: {
-      ...summary.dataAvailability,
-      hasPostedRecords: hasPosted,
-      includesUnassigned: true,
-    },
-  };
-};
-
-const labelOr = (raw: string | undefined, fallback: string) =>
-  raw && !isRawFinancialValue(raw) ? raw : fallback;
+const PAGE_SIZE = 20;
 
 const MoneyScreen = () => {
   const { t, i18n } = useTranslation(['money', 'capture', 'common']);
-  const { colors } = useTheme();
-  const { tapMin, isFullPicture } = usePreferences();
-  const { user, isFieldOwner } = useAuth();
+  const { colors, tapMin } = useTheme();
+  const { user } = useAuth();
   const capture = useCaptureOptional();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute();
-  const routeFieldId = (route.params as { fieldId?: string } | undefined)?.fieldId || '';
+  const routeParams = route.params as { fieldId?: string; year?: number; tx?: string } | undefined;
+  const routeFieldId = routeParams?.fieldId || '';
+  const routeYear = routeParams?.year;
+  const routeTx = routeParams?.tx || '';
 
   const [loading, setLoading] = useState(true);
   const [fields, setFields] = useState<Field[]>([]);
   const [summary, setSummary] = useState<YearFinancialSummary | null>(null);
   const [summaryForbidden, setSummaryForbidden] = useState(false);
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [fieldId, setFieldId] = useState(routeFieldId);
-  const [year, setYear] = useState(new Date().getFullYear());
+
+  useRegisterCapturePage({
+    sourcePage: 'money',
+    fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined,
+  });
+  const [year, setYear] = useState(
+    typeof routeYear === 'number' && Number.isFinite(routeYear)
+      ? routeYear
+      : agriculturalYearFor(new Date())
+  );
   const [month, setMonth] = useState(0);
-  const [kind, setKind] = useState<KindFilter>('all');
+  const [category, setCategory] = useState('');
+  const [kind, setKind] = useState<MoneyKindFilter>('all');
+  const [tab, setTab] = useState<MoneyPageTab>('overview');
   const [selected, setSelected] = useState<FinancialTransaction | null>(null);
+  const [relatedTitles, setRelatedTitles] = useState<{ task?: string; harvest?: string }>({});
   const [fieldPickerOpen, setFieldPickerOpen] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  const [oilLots, setOilLots] = useState<OilLot[]>([]);
 
   const unknown = t('money:unknownAmount');
   const locale = i18n.language;
+  const span = harvestYearSpan(year);
+  const yearStatus = harvestYearStatus(year);
+  const seasonLine =
+    yearStatus === 'current' ? t(`money:seasonLine.${currentHarvestStage()}`) : null;
+
+  const listParams = useCallback(
+    () => ({
+      resultYear: year,
+      fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined,
+      type: kind === 'income' || kind === 'expense' ? kind : undefined,
+      status: kind === 'draft' ? ('draft' as const) : undefined,
+      category: category || undefined,
+      month: month || undefined,
+    }),
+    [category, fieldId, kind, month, year]
+  );
+
+  const filterLedger = useCallback(
+    (items: FinancialTransaction[]) =>
+      items.filter((row) => {
+        if (row.status === 'void') return false;
+        if (fieldId === UNASSIGNED_FIELD_QUERY) return !row.fieldId;
+        return true;
+      }),
+    [fieldId]
+  );
 
   const reload = useCallback(async () => {
-    const list = (await getFieldService().getFields(user?.id || '', user?.role || '')).filter(
+    const list = (await getFieldService().getFields(user?.id || '', user?.role || '', 'money')).filter(
       (field) => field.status !== 'Draft'
     );
     setFields(list);
     const summaryFieldId = fieldId === UNASSIGNED_FIELD_QUERY ? undefined : fieldId || undefined;
-    const [yearSummary, ledger] = await Promise.all([
+    const [yearSummary, ledger, cellarLots] = await Promise.all([
       getFinancialSummaryService()
         .getYear(year, summaryFieldId, locale)
         .then((result) => ({ ok: true as const, result }))
@@ -115,28 +152,26 @@ const MoneyScreen = () => {
           throw error;
         }),
       getFinancialTransactionService().list({
-        resultYear: year,
-        fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined,
-        type: kind === 'income' || kind === 'expense' ? kind : undefined,
-        status: kind === 'draft' ? 'draft' : undefined,
-        month: month || undefined,
-        pageSize: 100,
+        ...listParams(),
+        page: 1,
+        pageSize: PAGE_SIZE,
       }),
+      oilStockService
+        .listLots(summaryFieldId ? { fieldId: summaryFieldId } : undefined)
+        .catch(() => [] as OilLot[]),
     ]);
     setSummaryForbidden(!yearSummary.ok);
     setSummary(
       yearSummary.result && fieldId === UNASSIGNED_FIELD_QUERY
-        ? overlayUnassigned(yearSummary.result, locale)
+        ? overlayUnassignedSummary(yearSummary.result, locale)
         : yearSummary.result
     );
-    setTransactions(
-      ledger.items.filter((row) => {
-        if (row.status === 'void') return false;
-        if (fieldId === UNASSIGNED_FIELD_QUERY) return !row.fieldId;
-        return true;
-      })
-    );
-  }, [fieldId, kind, locale, month, user?.id, user?.role, year]);
+    setOilLots(cellarLots);
+    const items = filterLedger(ledger.items);
+    setTransactions(items);
+    setTotalCount(ledger.totalCount);
+    setPage(1);
+  }, [fieldId, filterLedger, listParams, locale, user?.id, user?.role, year]);
 
   useEffect(() => {
     void (async () => {
@@ -158,7 +193,79 @@ const MoneyScreen = () => {
     if (routeFieldId) setFieldId(routeFieldId);
   }, [routeFieldId]);
 
+  useEffect(() => {
+    if (typeof routeYear === 'number' && Number.isFinite(routeYear)) {
+      setYear(routeYear);
+    }
+  }, [routeYear]);
+
+  useEffect(() => {
+    if (!routeTx || loading) return;
+    const fromList = transactions.find((row) => row.id === routeTx);
+    if (fromList) {
+      setSelected(fromList);
+      return;
+    }
+    let cancelled = false;
+    void getFinancialTransactionService()
+      .getById(routeTx)
+      .then((tx) => {
+        if (!cancelled) setSelected(tx);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [routeTx, loading, transactions]);
+
+  useEffect(() => {
+    if (!selected?.relatedTaskId && !selected?.relatedHarvestId) {
+      setRelatedTitles({});
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      let taskTitle: string | undefined;
+      let harvestTitle: string | undefined;
+      if (selected.relatedTaskId) {
+        try {
+          const task = await getFieldWorkService().getFieldTask(selected.relatedTaskId);
+          taskTitle = task.title;
+        } catch {
+          taskTitle = undefined;
+        }
+      }
+      if (selected.relatedHarvestId && selected.fieldId) {
+        try {
+          const harvests = await getHarvestService().listByField(selected.fieldId);
+          const hit = harvests.find((h) => h.id === selected.relatedHarvestId);
+          harvestTitle = hit
+            ? formatRelatedHarvestLabel(hit, {
+                fieldName: fieldLabelMap(fields)[selected.fieldId] || undefined,
+                locale,
+                statusLabel: (status) =>
+                  status === 'voided' ? t('money:harvestStatusVoided') : t('money:harvestStatusPosted'),
+              })
+            : undefined;
+        } catch {
+          harvestTitle = undefined;
+        }
+      }
+      if (!cancelled) setRelatedTitles({ task: taskTitle, harvest: harvestTitle });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fields, locale, selected, t]);
+
   const fieldNames = useMemo(() => fieldLabelMap(fields), [fields]);
+  const availableOilLitres = useMemo(() => {
+    const scoped =
+      fieldId && fieldId !== UNASSIGNED_FIELD_QUERY
+        ? oilLots.filter((lot) => lot.fieldIds.includes(fieldId))
+        : oilLots;
+    return scoped.reduce((sum, lot) => sum + (lot.available?.litres || 0), 0);
+  }, [fieldId, oilLots]);
   const emptyYear =
     !summaryForbidden &&
     summary &&
@@ -166,235 +273,409 @@ const MoneyScreen = () => {
     summary.draftCount === 0 &&
     transactions.length === 0;
 
-  const openCapture = () => {
-    capture?.openCapture({
-      preferredType: 'money',
-      fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined,
-    });
-  };
+  const openCapture = useCallback(
+    (preferredType: 'money' | 'income' | 'expense' = 'money') => {
+      capture?.openCapture({
+        preferredType,
+        fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined,
+        sourcePage: 'money',
+      });
+    },
+    [capture, fieldId]
+  );
 
-  const money = (amount: number | null | undefined) =>
-    formatOfficialAmount(amount, summary?.currency || 'EUR', locale, unknown);
-  const net = (amount: number | null | undefined) =>
-    formatOfficialNet(amount, summary?.currency || 'EUR', locale, unknown);
-
-  const handleVoid = async (id: string, reason: string) => {
+  const exportLedger = useCallback(async () => {
     try {
-      await getFinancialTransactionService().void(id, reason);
-      setSelected(null);
-      setReloadToken((n) => n + 1);
+      setExporting(true);
+      const collected: FinancialTransaction[] = [];
+      let nextPage = 1;
+      let fetched = 0;
+      let total = Number.POSITIVE_INFINITY;
+      while (fetched < total && nextPage <= 25) {
+        const ledger = await getFinancialTransactionService().list({
+          ...listParams(),
+          page: nextPage,
+          pageSize: 200,
+        });
+        total = ledger.totalCount;
+        fetched += ledger.items.length;
+        collected.push(...filterLedger(ledger.items));
+        if (ledger.items.length === 0) break;
+        nextPage += 1;
+      }
+      const csv = moneyLedgerCsv({
+        rows: collected,
+        fieldNames,
+        unassignedLabel: unassignedFieldLabel(locale),
+      });
+      await Share.share({
+        title: `money-${span}.csv`,
+        message: csv,
+      });
     } catch {
-      Alert.alert(t('money:actionFailed'));
+      /* share cancel is fine */
+    } finally {
+      setExporting(false);
+    }
+  }, [fieldNames, filterLedger, listParams, locale, span]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', gap: 8, marginRight: 4 }}>
+          <HeaderIconButton
+            icon={exporting ? 'hourglass-outline' : 'download-outline'}
+            accessibilityLabel={exporting ? t('money:exporting') : t('money:export')}
+            onPress={() => void exportLedger()}
+          />
+        </View>
+      ),
+    });
+  }, [navigation, exportLedger, exporting, t]);
+
+  const loadOlder = async () => {
+    if (loadingMore || transactions.length >= totalCount) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const ledger = await getFinancialTransactionService().list({
+        ...listParams(),
+        page: nextPage,
+        pageSize: PAGE_SIZE,
+      });
+      setTransactions((current) => [...current, ...filterLedger(ledger.items)]);
+      setTotalCount(ledger.totalCount);
+      setPage(nextPage);
+    } finally {
+      setLoadingMore(false);
     }
   };
+
+  const fieldScopeLabel =
+    fieldId === UNASSIGNED_FIELD_QUERY
+      ? unassignedFieldLabel(locale)
+      : fieldId
+        ? fieldNames[fieldId] || friendlyFieldLabel(fieldId)
+        : t('money:allFields');
+
+  const trustFieldCount = fieldId
+    ? 1
+    : summary?.fieldResults.filter((row) => row.transactionCount > 0).length ||
+      (summary?.dataAvailability.includesUnassigned ? 0 : fields.length);
+
+  const groupedTransactions = useMemo(() => {
+    const groups: Array<{ key: string; label: string; items: FinancialTransaction[] }> = [];
+    const map = new Map<string, FinancialTransaction[]>();
+    for (const tx of transactions) {
+      const d = new Date(tx.occurredOn);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(tx);
+    }
+    for (const [key, items] of map) {
+      const [y, m] = key.split('-').map(Number);
+      groups.push({
+        key,
+        label: new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(
+          new Date(y, m - 1, 1)
+        ),
+        items,
+      });
+    }
+    return groups;
+  }, [locale, transactions]);
+
+  const canManage =
+    user?.role === 'FieldOwner' ||
+    user?.role === 'Administrator' ||
+    Boolean(
+      selected && (selected.createdByUserId === user?.id || selected.ownerUserId === user?.id)
+    );
+
+  const hasUnitEconomics = Boolean(
+    summary &&
+      (summary.costPerHectare != null ||
+        summary.incomePerHectare != null ||
+        summary.netPerHectare != null ||
+        summary.costPerKilogramOfOil != null ||
+        summary.costPerKilogramMessage)
+  );
+
+  const categoryLabel = category
+    ? summary?.expenseByCategory.find((row) => row.category === category)?.categoryLabel ||
+      summary?.incomeByCategory.find((row) => row.category === category)?.categoryLabel ||
+      financialCategoryLabel(category, locale)
+    : '';
 
   if (loading) return <LoadingSpinner fullScreen />;
 
   return (
     <ScreenLayout scroll padded>
-      <ScreenHeader
-        title={t('money:title')}
-        subtitle={t('money:subtitle')}
-        actionLabel={t('capture:money.ctaPlus')}
-        onActionPress={openCapture}
-      />
-
       {fields.length === 0 ? (
         <EmptyState title={t('money:emptyFieldsTitle')} description={t('money:emptyFieldsHint')} />
       ) : (
-        <>
-          <View style={styles.toolbar}>
-            <Pressable
-              onPress={() => setYear((value) => value - 1)}
-              style={[styles.yearBtn, { borderColor: colors.border, minHeight: tapMin }]}
-            >
-              <Text style={{ color: colors.textPrimary, fontSize: 18 }}>‹</Text>
-            </Pressable>
-            <Text style={[styles.year, { color: colors.textPrimary }]}>{year}</Text>
-            <Pressable
-              onPress={() => setYear((value) => value + 1)}
-              style={[styles.yearBtn, { borderColor: colors.border, minHeight: tapMin }]}
-            >
-              <Text style={{ color: colors.textPrimary, fontSize: 18 }}>›</Text>
-            </Pressable>
+        <View style={styles.stack}>
+          <MoneyTabs
+            active={tab}
+            onChange={setTab}
+            entryCount={summary?.transactionCount || totalCount}
+          />
+          <MoneyCycleBar
+            year={year}
+            yearSpan={span}
+            yearRangeLabel={harvestYearRangeLabel(year, locale)}
+            yearStatus={yearStatus}
+            seasonLine={seasonLine}
+            tapMin={tapMin}
+            onYearChange={(next) => {
+              setYear(next);
+              setMonth(0);
+            }}
+          />
+
+          <View style={styles.scopeRow}>
             <Pressable
               onPress={() => setFieldPickerOpen(true)}
+              accessibilityLabel={t('money:fieldAria')}
               style={[
-                styles.select,
-                { borderColor: colors.border, backgroundColor: colors.surfaceElevated, minHeight: tapMin },
+                styles.scopeChip,
+                {
+                  minHeight: Math.max(44, tapMin * 0.9),
+                  backgroundColor: colors.surface,
+                  borderColor: colors.borderLight,
+                  ...createElevation(colors, 'flat'),
+                },
               ]}
             >
-              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-                {fieldId === UNASSIGNED_FIELD_QUERY
-                  ? unassignedFieldLabel(locale)
-                  : fieldId
-                    ? fieldNames[fieldId]
-                    : t('money:allFields')}
+              <FieldColorMark
+                color={fields.find((field) => field.id === fieldId)?.color}
+                fieldId={fieldId || undefined}
+                hollow={!fieldId || fieldId === UNASSIGNED_FIELD_QUERY}
+                size={12}
+              />
+              <Text
+                style={{ color: colors.textPrimary, fontWeight: '600', flexShrink: 1 }}
+                numberOfLines={1}
+              >
+                {fieldScopeLabel}
               </Text>
+              <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
             </Pressable>
+
+            {month > 0 ? (
+              <DismissibleChip
+                label={t('money:showingMonth', { month: harvestMonthTitle(year, month, locale) })}
+                onDismiss={() => setMonth(0)}
+              />
+            ) : null}
+            {category ? (
+              <DismissibleChip label={categoryLabel} onDismiss={() => setCategory('')} />
+            ) : null}
+            {month > 0 || category ? (
+              <Pressable onPress={() => { setMonth(0); setCategory(''); }} hitSlop={8}>
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('money:clearFilters')}</Text>
+              </Pressable>
+            ) : null}
           </View>
 
-          {summaryForbidden ? (
-            <EmptyState title={t('money:collaboratorTitle')} description={t('money:collaboratorHint')} />
-          ) : emptyYear ? (
-            <EmptyState
-              title={t('money:emptyTitle', { year })}
-              description={t('money:emptyHint')}
-              action={capture ? { label: t('capture:money.cta'), onPress: openCapture } : undefined}
-            />
-          ) : summary ? (
-            <View style={styles.stack}>
-              <View style={styles.split}>
-                <View style={[styles.resultCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={{ color: colors.textSecondary }}>{t('money:income')}</Text>
-                  <Text style={{ color: colors.successDark, fontWeight: '700', fontSize: 18 }}>
-                    {money(summary.totalIncome)}
-                  </Text>
-                </View>
-                <View style={[styles.resultCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={{ color: colors.textSecondary }}>{t('money:expenses')}</Text>
-                  <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 18 }}>
-                    {money(summary.totalExpenses)}
-                  </Text>
-                </View>
-              </View>
-              <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('money:result')}</Text>
-                <Text style={[styles.hero, { color: colors.textPrimary }]}>{net(summary.netResult)}</Text>
-                <Text style={{ color: colors.textSecondary, fontWeight: '700' }}>{summary.resultLabel}</Text>
-              </View>
+          {tab === 'overview' ? (
+            summaryForbidden ? (
+              <EmptyState
+                title={t('money:collaboratorTitle')}
+                description={t('money:collaboratorHint')}
+                action={capture ? { label: t('money:addEntry'), onPress: () => openCapture('expense') } : undefined}
+              />
+            ) : summary ? (
+              <>
+                <MoneyStatGrid
+                  summary={summary}
+                  oilLitres={availableOilLitres}
+                  locale={locale}
+                  onAdd={capture ? () => openCapture('money') : undefined}
+                  onOpenOil={() => navigation.navigate('MyOil')}
+                />
 
-              {summary.dataAvailability.hasPostedRecords &&
-              summary.monthlyResults.some((item) => item.hasRecords) ? (
-                <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('money:monthly')}</Text>
-                  {summary.monthlyResults.map((item) => {
-                    const name = new Intl.DateTimeFormat(locale, { month: 'short' }).format(
-                      new Date(year, item.month - 1, 1)
-                    );
-                    return (
-                      <Pressable
-                        key={item.month}
-                        onPress={() => setMonth((current) => (current === item.month ? 0 : item.month))}
-                        style={[styles.monthRow, { minHeight: tapMin }]}
-                        accessibilityLabel={
-                          item.hasRecords
-                            ? `${name}: ${t('money:incomeShort')} ${money(item.income)}, ${t('money:expenseShort')} ${money(item.expenses)}`
-                            : `${name}: ${item.emptyLabel}`
-                        }
-                      >
-                        <Text style={{ width: 48, color: colors.textSecondary, fontWeight: month === item.month ? '700' : '500' }}>
-                          {name}
-                        </Text>
-                        <Text style={{ flex: 1, color: colors.textPrimary }}>
-                          {item.hasRecords ? money(item.income) : item.emptyLabel}
-                        </Text>
-                        <Text style={{ flex: 1, color: colors.textPrimary }}>
-                          {item.hasRecords ? money(item.expenses) : ''}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ) : null}
+                <MoneyFieldRows
+                  rows={summary.fieldResults}
+                  currency={summary.currency}
+                  locale={locale}
+                  fieldNames={fieldNames}
+                  fields={fields}
+                  missingAreaFieldIds={summary.dataAvailability.missingAreaFieldIds ?? []}
+                  onSelectField={setFieldId}
+                />
 
-              {!fieldId && summary.fieldResults.length > 0 ? (
-                <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('money:byField')}</Text>
-                  {summary.fieldResults.map((row) => (
-                    <Pressable
-                      key={row.fieldId || 'unassigned'}
-                      onPress={() =>
-                        setFieldId(row.isUnassigned ? UNASSIGNED_FIELD_QUERY : row.fieldId || '')
-                      }
-                      style={[styles.fieldRow, { borderBottomColor: colors.border, minHeight: tapMin }]}
-                    >
-                      <Text style={{ fontWeight: '700', color: colors.textPrimary }}>
-                        {row.isUnassigned
-                          ? row.fieldName
-                          : fieldNames[row.fieldId || ''] || friendlyFieldLabel(row.fieldName)}
-                      </Text>
-                      <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
-                        {t('money:income')} {money(row.income)} · {t('money:expenses')} {money(row.expenses)}
-                      </Text>
-                      {isFullPicture && row.costPerHectare != null ? (
-                        <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
-                          {money(row.costPerHectare)} {t('money:perHectare')}
-                        </Text>
-                      ) : null}
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
+                <MoneyTrustStrip
+                  summary={summary}
+                  fieldCount={trustFieldCount}
+                  onOpenDrafts={() => {
+                    setKind('draft');
+                    setTab('entries');
+                  }}
+                />
 
-              {summary.expenseByCategory.slice(0, 5).map((row) => (
-                <View key={row.category} style={{ marginBottom: spacing.sm }}>
-                  <View style={styles.barMeta}>
-                    <Text style={{ color: colors.textPrimary }}>{row.categoryLabel}</Text>
-                    <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{money(row.amount)}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : null}
+                {summary.dataAvailability.hasPostedRecords ? (
+                  <MoneyMonthStrip
+                    year={year}
+                    months={summary.monthlyResults}
+                    currency={summary.currency}
+                    locale={locale}
+                    selectedMonth={month}
+                    onSelectMonth={setMonth}
+                  />
+                ) : null}
 
-          {!emptyYear || summaryForbidden ? (
-            <View style={styles.stack}>
-              <View style={styles.kindRow}>
-                {(
-                  [
-                    ['all', 'kindAll'],
-                    ...((summaryForbidden ? [] : [['income', 'kindIncome']]) as Array<[KindFilter, string]>),
-                    ['expense', 'kindExpenses'],
-                    ['draft', 'kindDrafts'],
-                  ] as Array<[KindFilter, string]>
-                ).map(([value, key]) => (
-                  <Pressable
-                    key={value}
-                    onPress={() => setKind(value)}
+                {summary.expenseByCategory.length > 0 ? (
+                  <View
                     style={[
-                      styles.kindChip,
+                      styles.card,
                       {
-                        minHeight: tapMin,
-                        borderColor: kind === value ? colors.oliveBorder : colors.border,
-                        backgroundColor: kind === value ? colors.primaryLight : colors.surface,
+                        backgroundColor: colors.surface,
+                        borderColor: colors.borderLight,
+                        ...createElevation(colors, 'flat'),
                       },
                     ]}
                   >
-                    <Text style={{ fontWeight: '600', color: kind === value ? colors.primary : colors.textSecondary }}>
-                      {t(`money:${key}`)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-              {transactions.map((tx) => (
-                <Pressable
-                  key={tx.id}
-                  onPress={() => setSelected(tx)}
-                  style={[styles.row, { borderBottomColor: colors.border, minHeight: tapMin }]}
-                >
-                  <View style={styles.rowBody}>
-                    <Text style={[styles.rowTitle, { color: colors.textPrimary }]}>{tx.description}</Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                      {labelOr(tx.typeLabel, financialTypeLabel(tx.type, locale))}
-                      {tx.category
-                        ? ` · ${labelOr(tx.categoryLabel, financialCategoryLabel(tx.category, locale))}`
-                        : ''}
-                    </Text>
+                    <MoneyCategoryBreakdown
+                      expenses={summary.expenseByCategory}
+                      income={[]}
+                      currency={summary.currency}
+                      locale={locale}
+                      expensesOnly
+                      onSelectCategory={(value) => {
+                        setCategory(value);
+                        setKind('all');
+                        setTab('entries');
+                      }}
+                    />
                   </View>
-                  <Text
-                    style={{
-                      color: tx.type === 'income' ? colors.successDark : colors.textPrimary,
-                      fontWeight: '700',
-                    }}
-                  >
-                    {formatOfficialAmount(tx.amount, tx.currency, locale, unknown)}
-                  </Text>
-                </Pressable>
-              ))}
+                ) : null}
+
+                {hasUnitEconomics ||
+                summary.oliveOil?.hasProductionOrSales ||
+                summary.incomeByCategory.length > 0 ? (
+                  <MoneyExpandableSection title={t('money:moreDetails')}>
+                    {hasUnitEconomics ? (
+                      <View style={{ gap: 6 }}>
+                        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>
+                          {t('money:unitEconomicsTitle')}
+                        </Text>
+                        {summary.costPerHectare != null ? (
+                          <Text style={{ color: colors.textPrimary }}>
+                            {t('money:costPerHectare')}:{' '}
+                            {formatOfficialAmount(
+                              perAreaForDisplay(summary.costPerHectare, locale),
+                              summary.currency,
+                              locale,
+                              unknown
+                            )}
+                          </Text>
+                        ) : null}
+                        {summary.incomePerHectare != null ? (
+                          <Text style={{ color: colors.textPrimary }}>
+                            {t('money:incomePerHectare')}:{' '}
+                            {formatOfficialAmount(
+                              perAreaForDisplay(summary.incomePerHectare, locale),
+                              summary.currency,
+                              locale,
+                              unknown
+                            )}
+                          </Text>
+                        ) : null}
+                        {summary.netPerHectare != null ? (
+                          <Text style={{ color: colors.textPrimary }}>
+                            {t('money:netPerHectare')}:{' '}
+                            {formatOfficialAmount(
+                              perAreaForDisplay(summary.netPerHectare, locale),
+                              summary.currency,
+                              locale,
+                              unknown
+                            )}
+                          </Text>
+                        ) : null}
+                        {summary.costPerKilogramOfOil != null ? (
+                          <Text style={{ color: colors.textPrimary }}>
+                            {t('money:costPerKg')}:{' '}
+                            {formatOfficialAmount(
+                              summary.costPerKilogramOfOil,
+                              summary.currency,
+                              locale,
+                              unknown
+                            )}
+                          </Text>
+                        ) : summary.costPerKilogramMessage ? (
+                          <Text style={{ color: colors.textTertiary }}>{summary.costPerKilogramMessage}</Text>
+                        ) : null}
+                      </View>
+                    ) : null}
+                    {summary.oliveOil?.hasProductionOrSales ? (
+                      <OliveOilEconomicsCard year={year} oil={summary.oliveOil} locale={locale} embedded />
+                    ) : null}
+                    {summary.incomeByCategory.length > 0 ? (
+                      <MoneyCategoryBreakdown
+                        expenses={[]}
+                        income={summary.incomeByCategory}
+                        currency={summary.currency}
+                        locale={locale}
+                        onSelectCategory={(value) => {
+                          setCategory(value);
+                          setKind('all');
+                          setTab('entries');
+                        }}
+                      />
+                    ) : null}
+                  </MoneyExpandableSection>
+                ) : null}
+              </>
+            ) : null
+          ) : (
+            <View style={styles.stack}>
+              <MoneyContextBar
+                year={year}
+                yearSpan={span}
+                yearStatus={yearStatus}
+                kind={kind}
+                hideIncome={summaryForbidden}
+                hideYear
+                tapMin={tapMin}
+                onYearChange={(next) => {
+                  setYear(next);
+                  setMonth(0);
+                }}
+                onKindChange={setKind}
+              />
+              {transactions.length === 0 ? (
+                <Text style={{ color: colors.textSecondary }}>
+                  {emptyYear ? t('money:emptyHint') : t('money:noMatchingEntries')}
+                </Text>
+              ) : (
+                groupedTransactions.map((group) => (
+                  <View key={group.key} style={styles.monthGroup}>
+                    <Text style={[styles.monthHeading, { color: colors.textTertiary }]}>{group.label}</Text>
+                    {group.items.map((tx) => (
+                      <MoneyTransactionRow
+                        key={tx.id}
+                        item={tx}
+                        locale={locale}
+                        fieldNames={fieldNames}
+                        unknown={unknown}
+                        onOpen={setSelected}
+                      />
+                    ))}
+                  </View>
+                ))
+              )}
+              {transactions.length < totalCount ? (
+                <Button
+                  title={t('money:loadOlder')}
+                  variant="outline"
+                  loading={loadingMore}
+                  onPress={() => void loadOlder()}
+                />
+              ) : null}
             </View>
-          ) : null}
-        </>
+          )}
+        </View>
       )}
 
       <Sheet
@@ -409,9 +690,10 @@ const MoneyScreen = () => {
             setFieldId('');
             setFieldPickerOpen(false);
           }}
-          style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.border }]}
+          style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.borderLight }]}
         >
-          <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{t('money:allFields')}</Text>
+          <FieldColorMark hollow size={12} />
+          <Text style={{ fontWeight: '700', color: colors.textPrimary, flex: 1 }}>{t('money:allFields')}</Text>
         </Pressable>
         {fields.map((field) => (
           <Pressable
@@ -420,9 +702,10 @@ const MoneyScreen = () => {
               setFieldId(field.id);
               setFieldPickerOpen(false);
             }}
-            style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.border }]}
+            style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.borderLight }]}
           >
-            <Text style={{ color: colors.textPrimary }}>{friendlyFieldLabel(field.name)}</Text>
+            <FieldColorMark color={field.color} fieldId={field.id} size={12} />
+            <Text style={{ color: colors.textPrimary, flex: 1 }}>{friendlyFieldLabel(field.name)}</Text>
           </Pressable>
         ))}
         <Pressable
@@ -430,140 +713,83 @@ const MoneyScreen = () => {
             setFieldId(UNASSIGNED_FIELD_QUERY);
             setFieldPickerOpen(false);
           }}
-          style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.border }]}
+          style={[styles.pickerRow, { minHeight: tapMin, borderBottomColor: colors.borderLight }]}
         >
-          <Text style={{ color: colors.textPrimary }}>{unassignedFieldLabel(locale)}</Text>
+          <FieldColorMark hollow size={12} />
+          <Text style={{ color: colors.textPrimary, flex: 1 }}>{unassignedFieldLabel(locale)}</Text>
         </Pressable>
       </Sheet>
 
-      <Sheet
-        open={Boolean(selected)}
+      <MoneyTransactionDrawer
+        transaction={selected}
+        fieldName={selected?.fieldId ? fieldNames[selected.fieldId] : undefined}
+        relatedTaskTitle={relatedTitles.task}
+        relatedHarvestTitle={relatedTitles.harvest}
+        canManage={canManage}
+        fields={fields}
         onClose={() => setSelected(null)}
-        edge="end"
-        title={selected?.description}
-        subtitle={
-          selected
-            ? labelOr(selected.typeLabel, financialTypeLabel(selected.type, locale))
-            : undefined
-        }
-        footer={
-          selected ? (
-            <View style={{ gap: spacing.sm }}>
-              {selected.status === 'draft' ? (
-                <>
-                  <Button
-                    title={t('money:postDraft')}
-                    onPress={() =>
-                      void getFinancialTransactionService()
-                        .post(selected.id)
-                        .then(() => {
-                          setSelected(null);
-                          setReloadToken((n) => n + 1);
-                        })
-                    }
-                  />
-                  <Button
-                    title={t('money:deleteDraft')}
-                    variant="outline"
-                    onPress={() =>
-                      void getFinancialTransactionService()
-                        .deleteDraft(selected.id)
-                        .then(() => {
-                          setSelected(null);
-                          setReloadToken((n) => n + 1);
-                        })
-                    }
-                  />
-                </>
-              ) : null}
-              {selected.status === 'posted' && isFieldOwner() ? (
-                <Button
-                  title={t('money:voidPosted')}
-                  variant="outline"
-                  onPress={() =>
-                    Alert.prompt
-                      ? Alert.prompt(t('money:voidPosted'), t('money:voidReasonPrompt'), (reason) => {
-                          if (reason?.trim()) void handleVoid(selected.id, reason.trim());
-                        })
-                      : void handleVoid(selected.id, t('capture:money.undoReason'))
-                  }
-                />
-              ) : null}
-              <Button
-                title={t('common:cancel', { defaultValue: 'Cancel' })}
-                variant="outline"
-                onPress={() => setSelected(null)}
-              />
-            </View>
-          ) : null
-        }
-      >
-        {selected ? (
-          <>
-            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.textPrimary, marginBottom: spacing.sm }}>
-              {formatOfficialAmount(selected.amount, selected.currency, locale, unknown)}
-            </Text>
-            <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
-              {labelOr(selected.statusLabel, financialStatusLabel(selected.status, locale))}
-            </Text>
-          </>
-        ) : null}
-      </Sheet>
+        onUpdate={async (id, input) => {
+          const updated = await getFinancialTransactionService().update(id, input);
+          setSelected(updated);
+          setReloadToken((n) => n + 1);
+        }}
+        onVoid={async (id, reason) => {
+          await getFinancialTransactionService().void(id, reason);
+          setSelected(null);
+          setReloadToken((n) => n + 1);
+        }}
+        onPostDraft={async (id) => {
+          await getFinancialTransactionService().post(id);
+          setSelected(null);
+          setReloadToken((n) => n + 1);
+        }}
+        onDeleteDraft={async (id) => {
+          await getFinancialTransactionService().deleteDraft(id);
+          setSelected(null);
+          setReloadToken((n) => n + 1);
+        }}
+        onOpenTask={(taskId) => {
+          setSelected(null);
+          navigation.navigate('TaskDetail', { taskId });
+        }}
+        onOpenHarvest={(payload) => {
+          setSelected(null);
+          navigation.navigate('HarvestCampaign', payload);
+        }}
+      />
     </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  toolbar: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md, alignItems: 'center' },
-  yearBtn: {
-    width: 48,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  year: { fontSize: 28, fontWeight: '700', minWidth: 72, textAlign: 'center' },
-  select: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    justifyContent: 'center',
-  },
   stack: { gap: spacing.md },
-  split: { flexDirection: 'row', gap: spacing.md },
-  resultCard: { flex: 1, borderWidth: 1, borderRadius: radii.md, padding: spacing.md },
-  card: { borderWidth: 1, borderRadius: radii.md, padding: spacing.md },
-  sectionLabel: {
-    ...typography.styles.caption,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: spacing.sm,
-  },
-  hero: { fontSize: 32, fontWeight: '700', marginBottom: spacing.sm },
-  barMeta: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  fieldRow: { paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
-  row: {
+  scopeRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
+  scopeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  rowBody: { flex: 1, gap: 2 },
-  rowTitle: { fontWeight: '600' },
-  kindRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
-  kindChip: {
-    borderWidth: 1,
-    borderRadius: radii.md,
+    gap: 8,
     paddingHorizontal: spacing.md,
-    justifyContent: 'center',
+    borderRadius: radii.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    maxWidth: '100%',
   },
-  monthRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
+  card: {
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.base,
+  },
+  sectionLabel: {
+    ...typography.styles.overline,
+  },
+  monthGroup: { gap: spacing.sm },
+  monthHeading: {
+    ...typography.styles.overline,
+    marginTop: spacing.sm,
+  },
   pickerRow: {
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     paddingVertical: spacing.sm,
   },

@@ -9,10 +9,15 @@
 }
 
 .settings-status {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   min-height: 1.5rem;
   margin: 0 0 var(--spacing-sm);
+  padding: 0.35rem 0;
   opacity: 0;
   transition: opacity var(--transition-fast);
+  background: color-mix(in srgb, var(--bg-page, var(--color-background)) 92%, transparent);
 }
 
 .settings-status-visible {
@@ -109,6 +114,26 @@
 
 .settings-row-toggle {
   align-items: start;
+}
+
+.settings-comfort-presets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.settings-preset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.settings-help--preview {
+  margin-top: 0.35rem;
+  font-style: italic;
 }
 
 .settings-row-text {
@@ -281,9 +306,137 @@
   overflow-wrap: anywhere;
 }
 
-.settings-block .experience-mode-toggle {
-  width: 100%;
+.settings-subblock {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.settings-subtitle {
+  margin: 0 0 0.35rem;
+  color: var(--color-text-primary);
+  font-size: calc(1rem * var(--font-scale, 1));
+  font-weight: 650;
+}
+
+.settings-help--block {
+  margin: 0 0 var(--spacing-md);
+}
+
+.settings-readonly-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.settings-readonly-label {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: calc(0.78rem * var(--font-scale, 1));
+  font-weight: 600;
+}
+
+.settings-readonly-value {
+  margin: 0.15rem 0 0;
+  color: var(--color-text-primary);
+  font-size: calc(0.95rem * var(--font-scale, 1));
+  overflow-wrap: anywhere;
+}
+
+.settings-text-link {
+  display: inline-block;
+  margin-top: var(--spacing-xs);
+  color: var(--color-primary);
+  font-weight: 650;
+  text-decoration: underline;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
   max-width: 420px;
+}
+
+.settings-input {
+  width: 100%;
+  min-height: var(--tap-min, 44px);
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-input, var(--bg-card));
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: calc(0.95rem * var(--font-scale, 1));
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.settings-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: 0.35rem;
+}
+
+.settings-form-error {
+  margin: 0;
+  color: var(--color-danger, #b54a3c);
+  font-size: calc(0.88rem * var(--font-scale, 1));
+}
+
+.settings-form-ok {
+  margin: 0;
+  color: var(--color-success, #4a7c59);
+  font-size: calc(0.88rem * var(--font-scale, 1));
+  font-weight: 650;
+}
+
+.settings-verified {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-success, #4a7c59) 16%, transparent);
+  color: var(--color-success, #2f6b45);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.settings-dev-code {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-primary);
+  font-size: calc(0.88rem * var(--font-scale, 1));
+}
+
+.settings-support-card {
+  margin-top: var(--spacing-md);
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card, transparent);
+}
+
+.settings-session-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.settings-danger .settings-block-title {
+  color: var(--color-danger, #b54a3c);
 }
 
 @media (max-width: 768px) {
@@ -305,5 +458,9 @@
     flex-direction: column;
     gap: 0.15rem;
     font-size: calc(0.75rem * var(--font-scale, 1));
+  }
+
+  .settings-readonly-grid {
+    grid-template-columns: 1fr;
   }
 }

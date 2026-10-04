@@ -53,9 +53,10 @@ public class HarvestService : IHarvestService
         string userRole,
         CancellationToken cancellationToken = default)
     {
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(dto.FieldId, userId, userRole, cancellationToken))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
+                dto.FieldId, userId, userRole, FamilyModules.Harvest, cancellationToken))
         {
-            throw new ForbiddenException("You do not have access to this field.");
+            throw new ForbiddenException("You do not have access to harvest for this field.");
         }
 
         await EnsureHarvestModuleAsync(dto.FieldId, userId, userRole, write: true, cancellationToken);
@@ -79,6 +80,7 @@ public class HarvestService : IHarvestService
             ResultYear = ResultYearResolver.Resolve(harvestDate, dto.ResultYear, now),
             HarvestMethod = dto.HarvestMethod?.Trim() ?? string.Empty,
             WorkersUsed = dto.WorkersUsed,
+            SackCount = dto.SackCount,
             OliveKg = dto.OliveKg,
             MillName = string.IsNullOrWhiteSpace(dto.MillName) ? null : dto.MillName.Trim(),
             OilKg = dto.OilKg,
@@ -89,6 +91,8 @@ public class HarvestService : IHarvestService
             OilYieldPercent = oilYield,
             QualityGrade = dto.QualityGrade?.Trim() ?? string.Empty,
             Notes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim(),
+            BatchId = string.IsNullOrWhiteSpace(dto.BatchId) ? null : dto.BatchId.Trim(),
+            AllocationWeight = dto.AllocationWeight is > 0 ? dto.AllocationWeight : null,
             Status = FinancialEntryStatus.Posted,
             CreatedAt = now,
             UpdatedAt = now
@@ -137,9 +141,10 @@ public class HarvestService : IHarvestService
         string userRole,
         CancellationToken cancellationToken = default)
     {
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(fieldId, userId, userRole, cancellationToken))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
+                fieldId, userId, userRole, FamilyModules.Harvest, cancellationToken))
         {
-            throw new ForbiddenException("You do not have access to this field.");
+            throw new ForbiddenException("You do not have access to harvest for this field.");
         }
 
         await EnsureHarvestModuleAsync(fieldId, userId, userRole, write: false, cancellationToken);
@@ -160,9 +165,10 @@ public class HarvestService : IHarvestService
         var record = await _harvestRecordRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Harvest record not found.");
 
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(record.FieldId, userId, userRole, cancellationToken))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
+                record.FieldId, userId, userRole, FamilyModules.Harvest, cancellationToken))
         {
-            throw new ForbiddenException("You do not have access to this field.");
+            throw new ForbiddenException("You do not have access to harvest for this field.");
         }
 
         if (!await _fieldAccessService.CanUserModifyFieldAsync(record.FieldId, userId, cancellationToken)
@@ -234,18 +240,12 @@ public class HarvestService : IHarvestService
             return;
         }
 
-        var family = await _fieldAccessService.GetFamilyAccessForFieldAsync(fieldId, userId, cancellationToken);
-        if (family == null)
-        {
-            return;
-        }
-
-        if (!family.Modules.Any(m => string.Equals(m, FamilyModules.Harvest, StringComparison.OrdinalIgnoreCase)))
+        if (!await _fieldAccessService.CanFamilyAccessModuleAsync(fieldId, userId, FamilyModules.Harvest, cancellationToken))
         {
             throw new ForbiddenException("You do not have access to harvest for this field.");
         }
 
-        if (write && !FamilyAccessLevels.CanCreateContent(family.AccessLevel))
+        if (write && !await _fieldAccessService.CanFamilyWriteModuleAsync(fieldId, userId, FamilyModules.Harvest, requireCreateLevel: true, cancellationToken))
         {
             throw new ForbiddenException("You can only view harvest on this field.");
         }
@@ -261,6 +261,7 @@ public class HarvestService : IHarvestService
             : AthensTime.CalendarYear(record.HarvestDate),
         HarvestMethod = record.HarvestMethod,
         WorkersUsed = record.WorkersUsed,
+        SackCount = record.SackCount,
         OliveKg = record.OliveKg,
         MillName = record.MillName,
         OilKg = record.OilKg,
@@ -273,6 +274,8 @@ public class HarvestService : IHarvestService
         Notes = record.Notes,
         Status = record.Status.ToApiString(),
         VoidReason = record.VoidReason,
-        VoidedAt = record.VoidedAt
+        VoidedAt = record.VoidedAt,
+        BatchId = record.BatchId,
+        AllocationWeight = record.AllocationWeight
     };
 }

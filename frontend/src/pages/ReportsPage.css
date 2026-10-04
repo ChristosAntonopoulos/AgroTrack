@@ -64,6 +64,10 @@
   color: var(--color-text-secondary);
 }
 
+.report-type-group + .report-type-group {
+  margin-top: var(--spacing-md);
+}
+
 .report-type-list {
   display: flex;
   flex-direction: column;
@@ -73,44 +77,46 @@
 .report-type-card {
   display: flex;
   align-items: flex-start;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--bg-section);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  gap: 0.7rem;
+  padding: 0.65rem 0.7rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
   cursor: pointer;
   text-align: left;
-  transition: all var(--transition-base);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
   position: relative;
   width: 100%;
   font-family: inherit;
 }
 
 .report-type-card:hover {
-  border-color: var(--color-primary-light);
   background: var(--bg-interactive);
 }
 
 .report-type-card.active {
-  border-color: var(--color-primary);
-  background: linear-gradient(135deg, rgba(45, 80, 22, 0.06) 0%, rgba(74, 124, 42, 0.04) 100%);
-  box-shadow: 0 2px 8px rgba(45, 80, 22, 0.1);
+  background: var(--bg-section);
+  border-color: color-mix(in srgb, var(--oleachron-gold, #b09a63) 55%, var(--color-border));
+  box-shadow: inset 3px 0 0 var(--oleachron-olive, #536d42);
 }
 
 .report-type-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 2px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
 .report-type-card.active .report-type-icon {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  border-color: var(--oleachron-olive, #536d42);
+  color: var(--oleachron-olive, #536d42);
+  background: transparent;
 }
 
 .report-type-text {
@@ -134,16 +140,16 @@
 
 .report-type-default {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  font-size: 0.62rem;
+  top: 0.45rem;
+  right: 0.45rem;
+  font-size: 0.58rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0.15rem 0.45rem;
-  background: var(--color-primary);
-  color: white;
-  border-radius: var(--radius-full);
+  letter-spacing: 0.08em;
+  padding: 0;
+  background: transparent;
+  color: var(--oleachron-gold, #b09a63);
+  border-radius: 0;
 }
 
 /* Filters */
@@ -290,15 +296,19 @@
 
 /* Preview */
 .report-preview-card {
-  border: 1px solid var(--color-border);
+  border: none;
   overflow: hidden;
+  background: transparent;
+  box-shadow: none;
 }
 
 .report-preview-scroll {
   max-height: calc(100vh - 220px);
-  overflow-y: auto;
-  background: #f3f4f6;
-  padding: var(--spacing-lg);
+  overflow: auto;
+  background:
+    radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--oleachron-gold) 16%, transparent), transparent 42%),
+    var(--surface-2);
+  padding: 1.75rem;
 }
 
 .report-empty-state {
@@ -308,9 +318,10 @@
   justify-content: center;
   padding: var(--spacing-2xl);
   text-align: center;
-  color: var(--color-text-secondary);
-  background: white;
-  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  background: var(--surface-1);
+  border: 1px solid var(--card-edge, var(--border-default));
+  border-radius: 16px;
   min-height: 320px;
 }
 

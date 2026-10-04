@@ -1,5 +1,3 @@
-import { readFieldViewPreferences } from './fieldViewPreferences';
-
 export const FIELD_PAGE_TABS = ['overview', 'map', 'chronologio', 'details'] as const;
 
 export type FieldPageTab = (typeof FIELD_PAGE_TABS)[number];
@@ -11,7 +9,7 @@ const isTab = (value: string | null): value is FieldPageTab =>
 export const parseFieldPageTab = (search: URLSearchParams): FieldPageTab => {
   if (isTab(search.get('tab'))) return search.get('tab') as FieldPageTab;
   if (search.get('mode') === 'chronologio') return 'chronologio';
-  return readFieldViewPreferences().lastTab ?? 'overview';
+  return 'overview';
 };
 
 export const parseFieldResultYear = (search: URLSearchParams, fallback: number): number => {

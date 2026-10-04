@@ -555,7 +555,7 @@ public class FieldWorkProfileServiceTests
                 Id = "field-b",
                 OwnerId = "owner-1",
                 Status = FieldStatus.Active,
-                Memberships = []
+                People = []
             });
         _profiles.Setup(r => r.CreateAsync(It.IsAny<FieldWorkProfile>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((FieldWorkProfile p, CancellationToken _) =>

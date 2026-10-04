@@ -1,7 +1,6 @@
 # Azure DevOps Build and Deploy Pipeline for Oleachron (Olive Lifecycle Platform)
 # Builds Docker images, pushes to Docker Hub, deploys to Kubernetes.
-# Mobile APK: built from mobile/ (Gradle on agent, no EAS), staged into frontend/public/downloads,
-# then baked into the frontend Docker image for nginx to serve at /downloads/oleachron-alpha.apk.
+# CI on main: website, API, and Android APK. The APK is staged into the website /downloads.
 # Maps use MapLibre Native + free Esri/OSM tiles (no Google API key).
 
 trigger:
@@ -9,7 +8,7 @@ trigger:
   - main
 
 # Manual run (Pipelines → Run pipeline): check the boxes you want.
-# CI on main uses these defaults — website + API, no APK.
+# CI on main builds the Android APK and publishes it at /downloads.
 parameters:
   - name: deployBackend
     displayName: 'Deploy backend (API)'
@@ -22,7 +21,14 @@ parameters:
     default: true
 
   - name: buildMobileApk
-    displayName: 'Also build and publish Android APK to /downloads'
+    displayName: 'Build and publish Android APK to /downloads'
+    type: boolean
+    default: true
+
+  # Destructive: drops the OliveLifecycle Mongo database so API seed recreates field-centric demos.
+  # Keep false so routine CI does not wipe prod data. Opt in only for a deliberate reseed.
+  - name: wipeProductionDatabase
+    displayName: 'Wipe production MongoDB (OliveLifecycle) before backend deploy'
     type: boolean
     default: false
 
@@ -102,28 +108,18 @@ stages:
         DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
     - script: |
+        set -euo pipefail
         docker build -t $(fullImageName):$(imageTag) -t $(fullImageName):latest -f $(dockerfilePath) $(dockerContext)
         docker push $(fullImageName):$(imageTag)
         docker push $(fullImageName):latest
+        echo "Pushed $(fullImageName):$(imageTag)"
       displayName: 'Build and push backend image'
       condition: eq('${{ parameters.deployBackend }}', true)
       env:
         DOCKER_BUILDKIT: '0'
 
-    - script: |
-        docker build \
-          -t $(fullFrontendImageName):$(imageTag) \
-          -t $(fullFrontendImageName):latest \
-          --build-arg REACT_APP_API_URL=$(backendApiUrl) \
-          --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
-          -f $(frontendDockerfilePath) $(frontendDockerContext)
-        docker push $(fullFrontendImageName):$(imageTag)
-        docker push $(fullFrontendImageName):latest
-      displayName: 'Build and push frontend image'
-      condition: and(succeeded(), eq('${{ parameters.deployFrontend }}', true), ne('${{ parameters.buildMobileApk }}', true))
-      env:
-        DOCKER_BUILDKIT: '0'
-
+# APK only. Frontend image is built in FrontendImage after this (so Deploy cannot
+# race ahead of a missing botsystem13/oleachron-frontend:$(Build.BuildId) tag).
 - stage: MobileBuild
   displayName: 'Build Mobile APK (Gradle, no EAS)'
   dependsOn: []
@@ -151,6 +147,7 @@ stages:
       displayName: 'Install mobile dependencies'
 
     - script: |
+        set -euo pipefail
         # Do NOT re-run only part of this step — build + stage must run together.
         chmod +x mobile/scripts/setup-java.sh mobile/scripts/setup-android-sdk.sh \
           mobile/scripts/build-android-apk.sh mobile/scripts/build-and-stage-apk.sh
@@ -169,37 +166,20 @@ stages:
       continueOnError: false
       timeoutInMinutes: 90
 
-    - script: |
-        if [ -z "${DOCKER_USERNAME:-}" ] || [ -z "${DOCKER_PASSWORD:-}" ]; then
-          echo "ERROR: DOCKER_USERNAME / DOCKER_PASSWORD are empty."
-          echo "Link Library variable group 'Agrotrack-Secrets' to this pipeline (YAML: variables.group)."
-          exit 1
-        fi
-        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-      displayName: 'Login to Docker Hub for frontend rebuild'
-      env:
-        DOCKER_USERNAME: $(DOCKER_USERNAME)
-        DOCKER_PASSWORD: $(DOCKER_PASSWORD)
-
-    - script: |
-        docker build \
-          -t $(fullFrontendImageName):$(imageTag) \
-          -t $(fullFrontendImageName):latest \
-          --build-arg REACT_APP_API_URL=$(backendApiUrl) \
-          --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
-          -f $(frontendDockerfilePath) $(frontendDockerContext)
-        docker push $(fullFrontendImageName):$(imageTag)
-        docker push $(fullFrontendImageName):latest
-      displayName: 'Rebuild and push frontend image with APK'
-      env:
-        DOCKER_BUILDKIT: '0'
-
     - task: PublishBuildArtifacts@1
       displayName: 'Publish APK as artifact'
       condition: succeeded()
       inputs:
         pathToPublish: 'mobile/oleachron-mobile.apk'
         artifactName: 'mobile-apk'
+        publishLocation: 'Container'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish staged frontend downloads (APK + manifest)'
+      condition: succeeded()
+      inputs:
+        pathToPublish: 'frontend/public/downloads'
+        artifactName: 'frontend-downloads'
         publishLocation: 'Container'
 
     - script: |
@@ -216,14 +196,109 @@ stages:
         echo "The app connects to: $(backendApiUrl)"
       displayName: 'Display build summary'
 
+# Single place that pushes oleachron-frontend:$(Build.BuildId). Deploy waits on this.
+- stage: FrontendImage
+  displayName: 'Build and push frontend image'
+  dependsOn:
+    - MobileBuild
+  condition: and(
+      eq('${{ parameters.deployFrontend }}', true),
+      in(dependencies.MobileBuild.result, 'Succeeded', 'Skipped')
+    )
+  jobs:
+  - job: PushFrontend
+    displayName: 'Build and push frontend Docker image'
+    pool:
+      name: 'Default'
+    steps:
+    - checkout: self
+      displayName: 'Checkout frontend sources'
+
+    - task: DownloadBuildArtifacts@1
+      displayName: 'Download staged APK into frontend/public/downloads'
+      condition: eq('${{ parameters.buildMobileApk }}', true)
+      inputs:
+        buildType: 'current'
+        artifactName: 'frontend-downloads'
+        downloadPath: '$(Build.SourcesDirectory)/frontend/public'
+
+    - script: |
+        set -euo pipefail
+        DEST="$(Build.SourcesDirectory)/frontend/public/downloads"
+        SRC="$(Build.SourcesDirectory)/frontend/public/frontend-downloads"
+        mkdir -p "$DEST"
+        if [ -d "$SRC" ]; then
+          cp -a "$SRC"/. "$DEST"/
+          echo "Copied staged downloads from MobileBuild artifact:"
+          ls -lah "$DEST"
+        else
+          echo "No MobileBuild downloads artifact (APK build skipped) — frontend image without new APK."
+        fi
+      displayName: 'Normalize downloads into frontend/public/downloads'
+      condition: always()
+
+    - script: |
+        set -euo pipefail
+        if [ -z "${DOCKER_USERNAME:-}" ] || [ -z "${DOCKER_PASSWORD:-}" ]; then
+          echo "ERROR: DOCKER_USERNAME / DOCKER_PASSWORD are empty."
+          echo "Link Library variable group 'Agrotrack-Secrets' to this pipeline (YAML: variables.group)."
+          exit 1
+        fi
+        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      displayName: 'Login to Docker Hub'
+      env:
+        DOCKER_USERNAME: $(DOCKER_USERNAME)
+        DOCKER_PASSWORD: $(DOCKER_PASSWORD)
+
+    - script: |
+        set -euo pipefail
+        IMAGE="$(fullFrontendImageName):$(imageTag)"
+        echo "Building $IMAGE ..."
+        docker build \
+          -t "$IMAGE" \
+          -t $(fullFrontendImageName):latest \
+          --build-arg REACT_APP_API_URL=$(backendApiUrl) \
+          --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
+          -f $(frontendDockerfilePath) $(frontendDockerContext)
+        docker push "$IMAGE"
+        docker push $(fullFrontendImageName):latest
+        echo "Pushed $IMAGE"
+      displayName: 'Build and push frontend image'
+      env:
+        DOCKER_BUILDKIT: '0'
+
+    - script: |
+        set -euo pipefail
+        IMAGE="$(fullFrontendImageName):$(imageTag)"
+        TAG="$(imageTag)"
+        REPO="$(frontendImageName)"
+        USER="$(dockerRegistry)"
+        echo "Verifying Docker Hub has $IMAGE ..."
+        # Public Hub API — avoids docker manifest auth quirks on the agent.
+        CODE=$(curl -s -o /tmp/hub-tag.json -w "%{http_code}" \
+          "https://hub.docker.com/v2/repositories/${USER}/${REPO}/tags/${TAG}/")
+        if [ "$CODE" != "200" ]; then
+          echo "ERROR: Docker Hub returned HTTP $CODE for ${USER}/${REPO}:${TAG}"
+          cat /tmp/hub-tag.json || true
+          echo "Frontend push did not land; refusing to continue to Deploy."
+          exit 1
+        fi
+        echo "Confirmed on Docker Hub: $IMAGE"
+      displayName: 'Verify frontend tag on Docker Hub'
+
 - stage: Deploy
   displayName: 'Deploy to Kubernetes'
   dependsOn:
     - Package
     - MobileBuild
+    - FrontendImage
   condition: and(
       succeeded('Package'),
       in(dependencies.MobileBuild.result, 'Succeeded', 'Skipped'),
+      or(
+        and(eq('${{ parameters.deployFrontend }}', true), succeeded('FrontendImage')),
+        and(eq('${{ parameters.deployFrontend }}', false), in(dependencies.FrontendImage.result, 'Succeeded', 'Skipped'))
+      ),
       or(
         eq('${{ parameters.deployBackend }}', true),
         eq('${{ parameters.deployFrontend }}', true)
@@ -260,6 +335,24 @@ stages:
           - script: 'kubectl apply -f backend/k8s/pvc.yaml'
             displayName: 'Apply backend uploads PVC'
             condition: eq('${{ parameters.deployBackend }}', true)
+
+          - task: Bash@3
+            displayName: 'Wipe production MongoDB (OliveLifecycle)'
+            condition: and(eq('${{ parameters.deployBackend }}', true), eq('${{ parameters.wipeProductionDatabase }}', true))
+            inputs:
+              targetType: 'inline'
+              script: |
+                set -euo pipefail
+                if [ -z "${MONGODB_CONNECTION_STRING:-}" ]; then
+                  echo "ERROR: MONGODB_CONNECTION_STRING is empty; cannot wipe database."
+                  exit 1
+                fi
+                DB_NAME="OliveLifecycle"
+                echo "Dropping MongoDB database '${DB_NAME}' (field-centric reseed on next API start)..."
+                docker run --rm mongo:7 mongosh "${MONGODB_CONNECTION_STRING}" --quiet --eval "db.getSiblingDB('${DB_NAME}').dropDatabase()"
+                echo "Database '${DB_NAME}' dropped."
+            env:
+              MONGODB_CONNECTION_STRING: $(MONGODB_CONNECTION_STRING)
 
           - task: Bash@3
             displayName: 'Create backend Kubernetes Secrets'
@@ -371,10 +464,19 @@ stages:
             condition: eq('${{ parameters.deployBackend }}', true)
             continueOnError: true
 
-          - script: 'kubectl rollout status deployment/olive-lifecycle-frontend -n $(frontendNamespace) --timeout=300s'
+          - script: |
+              set +e
+              kubectl rollout status deployment/olive-lifecycle-frontend -n $(frontendNamespace) --timeout=600s
+              status=$?
+              if [ "$status" -ne 0 ]; then
+                echo "=== Frontend rollout did not finish ==="
+                kubectl get pods -n $(frontendNamespace) -o wide
+                kubectl describe deployment olive-lifecycle-frontend -n $(frontendNamespace)
+                kubectl describe pods -n $(frontendNamespace) -l app=olive-lifecycle-frontend
+                exit "$status"
+              fi
             displayName: 'Wait for frontend deployment rollout'
             condition: eq('${{ parameters.deployFrontend }}', true)
-            continueOnError: true
 
           - script: |
               echo "=== Deployment Status ==="

@@ -1,5 +1,5 @@
 {
-  "appName": "Oleachron",
+  "appName": "The Olive Lot",
   "home": "Home",
   "breadcrumb": "Breadcrumb",
   "loading": "Loading...",
@@ -21,6 +21,7 @@
   "close": "Close",
   "back": "Back",
   "next": "Next",
+  "continue": "Continue",
   "submit": "Submit",
   "actions": "Actions",
   "status": "Status",
@@ -39,10 +40,12 @@
   "nextTask": "Next",
   "toggleMenu": "Toggle menu",
   "moreNav": "More",
+  "menuNav": "Menu",
   "moreMenu": "More options",
   "mobileNav": "Primary navigation",
   "logout": "Logout",
   "logoutAria": "Logout",
+  "familyCollaboratorBadge": "Collaborator of {{owner}}",
   "roles": {
     "FieldOwner": "Grove owner",
     "Producer": "Field partner",
@@ -85,10 +88,49 @@
   },
   "notifications": {
     "title": "Notifications",
-    "empty": "No notifications",
+    "open": "Notifications",
+    "openUnread": "Notifications, {{count}} unread",
+    "subtitle": "Assignments, approvals, and updates for your grove",
+    "loading": "Loading notifications",
+    "empty": "You're all caught up",
+    "emptyHint": "Assignments, approvals, and other grove updates will appear here.",
+    "hiddenBySettings": "{{count}} notification is hidden by your settings.",
+    "reviewSettings": "Review notification settings",
     "markAllRead": "Mark all as read",
-    "clearAll": "Clear all"
+    "clearAll": "Clear all",
+    "clearAllConfirm": "Remove all {{count}} notifications from this list? This cannot be undone.",
+    "tapToRespond": "Tap to respond",
+    "badge": {
+      "update": "Update",
+      "inbox": "Update"
+    },
+    "types": {
+      "taskAssignment": "Assignment",
+      "approval": "Approval",
+      "harvest": "Harvest",
+      "financial": "Money",
+      "satelliteWeather": "Weather",
+      "marketingSystem": "Message",
+      "other": "Update"
+    }
   },
+  "inApp": {
+    "announcement": "Announcement",
+    "questionnaire": "Questionnaire",
+    "poll": "Poll",
+    "submit": "Submit answer",
+    "later": "Remind me later",
+    "gotIt": "Got it",
+    "done": "Done",
+    "thanksTitle": "Thanks!",
+    "thanks": "Your response helps us support olive growers this season.",
+    "results": "Live results",
+    "answerRequired": "Please answer the required questions.",
+    "required": "Required",
+    "textPlaceholder": "Type your answer…",
+    "multiHint": "You can select more than one option."
+  },
+  "previous": "Previous",
   "language": "Language",
   "offline": {
     "offline": "You are offline. Changes will sync when you reconnect.",

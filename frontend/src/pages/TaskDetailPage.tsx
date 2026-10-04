@@ -1,53 +1,35 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
 import {
   getFieldService,
   getFieldWorkService,
   getFinancialSummaryService,
-  getPartnerService,
 } from '../services/serviceFactory';
-import { fieldPeopleService, type FieldMembership } from '../services/fieldPeopleService';
-import type { SavedContact } from '../services/partnerService';
 import type { FieldTask, FieldTaskChecklistItem } from '../services/fieldWorkService';
 import type { Field } from '../services/fieldService';
 import type { TaskFinancialSummary } from '../services/financialSummaryService';
 import { useCaptureOptional } from '../context/CaptureContext';
-import { formatOfficialAmount, formatOfficialNet } from '../finance/format';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { taskDisplayTitle } from '../utils/taskDisplayTitle';
-import { formatTaskDateRange, formatTaskDay } from '../utils/taskDateRange';
-import { checklistProgress } from '../utils/plannedTaskGroups';
-import { resolveWeatherKind } from '../utils/taskWeather';
-import { isWeatherSensitiveTemplate } from '../data/fieldWorkCatalogueLabels';
-import { weatherExplanationCopy, type ProposalChip } from '../utils/proposalPresentation';
+import { checklistCount, notebookStatus, requiredChecksRemaining } from '../utils/taskNotebook';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
+import { formatOfficialAmount } from '../finance/format';
+import { taskExpenseCaptureContext } from '../utils/taskExpenseContext';
+import { formatCompactTaskPeriod } from '../utils/taskDateRange';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
+import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import WeatherSuitabilityBadge from '../components/Tasks/WeatherSuitabilityBadge';
+import TaskCategoryMark from '../components/Tasks/TaskCategoryMark';
 import '../components/Tasks/form/TaskForm.css';
-import '../components/Tasks/TaskProposalCard.css';
+import '../components/Tasks/TaskNotebookCard.css';
 import './TaskDetailPage.css';
 
-const checklistLabel = (item: FieldTaskChecklistItem, lang: string) => {
-  if (lang.toLowerCase().startsWith('el')) return item.greekLabel || item.label;
+const checkLabel = (item: FieldTaskChecklistItem, language: string) => {
+  if (language.toLowerCase().startsWith('el')) return item.greekLabel || item.label;
   return item.englishLabel || item.label;
-};
-
-const checklistValue = (item: FieldTaskChecklistItem, lang: string): string | null => {
-  if (!item.isAnswered) return null;
-  const type = (item.itemType || '').toLowerCase();
-  if (type === 'number' && item.numberValue != null) {
-    return `${item.numberValue}${item.unit ? ` ${item.unit}` : ''}`;
-  }
-  if (type === 'text' && item.textValue) return item.textValue;
-  if (type === 'choice' && item.textValue) return item.textValue;
-  if (item.boolValue === true) return lang.toLowerCase().startsWith('el') ? 'Ναι' : 'Yes';
-  if (item.boolValue === false) return lang.toLowerCase().startsWith('el') ? 'Όχι' : 'No';
-  return lang.toLowerCase().startsWith('el') ? 'Έγινε' : 'Done';
 };
 
 const TaskDetailPage: React.FC = () => {
@@ -59,36 +41,25 @@ const TaskDetailPage: React.FC = () => {
   const [task, setTask] = useState<FieldTask | null>(null);
   const [field, setField] = useState<Field | null>(null);
   const [money, setMoney] = useState<TaskFinancialSummary | null>(null);
-  const [people, setPeople] = useState<FieldMembership[]>([]);
-  const [contacts, setContacts] = useState<SavedContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showMoreChecks, setShowMoreChecks] = useState(false);
-  const [assigneeKey, setAssigneeKey] = useState('');
+  const [note, setNote] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [explaining, setExplaining] = useState(false);
 
   const load = async () => {
     if (!id) return;
     try {
       setError(null);
-      const fw = getFieldWorkService();
-      const data = await fw.getFieldTask(id);
+      const data = await getFieldWorkService().getFieldTask(id);
       setTask(data);
-      if (data.assignedUserId) setAssigneeKey(`user:${data.assignedUserId}`);
-      else if (data.assignedCollaboratorId) setAssigneeKey(`contact:${data.assignedCollaboratorId}`);
-      else setAssigneeKey('');
-
-      const [fields, memberships, saved, taskMoney] = await Promise.all([
+      setNote(data.notes || '');
+      const [fields, taskMoney] = await Promise.all([
         getFieldService().getFields().catch(() => [] as Field[]),
-        fieldPeopleService.getPeople(data.fieldId).catch(() => [] as FieldMembership[]),
-        getPartnerService()
-          .getContacts({ fieldId: data.fieldId, includeUnassigned: true })
-          .catch(() => [] as SavedContact[]),
         getFinancialSummaryService().getTaskSummary(id).catch(() => null),
       ]);
-      setField(fields.find((f) => f.id === data.fieldId) || null);
-      setPeople(Array.isArray(memberships) ? memberships : []);
-      setContacts(Array.isArray(saved) ? saved : []);
+      setField(fields.find((item) => item.id === data.fieldId) || null);
       setMoney(taskMoney);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('detail.failedLoad'));
@@ -104,94 +75,11 @@ const TaskDetailPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const assigneeOptions = useMemo(() => {
-    const opts: Array<{ key: string; label: string; userId?: string; contactId?: string }> = [
-      { key: '', label: t('fieldWork.form.unassigned') },
-    ];
-    people.forEach((p) => {
-      opts.push({
-        key: `user:${p.userId}`,
-        label: p.displayName || p.email || p.userId,
-        userId: p.userId,
-      });
-    });
-    contacts.forEach((c) => {
-      if (c.linkedUserId && people.some((p) => p.userId === c.linkedUserId)) return;
-      opts.push({
-        key: `contact:${c.id}`,
-        label: c.displayName,
-        contactId: c.id,
-        userId: c.linkedUserId,
-      });
-    });
-    return opts;
-  }, [people, contacts, t]);
-
-  const essential = useMemo(
-    () =>
-      (task?.checklist || [])
-        .filter((c) => c.isEssential)
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .slice(0, 5),
-    [task]
-  );
-
-  const extra = useMemo(
-    () =>
-      (task?.checklist || [])
-        .filter((c) => !essential.some((e) => e.key === c.key))
-        .sort((a, b) => a.sortOrder - b.sortOrder),
-    [task, essential]
-  );
-
-  const status = String(task?.status || '').toLowerCase();
-  const canStart = status === 'planned' || status === 'ready' || status === 'blocked';
-  const canComplete = status === 'in_progress' || status === 'ready' || status === 'planned';
-  const isTerminal = status === 'completed' || status === 'cancelled';
-  const progress = task ? checklistProgress(task) : { done: 0, total: 0 };
-  const title = task ? taskDisplayTitle(task.title, task.templateCode, i18n.language) : '';
-  const fieldName = field ? friendlyFieldLabel(field.name) : task?.fieldId || '';
-  const period = task
-    ? formatTaskDateRange(task.plannedStart, task.plannedEnd, i18n.language)
-    : '';
-  const started = task?.startedAt
-    ? formatTaskDay(task.startedAt, i18n.language, task.resultYear)
-    : '';
-
-  const weatherKind = resolveWeatherKind(task?.weatherSuitability);
-  const showWeather =
-    Boolean(task) &&
-    (weatherKind === 'unknown' ||
-      (isWeatherSensitiveTemplate(task?.templateCode) && weatherKind !== 'not_sensitive'));
-  const weatherChip: ProposalChip | null = showWeather
-    ? {
-        id:
-          weatherKind === 'good'
-            ? 'good'
-            : weatherKind === 'caution'
-              ? 'caution'
-              : weatherKind === 'unsuitable'
-                ? 'unsuitable'
-                : 'unknown',
-        labelKey: `fieldWork.proposal.chips.${weatherKind === 'unknown' ? 'unknown' : weatherKind}`,
-      }
-    : null;
-  const weatherCopy = useMemo(
-    () =>
-      weatherExplanationCopy(
-        weatherKind === 'not_sensitive' ? 'not_sensitive' : weatherKind,
-        [],
-        i18n.language
-      ),
-    [weatherKind, i18n.language]
-  );
-
   const handleStart = async () => {
     if (!id) return;
     setBusy(true);
     try {
-      const updated = await getFieldWorkService().startFieldTask(id);
-      setTask(updated);
+      setTask(await getFieldWorkService().startFieldTask(id));
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fieldWork.errors.start'));
     } finally {
@@ -199,48 +87,68 @@ const TaskDetailPage: React.FC = () => {
     }
   };
 
-  const handleAssign = async (nextKey: string) => {
-    if (!id || isTerminal) return;
-    setAssigneeKey(nextKey);
+  const toggleCheck = async (item: FieldTaskChecklistItem) => {
+    if (!id || !task) return;
+    const status = notebookStatus(task.status);
+    if (status === 'completed' || status === 'cancelled' || status === 'skipped') return;
     setBusy(true);
     try {
-      const selected = assigneeOptions.find((o) => o.key === nextKey);
-      const updated = await getFieldWorkService().assignFieldTask(id, {
-        assignedUserId: selected?.userId,
-        assignedCollaboratorId: selected?.contactId,
-      });
-      setTask(updated);
+      let current = task;
+      if (status === 'todo') {
+        current = await getFieldWorkService().startFieldTask(id);
+      }
+      const updated = await getFieldWorkService().setChecklistItem(id, item.key, !item.isAnswered);
+      setTask({ ...updated, startedAt: updated.startedAt || current.startedAt });
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('detail.failedAssign'));
-      if (task?.assignedUserId) setAssigneeKey(`user:${task.assignedUserId}`);
-      else if (task?.assignedCollaboratorId) setAssigneeKey(`contact:${task.assignedCollaboratorId}`);
-      else setAssigneeKey('');
+      setError(getApiErrorMessage(err, t) || t('detail.failedStatus'));
     } finally {
       setBusy(false);
     }
   };
 
-  const handleComplete = () => {
-    if (!id) return;
-    navigate(`/tasks/${id}/complete`);
+  const saveNote = async (value: string) => {
+    if (!id || !task) return;
+    if ((value.trim() || '') === (task.notes || '').trim()) return;
+    setBusy(true);
+    try {
+      setTask(await getFieldWorkService().updateFieldTask(id, { notes: value.trim() }));
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('detail.failedStatus'));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const renderCheckItem = (item: FieldTaskChecklistItem) => {
-    const value = checklistValue(item, i18n.language);
-    return (
-      <li key={item.key} className={`task-detail-check${item.isAnswered ? ' is-done' : ''}`}>
-        <span className="task-detail-check-mark" aria-hidden>
-          {item.isAnswered ? '✓' : '○'}
-        </span>
-        <div>
-          <strong>{checklistLabel(item, i18n.language)}</strong>
-          {value ? <span>{value}</span> : null}
-          {!item.isAnswered && !isTerminal ? (
-            <span className="task-detail-check-pending">{t('fieldWork.detail.checkPending')}</span>
-          ) : null}
-        </div>
-      </li>
-    );
+  const confirmComplete = async (allowIncomplete: boolean) => {
+    if (!id) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await getFieldWorkService().completeFieldTask(id, {
+        outcome: 'completed',
+        notes: note.trim() || undefined,
+        allowIncomplete,
+      });
+      navigate('/tasks?view=done');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.complete'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const blockTask = async () => {
+    if (!id) return;
+    setBusy(true);
+    try {
+      setTask(await getFieldWorkService().blockFieldTask(id));
+      setConfirming(false);
+      setExplaining(false);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('detail.failedStatus'));
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (loading) {
@@ -258,263 +166,235 @@ const TaskDetailPage: React.FC = () => {
         <Breadcrumbs />
         <div className="task-detail-page">
           <p className="task-form-help">{error || t('detail.notFound')}</p>
-          <Button to="/tasks" icon={<ArrowLeft />} variant="outline" size="lg">
-            {t('detail.backToTasks')}
-          </Button>
+          <BackLink to="/tasks">{t('detail.backToTasks')}</BackLink>
         </div>
       </PageContainer>
     );
   }
 
-  const statusClass =
-    status === 'in_progress'
-      ? 'is-active'
-      : status === 'completed'
-        ? 'is-done'
-        : status === 'blocked'
-          ? 'is-blocked'
-          : 'is-planned';
+  const status = notebookStatus(task.status);
+  const title = taskDisplayTitle(task.title, task.templateCode, i18n.language);
+  const fieldName = friendlyFieldLabel(field?.name) || task.fieldId;
+  const started = task.startedAt
+    ? new Date(task.startedAt).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
+    : '';
+  const locked = status === 'completed' || status === 'cancelled' || status === 'skipped';
+  const checks = [...(task.checklist || [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  const checkProgress = checklistCount(task);
+  const remaining = requiredChecksRemaining(task);
+  const needsExplanation = confirming && remaining > 0 && !explaining;
+  const period = formatCompactTaskPeriod(
+    task.plannedStart,
+    task.plannedEnd,
+    i18n.language,
+    task.resultYear
+  );
+  const statusLabel =
+    status !== 'todo' ? t(`notebook.status.${status}`, { defaultValue: status }) : '';
+  const metaParts = [
+    fieldName,
+    period,
+    started ? t('notebook.work.started', { time: started }) : '',
+    statusLabel,
+  ].filter(Boolean);
+  const actualCost = formatOfficialAmount(
+    money?.actualCost,
+    task.estimatedCostCurrency || 'EUR',
+    i18n.language,
+    t('fieldWork.detail.noActual')
+  );
+  const activityLine = (action: string, occurredAt: string) => {
+    const key = `notebook.work.activityActions.${action}`;
+    const label = t(key, { defaultValue: action });
+    const when = new Date(occurredAt).toLocaleString(i18n.language, {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return `${label} · ${when}`;
+  };
 
   return (
     <PageContainer className="tasks-page-container" maxWidth="md">
       <Breadcrumbs />
-      <div className="task-detail-page">
-        <header className="task-detail-header">
-          <div className="task-detail-header-copy">
-            <div className="task-detail-chips">
-              <span className={`task-detail-status ${statusClass}`}>{task.statusLabel}</span>
-              <span className="task-detail-year">{task.resultYear}</span>
+      <div className="task-work-screen">
+        <header className="task-work-head">
+          <BackLink to="/tasks">{t('detail.backToTasks')}</BackLink>
+          <div className="task-work-head-row">
+            <TaskCategoryMark templateCode={task.templateCode} size={22} />
+            <div>
+              <h1>{title}</h1>
+              <p className="task-work-meta">{metaParts.join(' · ')}</p>
             </div>
-            <h1>{title}</h1>
-            <p className="task-detail-meta">
-              <Link to={`/fields/${task.fieldId}`} className="task-detail-field-link">
-                {fieldName}
-              </Link>
-              {period ? <span> · {period}</span> : null}
-              {started ? (
-                <span>
-                  {' '}
-                  · {t('detail.actualStart')}: {started}
-                </span>
-              ) : null}
-            </p>
-            {weatherChip ? (
-              <div className="task-detail-weather">
-                <WeatherSuitabilityBadge
-                  chip={weatherChip}
-                  label={
-                    weatherChip.id === 'unknown'
-                      ? t('fieldWork.weather.unknown')
-                      : t(weatherChip.labelKey)
-                  }
-                  headline={weatherCopy.headline}
-                  facts={weatherCopy.facts}
-                />
-              </div>
-            ) : null}
-            {task.description ? <p className="task-detail-description">{task.description}</p> : null}
           </div>
-          <Button to="/tasks" icon={<ArrowLeft />} variant="outline" size="lg">
-            {t('detail.backToTasks')}
-          </Button>
+          {error ? <p role="alert">{error}</p> : null}
         </header>
 
-        {error ? (
-          <div className="task-form-error" role="alert">
-            {error}
-          </div>
-        ) : null}
-
-        {!isTerminal ? (
-          <section className="task-detail-card task-detail-next">
-            <h2>{t('fieldWork.detail.nextStep')}</h2>
-            <p className="task-form-help">
-              {canStart && status !== 'in_progress'
-                ? t('fieldWork.detail.nextStepStart')
-                : t('fieldWork.detail.nextStepComplete')}
+        <section className="task-work-card" aria-label={t('notebook.work.checks')}>
+          <h2>{t('notebook.work.checks')}</h2>
+          {checks.length > 0 ? (
+            <p className="task-work-progress">
+              {t('notebook.work.checksProgress', {
+                done: checkProgress.done,
+                total: checkProgress.total,
+              })}
             </p>
-            <div className="task-detail-actions">
-              {canStart ? (
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={() => void handleStart()}
-                  disabled={busy}
-                >
-                  {t('fieldWork.actions.start')}
-                </Button>
-              ) : null}
-              {canComplete ? (
-                <Button
-                  variant={canStart ? 'outline' : 'success'}
-                  size="lg"
-                  onClick={handleComplete}
-                  disabled={busy}
-                >
-                  {t('fieldWork.actions.complete')}
-                </Button>
-              ) : null}
+          ) : null}
+          {checks.length === 0 ? (
+            <p className="task-form-help">{t('notebook.work.noChecks')}</p>
+          ) : (
+            <ul className="task-check-list">
+              {checks.map((item) => (
+                <li key={item.key}>
+                  <label className={`task-check${item.isAnswered ? ' is-done' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={item.isAnswered}
+                      disabled={busy || locked}
+                      onChange={() => void toggleCheck(item)}
+                    />
+                    <span>{checkLabel(item, i18n.language)}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="task-work-card">
+          <h2>{t('notebook.work.note')}</h2>
+          <textarea
+            className="task-work-note"
+            value={note}
+            disabled={locked || busy}
+            onChange={(event) => setNote(event.target.value)}
+            onBlur={() => void saveNote(note)}
+          />
+        </section>
+
+        <section className="task-work-card">
+          <h2>{t('fieldWork.detail.money')}</h2>
+          <p className="task-work-money-hint">{t('fieldWork.detail.actual')}</p>
+          <p className="task-work-money-value">{actualCost}</p>
+          <p className="task-work-money-hint">{t('fieldWork.detail.estimateHint')}</p>
+          {!locked ? (
+            <div className="task-work-secondary">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() =>
+                  capture?.openCapture({
+                    preferredType: 'photo',
+                    fieldId: task.fieldId,
+                    taskId: task.id,
+                  })
+                }
+              >
+                {t('notebook.work.addPhoto')}
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => capture?.openCapture(taskExpenseCaptureContext(task))}
+              >
+                {t('fieldWork.detail.addExpense')}
+              </Button>
             </div>
+          ) : null}
+        </section>
+
+        {(task.activity || []).length > 0 ? (
+          <section className="task-work-card">
+            <h2>{t('notebook.work.activity')}</h2>
+            <ul className="task-work-activity">
+              {task.activity?.map((event, index) => (
+                <li key={`${event.action}-${event.occurredAt}-${index}`}>
+                  {activityLine(event.action, event.occurredAt)}
+                </li>
+              ))}
+            </ul>
           </section>
         ) : null}
 
-        <section className="task-detail-card">
-          <div className="task-detail-card-head">
-            <h2>{t('fieldWork.detail.checklist')}</h2>
-            {progress.total > 0 ? (
-              <span className="task-detail-progress-label">
-                {t('fieldWork.task.checksShort', { done: progress.done, total: progress.total })}
-              </span>
-            ) : null}
-          </div>
-          {progress.total > 0 ? (
-            <div className="task-detail-progress" aria-hidden>
-              <span
-                style={{
-                  width: `${progress.done > 0 ? (progress.done / progress.total) * 100 : 0}%`,
-                }}
-              />
-            </div>
-          ) : null}
-          {!isTerminal ? (
-            <p className="task-form-help">{t('fieldWork.detail.checklistHint')}</p>
-          ) : null}
-          {essential.length > 0 ? (
-            <ul className="task-detail-checklist">{essential.map(renderCheckItem)}</ul>
-          ) : (
-            <p className="task-form-help">{t('fieldWork.detail.noChecks')}</p>
-          )}
-          {extra.length > 0 ? (
-            <>
-              <button
-                type="button"
-                className="task-advanced-toggle"
-                onClick={() => setShowMoreChecks((value) => !value)}
+        {confirming ? (
+          <section className="task-work-confirm">
+            <h2>{t('notebook.work.doneNow')}</h2>
+            {needsExplanation ? (
+              <>
+                <p role="status">{t('notebook.work.incomplete', { open: remaining })}</p>
+                <div className="task-work-confirm-choices">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    onClick={() => {
+                      setConfirming(false);
+                      setExplaining(false);
+                    }}
+                  >
+                    {t('notebook.work.backToChecks')}
+                  </Button>
+                  <Button variant="ghost" size="lg" fullWidth onClick={() => setExplaining(true)}>
+                    {t('notebook.work.completeAnyway')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    fullWidth
+                    onClick={() => void blockTask()}
+                    disabled={busy}
+                  >
+                    {t('notebook.menu.block')}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                disabled={busy}
+                onClick={() => void confirmComplete(remaining > 0)}
               >
-                {showMoreChecks
-                  ? t('fieldWork.detail.hideMoreChecks')
-                  : t('fieldWork.detail.moreChecks')}
-              </button>
-              {showMoreChecks ? (
-                <ul className="task-detail-checklist">{extra.map(renderCheckItem)}</ul>
-              ) : null}
-            </>
-          ) : null}
-          {canComplete && !isTerminal ? (
-            <Button variant="outline" size="lg" onClick={handleComplete} disabled={busy}>
-              {t('fieldWork.detail.fillChecks')}
-            </Button>
-          ) : null}
-        </section>
-
-        <section className="task-detail-card">
-          <h2>{t('fieldWork.person')}</h2>
-          <label className="task-form-label" htmlFor="task-detail-assignee">
-            {t('detail.assignedTo')}
-          </label>
-          <select
-            id="task-detail-assignee"
-            className="task-form-input"
-            value={assigneeKey}
-            disabled={isTerminal || busy}
-            onChange={(e) => void handleAssign(e.target.value)}
-          >
-            {assigneeOptions.map((option) => (
-              <option key={option.key || 'unassigned'} value={option.key}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </section>
-
-        <section className="task-detail-card">
-          <h2>{t('fieldWork.detail.money')}</h2>
-          <dl className="task-detail-money">
-            <div>
-              <dt>{t('fieldWork.detail.estimated')}</dt>
-              <dd>
-                {formatOfficialAmount(
-                  money?.estimatedCost ?? task.estimatedCost,
-                  'EUR',
-                  i18n.language,
-                  t('money:unknownAmount')
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>{t('fieldWork.detail.actual')}</dt>
-              <dd>
-                {formatOfficialAmount(
-                  money?.actualCost,
-                  'EUR',
-                  i18n.language,
-                  t('fieldWork.detail.noActual')
-                )}
-              </dd>
-            </div>
-            {money?.difference != null ? (
-              <div>
-                <dt>{t('fieldWork.detail.difference')}</dt>
-                <dd>
-                  {formatOfficialNet(
-                    money.difference,
-                    'EUR',
-                    i18n.language,
-                    t('money:unknownAmount')
-                  )}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-          <p className="task-form-help">{t('fieldWork.detail.estimateHint')}</p>
-          <div className="task-detail-actions">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() =>
-                capture?.openCapture({
-                  preferredType: 'expense',
-                  fieldId: task.fieldId,
-                  taskId: task.id,
-                })
-              }
-            >
-              {t('fieldWork.detail.addExpense')}
-            </Button>
-            <Button
-              to={`/money?year=${task.resultYear}&fieldId=${encodeURIComponent(task.fieldId)}&task=${encodeURIComponent(task.id)}`}
-              variant="outline"
-              size="lg"
-            >
-              {t('fieldWork.detail.seeMoney')}
-            </Button>
-          </div>
-        </section>
-
-        <section className="task-detail-card">
-          <h2>{t('fieldWork.form.notes')}</h2>
-          {task.notes?.trim() ? (
-            <p className="task-detail-notes">{task.notes}</p>
-          ) : (
-            <p className="task-form-help">
-              {isTerminal
-                ? t('fieldWork.detail.noNotes')
-                : t('fieldWork.detail.notesOnComplete')}
-            </p>
-          )}
-        </section>
-
-        {status === 'completed' ? (
-          <p className="task-detail-footer-link">
-            <Link to="/chronologio">{t('fieldWork.seeCompletedInChronologio')}</Link>
-          </p>
+                {t('notebook.work.confirm')}
+              </Button>
+            )}
+          </section>
         ) : null}
 
-        {canComplete && !isTerminal ? (
-          <div className="task-detail-sticky">
-            <Button variant="success" size="lg" onClick={handleComplete} disabled={busy}>
-              {t('fieldWork.actions.complete')}
-            </Button>
+        {!confirming && !locked ? (
+          <div className="task-work-sticky">
+            {status === 'todo' ? (
+              <Button variant="primary" size="lg" onClick={() => void handleStart()} disabled={busy}>
+                {t('fieldWork.actions.start')}
+              </Button>
+            ) : null}
+            {status === 'blocked' ? (
+              <Button
+                variant="primary"
+                size="lg"
+                disabled={busy}
+                onClick={() => {
+                  if (!id) return;
+                  setBusy(true);
+                  void getFieldWorkService()
+                    .resolveFieldTask(id)
+                    .then(setTask)
+                    .catch((err: unknown) =>
+                      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.start'))
+                    )
+                    .finally(() => setBusy(false));
+                }}
+              >
+                {t('notebook.actions.resolve')}
+              </Button>
+            ) : null}
+            {status === 'in_progress' ? (
+              <Button variant="primary" size="lg" disabled={busy} onClick={() => setConfirming(true)}>
+                {t('notebook.work.complete')}
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>

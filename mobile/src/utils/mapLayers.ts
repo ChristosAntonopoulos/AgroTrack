@@ -1,3 +1,8 @@
+/** Hard stop for user zoom. Past native zoom, tiles are overscaled so the map stays visible. */
+export const MAP_MAX_ZOOM = 19;
+export const MAP_MAX_NATIVE_ZOOM = 18;
+export const MAP_MIN_ZOOM = 5;
+
 /** Esri World Imagery (same source as web frontend). */
 export const SATELLITE_TILE_URL =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -19,5 +24,5 @@ export type MapLayerType = 'satellite' | 'standard' | 'hybrid';
 export const DEFAULT_MAP_LAYER: MapLayerType = 'satellite';
 
 /** Fallback only — prefer resolveFieldColor for real fields. */
-export const FIELD_POLYGON_STROKE = '#2F6B4F';
-export const FIELD_POLYGON_FILL = '#2F6B4F';
+export const FIELD_POLYGON_STROKE = '#E8C547';
+export const FIELD_POLYGON_FILL = '#E8C547';

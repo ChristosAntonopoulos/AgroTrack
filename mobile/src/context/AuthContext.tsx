@@ -78,6 +78,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           setUser(authResponseToUser(storedUser));
         }
+        try {
+          const { pushNotificationService } = await import('../services/pushNotificationService');
+          void pushNotificationService.registerForUser();
+        } catch {
+          /* push optional */
+        }
       }
     } catch (error) {
       console.error('Error checking auth:', error);
@@ -119,9 +125,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } else {
       setUser(authResponseToUser(authResponse));
     }
+    try {
+      const { pushNotificationService } = await import('../services/pushNotificationService');
+      void pushNotificationService.registerForUser();
+    } catch {
+      /* push optional */
+    }
   };
 
   const logout = async () => {
+    try {
+      const { pushNotificationService } = await import('../services/pushNotificationService');
+      await pushNotificationService.clearForUser();
+    } catch {
+      /* ignore */
+    }
     await getAuthService().logout();
     try {
       const { EntityCache } = await import('../utils/entityCache');

@@ -1,4 +1,5 @@
 import { DOMAIN_ACCENTS } from './domainAccents';
+import { templateMeta, type FieldWorkCategory } from '../data/fieldWorkCatalogueLabels';
 
 /**
  * Strong left-edge accents per task category — Mediterranean event palette.
@@ -14,6 +15,18 @@ const EVENT = {
   warning: '#A74435',
   field_change: '#59696B',
 } as const;
+
+const BY_CATALOGUE: Record<FieldWorkCategory, string> = {
+  monitoring: EVENT.warning,
+  pruning: EVENT.work,
+  fertilisation: EVENT.work,
+  irrigation: EVENT.work,
+  harvest: EVENT.harvest,
+  inspection: EVENT.observation,
+  analysis: EVENT.observation,
+  ground: EVENT.work,
+  other: EVENT.work,
+};
 
 export const TASK_CATEGORY_ACCENTS: Record<string, string> = {
   Observation: EVENT.observation,
@@ -45,6 +58,8 @@ export const TASK_CATEGORY_ACCENTS: Record<string, string> = {
 
 export const resolveTaskCategoryAccent = (type?: string | null): string => {
   if (!type) return DOMAIN_ACCENTS.task;
+  const fromCatalogue = templateMeta(type);
+  if (fromCatalogue) return BY_CATALOGUE[fromCatalogue.category];
   const direct = TASK_CATEGORY_ACCENTS[type];
   if (direct) return direct;
   const lower = TASK_CATEGORY_ACCENTS[type.toLowerCase()];

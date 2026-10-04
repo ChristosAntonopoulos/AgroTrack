@@ -12,14 +12,6 @@ import { mockUserService } from './mock/mockUserService';
 import { lifecycleService } from './lifecycleService';
 import { mockLifecycleService } from './mock/mockLifecycleService';
 
-// Calendar Service
-import { calendarService } from './calendarService';
-import { mockCalendarService } from './mock/mockCalendarService';
-
-// Analytics Service
-import { analyticsService } from './analyticsService';
-import { mockAnalyticsService } from './mock/mockAnalyticsService';
-
 // Ministry Notifications
 import { ministryNotificationService } from './ministryNotificationService';
 import { ministryApiService } from './ministryApiService';
@@ -42,6 +34,9 @@ import { chronologioService } from './chronologioService';
 import { mockChronologioService } from './mock/mockChronologioService';
 import { fieldWorkService } from './fieldWorkService';
 import { mockFieldWorkService } from './mock/mockFieldWorkService';
+import { feedbackService } from './feedbackService';
+import { mockFeedbackService } from './mock/mockFeedbackService';
+import { photoService } from './photoService';
 import { isMockDataEnabled } from '../config/apiConfig';
 
 const useMockData = isMockDataEnabled();
@@ -49,8 +44,6 @@ const useMockData = isMockDataEnabled();
 export const getFieldService = () => useMockData ? mockFieldService : fieldService;
 export const getUserService = () => useMockData ? mockUserService : userService;
 export const getLifecycleService = () => useMockData ? mockLifecycleService : lifecycleService;
-export const getCalendarService = () => useMockData ? mockCalendarService : calendarService;
-export const getAnalyticsService = () => useMockData ? mockAnalyticsService : analyticsService;
 export const getMinistryNotificationService = () =>
   useMockData ? ministryNotificationService : ministryApiService;
 export const getReportsService = () => reportsService;
@@ -67,6 +60,10 @@ export const getChronologioService = () =>
   useMockData ? mockChronologioService : chronologioService;
 export const getFieldWorkService = () =>
   useMockData ? mockFieldWorkService : fieldWorkService;
+export const getFeedbackService = () =>
+  useMockData ? mockFeedbackService : feedbackService;
+/** Photo Hub uses the live API even in mock mode (local uploads need the backend). */
+export const getPhotoService = () => photoService;
 
-// Export a helper to check if mock mode is active
+/** Whether the UI is running against in-browser demo data. */
 export const isMockMode = () => useMockData;

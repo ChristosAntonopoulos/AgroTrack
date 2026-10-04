@@ -52,7 +52,6 @@
 .view-tab.active {
   color: var(--text-primary);
   background: var(--olive-soft);
-  box-shadow: inset 0 0 0 1px var(--olive-border);
 }
 
 .view-tab:focus-visible {

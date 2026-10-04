@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap } from 'react-leaflet';
+import MapWheelZoom from '../maps/MapWheelZoom';
 import L from 'leaflet';
 import { useTranslation } from 'react-i18next';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -10,6 +11,9 @@ import { Field } from '../../services/fieldService';
 import { locationService, Location } from '../../services/locationService';
 import {
   MapLayerType,
+  MAP_MAX_ZOOM,
+  MAP_MAX_NATIVE_ZOOM,
+  MAP_MIN_ZOOM,
   SATELLITE_LABELS_TILE,
   SATELLITE_PLACES_TILE,
   SATELLITE_TILE,
@@ -20,7 +24,7 @@ import { formatFieldArea } from '../../utils/fieldGeo';
 import { getFieldShortLocation } from '../../utils/shortLocation';
 import { getFieldStatusLabel } from '../../utils/fieldDisplay';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
-import { resolveFieldColor } from '../../utils/fieldColors';
+import { DEFAULT_FIELD_COLOR, resolveFieldColor } from '../../utils/fieldColors';
 import './FieldsMap.css';
 
 L.Icon.Default.mergeOptions({
@@ -46,9 +50,6 @@ type MappableField = {
   center: [number, number];
   polygon?: [number, number][];
 };
-
-const PIN_PATH =
-  'M16 1.8C8.54 1.8 2.5 7.84 2.5 15.3c0 9.86 13.5 24.4 13.5 24.4s13.5-14.54 13.5-24.4C29.5 7.84 23.46 1.8 16 1.8z';
 
 const escapeHtml = (value: string) =>
   value
@@ -103,24 +104,18 @@ const resolveMappableFields = (fields: Field[]): MappableField[] => {
 
 const createFieldPinIcon = (name: string, color: string, state: PinState, flipLabel = false): L.DivIcon => {
   const safeName = escapeHtml(name);
-  const safeColor = /^#[0-9A-Fa-f]{6}$/i.test(color) ? color : '#2F6B4F';
+  const safeColor = /^#[0-9A-Fa-f]{6}$/i.test(color) ? color : DEFAULT_FIELD_COLOR;
   const flipClass = flipLabel ? ' fields-map-pin--flip' : '';
+  const size = state === 'selected' ? 22 : state === 'hover' ? 20 : 16;
   return L.divIcon({
     className: `fields-map-pin-wrap fields-map-pin-wrap--${state}${flipLabel ? ' fields-map-pin-wrap--flip' : ''}`,
     html: `<div class="fields-map-pin fields-map-pin--${state}${flipClass}" style="--pin-color:${safeColor}">
-      <span class="fields-map-pin-mark" aria-hidden="true">
-        <svg viewBox="0 0 32 42" width="28" height="37" focusable="false">
-          <ellipse cx="16" cy="39.2" rx="5.6" ry="1.65" fill="rgba(0,0,0,0.32)"/>
-          <path d="${PIN_PATH}" fill="${safeColor}" stroke="rgba(255,255,255,0.78)" stroke-width="1.4"/>
-          <circle cx="16" cy="15.2" r="5.45" fill="#fff"/>
-          <circle cx="16" cy="15.2" r="2.4" fill="${safeColor}"/>
-        </svg>
-      </span>
+      <span class="fields-map-pin-mark" aria-hidden="true"></span>
       <span class="fields-map-pin-label">${safeName}</span>
     </div>`,
-    iconSize: [28, 38],
-    iconAnchor: [14, 37],
-    popupAnchor: [0, -34],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -Math.round(size / 2) - 4],
   });
 };
 
@@ -146,7 +141,7 @@ const FitBounds: React.FC<{ bounds: L.LatLngBoundsExpression | null; fieldsKey: 
     map.fitBounds(bounds, {
       paddingTopLeft: [36, 48],
       paddingBottomRight: [48, 88],
-      maxZoom: 16,
+      maxZoom: MAP_MAX_ZOOM,
       animate: false,
     });
   }, [map, bounds, fieldsKey]);
@@ -167,7 +162,7 @@ const FocusField: React.FC<{ item: MappableField | null }> = ({ item }) => {
     if (item.polygon && item.polygon.length >= 3) {
       map.fitBounds(item.polygon, {
         padding: [56, 72],
-        maxZoom: 17,
+        maxZoom: MAP_MAX_ZOOM,
         animate: !reduce,
         duration: 0.45,
       });
@@ -363,20 +358,46 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
         </button>
       </div>
 
-      <MapContainer center={defaultCenter} zoom={13} scrollWheelZoom className="fields-map-leaflet">
+      <MapContainer
+        center={defaultCenter}
+        zoom={13}
+        minZoom={MAP_MIN_ZOOM}
+        maxZoom={MAP_MAX_ZOOM}
+        scrollWheelZoom
+        className="fields-map-leaflet"
+      >
+        <MapWheelZoom />
         {mapLayer === 'satellite' ? (
           <>
             <TileLayer
               attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
               url={SATELLITE_TILE}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
             />
-            <TileLayer attribution="" url={SATELLITE_PLACES_TILE} opacity={0.92} />
-            <TileLayer attribution="" url={SATELLITE_LABELS_TILE} opacity={0.65} />
+            <TileLayer
+              attribution=""
+              url={SATELLITE_PLACES_TILE}
+              opacity={0.85}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={15}
+              className="fields-map-ref-tiles"
+            />
+            <TileLayer
+              attribution=""
+              url={SATELLITE_LABELS_TILE}
+              opacity={0.55}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={15}
+              className="fields-map-ref-tiles"
+            />
           </>
         ) : (
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url={STREET_TILE}
+            maxZoom={MAP_MAX_ZOOM}
+            maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
           />
         )}
 

@@ -1,82 +1,146 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
-import AppMapView from '../components/maps/AppMapView';
-import MapPolygonLayer from '../components/maps/MapPolygonLayer';
-import MapPointLayer from '../components/maps/MapPointLayer';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StatusBar } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { fieldService, GeoJsonPolygon } from '../services/fieldService';
-import { useTheme } from '../context/ThemeContext';
-import MapLayerToggle from '../components/domain/MapLayerToggle';
-import { DEFAULT_MAP_LAYER, MapLayerType } from '../utils/mapLayers';
-import { resolveFieldCenter, resolveFieldPolygon, regionForCenter, regionForPolygon } from '../utils/fieldGeo';
-import type { MapRegion } from '../utils/maplibreGeo';
+import FieldBoundaryStage, { type BoundaryPoint } from '../components/fields/FieldBoundaryStage';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { fieldHasBoundary } from '../utils/fieldDisplay';
+import { polygonCentroid, resolveFieldPolygon } from '../utils/fieldGeo';
+import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
+import { validateBoundaryPolygon } from '../utils/boundaryValidation';
+import {
+  isPlaceholderLocationText,
+  reverseGeocode,
+} from '../utils/geocodeLocation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FieldMapBoundary'>;
 
 const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
   const { fieldId } = route.params;
-  const { t } = useTranslation('fields');
-  const { colors } = useTheme();
-  const [points, setPoints] = useState<{ latitude: number; longitude: number }[]>([]);
+  const { t, i18n } = useTranslation(['fields', 'common']);
+  const activation = useOwnerActivationOptional();
+  const [points, setPoints] = useState<BoundaryPoint[]>([]);
+  const [locationText, setLocationText] = useState('');
+  const [latitude, setLatitude] = useState<number | undefined>();
+  const [longitude, setLongitude] = useState<number | undefined>();
+  const [placeFocus, setPlaceFocus] = useState(0);
+  const [fieldStatus, setFieldStatus] = useState<string | undefined>();
+  const [hadBoundary, setHadBoundary] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
-  const [region, setRegion] = useState<MapRegion>({
-    latitude: 37.05,
-    longitude: 21.85,
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
-  });
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false, presentation: 'fullScreenModal' });
+  }, [navigation]);
 
   useEffect(() => {
     fieldService
       .getField(fieldId)
       .then((field) => {
         const existing = resolveFieldPolygon(field);
-        if (existing?.length) {
-          setPoints(existing);
-          setRegion(regionForPolygon(existing));
-          return;
-        }
-        const center = resolveFieldCenter(field);
-        if (center) {
-          setRegion(regionForCenter(center));
-        }
+        if (existing?.length) setPoints(existing);
+        setHadBoundary(fieldHasBoundary(field));
+        setFieldStatus(field.status);
+        setLocationText(field.locationText || '');
+        setLatitude(field.latitude);
+        setLongitude(field.longitude);
       })
-      .catch(() => {});
-  }, [fieldId]);
+      .catch(() => setError(t('form.failedLoad')))
+      .finally(() => setLoading(false));
+  }, [fieldId, t]);
 
-  useEffect(() => {
-    if (points.length >= 3) {
-      setRegion(regionForPolygon(points));
-    } else if (points.length === 1) {
-      setRegion(regionForCenter(points[0], 0.008));
-    }
-  }, [points]);
-
-  const vertexPoints = useMemo(
-    () =>
-      points.map((p, i) => ({
-        id: `vertex-${i}`,
-        coordinate: p,
-        color: colors.primary,
-      })),
-    [points, colors.primary]
+  const persistLocation = useCallback(
+    async (next: { locationText: string; latitude?: number; longitude?: number }) => {
+      setLocationText(next.locationText);
+      const hasCoords =
+        next.latitude != null &&
+        next.longitude != null &&
+        Number.isFinite(next.latitude) &&
+        Number.isFinite(next.longitude);
+      if (hasCoords) {
+        setLatitude(next.latitude);
+        setLongitude(next.longitude);
+        setPlaceFocus((n) => n + 1);
+      } else if (next.locationText.trim() !== locationText.trim()) {
+        setLatitude(undefined);
+        setLongitude(undefined);
+      }
+      try {
+        await fieldService.updateField(fieldId, {
+          locationText: next.locationText,
+          latitude: hasCoords ? next.latitude : undefined,
+          longitude: hasCoords ? next.longitude : undefined,
+        });
+      } catch {
+        /* keep local map center even if save fails */
+      }
+    },
+    [fieldId, locationText]
   );
 
-  const saveBoundary = async () => {
+  const saveBoundary = async (handoff: boolean) => {
     if (points.length < 3) {
-      setError(t('addFieldWizard.errors.boundaryRequired'));
+      setError(t('addFieldWizard.errors.boundaryRequiredNow'));
       return;
     }
     const ring = [...points, points[0]].map((p) => [p.longitude, p.latitude]);
     const boundary: GeoJsonPolygon = { type: 'Polygon', coordinates: [ring] };
+    const check = validateBoundaryPolygon(boundary);
+    if (!check.ok) {
+      setError(t(`addField.boundaryValidation.${check.code}`));
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
+      const centroid = polygonCentroid(points);
+      let nextLocationText = locationText.trim();
+      let nextLat = latitude;
+      let nextLng = longitude;
+
+      if (nextLat == null || nextLng == null || !Number.isFinite(nextLat) || !Number.isFinite(nextLng)) {
+        nextLat = centroid.latitude;
+        nextLng = centroid.longitude;
+      }
+
+      const placeholderLabels = [
+        t('addField.useCurrentLocation'),
+        t('createGrove.placement.nearMe'),
+        t('createGrove.placement.pickedOnMap'),
+      ];
+      if (isPlaceholderLocationText(nextLocationText, placeholderLabels)) {
+        const place = await reverseGeocode(nextLat, nextLng, {
+          language: i18n.language,
+        }).catch(() => null);
+        if (place?.label) {
+          nextLocationText = place.label;
+          setLocationText(place.label);
+        }
+      }
+
+      if (nextLocationText || (nextLat != null && nextLng != null)) {
+        await fieldService.updateField(fieldId, {
+          locationText: nextLocationText || undefined,
+          latitude: nextLat,
+          longitude: nextLng,
+        });
+      }
       await fieldService.updateBoundary(fieldId, boundary);
+      if (fieldStatus !== 'Active') {
+        await fieldService.activateField(fieldId, {
+          boundaryConfirmed: true,
+          cadastreReferenceAcknowledged: true,
+        });
+        setFieldStatus('Active');
+      }
+      activation?.markFieldsDirty({ boundarySavedFieldId: fieldId });
+      if (handoff) {
+        navigation.replace('FieldDetail', { fieldId, groveReady: true, activation: 'spatial' });
+        return;
+      }
       navigation.goBack();
     } catch {
       setError(t('form.failedSave'));
@@ -85,83 +149,40 @@ const FieldMapBoundaryScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  const setSpotlightScreen = activation?.setSpotlightScreen;
+  const releaseSpotlightScreen = activation?.releaseSpotlightScreen;
+  useEffect(() => {
+    if (!setSpotlightScreen || !releaseSpotlightScreen) return undefined;
+    setSpotlightScreen('boundary');
+    return () => releaseSpotlightScreen('boundary');
+  }, [setSpotlightScreen, releaseSpotlightScreen]);
+
+  const finishingFirst = !hadBoundary;
+
+  if (loading) return <LoadingSpinner fullScreen />;
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.textPrimary }]}>{t('addFieldWizard.steps.boundary')}</Text>
-      <Text style={[styles.desc, { color: colors.textSecondary }]}>{t('addFieldWizard.boundaryDesc')}</Text>
-      {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
-      <View style={[styles.mapWrap, { borderColor: colors.borderLight }]}>
-        <AppMapView
-          style={styles.map}
-          region={region}
-          mapLayer={mapLayer}
-          onPress={({ coordinate }) => setPoints((prev) => [...prev, coordinate])}
-        >
-          <MapPointLayer sourceId="boundary-vertices" points={vertexPoints} radius={8} />
-          {points.length >= 3 ? (
-            <MapPolygonLayer id="draft-boundary" ring={points} />
-          ) : null}
-        </AppMapView>
-        <View style={styles.toggleOverlay}>
-          <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact />
-        </View>
-      </View>
-      <Text style={[styles.hint, { color: colors.textSecondary }]}>{t('addFieldWizard.tapToAddPoint')}</Text>
-      <View style={styles.actions}>
-        <Pressable
-          style={[styles.btnOutline, { borderColor: colors.borderLight }]}
-          onPress={() => setPoints([])}
-        >
-          <Text style={{ color: colors.textPrimary }}>{t('addFieldWizard.clearBoundary')}</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.btnPrimary, { backgroundColor: colors.primary }]}
-          onPress={saveBoundary}
-          disabled={saving}
-        >
-          <Text style={[styles.btnPrimaryText, { color: colors.onOlive }]}>
-            {saving ? '…' : t('addFieldWizard.saveBoundary')}
-          </Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+    <>
+      <StatusBar barStyle="dark-content" />
+      <FieldBoundaryStage
+        points={points}
+        onPointsChange={setPoints}
+        locationText={locationText}
+        latitude={latitude}
+        longitude={longitude}
+        placeFocus={placeFocus}
+        onLocationChange={(next) => {
+          void persistLocation(next);
+        }}
+        finishingFirst={finishingFirst}
+        saving={saving}
+        onContinue={() => void saveBoundary(true)}
+        onSaveExisting={() => void saveBoundary(false)}
+        onCancel={() => navigation.goBack()}
+        error={error}
+      />
+    </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 22, fontWeight: '700', marginBottom: 8 },
-  desc: { marginBottom: 12 },
-  error: { marginBottom: 8 },
-  mapWrap: {
-    height: 360,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 8,
-    borderWidth: 1,
-  },
-  map: { flex: 1 },
-  toggleOverlay: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-  },
-  hint: { fontSize: 13, marginBottom: 12 },
-  actions: { flexDirection: 'row', gap: 12 },
-  btnOutline: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 14,
-    alignItems: 'center',
-  },
-  btnPrimary: {
-    flex: 1,
-    borderRadius: 10,
-    padding: 14,
-    alignItems: 'center',
-  },
-  btnPrimaryText: { fontWeight: '600' },
-});
 
 export default FieldMapBoundaryScreen;

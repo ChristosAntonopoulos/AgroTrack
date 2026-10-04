@@ -39,6 +39,19 @@ public class UserRepository : MongoRepositoryBase<UserDocument, User>, IUserRepo
         return document == null ? null : ToEntity(document);
     }
 
+    public async Task<User?> GetByPasswordResetTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(tokenHash))
+        {
+            return null;
+        }
+
+        var document = await Collection
+            .Find(u => u.PasswordResetTokenHash == tokenHash)
+            .FirstOrDefaultAsync(cancellationToken);
+        return document == null ? null : ToEntity(document);
+    }
+
     public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         var user = await GetByEmailAsync(email, cancellationToken);

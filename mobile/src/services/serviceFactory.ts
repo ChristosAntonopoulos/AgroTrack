@@ -5,15 +5,10 @@ import { lifecycleService } from './lifecycleService';
 import { mockLifecycleService } from './mockLifecycleService';
 import { authService } from './authService';
 import { mockAuthService } from './mockAuthService';
-import { dashboardService } from './dashboardService';
-import { mockDashboardService } from './mockDashboardService';
-import { activityService } from './activityService';
-import { mockActivityService } from './mockActivityService';
 import { ministryApiService } from './ministryApiService';
 import { mockMinistryService } from './mockMinistryService';
 import { fileService } from './fileService';
 import { mockFileService } from './mockFileService';
-import { calendarService } from './calendarService';
 import { financialTransactionService } from './financialTransactionService';
 import { mockFinancialTransactionService } from './mockFinancialTransactionService';
 import { financialSummaryService } from './financialSummaryService';
@@ -27,6 +22,8 @@ import { noteService } from './noteService';
 import { mockNoteService } from './mockNoteService';
 import { chronologioService } from './chronologioService';
 import { mockChronologioService } from './mockChronologioService';
+import { feedbackService } from './feedbackService';
+import { photoService } from './photoService';
 import { isMockDataEnabled } from '../config/env';
 
 const useMock = () => isMockDataEnabled();
@@ -35,11 +32,8 @@ export const getAuthService = () => (useMock() ? mockAuthService : authService);
 export const getFieldService = () => (useMock() ? mockFieldService : fieldService);
 export const getFieldWorkService = () => fieldWorkService;
 export const getLifecycleService = () => (useMock() ? mockLifecycleService : lifecycleService);
-export const getDashboardService = () => (useMock() ? mockDashboardService : dashboardService);
-export const getActivityService = () => (useMock() ? mockActivityService : activityService);
 export const getMinistryService = () => (useMock() ? mockMinistryService : ministryApiService);
 export const getFileService = () => (useMock() ? mockFileService : fileService);
-export const getCalendarService = () => calendarService;
 export const getFinancialTransactionService = () =>
   useMock() ? mockFinancialTransactionService : financialTransactionService;
 export const getFinancialSummaryService = () =>
@@ -51,5 +45,13 @@ export const getMeDashboardService = () =>
 export const getNoteService = () => (useMock() ? mockNoteService : noteService);
 export const getChronologioService = () =>
   useMock() ? mockChronologioService : chronologioService;
+export const getFeedbackService = () =>
+  useMock()
+    ? {
+        submit: async () => undefined,
+      }
+    : feedbackService;
+/** Photo Hub — live API only (uploads need the server for EXIF). */
+export const getPhotoService = () => photoService;
 
 export const isMockMode = () => isMockDataEnabled();

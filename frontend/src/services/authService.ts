@@ -1,4 +1,6 @@
 import api from './api';
+import { isRealSessionToken } from './sessionToken';
+import type { NotificationDevicePreferences } from './settingsService';
 
 export interface RegisterDto {
   email: string;
@@ -23,11 +25,25 @@ export interface AuthResponse {
   firstName?: string;
   lastName?: string;
   preferences?: {
-    experienceMode: string;
-    experienceModeChosen: boolean;
-    fontScale: string;
-    largeControls: boolean;
+    fontScale?: string;
+    largeControls?: boolean;
+    language?: string;
+    notifications?: NotificationDevicePreferences;
   };
+}
+
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface ResetPasswordDto {
+  token: string;
+  password: string;
+}
+
+export interface ForgotPasswordResponse {
+  sent: boolean;
+  devResetToken?: string | null;
 }
 
 export const authService = {
@@ -41,13 +57,29 @@ export const authService = {
     return response.data;
   },
 
+  forgotPassword: async (data: ForgotPasswordDto): Promise<ForgotPasswordResponse> => {
+    const response = await api.post<ForgotPasswordResponse>('/api/v1/auth/forgot-password', data);
+    return response.data;
+  },
+
+  resetPassword: async (data: ResetPasswordDto): Promise<void> => {
+    await api.post('/api/v1/auth/reset-password', data);
+  },
+
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   },
 
   getStoredToken: (): string | null => {
-    return localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    if (!isRealSessionToken(token)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
+    }
+    return token;
   },
 
   getStoredUser: (): any | null => {

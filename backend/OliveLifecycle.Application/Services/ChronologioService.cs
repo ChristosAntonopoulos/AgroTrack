@@ -34,7 +34,7 @@ public class ChronologioService : IChronologioService
     private const int MaxHighlights = 4;
 
     private readonly IFieldAccessService _fieldAccessService;
-    private readonly IFieldService _fieldService;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IFieldRepository _fieldRepository;
     private readonly ITaskExecutionRepository _taskExecutionRepository;
     private readonly IFieldTaskRepository _fieldTaskRepository;
@@ -45,12 +45,14 @@ public class ChronologioService : IChronologioService
     private readonly IUserRepository _userRepository;
     private readonly IMediaAttachmentRepository _mediaAttachmentRepository;
     private readonly IFieldWeatherPeriodReviewRepository _weatherReviewRepository;
+    private readonly IFieldWeatherExtremeEventRepository _weatherExtremeRepository;
     private readonly IGeospatialStorageService _geospatialStorage;
+    private readonly IPhotoContentUrlSigner _photoUrlSigner;
     private readonly ILogger<ChronologioService> _logger;
 
     public ChronologioService(
         IFieldAccessService fieldAccessService,
-        IFieldService fieldService,
+        IFieldAccessScopeService fieldAccessScope,
         IFieldRepository fieldRepository,
         ITaskExecutionRepository taskExecutionRepository,
         IFieldTaskRepository fieldTaskRepository,
@@ -61,11 +63,13 @@ public class ChronologioService : IChronologioService
         IUserRepository userRepository,
         IMediaAttachmentRepository mediaAttachmentRepository,
         IFieldWeatherPeriodReviewRepository weatherReviewRepository,
+        IFieldWeatherExtremeEventRepository weatherExtremeRepository,
         IGeospatialStorageService geospatialStorage,
+        IPhotoContentUrlSigner photoUrlSigner,
         ILogger<ChronologioService> logger)
     {
         _fieldAccessService = fieldAccessService;
-        _fieldService = fieldService;
+        _fieldAccessScope = fieldAccessScope;
         _fieldRepository = fieldRepository;
         _taskExecutionRepository = taskExecutionRepository;
         _fieldTaskRepository = fieldTaskRepository;
@@ -76,7 +80,9 @@ public class ChronologioService : IChronologioService
         _userRepository = userRepository;
         _mediaAttachmentRepository = mediaAttachmentRepository;
         _weatherReviewRepository = weatherReviewRepository;
+        _weatherExtremeRepository = weatherExtremeRepository;
         _geospatialStorage = geospatialStorage;
+        _photoUrlSigner = photoUrlSigner;
         _logger = logger;
     }
 
@@ -87,9 +93,11 @@ public class ChronologioService : IChronologioService
         ChronologioQuery query,
         CancellationToken cancellationToken = default)
     {
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(fieldId, userId, userRole, cancellationToken))
+        var chronoFields = await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+            userId, userRole, FamilyModules.Chronologio, cancellationToken);
+        if (!chronoFields.Any(f => string.Equals(f.Id, fieldId, StringComparison.Ordinal)))
         {
-            throw new ForbiddenException("You do not have access to this field.");
+            throw new ForbiddenException("You do not have access to Chronologio for this field.");
         }
 
         var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
@@ -104,6 +112,7 @@ public class ChronologioService : IChronologioService
             new[] { fieldId },
             fieldLabels,
             userId,
+            userRole,
             query,
             cancellationToken);
     }
@@ -114,7 +123,8 @@ public class ChronologioService : IChronologioService
         ChronologioQuery query,
         CancellationToken cancellationToken = default)
     {
-        var fields = (await _fieldService.GetFieldsForUserAsync(userId, userRole, cancellationToken)).ToList();
+        var fields = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+            userId, userRole, FamilyModules.Chronologio, cancellationToken)).ToList();
         if (!string.IsNullOrWhiteSpace(query.FieldId))
         {
             fields = fields
@@ -122,7 +132,7 @@ public class ChronologioService : IChronologioService
                 .ToList();
         }
 
-        fields = fields.Where(f => IsPublishedField(f.Status)).ToList();
+        fields = fields.Where(f => IsPublishedField(f.Status.ToString())).ToList();
 
         if (fields.Count == 0)
         {
@@ -135,7 +145,7 @@ public class ChronologioService : IChronologioService
             f => new FieldLabel(f.Name ?? string.Empty, f.Color),
             StringComparer.Ordinal);
 
-        return await BuildTimelineAsync(fieldIds, fieldLabels, userId, query, cancellationToken);
+        return await BuildTimelineAsync(fieldIds, fieldLabels, userId, userRole, query, cancellationToken);
     }
 
     public async Task<IReadOnlyList<ChronologioPeriodSummaryDto>> GetYearSummariesForFieldAsync(
@@ -146,7 +156,7 @@ public class ChronologioService : IChronologioService
         CancellationToken cancellationToken = default)
     {
         var (fieldIds, fieldLabels) = await ResolveFieldScopeAsync(fieldId, userId, userRole, query.FieldId, requireSingleField: true, cancellationToken);
-        var entries = await LoadEntriesForSummaryAsync(fieldIds, fieldLabels, userId, query, cancellationToken);
+        var entries = await LoadEntriesForSummaryAsync(fieldIds, fieldLabels, userId, userRole, query, cancellationToken);
         return AggregatePeriodSummaries(entries, ChronologioAxis.Normalize(query.Axis));
     }
 
@@ -162,7 +172,7 @@ public class ChronologioService : IChronologioService
             return Array.Empty<ChronologioPeriodSummaryDto>();
         }
 
-        var entries = await LoadEntriesForSummaryAsync(fieldIds, fieldLabels, userId, query, cancellationToken);
+        var entries = await LoadEntriesForSummaryAsync(fieldIds, fieldLabels, userId, userRole, query, cancellationToken);
         return AggregatePeriodSummaries(entries, ChronologioAxis.Normalize(query.Axis));
     }
 
@@ -174,7 +184,7 @@ public class ChronologioService : IChronologioService
         CancellationToken cancellationToken = default)
     {
         var (fieldIds, fieldLabels) = await ResolveFieldScopeAsync(fieldId, userId, userRole, query.FieldId, requireSingleField: true, cancellationToken);
-        return await BuildMonthSummariesAsync(fieldIds, fieldLabels, userId, query, cancellationToken);
+        return await BuildMonthSummariesAsync(fieldIds, fieldLabels, userId, userRole, query, cancellationToken);
     }
 
     public async Task<IReadOnlyList<ChronologioMonthSummaryDto>> GetMonthSummariesForUserAsync(
@@ -189,7 +199,7 @@ public class ChronologioService : IChronologioService
             return Array.Empty<ChronologioMonthSummaryDto>();
         }
 
-        return await BuildMonthSummariesAsync(fieldIds, fieldLabels, userId, query, cancellationToken);
+        return await BuildMonthSummariesAsync(fieldIds, fieldLabels, userId, userRole, query, cancellationToken);
     }
 
     private async Task<(IReadOnlyList<string> FieldIds, IReadOnlyDictionary<string, FieldLabel> FieldLabels)> ResolveFieldScopeAsync(
@@ -203,9 +213,11 @@ public class ChronologioService : IChronologioService
         if (requireSingleField || !string.IsNullOrWhiteSpace(pathFieldId))
         {
             var fieldId = pathFieldId ?? throw new ArgumentException("Field id is required.");
-            if (!await _fieldAccessService.CanUserAccessFieldAsync(fieldId, userId, userRole, cancellationToken))
+            var chronoFields = await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+                userId, userRole, FamilyModules.Chronologio, cancellationToken);
+            if (!chronoFields.Any(f => string.Equals(f.Id, fieldId, StringComparison.Ordinal)))
             {
-                throw new ForbiddenException("You do not have access to this field.");
+                throw new ForbiddenException("You do not have access to Chronologio for this field.");
             }
 
             var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
@@ -219,7 +231,8 @@ public class ChronologioService : IChronologioService
                 });
         }
 
-        var fields = (await _fieldService.GetFieldsForUserAsync(userId, userRole, cancellationToken)).ToList();
+        var fields = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+            userId, userRole, FamilyModules.Chronologio, cancellationToken)).ToList();
         if (!string.IsNullOrWhiteSpace(queryFieldId))
         {
             fields = fields
@@ -227,7 +240,7 @@ public class ChronologioService : IChronologioService
                 .ToList();
         }
 
-        fields = fields.Where(f => IsPublishedField(f.Status)).ToList();
+        fields = fields.Where(f => IsPublishedField(f.Status.ToString())).ToList();
 
         return (
             fields.Select(f => f.Id).ToList(),
@@ -241,6 +254,7 @@ public class ChronologioService : IChronologioService
         IReadOnlyList<string> fieldIds,
         IReadOnlyDictionary<string, FieldLabel> fieldLabels,
         string userId,
+        string userRole,
         ChronologioSummaryQuery summaryQuery,
         CancellationToken cancellationToken)
     {
@@ -248,6 +262,7 @@ public class ChronologioService : IChronologioService
             fieldIds,
             fieldLabels,
             userId,
+            userRole,
             new ChronologioQuery
             {
                 From = summaryQuery.From,
@@ -265,6 +280,7 @@ public class ChronologioService : IChronologioService
         IReadOnlyList<string> fieldIds,
         IReadOnlyDictionary<string, FieldLabel> fieldLabels,
         string userId,
+        string userRole,
         ChronologioSummaryQuery query,
         CancellationToken cancellationToken)
     {
@@ -281,6 +297,7 @@ public class ChronologioService : IChronologioService
             fieldIds,
             fieldLabels,
             userId,
+            userRole,
             new ChronologioQuery
             {
                 From = from,
@@ -525,7 +542,8 @@ public class ChronologioService : IChronologioService
                     }
                 }
             }
-            else if (string.Equals(category, ChronologioCategory.Note.ToApiString(), StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(category, ChronologioCategory.Note.ToApiString(), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(category, ChronologioCategory.Photo.ToApiString(), StringComparison.OrdinalIgnoreCase))
             {
                 stats.NoteCount++;
                 if (observation == null)
@@ -601,6 +619,7 @@ public class ChronologioService : IChronologioService
         IReadOnlyList<string> fieldIds,
         IReadOnlyDictionary<string, FieldLabel> fieldLabels,
         string userId,
+        string userRole,
         ChronologioQuery query,
         CancellationToken cancellationToken,
         bool pageResults = true)
@@ -620,12 +639,20 @@ public class ChronologioService : IChronologioService
         var includeYearWeatherReviews = !pageResults
             || categoryFilter == ChronologioCategory.Weather;
 
+        var moneyFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Money, cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        var harvestFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Harvest, cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        var photoFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Photos, cancellationToken)).ToHashSet(StringComparer.Ordinal);
+
         IReadOnlyList<TaskExecution> executions;
         IReadOnlyList<FinancialTransaction> money;
         IReadOnlyList<HarvestRecord> harvests;
         IReadOnlyList<Activity> activities;
         IReadOnlyList<Note> notes;
         IReadOnlyList<FieldWeatherPeriodReview> weatherReviews;
+        IReadOnlyList<FieldWeatherExtremeEvent> weatherExtremes;
 
         if (fieldIds.Count == 1)
         {
@@ -633,10 +660,14 @@ public class ChronologioService : IChronologioService
             executions = (await _taskExecutionRepository.GetByFieldIdAsync(fieldId, cancellationToken))
                 .Where(e => e.IsActive)
                 .ToList();
-            harvests = (await _harvestRecordRepository.GetByFieldIdAsync(fieldId, cancellationToken)).ToList();
+            harvests = harvestFieldIds.Contains(fieldId)
+                ? (await _harvestRecordRepository.GetByFieldIdAsync(fieldId, cancellationToken)).ToList()
+                : Array.Empty<HarvestRecord>();
             activities = (await _activityRepository.GetByFieldIdAsync(fieldId, ActivityFetchLimit, cancellationToken)).ToList();
             notes = (await _noteRepository.GetByOwnerUserIdAsync(userId, fieldId, limit: 200, cancellationToken)).ToList();
             weatherReviews = await _weatherReviewRepository.GetByFieldIdsAsync(
+                fieldIds, query.From, query.To, cancellationToken);
+            weatherExtremes = await _weatherExtremeRepository.GetByFieldIdsAsync(
                 fieldIds, query.From, query.To, cancellationToken);
         }
         else
@@ -644,7 +675,10 @@ public class ChronologioService : IChronologioService
             executions = (await _taskExecutionRepository.GetByFieldIdsAsync(fieldIds, cancellationToken))
                 .Where(e => e.IsActive)
                 .ToList();
-            harvests = (await _harvestRecordRepository.GetByFieldIdsAsync(fieldIds, cancellationToken)).ToList();
+            var harvestQueryIds = fieldIds.Where(harvestFieldIds.Contains).ToList();
+            harvests = harvestQueryIds.Count == 0
+                ? Array.Empty<HarvestRecord>()
+                : (await _harvestRecordRepository.GetByFieldIdsAsync(harvestQueryIds, cancellationToken)).ToList();
             activities = (await _activityRepository.GetByFieldIdsAsync(
                 fieldIds,
                 query.From,
@@ -656,12 +690,21 @@ public class ChronologioService : IChronologioService
                 .ToList();
             weatherReviews = await _weatherReviewRepository.GetByFieldIdsAsync(
                 fieldIds, query.From, query.To, cancellationToken);
+            weatherExtremes = await _weatherExtremeRepository.GetByFieldIdsAsync(
+                fieldIds, query.From, query.To, cancellationToken);
         }
 
-        money = await _financialTransactions.GetPostedByFieldIdsAsync(fieldIds, cancellationToken);
+        var moneyQueryIds = fieldIds.Where(moneyFieldIds.Contains).ToList();
+        money = moneyQueryIds.Count == 0
+            ? Array.Empty<FinancialTransaction>()
+            : await _financialTransactions.GetPostedByFieldIdsAsync(moneyQueryIds, cancellationToken);
         harvests = harvests.Where(h => h.Status == FinancialEntryStatus.Posted).ToList();
         notes = notes.Where(n => !string.IsNullOrWhiteSpace(n.FieldId)).ToList();
-        activities = activities.Where(a => IncludedActivityTypes.Contains(a.Type)).ToList();
+        activities = activities
+            .Where(a => IncludedActivityTypes.Contains(a.Type))
+            .Where(a => !IsMoneyActivity(a.Type) || (a.FieldId != null && moneyFieldIds.Contains(a.FieldId)))
+            .Where(a => !IsHarvestActivity(a.Type) || (a.FieldId != null && harvestFieldIds.Contains(a.FieldId)))
+            .ToList();
 
         var fieldTasksById = new Dictionary<string, FieldTask>(StringComparer.Ordinal);
         var relatedTaskIds = executions.Select(e => e.TaskId)
@@ -680,8 +723,28 @@ public class ChronologioService : IChronologioService
 
         var harvestsById = harvests.ToDictionary(h => h.Id, StringComparer.Ordinal);
 
+        var harvestMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
+                MediaOwnerType.Harvest, harvests.Select(h => h.Id), cancellationToken))
+            .GroupBy(m => m.OwnerId)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+
+        var standalonePhotos = photoFieldIds.Count == 0
+            ? Array.Empty<MediaAttachment>()
+            : await _mediaAttachmentRepository.GetStandaloneByFieldIdsAsync(
+                fieldIds.Where(photoFieldIds.Contains).ToList(),
+                query.From,
+                query.To,
+                cancellationToken) ?? Array.Empty<MediaAttachment>();
+
         var nameIds = CollectUserIds(executions, fieldTasksById.Values, money, activities, notes);
         nameIds.Add(userId);
+        foreach (var photo in standalonePhotos)
+        {
+            if (!string.IsNullOrWhiteSpace(photo.UploadedByUserId))
+            {
+                nameIds.Add(photo.UploadedByUserId);
+            }
+        }
         var displayNames = await ResolveDisplayNamesAsync(nameIds, cancellationToken);
 
         var noteMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
@@ -690,10 +753,6 @@ public class ChronologioService : IChronologioService
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
         var taskMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
                 MediaOwnerType.Task, executions.Select(e => e.TaskId), cancellationToken))
-            .GroupBy(m => m.OwnerId)
-            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
-        var harvestMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
-                MediaOwnerType.Harvest, harvests.Select(h => h.Id), cancellationToken))
             .GroupBy(m => m.OwnerId)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
 
@@ -707,6 +766,7 @@ public class ChronologioService : IChronologioService
                 fieldTask,
                 fieldLabels,
                 displayNames,
+                userId,
                 taskMedia.GetValueOrDefault(execution.TaskId)));
         }
 
@@ -724,12 +784,17 @@ public class ChronologioService : IChronologioService
 
         foreach (var harvest in harvests)
         {
-            entries.Add(MapHarvest(harvest, fieldLabels, harvestMedia.GetValueOrDefault(harvest.Id)));
+            entries.Add(MapHarvest(harvest, fieldLabels, userId, harvestMedia.GetValueOrDefault(harvest.Id)));
         }
 
         foreach (var note in notes)
         {
-            entries.Add(MapNote(note, fieldLabels, displayNames, noteMedia.GetValueOrDefault(note.Id)));
+            entries.Add(MapNote(note, fieldLabels, displayNames, userId, noteMedia.GetValueOrDefault(note.Id)));
+        }
+
+        foreach (var photo in standalonePhotos)
+        {
+            entries.Add(MapPhoto(photo, fieldLabels, displayNames, userId));
         }
 
         foreach (var activity in activities)
@@ -756,6 +821,19 @@ public class ChronologioService : IChronologioService
             }
 
             entries.Add(MapWeatherReview(review, fieldLabels));
+        }
+
+        foreach (var extreme in weatherExtremes)
+        {
+            entries.Add(MapWeatherExtreme(extreme, fieldLabels));
+        }
+
+        foreach (var entry in entries)
+        {
+            if (entry.Media.Count > 0 && !photoFieldIds.Contains(entry.FieldId))
+            {
+                entry.Media = Array.Empty<ChronologioMediaDto>();
+            }
         }
 
         IEnumerable<ChronologioEntryDto> filtered = ChronologioReadModel.Canonicalize(entries, categoryFilter);
@@ -799,11 +877,12 @@ public class ChronologioService : IChronologioService
         return result;
     }
 
-    private static ChronologioEntryDto MapTaskExecution(
+    private ChronologioEntryDto MapTaskExecution(
         TaskExecution execution,
         FieldTask? task,
         IReadOnlyDictionary<string, FieldLabel> fieldLabels,
         IReadOnlyDictionary<string, string> displayNames,
+        string viewerUserId,
         IReadOnlyList<MediaAttachment>? attachments = null)
     {
         var occurredAt = execution.CompletedAt;
@@ -822,13 +901,7 @@ public class ChronologioService : IChronologioService
         var media = new List<ChronologioMediaDto>();
         if (attachments is { Count: > 0 })
         {
-            media.AddRange(attachments.Select(a => new ChronologioMediaDto
-            {
-                Id = a.Id,
-                Type = "image",
-                ThumbnailUrl = a.ThumbnailUrl ?? a.Url,
-                Url = a.Url
-            }));
+            media.AddRange(attachments.Select(a => MapMediaAttachment(a, viewerUserId)));
         }
 
         return new ChronologioEntryDto
@@ -954,26 +1027,23 @@ public class ChronologioService : IChronologioService
         };
     }
 
-    private static ChronologioEntryDto MapHarvest(
+    private ChronologioEntryDto MapHarvest(
         HarvestRecord harvest,
         IReadOnlyDictionary<string, FieldLabel> fieldLabels,
+        string viewerUserId,
         IReadOnlyList<MediaAttachment>? attachments = null)
     {
+        var official = IsOfficialHarvestWeight(harvest);
         var resultYear = ResolveResultYear(harvest.ResultYear, harvest.HarvestDate);
-        var summary = ChronologioDisplayLabels.HarvestSummary(
-            harvest.OliveKg,
+        var summary = ChronologioDisplayLabels.HarvestDaySummary(
+            official ? harvest.OliveKg : 0,
+            harvest.SackCount,
+            harvest.WorkersUsed,
             harvest.OilKg,
-            harvest.OilLitres,
             harvest.OilYieldPercent);
 
         var media = (attachments ?? Array.Empty<MediaAttachment>())
-            .Select(a => new ChronologioMediaDto
-            {
-                Id = a.Id,
-                Type = "image",
-                ThumbnailUrl = a.ThumbnailUrl ?? a.Url,
-                Url = a.Url
-            })
+            .Select(a => MapMediaAttachment(a, viewerUserId))
             .ToList();
 
         return new ChronologioEntryDto
@@ -1001,7 +1071,7 @@ public class ChronologioService : IChronologioService
                 Harvest = new ChronologioHarvestDetailsDto
                 {
                     HarvestId = harvest.Id,
-                    OliveKg = harvest.OliveKg,
+                    OliveKg = official ? harvest.OliveKg : 0,
                     OilKg = harvest.OilKg,
                     OilLitres = harvest.OilLitres,
                     OilYieldPercent = harvest.OilYieldPercent,
@@ -1012,29 +1082,26 @@ public class ChronologioService : IChronologioService
                             ? quality
                             : harvest.QualityGrade),
                     Workers = harvest.WorkersUsed,
+                    SackCount = harvest.SackCount,
+                    HasOfficialWeight = official,
                     HarvestMethod = string.IsNullOrWhiteSpace(harvest.HarvestMethod) ? null : harvest.HarvestMethod
                 }
             }
         };
     }
 
-    private static ChronologioEntryDto MapNote(
+    private ChronologioEntryDto MapNote(
         Note note,
         IReadOnlyDictionary<string, FieldLabel> fieldLabels,
         IReadOnlyDictionary<string, string> displayNames,
+        string viewerUserId,
         IReadOnlyList<MediaAttachment>? attachments = null)
     {
         var fieldId = note.FieldId!;
         var preview = Truncate(note.Body, NotePreviewLength);
         var occurredAt = note.OccurredAt == default ? note.CreatedAt : note.OccurredAt;
         var media = (attachments ?? Array.Empty<MediaAttachment>())
-            .Select(a => new ChronologioMediaDto
-            {
-                Id = a.Id,
-                Type = "image",
-                ThumbnailUrl = a.ThumbnailUrl ?? a.Url,
-                Url = a.Url
-            })
+            .Select(a => MapMediaAttachment(a, viewerUserId))
             .ToList();
 
         return new ChronologioEntryDto
@@ -1066,6 +1133,71 @@ public class ChronologioService : IChronologioService
                     Pinned = note.Pinned
                 }
             }
+        };
+    }
+
+    private ChronologioEntryDto MapPhoto(
+        MediaAttachment photo,
+        IReadOnlyDictionary<string, FieldLabel> fieldLabels,
+        IReadOnlyDictionary<string, string> displayNames,
+        string viewerUserId)
+    {
+        var occurredAt = photo.EffectiveCapturedAt;
+        var media = new List<ChronologioMediaDto>
+        {
+            MapMediaAttachment(photo, viewerUserId)
+        };
+
+        return new ChronologioEntryDto
+        {
+            Id = $"{ChronologioSourceTypes.Photo}:{photo.Id}",
+            FieldId = photo.FieldId,
+            Field = FieldRef(photo.FieldId, fieldLabels),
+            CropCycleId = null,
+            LifecycleYear = YearLabel(null, occurredAt),
+            ResultYear = ResolveResultYear(null, occurredAt),
+            OccurredAt = EnsureUtc(occurredAt),
+            CreatedAt = EnsureUtc(photo.CreatedAt),
+            Category = ChronologioCategory.Photo.ToApiString(),
+            EventType = ChronologioEventTypes.PhotoAdded,
+            Title = ChronologioDisplayLabels.PhotoTitle(),
+            Summary = null,
+            SourceType = ChronologioSourceTypes.Photo,
+            SourceId = photo.Id,
+            IsSystemGenerated = false,
+            Actor = BuildActor(photo.UploadedByUserId, displayNames),
+            Importance = ChronologioImportance.Normal.ToApiString(),
+            Media = media
+        };
+    }
+
+    private ChronologioMediaDto MapMediaAttachment(MediaAttachment a, string viewerUserId)
+    {
+        var isImage = string.IsNullOrWhiteSpace(a.MediaType)
+            || string.Equals(a.MediaType, "image", StringComparison.OrdinalIgnoreCase);
+        // Photo Hub files live under /uploads/photos and are blocked from static serving.
+        var useSigned = isImage && (
+            (a.Url?.Contains("/photos/", StringComparison.OrdinalIgnoreCase) ?? false)
+            || (a.ThumbnailUrl?.Contains("/photos/", StringComparison.OrdinalIgnoreCase) ?? false)
+            || !string.IsNullOrWhiteSpace(a.ContentHash));
+
+        if (useSigned && !string.IsNullOrWhiteSpace(a.Id))
+        {
+            return new ChronologioMediaDto
+            {
+                Id = a.Id,
+                Type = isImage ? "image" : a.MediaType,
+                ThumbnailUrl = _photoUrlSigner.CreateUrl(a.Id, PhotoContentVariants.Thumb, viewerUserId),
+                Url = _photoUrlSigner.CreateUrl(a.Id, PhotoContentVariants.Original, viewerUserId)
+            };
+        }
+
+        return new ChronologioMediaDto
+        {
+            Id = a.Id,
+            Type = string.IsNullOrWhiteSpace(a.MediaType) ? "image" : a.MediaType,
+            ThumbnailUrl = a.ThumbnailUrl ?? (isImage ? a.Url : null),
+            Url = a.Url
         };
     }
 
@@ -1277,6 +1409,75 @@ public class ChronologioService : IChronologioService
         };
     }
 
+    private ChronologioEntryDto MapWeatherExtreme(
+        FieldWeatherExtremeEvent extreme,
+        IReadOnlyDictionary<string, FieldLabel> fieldLabels)
+    {
+        var eventType = extreme.Kind switch
+        {
+            WeatherExtremeKinds.Heatwave => ChronologioEventTypes.WeatherHeat,
+            WeatherExtremeKinds.Frost => ChronologioEventTypes.WeatherFrost,
+            WeatherExtremeKinds.NearFrost => ChronologioEventTypes.WeatherNearFrost,
+            WeatherExtremeKinds.HeavyRain => ChronologioEventTypes.WeatherHeavyRain,
+            WeatherExtremeKinds.Drought => ChronologioEventTypes.WeatherDrought,
+            WeatherExtremeKinds.ColdSpell => ChronologioEventTypes.WeatherColdSpell,
+            _ => ChronologioEventTypes.WeatherHeat
+        };
+
+        var importance = string.Equals(extreme.Severity, WeatherExtremeSeverity.Critical, StringComparison.OrdinalIgnoreCase)
+            ? ChronologioImportance.Critical
+            : ChronologioImportance.Warning;
+
+        var title = ChronologioDisplayLabels.WeatherExtremeTitle(
+            extreme.Kind,
+            extreme.StreakDays,
+            extreme.MinTemperatureC,
+            extreme.MaxTemperatureC,
+            extreme.RainTotalMm,
+            extreme.IsStronger);
+
+        var summary = ChronologioDisplayLabels.WeatherExtremeSummary(
+            extreme.StartDate,
+            extreme.EndDate,
+            extreme.StreakDays);
+
+        return new ChronologioEntryDto
+        {
+            Id = $"{ChronologioSourceTypes.WeatherExtremeEvent}:{extreme.Id}",
+            FieldId = extreme.FieldId,
+            Field = FieldRef(extreme.FieldId, fieldLabels),
+            CropCycleId = null,
+            LifecycleYear = YearLabel(null, extreme.OccurredAt),
+            ResultYear = ResolveResultYear(null, extreme.OccurredAt),
+            OccurredAt = EnsureUtc(extreme.OccurredAt),
+            CreatedAt = EnsureUtc(extreme.UpdatedAt),
+            Category = ChronologioCategory.Weather.ToApiString(),
+            EventType = eventType,
+            Title = title,
+            Summary = summary,
+            SourceType = ChronologioSourceTypes.WeatherExtremeEvent,
+            SourceId = extreme.Id,
+            IsSystemGenerated = true,
+            Actor = null,
+            Importance = importance.ToApiString(),
+            Details = new ChronologioDetailsDto
+            {
+                Weather = new ChronologioWeatherDetailsDto
+                {
+                    TemperatureMin = extreme.MinTemperatureC,
+                    TemperatureMax = extreme.MaxTemperatureC,
+                    RainfallMm = extreme.RainTotalMm,
+                    Source = string.IsNullOrWhiteSpace(extreme.WeatherProvider) ? null : extreme.WeatherProvider,
+                    ExtremeKind = extreme.Kind,
+                    StreakDays = extreme.StreakDays,
+                    IsStronger = extreme.IsStronger,
+                    ExtremeStartDate = extreme.StartDate,
+                    ExtremeEndDate = extreme.EndDate
+                }
+            }
+        };
+    }
+
     private ChronologioWeatherSceneDto? MapWeatherScene(WeatherReviewSatelliteScene? scene)
     {
         if (scene == null) return null;
@@ -1296,6 +1497,12 @@ public class ChronologioService : IChronologioService
     private static bool IsPublishedField(string? status) =>
         !string.Equals(status, nameof(FieldStatus.Draft), StringComparison.OrdinalIgnoreCase)
         && !string.Equals(status, nameof(FieldStatus.Archived), StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsMoneyActivity(string type) =>
+        type.StartsWith("financial_", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsHarvestActivity(string type) =>
+        type.StartsWith("harvest_", StringComparison.OrdinalIgnoreCase);
 
     private static int ResolveResultYear(int? stored, DateTime occurredAt) =>
         stored is > 0 ? stored.Value : AgriculturalYear.For(occurredAt);
@@ -1454,6 +1661,19 @@ public class ChronologioService : IChronologioService
         }
 
         return trimmed[..(maxLength - 1)].TrimEnd() + "…";
+    }
+
+    private static bool IsOfficialHarvestWeight(HarvestRecord harvest)
+    {
+        var method = harvest.HarvestMethod?.Trim() ?? string.Empty;
+        if (method.Equals("sacks", StringComparison.OrdinalIgnoreCase)
+            || method.Equals("people", StringComparison.OrdinalIgnoreCase)
+            || method.Equals("oil", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return harvest.OliveKg > 0;
     }
 
     private static string FormatMoney(decimal amount, string currency)

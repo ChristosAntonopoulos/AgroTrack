@@ -1,9 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FieldFinancialResult } from '../../services/financialSummaryService';
+import type { Field } from '../../services/fieldService';
 import { UNASSIGNED_FIELD_QUERY } from '../../finance/buildYearSummary';
-import { formatOfficialAmount, formatOfficialNet } from '../../finance/format';
+import { formatOfficialAmount, formatOfficialNet, perAreaForDisplay } from '../../finance/format';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import './Money.css';
 
 type Props = {
@@ -12,6 +14,8 @@ type Props = {
   locale: string;
   showPerHectare: boolean;
   fieldNames: Record<string, string>;
+  fields?: Field[];
+  missingAreaFieldIds?: string[];
   onSelectField: (fieldId: string) => void;
 };
 
@@ -21,6 +25,8 @@ const MoneyFieldRows: React.FC<Props> = ({
   locale,
   showPerHectare,
   fieldNames,
+  fields = [],
+  missingAreaFieldIds = [],
   onSelectField,
 }) => {
   const { t } = useTranslation('money');
@@ -38,6 +44,9 @@ const MoneyFieldRows: React.FC<Props> = ({
             : fieldNames[row.fieldId || ''] || friendlyFieldLabel(row.fieldName);
           const resultClass =
             row.netResult == null ? '' : row.netResult < 0 ? ' is-loss' : row.netResult > 0 ? ' is-profit' : '';
+          const source = fields.find((field) => field.id === row.fieldId);
+          const color = row.isUnassigned ? undefined : resolveFieldColor(source?.color, row.fieldId || id);
+          const missingArea = Boolean(row.fieldId && missingAreaFieldIds.includes(row.fieldId));
           return (
             <button
               key={id || 'unassigned'}
@@ -45,20 +54,33 @@ const MoneyFieldRows: React.FC<Props> = ({
               className="money-field-item"
               onClick={() => onSelectField(id)}
             >
-              <div>
+              <div className="money-field-item__name">
+                <span
+                  className={`money-field-swatch${row.isUnassigned ? ' is-empty' : ''}`}
+                  style={color ? { background: color } : undefined}
+                  aria-hidden
+                />
+                <span>
                 <strong>{name}</strong>
                 <p>
                   {t('income')} {formatOfficialAmount(row.income, currency, locale, unknown)}
                   {' · '}
                   {t('expenses')} {formatOfficialAmount(row.expenses, currency, locale, unknown)}
                 </p>
+                {missingArea ? <p className="money-field-excluded">{t('missingAreaRow')}</p> : null}
+                </span>
               </div>
               <span className={`money-field-result${resultClass}`}>
                 {formatOfficialNet(row.netResult, currency, locale, unknown)}
               </span>
               <span>
                 {showPerHectare && row.costPerHectare != null
-                  ? `${t('costPerHectare')} ${formatOfficialAmount(row.costPerHectare, currency, locale, unknown)}`
+                  ? `${t('costPerHectare')} ${formatOfficialAmount(
+                      perAreaForDisplay(row.costPerHectare, locale),
+                      currency,
+                      locale,
+                      unknown
+                    )}`
                   : t('openField')}
               </span>
             </button>

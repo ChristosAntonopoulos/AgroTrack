@@ -1,66 +1,87 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useLocale } from '../context/LocaleProvider';
-import { useTheme } from '../context/ThemeContext';
 import { authService } from '../services/authService';
 import { demoAccounts } from '../services/demoAccounts';
 import { showDemoLogin } from '../config/apiConfig';
-import { roleHomePath, AppRole } from '../navigation/navConfig';
-import { settingsService } from '../services/settingsService';
+import { AppRole } from '../navigation/navConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
-import { SUPPORTED_LOCALES, SupportedLocale } from '../i18n/config';
-import LoginHero from '../components/Auth/LoginHero';
-import BrandLogo from '../components/Common/BrandLogo';
-import Button from '../components/Common/Button';
+import { resolvePostAuthPath } from '../utils/firstGroveDestination';
 import {
-  Shield,
-  User,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  Globe,
-  Sun,
-  Moon,
-} from 'lucide-react';
-import './LoginPage.css';
+  authPathWithIntent,
+  intentFromSearch,
+  mergeInviteIntent,
+  readInviteIntent,
+  rememberInviteIntent,
+} from '../utils/inviteIntent';
+import LoginDemoPicker from '../components/Auth/LoginDemoPicker';
+import AuthSocialButtons from '../components/Auth/AuthSocialButtons';
+import Button from '../components/Common/Button';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
-const SUPPORT_EMAIL = 'hello@oleachron.app';
+type FieldKey = 'email' | 'password';
 
-const safeNextPath = (value: string | null) =>
-  value && value.startsWith('/') && !value.startsWith('//') ? value : null;
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 const LoginPage: React.FC = () => {
-  const { t } = useTranslation(['auth', 'common', 'errors', 'settings']);
-  const { locale, setLocale } = useLocale();
-  const { resolvedTheme, setTheme } = useTheme();
-  const isDarkTheme = resolvedTheme === 'dark';
+  const { t } = useTranslation(['auth', 'common', 'errors']);
   const [searchParams] = useSearchParams();
-  const redirectTo = safeNextPath(searchParams.get('redirect'));
-  const [email, setEmail] = useState('');
+  const passwordReset = searchParams.get('reset') === '1';
+  const [email, setEmail] = useState(
+    () => intentFromSearch(searchParams).email || readInviteIntent()?.email || ''
+  );
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
-  const navigateAfterLogin = (role: string) => {
-    if (redirectTo) {
-      navigate(redirectTo);
+  const intent = mergeInviteIntent(readInviteIntent(), intentFromSearch(searchParams));
+  const registerHref = authPathWithIntent('/register', intent);
+
+  useEffect(() => {
+    const next = rememberInviteIntent(intentFromSearch(searchParams));
+    if (next.email) setEmail((current) => current || next.email || '');
+  }, [searchParams]);
+
+  const navigateAfterLogin = async (role: string) => {
+    const storedIntent = rememberInviteIntent(intentFromSearch(searchParams));
+    if (storedIntent.redirect) {
+      navigate(storedIntent.redirect);
       return;
     }
-    const prefs = settingsService.getPreferences();
-    navigate(roleHomePath(role as AppRole, prefs.experienceModeChosen ? prefs.experienceMode : undefined));
+    const next = await resolvePostAuthPath((role || 'FieldOwner') as AppRole);
+    navigate(next);
+  };
+
+  const focusErrors = (errors: Partial<Record<FieldKey, string>>) => {
+    void errors;
+    requestAnimationFrame(() => {
+      summaryRef.current?.focus();
+    });
+  };
+
+  const validate = (): Partial<Record<FieldKey, string>> => {
+    const next: Partial<Record<FieldKey, string>> = {};
+    if (!email.trim()) next.email = t('auth:login.emailRequired');
+    else if (!isValidEmail(email)) next.email = t('auth:login.emailInvalid');
+    if (!password) next.password = t('auth:login.passwordRequired');
+    return next;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    if (!email.trim() || !password) {
-      setError(t('auth:login.missingFields'));
+    setFormError(null);
+    const errors = validate();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      focusErrors(errors);
       return;
     }
     setLoading(true);
@@ -68,16 +89,19 @@ const LoginPage: React.FC = () => {
     try {
       await login(email, password);
       const stored = authService.getStoredUser();
-      navigateAfterLogin(stored?.role || 'FieldOwner');
+      await navigateAfterLogin(stored?.role || 'FieldOwner');
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('auth:login.failed'));
+      setFormError(getApiErrorMessage(err, t) || t('auth:login.failed'));
+      setFieldErrors({});
+      requestAnimationFrame(() => summaryRef.current?.focus());
     } finally {
       setLoading(false);
     }
   };
 
   const handleQuickLogin = async (demoUser: (typeof demoAccounts)[0]) => {
-    setError(null);
+    setFormError(null);
+    setFieldErrors({});
     setLoading(true);
     setEmail(demoUser.email);
     setPassword(demoUser.password);
@@ -85,197 +109,171 @@ const LoginPage: React.FC = () => {
     try {
       await login(demoUser.email, demoUser.password);
       const stored = authService.getStoredUser();
-      navigateAfterLogin(stored?.role || demoUser.role);
+      await navigateAfterLogin(stored?.role || demoUser.role);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('auth:login.failed'));
+      setFormError(getApiErrorMessage(err, t) || t('auth:login.failed'));
+      requestAnimationFrame(() => summaryRef.current?.focus());
     } finally {
       setLoading(false);
     }
   };
 
   const showQuickLogin = showDemoLogin();
-  const bilingualLocales = SUPPORTED_LOCALES.filter((l) => l.code === 'en' || l.code === 'el');
+  const errorEntries = (['email', 'password'] as FieldKey[])
+    .filter((key) => fieldErrors[key])
+    .map((key) => ({ key, message: fieldErrors[key] as string }));
+  const summaryMessage =
+    formError ||
+    (errorEntries.length > 1
+      ? t('auth:login.errorSummary', { count: errorEntries.length })
+      : errorEntries[0]?.message || null);
 
-  const handleThemeToggle = () => {
-    setTheme(isDarkTheme ? 'light' : 'dark');
-  };
+  const fieldClass = (key: FieldKey) => `login-field${fieldErrors[key] ? ' has-error' : ''}`;
 
   return (
-    <div className={`login-page${isDarkTheme ? ' login-page--dark' : ' login-page--light'}`}>
-      <div className="login-page-bg" aria-hidden="true" />
+    <>
+      <div className="login-card-heading">
+        <h1>{t('auth:login.title')}</h1>
+        <p className="login-card-subtitle">{t('auth:login.subtitle')}</p>
+      </div>
 
-      <div className="login-page-chrome" aria-label={t('common:language', { defaultValue: 'Language' })}>
-        <button
-          type="button"
-          className="login-theme-toggle"
-          onClick={handleThemeToggle}
-          aria-label={
-            isDarkTheme
-              ? t('settings:preferences.themes.light')
-              : t('settings:preferences.themes.dark')
-          }
-          title={
-            isDarkTheme
-              ? t('settings:preferences.themes.light')
-              : t('settings:preferences.themes.dark')
-          }
-        >
-          {isDarkTheme ? <Sun size={16} /> : <Moon size={16} />}
-          <span>
-            {isDarkTheme
-              ? t('settings:preferences.themes.light')
-              : t('settings:preferences.themes.dark')}
-          </span>
-        </button>
-
-        <div className="login-lang-switch" role="group" aria-label={t('common:language', { defaultValue: 'Language' })}>
-          <Globe size={14} aria-hidden />
-          {bilingualLocales.map((lang) => (
-            <button
-              key={lang.code}
-              type="button"
-              className={locale === lang.code ? 'active' : ''}
-              onClick={() => setLocale(lang.code as SupportedLocale)}
-              aria-pressed={locale === lang.code}
-            >
-              {lang.nativeLabel}
-            </button>
-          ))}
+      {passwordReset && !summaryMessage && (
+        <div className="login-success" role="status">
+          {t('auth:login.resetSuccess')}
         </div>
-      </div>
+      )}
 
-      <div className="login-page-layout">
-        <section className="login-page-hero" aria-label={t('auth:login.platformTagline')}>
-          <LoginHero />
-        </section>
-
-        <section className="login-page-panel">
-          <div className="login-card">
-            <div className="login-card-brand">
-              <div className="login-card-lockup">
-                <BrandLogo
-                  variant="mark"
-                  tone={isDarkTheme ? 'on-dark' : 'on-light'}
-                  size="xl"
-                  alt=""
-                />
-                <span className="login-card-wordmark">{t('auth:login.appName')}</span>
-              </div>
-              <p className="login-card-motto">{t('auth:login.platformTagline')}</p>
-              <h1>{t('auth:login.title')}</h1>
-              <p className="login-card-subtitle">{t('auth:login.subtitle')}</p>
-            </div>
-
-            {error && (
-              <div className="login-error" role="alert">
-                {error}
-              </div>
-            )}
-
-            {showQuickLogin && (
-              <div className="login-demo">
-                <h2>{t('auth:login.demoTitle')}</h2>
-                <p>{t('auth:login.demoHint')}</p>
-                <div className="login-demo-buttons">
-                  {demoAccounts.map((user) => (
+      {summaryMessage ? (
+        <div
+          ref={summaryRef}
+          className="login-error"
+          role="alert"
+          tabIndex={-1}
+          aria-live="assertive"
+        >
+          {formError ? (
+            formError
+          ) : errorEntries.length > 1 ? (
+            <>
+              <p className="login-error-summary-title">{summaryMessage}</p>
+              <ul className="login-error-summary-list">
+                {errorEntries.map(({ key, message }) => (
+                  <li key={key}>
                     <button
-                      key={user.email}
                       type="button"
-                      className="login-demo-btn"
-                      onClick={() => handleQuickLogin(user)}
-                      disabled={loading}
+                      className="login-error-summary-link"
+                      onClick={() =>
+                        (key === 'email' ? emailRef : passwordRef).current?.focus()
+                      }
                     >
-                      <span className="login-demo-icon"><User size={16} /></span>
-                      <span className="login-demo-text">
-                        <strong>{t(`auth:${user.nameKey}`)}</strong>
-                        <small>{t(`auth:${user.subtitleKey}`)}</small>
-                      </span>
+                      {message}
                     </button>
-                  ))}
-                </div>
-                <div className="login-divider">
-                  <span>{t('common:or')}</span>
-                </div>
-              </div>
-            )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            summaryMessage
+          )}
+        </div>
+      ) : null}
 
-            <form className="login-form" onSubmit={handleSubmit}>
-              <div className="login-field">
-                <label htmlFor="email">{t('common:email')}</label>
-                <div className="login-input-wrap">
-                  <Mail size={18} className="login-input-icon" aria-hidden />
-                  <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('auth:login.emailPlaceholder')}
-                    autoComplete="email"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
+      <AuthSocialButtons onBeforeContinue={() => rememberInviteIntent(intentFromSearch(searchParams))} />
 
-              <div className="login-field">
-                <div className="login-field-row">
-                  <label htmlFor="password">{t('auth:login.passwordLabel')}</label>
-                  <a
-                    className="login-forgot"
-                    href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(t('auth:login.forgotPassword'))}`}
-                  >
-                    {t('auth:login.forgotPassword')}
-                  </a>
-                </div>
-                <div className="login-input-wrap">
-                  <Lock size={18} className="login-input-icon" aria-hidden />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('auth:login.passwordPlaceholder')}
-                    autoComplete="current-password"
-                    required
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    className="login-password-toggle"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              <Button type="submit" disabled={loading} loading={loading} fullWidth className="login-submit">
-                {t('auth:login.button')}
-              </Button>
-            </form>
-
-            <p className="login-register">
-              {t('auth:login.noAccount')}{' '}
-              <Link
-                to={
-                  redirectTo
-                    ? `/register?redirect=${encodeURIComponent(redirectTo)}`
-                    : '/register'
-                }
-              >
-                {t('auth:login.registerLink')}
-              </Link>
-            </p>
-          </div>
-
-          <p className="login-security">
-            <Shield size={14} aria-hidden />
-            {t('auth:login.securityNote')}
-          </p>
-        </section>
+      <div className="login-divider">
+        <span>{t('auth:login.orEmail')}</span>
       </div>
-    </div>
+
+      <form className="login-form" onSubmit={handleSubmit} noValidate>
+        <div className={fieldClass('email')}>
+          <label htmlFor="email">{t('common:email')}</label>
+          <div className="login-input-wrap">
+            <Mail size={18} className="login-input-icon" aria-hidden />
+            <input
+              ref={emailRef}
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t('auth:login.emailPlaceholder')}
+              autoComplete="email"
+              required
+              disabled={loading}
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
+            />
+          </div>
+          {intent.email ? (
+            <p className="login-invite-hint">{t('auth:login.inviteEmailHint')}</p>
+          ) : null}
+          {fieldErrors.email ? (
+            <p id="login-email-error" className="login-field-error" role="alert">
+              {fieldErrors.email}
+            </p>
+          ) : null}
+        </div>
+
+        <div className={fieldClass('password')}>
+          <div className="login-field-row">
+            <label htmlFor="password">{t('auth:login.passwordLabel')}</label>
+            <Link className="login-forgot" to="/forgot-password">
+              {t('auth:login.forgotPassword')}
+            </Link>
+          </div>
+          <div className="login-input-wrap">
+            <Lock size={18} className="login-input-icon" aria-hidden />
+            <input
+              ref={passwordRef}
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t('auth:login.passwordPlaceholder')}
+              autoComplete="current-password"
+              required
+              disabled={loading}
+              aria-invalid={Boolean(fieldErrors.password)}
+              aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
+            />
+            <button
+              type="button"
+              className="login-password-toggle"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          {fieldErrors.password ? (
+            <p id="login-password-error" className="login-field-error" role="alert">
+              {fieldErrors.password}
+            </p>
+          ) : null}
+        </div>
+
+        <Button type="submit" disabled={loading} loading={loading} fullWidth className="login-submit">
+          {t('auth:login.button')}
+        </Button>
+      </form>
+
+      <p className="login-register">
+        {t('auth:login.noAccount')}{' '}
+        <Link to={registerHref}>{t('auth:login.registerLink')}</Link>
+      </p>
+
+      {showQuickLogin && (
+        <>
+          <LoginDemoPicker loading={loading} onSelect={handleQuickLogin} />
+          <p className="login-demo-note">{t('auth:login.demoDataNote')}</p>
+        </>
+      )}
+
+      <p className="login-legal">
+        <Link to="/privacy">{t('auth:login.privacy')}</Link>
+        <span aria-hidden="true"> · </span>
+        <Link to="/terms">{t('auth:login.terms')}</Link>
+      </p>
+    </>
   );
 };
 

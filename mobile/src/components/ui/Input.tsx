@@ -8,6 +8,7 @@ import {
   ViewStyle,
   TextInputProps,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { typography, spacing, radii } from '../../theme';
 import { sanitizeNativeBooleans, toBoolean } from '../../utils/booleanConverter';
@@ -100,8 +101,14 @@ const Input: React.FC<InputProps> = ({
           <TouchableOpacity
             style={styles.rightIcon}
             onPress={() => setIsPasswordVisible(v => !v)}
+            accessibilityRole="button"
+            accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
           >
-            <Text style={{ color: colors.textSecondary }}>{isPasswordVisible ? 'Hide' : 'Show'}</Text>
+            <Ionicons
+              name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
         ) : null}
 

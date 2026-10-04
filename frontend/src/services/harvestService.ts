@@ -14,11 +14,14 @@ export interface HarvestRecord {
   conversionSource?: string | null;
   conversionRecordedAt?: string | null;
   oilYieldPercent?: number;
+  sackCount?: number;
   qualityGrade: string;
   notes?: string;
   status?: 'posted' | 'voided';
   voidReason?: string;
   voidedAt?: string;
+  batchId?: string | null;
+  allocationWeight?: number | null;
 }
 
 export interface CreateHarvestInput {
@@ -34,11 +37,14 @@ export interface CreateHarvestInput {
   conversionSource?: string;
   conversionRecordedAt?: string;
   oilYieldPercent?: number;
+  sackCount?: number;
   qualityGrade?: string;
   saleAmount?: number;
   millCost?: number;
   notes?: string;
   mediaUrls?: string[];
+  batchId?: string;
+  allocationWeight?: number;
 }
 
 export const harvestService = {

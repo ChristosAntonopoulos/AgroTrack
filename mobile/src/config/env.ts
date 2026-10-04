@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
-/** Kubernetes NodePort backend — must match azure-pipelines.yml `backendApiUrl`. */
-export const PRODUCTION_API_ORIGIN = 'http://185.193.66.50:31847';
+/** Public API. The website is https://oleachron.com; the API is the api host. */
+export const PRODUCTION_API_ORIGIN = 'https://api.oleachron.com';
 
 const DEV_API_PORT = 5149;
 

@@ -42,22 +42,3 @@ public interface ISavedContactRepository : IRepository<SavedContact, string>
     Task<IReadOnlyList<SavedContact>> GetByOwnerUserIdAsync(string ownerUserId, CancellationToken cancellationToken = default);
 }
 
-public interface IFamilyCircleRepository : IRepository<FamilyCircle, string>
-{
-    Task<FamilyCircle?> GetByOwnerUserIdAsync(string ownerUserId, CancellationToken cancellationToken = default);
-}
-
-public interface IFamilyMemberRepository : IRepository<FamilyMember, string>
-{
-    Task<IReadOnlyList<FamilyMember>> GetByCircleIdAsync(string circleId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<FamilyMember>> GetByOwnerUserIdAsync(string ownerUserId, CancellationToken cancellationToken = default);
-    Task<FamilyMember?> GetActiveByLinkedUserIdAsync(string linkedUserId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<FamilyMember>> GetActiveByLinkedUserIdAllAsync(string linkedUserId, CancellationToken cancellationToken = default);
-    Task<int> CountOccupiedSeatsAsync(string ownerUserId, CancellationToken cancellationToken = default);
-}
-
-public interface IFamilyInviteRepository : IRepository<FamilyInvite, string>
-{
-    Task<FamilyInvite?> GetByTokenAsync(string token, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<FamilyInvite>> GetPendingByCircleIdAsync(string circleId, CancellationToken cancellationToken = default);
-}

@@ -1,35 +1,36 @@
 /**
- * Semantic light palette — mirrored from frontend/src/styles/theme.css
- * and brand/brand-tokens.json. Read the active set via `useTheme().colors`.
+ * Mediterranean field instrument — warm parchment, dark olive ink, crisp outdoors.
+ * Surfaces stay ivory (#F6F2E8 / #FFFDF8), never cold gray.
+ * Dark overrides live in themes.ts.
  */
 export const colors = {
   // Brand constants
-  olive: '#536B3F',
-  sage: '#9AAA85',
-  leaf: '#71845B',
-  deepGrove: '#29382A',
-  warmStone: '#D9D5C8',
-  limestone: '#F4F3EC',
-  accentGold: '#B09A63',
-  charcoal: '#252A23',
+  olive: '#4F5C2F',
+  sage: '#8C8E83',
+  leaf: '#4F5C2F',
+  deepGrove: '#35421F',
+  warmStone: '#DDD8CA',
+  limestone: '#F6F2E8',
+  accentGold: '#A67B1F',
+  charcoal: '#24251F',
 
-  // Primary — Oleachron olive
-  primary: '#536B3F',
-  primaryDark: '#455B34',
-  primaryActive: '#394C2B',
-  primaryLight: '#E7EDDE',
-  oliveBorder: '#A8B995',
+  // Primary olive — high-contrast outdoors
+  primary: '#4F5C2F',
+  primaryDark: '#35421F',
+  primaryActive: '#35421F',
+  primaryLight: '#E8ECD9',
+  oliveBorder: '#DDD8CA',
   onOlive: '#FFFFFF',
 
-  // Secondary — warm neutral / status-neutral family
-  secondary: '#879086',
-  secondaryDark: '#6B7469',
-  secondaryLight: '#A2A99D',
+  // Secondary — warm neutral
+  secondary: '#65675D',
+  secondaryDark: '#4A4C45',
+  secondaryLight: '#8C8E83',
 
-  // Status — shared hard colors from theme.css
-  success: '#62916D',
-  successLight: 'rgba(98, 145, 109, 0.16)',
-  successDark: '#4f7a58',
+  // Status
+  success: '#2F6B43',
+  successLight: '#E1EFE4',
+  successDark: '#245536',
 
   warning: '#C8924E',
   warningLight: 'rgba(200, 146, 78, 0.16)',
@@ -43,96 +44,97 @@ export const colors = {
   infoLight: 'rgba(95, 149, 168, 0.16)',
   infoDark: '#4a7a8a',
 
-  neutral: '#879086',
-  neutralLight: 'rgba(135, 144, 134, 0.16)',
+  neutral: '#65675D',
+  neutralLight: 'rgba(101, 103, 93, 0.14)',
 
   white: '#FFFFFF',
   black: '#000000',
 
-  // Gray scale — warm olive undertones (derived from surfaces)
-  gray50: '#F7F6EF',
-  gray100: '#EEEFE6',
-  gray200: '#E8EEDF',
-  gray300: '#D9D5C8',
-  gray400: '#A2A99D',
-  gray500: '#737D6E',
-  gray600: '#50594C',
-  gray700: '#394C2B',
-  gray800: '#29382A',
-  gray900: '#252A23',
+  gray50: '#F6F2E8',
+  gray100: '#E8ECD9',
+  gray200: '#DDD8CA',
+  gray300: '#C9C4B5',
+  gray400: '#8C8E83',
+  gray500: '#65675D',
+  gray600: '#4A4C45',
+  gray700: '#35421F',
+  gray800: '#2A3320',
+  gray900: '#24251F',
 
-  // Surfaces — limestone paper + near-white cards
-  background: '#F4F3EC',
-  backgroundLight: '#F4F3EC',
-  backgroundDark: '#29382A',
-  backgroundSidebar: '#ECEBE2',
-  surface: '#FFFEFA',
-  surfaceElevated: '#FFFEFA',
-  surfaceMuted: '#F7F6EF',
-  surface3: '#EEEFE6',
-  surfaceHover: '#F0F2E8',
-  surfaceSelected: '#E8EEDF',
+  // Surfaces — warm field canvas + clean cards
+  background: '#F6F2E8',
+  backgroundLight: '#F6F2E8',
+  backgroundDark: '#141714',
+  backgroundSidebar: '#E8ECD9',
+  surface: '#FFFDF8',
+  surfaceElevated: '#FFFFFF',
+  surfaceMuted: '#E8ECD9',
+  surface3: '#E8ECD9',
+  surfaceHover: '#F3F0E6',
+  surfaceSelected: '#E8ECD9',
 
-  // Text
-  textPrimary: '#252A23',
-  textSecondary: '#50594C',
-  textTertiary: '#737D6E',
-  textDisabled: '#A2A99D',
+  // Text — near-black numbers, readable secondary
+  textPrimary: '#24251F',
+  textSecondary: '#65675D',
+  textTertiary: '#8C8E83',
+  textDisabled: '#B0B2A8',
   textInverse: '#FFFFFF',
 
-  // Chrome — light header & tab bar (Mediterranean paper, not deep olive)
-  headerBackground: '#FAF9F4',
-  headerForeground: '#252A23',
-  headerForegroundMuted: '#50594C',
-  headerAccent: '#536B3F',
-  headerBorder: 'rgba(51, 62, 44, 0.14)',
-  tabBarBackground: '#FAF9F4',
-  tabBarForeground: '#486235',
-  tabBarForegroundInactive: '#737D6E',
-  tabBarBorder: 'rgba(51, 62, 44, 0.14)',
-  tabBarActivePill: '#E7EDDE',
+  // Chrome
+  headerBackground: '#FFFDF8',
+  headerForeground: '#24251F',
+  headerForegroundMuted: '#65675D',
+  headerAccent: '#4F5C2F',
+  headerBorder: '#DDD8CA',
+  tabBarBackground: '#FFFDF8',
+  tabBarForeground: '#4F5C2F',
+  tabBarForegroundInactive: '#65675D',
+  tabBarBorder: '#DDD8CA',
+  tabBarActivePill: '#E8ECD9',
 
-  // Borders — olive-tinted
-  border: 'rgba(51, 62, 44, 0.14)',
-  borderLight: 'rgba(51, 62, 44, 0.08)',
-  borderDark: 'rgba(51, 62, 44, 0.24)',
+  // Borders — neutral stone; colored borders only for selected/active
+  border: '#DDD8CA',
+  borderLight: '#E5E1D4',
+  borderDark: '#C9C4B5',
 
-  // Links / focus
-  link: '#486235',
-  linkHover: '#334A25',
-  focusRing: '#5E7848',
-  backdrop: 'rgba(24, 29, 21, 0.42)',
+  link: '#35421F',
+  linkHover: '#4F5C2F',
+  focusRing: '#4F5C2F',
+  backdrop: 'rgba(36, 37, 31, 0.42)',
 
-  // Shadows
-  shadow: 'rgba(10, 15, 9, 0.10)',
-  shadowDark: 'rgba(10, 15, 9, 0.16)',
+  shadow: 'rgba(44, 42, 32, 0.08)',
+  shadowDark: 'rgba(44, 42, 32, 0.18)',
 
-  // Domain
-  lifecycleLow: '#9AAA85',
-  lifecycleHigh: '#B09A63',
-  taskPending: '#C8924E',
+  // Timeline rail
+  timeline: '#C9C4B5',
+
+  lifecycleLow: '#8C8E83',
+  lifecycleHigh: '#A67B1F',
+  taskPending: '#A67B1F',
   taskInProgress: '#5F95A8',
-  taskCompleted: '#62916D',
+  taskCompleted: '#4F5C2F',
 
-  // Event / category accents (light)
-  eventWork: '#5E7848',
-  eventWorkSoft: 'rgba(94, 120, 72, 0.14)',
+  // Category accents
+  eventWork: '#4F5C2F',
+  eventWorkSoft: 'rgba(79, 92, 47, 0.12)',
   eventObservation: '#755D8C',
   eventObservationSoft: 'rgba(117, 93, 140, 0.14)',
   eventExpense: '#99662D',
   eventExpenseSoft: 'rgba(153, 102, 45, 0.14)',
-  eventIncome: '#36734D',
-  eventIncomeSoft: 'rgba(54, 115, 77, 0.14)',
-  eventHarvest: '#8B4F49',
-  eventHarvestSoft: 'rgba(139, 79, 73, 0.14)',
+  eventIncome: '#2F6B43',
+  eventIncomeSoft: 'rgba(47, 107, 67, 0.14)',
+  // Harvest terracotta — accent only, not every border
+  eventHarvest: '#C7653F',
+  eventHarvestSoft: '#F4E1D7',
   eventWeather: '#39798D',
   eventWeatherSoft: 'rgba(57, 121, 141, 0.14)',
   eventWarning: '#A74435',
   eventWarningSoft: 'rgba(167, 68, 53, 0.14)',
   eventFieldChange: '#59696B',
   eventFieldChangeSoft: 'rgba(89, 105, 107, 0.14)',
+  eventLifecycle: '#85804A',
+  eventLifecycleSoft: 'rgba(133, 128, 74, 0.14)',
 
-  // Weather
   weatherBlue: '#70A9BA',
   rain: '#588EA5',
   temperature: '#CB8B55',
@@ -140,21 +142,14 @@ export const colors = {
   wind: '#94A89A',
   frost: '#8CA9BF',
 
-  // Map
-  mapBoundary: '#4F7139',
-  mapSelectedFill: 'rgba(83, 107, 63, 0.18)',
-  mapHoverFill: 'rgba(83, 107, 63, 0.10)',
+  mapBoundary: '#4F5C2F',
+  mapSelectedFill: 'rgba(79, 92, 47, 0.18)',
+  mapHoverFill: 'rgba(79, 92, 47, 0.10)',
   mapWarningOutline: '#C96656',
-  mapOtherOutline: '#879086',
+  mapOtherOutline: '#65675D',
 
-  // Domain task accent
   domainTask: '#3A6EA5',
 
-  // Experience modes (Wong CB-safe)
-  experienceEveryday: '#0072B2',
-  experienceFull: '#E69F00',
-
-  // Alert banners
   bannerErrorBg: 'rgba(201, 102, 86, 0.16)',
   bannerErrorBorder: '#C96656',
   bannerWarningBg: 'rgba(200, 146, 78, 0.16)',

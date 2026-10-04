@@ -4,9 +4,11 @@ import { CloudRain, Droplets, Snowflake, Sun, Thermometer, Wind } from 'lucide-r
 import type { ChronologioWeatherDetails } from '../../services/chronologioService';
 import {
   buildTreeLookStory,
+  describeRainPattern,
   formatWettestMonth,
   getRainVsPrevious,
   insightLabel,
+  waterGapCopy,
 } from '../../utils/weatherReviewDisplay';
 import RainSparkline from './RainSparkline';
 import WeatherMonthFieldMap from './WeatherMonthFieldMap';
@@ -45,11 +47,19 @@ const WeatherMonthSnapshot: React.FC<Props> = ({
   );
   const rainSeries = weather.rainSeries ?? [];
   const water = weather.waterBalanceMm;
+  const waterGap = water == null ? null : waterGapCopy(water, numberLocale, t);
+  const rainCaption = describeRainPattern(rainSeries, t, isYear ? 'year' : 'month');
+  const showWaterStory =
+    variant === 'detail' && weather.rainfallMm != null && weather.et0TotalMm != null;
+  const waterScale = Math.max(weather.rainfallMm ?? 0, weather.et0TotalMm ?? 0, 1);
   const isCard = variant === 'card';
   const showMap =
     variant === 'detail' &&
     Boolean(fieldId && (weather.openingScene?.observationId || weather.closingScene?.observationId));
-  const shownInsights = isCard ? insights.slice(0, 3) : insights;
+  const shownInsights = (isCard ? insights.slice(0, 3) : insights).filter(
+    (insight) =>
+      !(showWaterStory && (insight.kind === 'waterDeficit' || insight.kind === 'waterSurplus'))
+  );
   const Wrapper = onOpen ? 'button' : 'div';
 
   return (
@@ -60,14 +70,14 @@ const WeatherMonthSnapshot: React.FC<Props> = ({
     >
       <div className="weather-snap-hero">
         {weather.rainfallMm != null ? (
-          <div className="weather-snap-metric">
+          <div className="weather-snap-metric is-rain">
             <CloudRain size={18} aria-hidden />
-            <strong>{weather.rainfallMm.toLocaleString(numberLocale, { maximumFractionDigits: 0 })}</strong>
+            <strong>{formatMm(weather.rainfallMm, numberLocale)}</strong>
             <span>{t('chronologio:weatherReview.rainMm')}</span>
           </div>
         ) : null}
         {weather.temperatureMin != null && weather.temperatureMax != null ? (
-          <div className="weather-snap-metric">
+          <div className="weather-snap-metric is-temp">
             <Thermometer size={18} aria-hidden />
             <strong>
               {weather.temperatureMin.toFixed(0)}°–{weather.temperatureMax.toFixed(0)}°
@@ -75,14 +85,42 @@ const WeatherMonthSnapshot: React.FC<Props> = ({
             <span>{t('chronologio:weatherReview.tempRange')}</span>
           </div>
         ) : null}
-        {water != null ? (
-          <div className={`weather-snap-metric${water < 0 ? ' is-deficit' : ' is-surplus'}`}>
+        {waterGap ? (
+          <div className={`weather-snap-metric is-${waterGap.tone}`}>
             <Droplets size={18} aria-hidden />
-            <strong>{formatMm(water, numberLocale)}</strong>
-            <span>{t('chronologio:weatherReview.waterBalance')}</span>
+            <strong>{waterGap.value}</strong>
+            <span>{waterGap.label}</span>
           </div>
         ) : null}
       </div>
+
+      {showWaterStory && waterGap ? (
+        <section className="weather-snap-balance" aria-label={waterGap.story}>
+          <p>{waterGap.story}</p>
+          <div className="weather-snap-balance-row is-rain">
+            <span>{t('chronologio:weatherReview.rainReceived')}</span>
+            <div className="weather-snap-balance-track" aria-hidden>
+              <i
+                style={{
+                  width: `${Math.max((weather.rainfallMm ?? 0) > 0 ? 4 : 0, ((weather.rainfallMm ?? 0) / waterScale) * 100)}%`,
+                }}
+              />
+            </div>
+            <strong>{formatMm(weather.rainfallMm, numberLocale)}</strong>
+          </div>
+          <div className="weather-snap-balance-row is-used">
+            <span>{t('chronologio:weatherReview.waterUsed')}</span>
+            <div className="weather-snap-balance-track" aria-hidden>
+              <i
+                style={{
+                  width: `${Math.max((weather.et0TotalMm ?? 0) > 0 ? 4 : 0, ((weather.et0TotalMm ?? 0) / waterScale) * 100)}%`,
+                }}
+              />
+            </div>
+            <strong>{formatMm(weather.et0TotalMm, numberLocale)}</strong>
+          </div>
+        </section>
+      ) : null}
 
       {treeLook ? (
         <section className="weather-snap-trees" aria-label={treeLook.title}>
@@ -130,21 +168,25 @@ const WeatherMonthSnapshot: React.FC<Props> = ({
 
       {rainSeries.length > 0 ? (
         <div className="weather-snap-chart">
-          <div className="weather-review-chart-label">{t('chronologio:weatherReview.rainChart')}</div>
+          <div className="weather-review-chart-label">
+            {t(isYear ? 'chronologio:weatherReview.rainChartYear' : 'chronologio:weatherReview.rainChart')}
+          </div>
+          {rainCaption ? <p className="weather-snap-chart-caption">{rainCaption}</p> : null}
           <RainSparkline
             values={rainSeries}
-            height={variant === 'detail' ? 52 : 40}
+            labels={weather.rainLabels}
+            height={variant === 'detail' ? 64 : 40}
             className="chronologio-rain-spark"
-            ariaLabel={t('chronologio:weatherReview.rainChart')}
+            ariaLabel={rainCaption || t('chronologio:weatherReview.rainChart')}
           />
         </div>
       ) : null}
 
       {variant === 'detail' ? (
         <dl className="weather-snap-facts">
-          {weather.et0TotalMm != null ? (
+          {!showWaterStory && weather.et0TotalMm != null ? (
             <div>
-              <dt>{t('chronologio:weatherReview.et0')}</dt>
+              <dt>{t('chronologio:weatherReview.waterUsed')}</dt>
               <dd>{formatMm(weather.et0TotalMm, numberLocale)}</dd>
             </div>
           ) : null}
@@ -199,7 +241,7 @@ const WeatherMonthSnapshot: React.FC<Props> = ({
       {isCard ? <p className="weather-snap-hint">{t('chronologio:weatherReview.tapForDetails')}</p> : null}
       {!isCard && weather.source ? (
         <p className="weather-review-source">
-          {t('chronologio:dataSource')}: {weather.source}
+          {t('chronologio:weatherReview.sourceFrom', { source: weather.source })}
         </p>
       ) : null}
     </Wrapper>

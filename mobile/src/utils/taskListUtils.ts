@@ -1,15 +1,42 @@
 import { FieldTask, isCompletedFieldTask } from '../services/fieldWorkService';
+import { athensParts, parseBusinessDate } from './athensDate';
 
 export type TaskFilter = 'all' | 'planned' | 'in_progress' | 'ready' | 'blocked';
 
-export function isTaskOverdue(task: FieldTask): boolean {
+const startOfLocalDay = (d: Date): Date => {
+  const p = athensParts(d);
+  return new Date(p.year, p.month - 1, p.day);
+};
+
+export const taskDueDate = (task: FieldTask): Date | null => {
+  const raw = task.plannedEnd || task.plannedStart;
+  if (!raw) return null;
+  const d = parseBusinessDate(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+export function isTaskOverdue(task: FieldTask, now = new Date()): boolean {
   if (isCompletedFieldTask(task)) return false;
-  const deadline = task.plannedEnd ?? task.plannedStart;
-  if (!deadline) return false;
-  const end = new Date(deadline);
-  end.setHours(23, 59, 59, 999);
-  return end.getTime() < Date.now();
+  const status = String(task.status).toLowerCase();
+  if (status === 'cancelled') return false;
+  const due = taskDueDate(task);
+  if (!due) return false;
+  return due < startOfLocalDay(now);
 }
+
+export const isActiveTask = (task: FieldTask): boolean => {
+  const status = String(task.status || '').toLowerCase();
+  return status === 'pending' || status === 'planned' || status === 'ready' || status === 'in_progress';
+};
+
+export const isTaskDueToday = (task: FieldTask, now = new Date()): boolean => {
+  if (isCompletedFieldTask(task)) return false;
+  const status = String(task.status).toLowerCase();
+  if (status === 'cancelled') return false;
+  const due = taskDueDate(task);
+  if (!due) return false;
+  return startOfLocalDay(due).getTime() === startOfLocalDay(now).getTime();
+};
 
 export function sortTasksForList(tasks: FieldTask[]): FieldTask[] {
   return [...tasks].sort((a, b) => {

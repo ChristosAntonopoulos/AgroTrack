@@ -1,5 +1,6 @@
 import type { FinancialTransaction } from '../services/financialTransactionService';
 import type { YearFinancialSummary } from '../services/financialSummaryService';
+import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import {
   financialCategoryLabel,
   noMonthEntriesLabel,
@@ -22,6 +23,38 @@ const monthOf = (iso: string) => {
 };
 
 export const UNASSIGNED_FIELD_QUERY = '__unassigned__';
+
+export function overlayUnassignedSummary(
+  summary: YearFinancialSummary,
+  language: string
+): YearFinancialSummary {
+  const row = summary.fieldResults.find((item) => item.isUnassigned);
+  const hasPosted = Boolean(row && row.transactionCount > 0);
+  return {
+    ...summary,
+    fieldId: null,
+    totalIncome: row?.income ?? null,
+    totalExpenses: row?.expenses ?? null,
+    netResult: row?.netResult ?? null,
+    resultLabel: resultLabel(row?.netResult, hasPosted, language),
+    transactionCount: row?.transactionCount ?? 0,
+    monthlyResults: summary.monthlyResults.map((month) => ({
+      ...month,
+      income: null,
+      expenses: null,
+      netResult: null,
+      hasRecords: false,
+    })),
+    fieldResults: [],
+    incomeByCategory: [],
+    expenseByCategory: [],
+    dataAvailability: {
+      ...summary.dataAvailability,
+      hasPostedRecords: hasPosted,
+      includesUnassigned: true,
+    },
+  };
+}
 
 export function buildYearSummaryFromTransactions(
   year: number,
@@ -136,7 +169,15 @@ export function buildYearSummaryFromTransactions(
     totalIncome: income,
     totalExpenses: expenses,
     netResult: net,
-    resultLabel: resultLabel(net, hasPosted, language),
+    resultLabel: resultLabel(net, hasPosted, language, {
+      isActiveYear: year === agriculturalYearFor(new Date()),
+      totalIncome: income,
+      hasHarvestIncome: posted.some(
+        (row) =>
+          row.type === 'income' &&
+          (row.category === 'olive_oil_sale' || row.category === 'olive_sale')
+      ),
+    }),
     transactionCount: posted.length,
     draftCount: drafts.length,
     lastPostedAt: posted

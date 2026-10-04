@@ -1,30 +1,52 @@
 import { normalizeLocale } from '../i18n/config';
-import type { ExperienceMode, FontScale } from '../experience/types';
+import type { FontScale } from '../experience/types';
 
 /** Stored preference. `system` follows the device; `white` is legacy and normalized to `light`. */
 export type Theme = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
-export type { ExperienceMode, FontScale };
+export type { FontScale };
 
-export type DefaultView = 'dashboard' | 'fields' | 'today' | 'chronologio';
+export type DefaultView = 'fields' | 'chronologio';
+
+export interface NotificationDevicePreferences {
+  taskAssignment: boolean;
+  approval: boolean;
+  harvest: boolean;
+  financial: boolean;
+  satelliteWeather: boolean;
+  marketingSystem: boolean;
+}
 
 export interface UserPreferences {
   theme: Theme;
   dateFormat: string;
   language: string;
-  defaultView: DefaultView | 'tasks' | 'calendar';
+  defaultView: DefaultView | 'tasks';
+  /** @deprecated Prefer notificationPrefs.taskAssignment */
   emailNotifications: boolean;
+  /** @deprecated Prefer notificationPrefs.taskAssignment */
   taskAssignmentNotifications: boolean;
+  /** @deprecated Prefer notificationPrefs.approval */
   deadlineReminders: boolean;
+  /** @deprecated Prefer notificationPrefs.harvest */
   lifecycleAlerts: boolean;
+  /** @deprecated Prefer notificationPrefs.marketingSystem */
   reportNotifications: boolean;
-  experienceMode: ExperienceMode;
-  experienceModeChosen: boolean;
+  notificationPrefs: NotificationDevicePreferences;
   fontScale: FontScale;
   largeControls: boolean;
-  everydayIntelligenceOpens: number;
-  fullPictureOnrampDismissed: boolean;
 }
+
+export const DEFAULT_NOTIFICATION_PREFS: NotificationDevicePreferences = {
+  taskAssignment: true,
+  approval: true,
+  harvest: true,
+  financial: true,
+  satelliteWeather: true,
+  marketingSystem: true,
+};
+
+export const PREFERENCES_CHANGED_EVENT = 'oleachron-preferences';
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'system',
@@ -36,12 +58,9 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   deadlineReminders: true,
   lifecycleAlerts: true,
   reportNotifications: false,
-  experienceMode: 'everyday',
-  experienceModeChosen: false,
+  notificationPrefs: { ...DEFAULT_NOTIFICATION_PREFS },
   fontScale: 'default',
   largeControls: false,
-  everydayIntelligenceOpens: 0,
-  fullPictureOnrampDismissed: false,
 };
 
 const STORAGE_KEY = 'olive_lifecycle_preferences';
@@ -58,6 +77,36 @@ const normalizeDefaultView = (raw: unknown): UserPreferences['defaultView'] => {
     return raw;
   }
   return DEFAULT_PREFERENCES.defaultView;
+};
+
+const normalizeNotificationPrefs = (
+  parsed: Partial<UserPreferences> & Record<string, unknown>
+): NotificationDevicePreferences => {
+  const raw = (parsed.notificationPrefs || {}) as Partial<NotificationDevicePreferences>;
+  return {
+    taskAssignment:
+      raw.taskAssignment ??
+      (typeof parsed.taskAssignmentNotifications === 'boolean'
+        ? parsed.taskAssignmentNotifications
+        : DEFAULT_NOTIFICATION_PREFS.taskAssignment),
+    approval:
+      raw.approval ??
+      (typeof parsed.deadlineReminders === 'boolean'
+        ? parsed.deadlineReminders
+        : DEFAULT_NOTIFICATION_PREFS.approval),
+    harvest:
+      raw.harvest ??
+      (typeof parsed.lifecycleAlerts === 'boolean'
+        ? parsed.lifecycleAlerts
+        : DEFAULT_NOTIFICATION_PREFS.harvest),
+    financial: raw.financial ?? DEFAULT_NOTIFICATION_PREFS.financial,
+    satelliteWeather: raw.satelliteWeather ?? DEFAULT_NOTIFICATION_PREFS.satelliteWeather,
+    marketingSystem:
+      raw.marketingSystem ??
+      (typeof parsed.reportNotifications === 'boolean'
+        ? parsed.reportNotifications
+        : DEFAULT_NOTIFICATION_PREFS.marketingSystem),
+  };
 };
 
 export const resolveSystemTheme = (): ResolvedTheme => {
@@ -79,9 +128,6 @@ export const pathForDefaultView = (view: UserPreferences['defaultView']): string
     case 'tasks':
       return '/tasks';
     case 'chronologio':
-    case 'dashboard':
-    case 'calendar':
-    case 'today':
     default:
       return '/chronologio';
   }
@@ -92,13 +138,11 @@ export const settingsService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) } as UserPreferences;
+        const parsed = { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) } as UserPreferences &
+          Record<string, unknown>;
         parsed.language = normalizeLocale(parsed.language);
         parsed.theme = normalizeTheme(parsed.theme);
         parsed.defaultView = normalizeDefaultView(parsed.defaultView);
-        if (parsed.experienceMode !== 'everyday' && parsed.experienceMode !== 'full') {
-          parsed.experienceMode = 'everyday';
-        }
         if (parsed.fontScale !== 'default' && parsed.fontScale !== 'large' && parsed.fontScale !== 'xl') {
           parsed.fontScale = 'default';
         }
@@ -110,16 +154,27 @@ export const settingsService = {
         ) {
           parsed.dateFormat = DEFAULT_PREFERENCES.dateFormat;
         }
-        parsed.experienceModeChosen = Boolean(parsed.experienceModeChosen);
         parsed.largeControls = Boolean(parsed.largeControls);
-        parsed.everydayIntelligenceOpens = Number(parsed.everydayIntelligenceOpens) || 0;
-        parsed.fullPictureOnrampDismissed = Boolean(parsed.fullPictureOnrampDismissed);
-        return parsed;
+        parsed.notificationPrefs = normalizeNotificationPrefs(parsed);
+        // Drop retired experience-mode keys from the in-memory shape.
+        const {
+          experienceMode: _em,
+          experienceModeChosen: _emc,
+          everydayIntelligenceOpens: _eio,
+          fullPictureOnrampDismissed: _fpo,
+          ...clean
+        } = parsed as UserPreferences & {
+          experienceMode?: unknown;
+          experienceModeChosen?: unknown;
+          everydayIntelligenceOpens?: unknown;
+          fullPictureOnrampDismissed?: unknown;
+        };
+        return clean;
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
     }
-    return { ...DEFAULT_PREFERENCES };
+    return { ...DEFAULT_PREFERENCES, notificationPrefs: { ...DEFAULT_NOTIFICATION_PREFS } };
   },
 
   savePreferences: (preferences: Partial<UserPreferences>): boolean => {
@@ -129,7 +184,14 @@ export const settingsService = {
       if (preferences.theme !== undefined) {
         updated.theme = normalizeTheme(preferences.theme);
       }
+      if (preferences.notificationPrefs) {
+        updated.notificationPrefs = {
+          ...current.notificationPrefs,
+          ...preferences.notificationPrefs,
+        };
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new Event(PREFERENCES_CHANGED_EVENT));
       return true;
     } catch (error) {
       console.error('Error saving preferences:', error);

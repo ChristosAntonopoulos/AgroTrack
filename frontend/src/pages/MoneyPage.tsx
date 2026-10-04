@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import EmptyState from '../components/Common/EmptyState';
 import Button from '../components/Common/Button';
+import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { useCaptureOptional } from '../context/CaptureContext';
+import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { isDeviceOnline } from '../utils/networkStatus';
 import {
   getFieldService,
@@ -22,19 +23,30 @@ import type { FinancialTransaction } from '../services/financialTransactionServi
 import type { YearFinancialSummary } from '../services/financialSummaryService';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { fieldLabelMap } from '../utils/fieldLabels';
-import { athensCalendarYear } from '../utils/athensDate';
+import { readFieldId } from '../navigation/intents';
+import { useRegisterCapturePage } from '../context/CapturePageContext';
+import { agriculturalYearFor, agriculturalYearRangeLabel } from '../chronologio/agriculturalYear';
+import { harvestMonthTitle, harvestYearSpan } from '../finance/harvestYear';
 import { UNASSIGNED_FIELD_QUERY, overlayUnassignedSummary } from '../finance/buildYearSummary';
-import { formatOfficialAmount, isForbiddenError } from '../finance/format';
+import { formatOfficialAmount, isForbiddenError, perAreaForDisplay } from '../finance/format';
 import MoneyPageHeader from '../components/money/MoneyPageHeader';
 import MoneyContextBar from '../components/money/MoneyContextBar';
+import MoneyKindRail from '../components/money/MoneyKindRail';
 import MoneySummaryGrid from '../components/money/MoneySummaryGrid';
 import FinancialDataTrustStrip from '../components/money/FinancialDataTrustStrip';
 import OliveOilEconomicsCard from '../components/money/OliveOilEconomicsCard';
 import MonthlyFinancialTrend from '../components/money/MonthlyFinancialTrend';
 import MoneyFieldRows from '../components/money/MoneyFieldRows';
 import MoneyCategoryBreakdown from '../components/money/MoneyCategoryBreakdown';
+import MoneyExpandableSection from '../components/money/MoneyExpandableSection';
 import TransactionSection from '../components/money/TransactionSection';
 import MoneyTransactionDrawer from '../components/money/MoneyTransactionDrawer';
+import UnsoldOilStock from '../components/money/UnsoldOilStock';
+import { formatRelatedHarvestLabel } from '../finance/relatedHarvestLabel';
+import { downloadTextFile, moneyLedgerCsv } from '../finance/moneyExport';
+import { unassignedFieldLabel } from '../finance/display';
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters';
+import { oilStockService, type OilStockSummary } from '../services/oilStockService';
 import '../components/money/Money.css';
 
 type KindFilter = 'all' | 'income' | 'expense' | 'draft';
@@ -43,16 +55,17 @@ const PAGE_SIZE = 20;
 
 /** Official totals come from GetYearFinancialSummary only. */
 const MoneyPage: React.FC = () => {
-  const { t, i18n } = useTranslation(['money', 'capture', 'common']);
+  const { t, i18n } = useTranslation(['money', 'capture', 'common', 'myOil']);
   const { user } = useAuth();
-  const { isFullPicture } = useExperienceMode();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const capture = useCaptureOptional();
   const [searchParams, setSearchParams] = useSearchParams();
+  const pageGuard = useModulePageGuard({ module: 'money' });
+  const { dateFormat } = useLocaleFormatters();
 
-  const currentYear = athensCalendarYear(new Date());
+  const currentYear = agriculturalYearFor(new Date());
   const year = Number(searchParams.get('year')) || currentYear;
-  const fieldId = searchParams.get('fieldId') || '';
+  const fieldId = readFieldId(searchParams);
   const month = Number(searchParams.get('month')) || 0;
   const kindParam = searchParams.get('kind');
   const kind: KindFilter =
@@ -61,6 +74,14 @@ const MoneyPage: React.FC = () => {
   const taskFilter = searchParams.get('task') || '';
   const harvestFilter = searchParams.get('harvest') || '';
   const txId = searchParams.get('tx') || '';
+
+  useRegisterCapturePage({
+    sourcePage: 'money',
+    fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined,
+    taskId: taskFilter || undefined,
+    harvestId: harvestFilter || undefined,
+  });
+
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -70,6 +91,9 @@ const MoneyPage: React.FC = () => {
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [nextPage, setNextPage] = useState(2);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [oilStock, setOilStock] = useState<OilStockSummary | null>(null);
 
   const patch = (next: Record<string, string | null | undefined>) => {
     setSearchParams(
@@ -114,13 +138,13 @@ const MoneyPage: React.FC = () => {
     void (async () => {
       try {
         setLoading(true);
-        const list = await getFieldService().getFields();
+        const list = await getFieldService().getFields('money');
         if (cancelled) return;
         setFields(list.filter((field) => field.status !== 'Draft'));
         setShowingCachedData(!isDeviceOnline());
 
         const summaryFieldId = fieldId === UNASSIGNED_FIELD_QUERY ? undefined : fieldId || undefined;
-        const [yearSummary, ledger] = await Promise.all([
+        const [yearSummary, ledger, cellar] = await Promise.all([
           getFinancialSummaryService()
             .getYear(year, summaryFieldId, i18n.language)
             .then((result) => ({ ok: true as const, result }))
@@ -132,6 +156,9 @@ const MoneyPage: React.FC = () => {
             ...listParams(),
             page: 1,
           }),
+          oilStockService
+            .getSummary(summaryFieldId ? { fieldId: summaryFieldId } : undefined)
+            .catch(() => null),
         ]);
         if (cancelled) return;
         setSummaryForbidden(!yearSummary.ok);
@@ -140,6 +167,7 @@ const MoneyPage: React.FC = () => {
             ? overlayUnassignedSummary(yearSummary.result, i18n.language)
             : yearSummary.result
         );
+        setOilStock(cellar);
         const items = ledger.items.filter((row) => {
           if (row.status === 'void') return false;
           if (fieldId === UNASSIGNED_FIELD_QUERY) return !row.fieldId;
@@ -152,6 +180,7 @@ const MoneyPage: React.FC = () => {
         if (!cancelled) {
           setFields([]);
           setSummary(null);
+          setOilStock(null);
           setTransactions([]);
           setTotalCount(0);
         }
@@ -197,8 +226,32 @@ const MoneyPage: React.FC = () => {
   };
 
   const fieldNames = useMemo(() => fieldLabelMap(fields), [fields]);
-  const selected = transactions.find((row) => row.id === txId) || null;
+  const [deepLinkedTx, setDeepLinkedTx] = useState<FinancialTransaction | null>(null);
+  const selected = transactions.find((row) => row.id === txId) || deepLinkedTx;
   const [relatedTitles, setRelatedTitles] = useState<{ task?: string; harvest?: string }>({});
+
+  useEffect(() => {
+    if (!txId) {
+      setDeepLinkedTx(null);
+      return;
+    }
+    if (transactions.some((row) => row.id === txId)) {
+      setDeepLinkedTx(null);
+      return;
+    }
+    let cancelled = false;
+    void getFinancialTransactionService()
+      .getById(txId)
+      .then((tx) => {
+        if (!cancelled) setDeepLinkedTx(tx);
+      })
+      .catch(() => {
+        if (!cancelled) setDeepLinkedTx(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [txId, transactions]);
 
   useEffect(() => {
     if (!selected?.relatedTaskId && !selected?.relatedHarvestId) {
@@ -220,7 +273,15 @@ const MoneyPage: React.FC = () => {
           .catch(() => []);
         const hit = harvests.find((h) => h.id === selected.relatedHarvestId);
         harvestTitle = hit
-          ? `${hit.harvestDate.slice(0, 10)}${hit.millName ? ` · ${hit.millName}` : ''}`
+          ? formatRelatedHarvestLabel(hit, {
+              fieldName: fieldNames[selected.fieldId] || undefined,
+              locale: i18n.language,
+              dateFormat,
+              statusLabel: (status) =>
+                status === 'voided'
+                  ? t('money:harvestStatusVoided')
+                  : t('money:harvestStatusPosted'),
+            })
           : undefined;
       }
       if (!cancelled) setRelatedTitles({ task: taskTitle, harvest: harvestTitle });
@@ -228,7 +289,7 @@ const MoneyPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }, [selected, fieldNames, dateFormat, i18n.language, t]);
 
   const visibleFields = fields.filter((field) => field.status !== 'Draft');
   const canManage =
@@ -237,14 +298,63 @@ const MoneyPage: React.FC = () => {
     Boolean(selected && (selected.createdByUserId === user?.userId || selected.ownerUserId === user?.userId));
 
   const openCapture = (preferredType: 'money' | 'income' | 'expense' = 'money') => {
+    const filteredField =
+      fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined;
     capture?.openCapture({
       preferredType,
-      fieldId: fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : visibleFields[0]?.id,
+      fieldId: filteredField,
       taskId: taskFilter || undefined,
+      sourcePage: 'money',
     });
   };
 
   const reload = () => setReloadToken((n) => n + 1);
+
+  const exportLedger = async () => {
+    try {
+      setExporting(true);
+      setExportError(null);
+      const pageSize = 200;
+      const collected: FinancialTransaction[] = [];
+      let page = 1;
+      let fetched = 0;
+      let total = Number.POSITIVE_INFINITY;
+      while (fetched < total && page <= 25) {
+        const ledger = await getFinancialTransactionService().list({
+          ...listParams(),
+          page,
+          pageSize,
+        });
+        total = ledger.totalCount;
+        fetched += ledger.items.length;
+        collected.push(
+          ...ledger.items.filter((row) => {
+            if (row.status === 'void') return false;
+            if (fieldId === UNASSIGNED_FIELD_QUERY) return !row.fieldId;
+            return true;
+          })
+        );
+        if (ledger.items.length === 0) break;
+        page += 1;
+      }
+      const csv = moneyLedgerCsv({
+        rows: collected,
+        fieldNames,
+        unassignedLabel: unassignedFieldLabel(i18n.language),
+      });
+      downloadTextFile(`money-${harvestYearSpan(year)}.csv`, csv);
+    } catch {
+      setExportError(t('money:exportFailed'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const myOilLink = !summaryForbidden ? (
+    <p className="money-my-oil-link">
+      <Link to="/my-oil">{t('myOil:seeMyOil')}</Link>
+    </p>
+  ) : null;
 
   const emptyYear =
     !summaryForbidden &&
@@ -253,7 +363,7 @@ const MoneyPage: React.FC = () => {
     summary.draftCount === 0 &&
     transactions.length === 0;
 
-  const shell = (body: React.ReactNode, captureEnabled = true) => (
+  const shell = (body: React.ReactNode) => (
     <PageContainer maxWidth="full" padding="none">
       <div className="money-page">
         <Breadcrumbs />
@@ -261,12 +371,19 @@ const MoneyPage: React.FC = () => {
           fields={visibleFields}
           fieldId={fieldId}
           onFieldChange={(next) => patch({ fieldId: next || null })}
-          onCapture={captureEnabled ? () => openCapture() : undefined}
         />
         {body}
       </div>
     </PageContainer>
   );
+
+  if (pageGuard.loading) {
+    return (
+      <PageContainer>
+        <LoadingSpinner />
+      </PageContainer>
+    );
+  }
 
   if (loading && !summary) {
     return shell(
@@ -282,8 +399,7 @@ const MoneyPage: React.FC = () => {
 
   if (visibleFields.length === 0) {
     return shell(
-      <EmptyState title={t('money:emptyFieldsTitle')} description={t('money:emptyFieldsHint')} />,
-      false
+      <EmptyState title={t('money:emptyFieldsTitle')} description={t('money:emptyFieldsHint')} />
     );
   }
 
@@ -295,28 +411,31 @@ const MoneyPage: React.FC = () => {
           fields={visibleFields}
           fieldId={fieldId}
           onFieldChange={(next) => patch({ fieldId: next || null })}
-          onCapture={() => openCapture()}
+          onExport={() => void exportLedger()}
+          exporting={exporting}
         />
+        {exportError ? <p className="money-error">{exportError}</p> : null}
         <MoneyContextBar
           year={year}
-          kind={kind}
-          hideIncome={summaryForbidden}
+          yearRangeLabel={agriculturalYearRangeLabel(year, i18n.language)}
           onYearChange={(next) => patch({ year: String(next), month: null })}
-          onKindChange={(value) => patch({ kind: value === 'all' ? null : value })}
         />
 
         {summaryForbidden ? (
           <EmptyState title={t('money:collaboratorTitle')} description={t('money:collaboratorHint')} />
         ) : emptyYear ? (
-          <EmptyState
-            title={t('money:emptyTitle', { year })}
-            description={t('money:emptyHint')}
-            action={
-              <Button variant="primary" onClick={() => openCapture()}>
-                {t('capture:money.cta')}
-              </Button>
-            }
-          />
+          <>
+            {myOilLink}
+            <EmptyState
+              title={t('money:emptyTitle', { span: harvestYearSpan(year) })}
+              description={t('money:emptyHint')}
+              action={
+                <Button variant="primary" onClick={() => openCapture()}>
+                  {t('capture:money.cta')}
+                </Button>
+              }
+            />
+          </>
         ) : summary ? (
           <>
             <MoneySummaryGrid
@@ -330,21 +449,34 @@ const MoneyPage: React.FC = () => {
               fieldCount={summary.fieldResults.length || (fieldId ? 1 : 0)}
               onOpenDrafts={() => patch({ kind: 'draft' })}
             />
-            {summary.oliveOil ? (
-              <OliveOilEconomicsCard year={year} oil={summary.oliveOil} locale={i18n.language} />
+            {!summaryForbidden &&
+            oilStock &&
+            (oilStock.onHand.litres || 0) + (oilStock.delivered.litres || 0) > 0.05 ? (
+              <UnsoldOilStock summary={oilStock} locale={i18n.language} />
+            ) : (
+              myOilLink
+            )}
+            {summary.dataAvailability.hasPostedRecords ? (
+              <MonthlyFinancialTrend
+                year={year}
+                months={summary.monthlyResults}
+                currency={summary.currency}
+                locale={i18n.language}
+                selectedMonth={month || undefined}
+                onSelectMonth={(next) => patch({ month: next ? String(next) : null })}
+              />
             ) : null}
-            {isFullPicture &&
-            (summary.costPerHectare != null ||
+            {(summary.costPerHectare != null ||
               summary.incomePerHectare != null ||
               summary.netPerHectare != null ||
               summary.costPerKilogramOfOil != null ||
               summary.costPerKilogramMessage) ? (
-              <section className="money-card">
+              <MoneyExpandableSection title={t('money:unitEconomicsTitle')}>
                 {summary.costPerHectare != null ? (
                   <p>
                     {t('money:costPerHectare')}:{' '}
                     {formatOfficialAmount(
-                      summary.costPerHectare,
+                      perAreaForDisplay(summary.costPerHectare, i18n.language),
                       summary.currency,
                       i18n.language,
                       t('money:unknownAmount')
@@ -355,7 +487,7 @@ const MoneyPage: React.FC = () => {
                   <p>
                     {t('money:incomePerHectare')}:{' '}
                     {formatOfficialAmount(
-                      summary.incomePerHectare,
+                      perAreaForDisplay(summary.incomePerHectare, i18n.language),
                       summary.currency,
                       i18n.language,
                       t('money:unknownAmount')
@@ -366,7 +498,7 @@ const MoneyPage: React.FC = () => {
                   <p>
                     {t('money:netPerHectare')}:{' '}
                     {formatOfficialAmount(
-                      summary.netPerHectare,
+                      perAreaForDisplay(summary.netPerHectare, i18n.language),
                       summary.currency,
                       i18n.language,
                       t('money:unknownAmount')
@@ -386,36 +518,35 @@ const MoneyPage: React.FC = () => {
                 ) : summary.costPerKilogramMessage ? (
                   <p className="money-summary-note">{summary.costPerKilogramMessage}</p>
                 ) : null}
-              </section>
+              </MoneyExpandableSection>
             ) : null}
-            {summary.dataAvailability.hasPostedRecords ? (
-              <div className="money-analysis-grid">
-                <MonthlyFinancialTrend
-                  year={year}
-                  months={summary.monthlyResults}
+            {summary.oliveOil?.hasProductionOrSales ? (
+              <MoneyExpandableSection title={t('money:oliveOilYear', { span: harvestYearSpan(year) })}>
+                <OliveOilEconomicsCard year={year} oil={summary.oliveOil} locale={i18n.language} embedded />
+              </MoneyExpandableSection>
+            ) : null}
+            {summary.dataAvailability.hasPostedRecords &&
+            (summary.expenseByCategory.length > 0 || summary.incomeByCategory.length > 0) ? (
+              <MoneyExpandableSection title={t('money:categories')}>
+                <MoneyCategoryBreakdown
+                  expenses={summary.expenseByCategory}
+                  income={summary.incomeByCategory}
                   currency={summary.currency}
                   locale={i18n.language}
-                  selectedMonth={month || undefined}
-                  onSelectMonth={(next) => patch({ month: next ? String(next) : null })}
+                  onSelectCategory={(value) => patch({ category: value, kind: 'all' })}
+                  embedded
                 />
-                {summary.expenseByCategory.length > 0 || summary.incomeByCategory.length > 0 ? (
-                  <MoneyCategoryBreakdown
-                    expenses={summary.expenseByCategory}
-                    income={summary.incomeByCategory}
-                    currency={summary.currency}
-                    locale={i18n.language}
-                    onSelectCategory={(value) => patch({ category: value, kind: 'all' })}
-                  />
-                ) : null}
-              </div>
+              </MoneyExpandableSection>
             ) : null}
             {!fieldId ? (
               <MoneyFieldRows
                 rows={summary.fieldResults}
                 currency={summary.currency}
                 locale={i18n.language}
-                showPerHectare={isFullPicture}
+                showPerHectare={true}
                 fieldNames={fieldNames}
+                fields={visibleFields}
+                missingAreaFieldIds={summary.dataAvailability.missingAreaFieldIds ?? []}
                 onSelectField={(id) => patch({ fieldId: id || null })}
               />
             ) : null}
@@ -431,6 +562,14 @@ const MoneyPage: React.FC = () => {
             fieldNames={fieldNames}
             category={category}
             month={month}
+            monthLabel={month ? harvestMonthTitle(year, month, i18n.language) : undefined}
+            filters={
+              <MoneyKindRail
+                kind={kind}
+                hideIncome={summaryForbidden}
+                onKindChange={(value) => patch({ kind: value === 'all' ? null : value })}
+              />
+            }
             onClearFilters={() => patch({ category: null, month: null, task: null, harvest: null })}
             onOpen={(id) => patch({ tx: id })}
             onLoadMore={() => void loadOlder()}
@@ -444,7 +583,6 @@ const MoneyPage: React.FC = () => {
         relatedTaskTitle={relatedTitles.task}
         relatedHarvestTitle={relatedTitles.harvest}
         canManage={canManage}
-        fullPicture={isFullPicture}
         onClose={() => patch({ tx: null })}
         onVoid={async (id, reason) => {
           await getFinancialTransactionService().void(id, reason);

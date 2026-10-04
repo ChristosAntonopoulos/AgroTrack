@@ -5,7 +5,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import Button from '../components/ui/Button';
@@ -31,6 +30,7 @@ import {
   noteInSeasonBounds,
 } from '../ravdos/progressModel';
 import { RootStackParamList } from '../navigation/types';
+import { openHarvestCampaign } from '../navigation/intents';
 import { spacing } from '../theme';
 
 import { formatOfficialAmount } from '../finance/format';
@@ -40,10 +40,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const ThisHarvestReviewScreen = () => {
   const { colors } = useTheme();
-  const { tapMin, fontScaleMultiplier, isEveryday } = usePreferences();
+  const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const navigation = useNavigation<Nav>();
-  const { fields } = useFields();
+  const { fields } = useFields('harvest');
   const anyIrrigated = useMemo(() => fields.some((f) => Boolean(f.irrigationStatus)), [fields]);
 
   const [loading, setLoading] = useState(true);
@@ -125,10 +125,10 @@ const ThisHarvestReviewScreen = () => {
       setNotes(
         allNotes
           .filter((n) => noteInSeasonBounds(n, bounds))
-          .slice(0, isEveryday ? 4 : 12)
+          .slice(0, 12)
       );
     },
-    [allTasks, anyIrrigated, isEveryday, i18n.language]
+    [allTasks, anyIrrigated, i18n.language]
   );
 
   useEffect(() => {
@@ -149,12 +149,10 @@ const ThisHarvestReviewScreen = () => {
       refreshControl={{ refreshing, onRefresh }}
       contentContainerStyle={styles.content}
     >
-      <ScreenHeader title={t('fields:apologismos.title')} subtitle={t('fields:apologismos.subtitle')} />
-
       <Button
         title={t('fields:apologismos.backToProgress')}
         variant="ghost"
-        onPress={() => navigation.navigate('ThisHarvest')}
+        onPress={() => openHarvestCampaign(navigation)}
         style={{ marginHorizontal: spacing.base }}
       />
 
@@ -249,7 +247,7 @@ const ThisHarvestReviewScreen = () => {
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
               {t('fields:apologismos.whatHappened')}
             </Text>
-            {(isEveryday ? doneTitles.slice(0, 6) : doneTitles).map((title) => (
+            {doneTitles.map((title) => (
               <Text key={title} style={{ color: colors.textPrimary, paddingVertical: 4 }}>
                 {title}
               </Text>
@@ -271,27 +269,25 @@ const ThisHarvestReviewScreen = () => {
             )}
           </View>
 
-          {!isEveryday
-            ? cards.map((card) => (
-                <TouchableOpacity
-                  key={card.fieldId}
-                  style={[
-                    styles.fieldCard,
-                    {
-                      backgroundColor: colors.surfaceElevated,
-                      borderColor: colors.borderLight,
-                      minHeight: tapMin,
-                    },
-                  ]}
-                  onPress={() => navigation.navigate('FieldDetail', { fieldId: card.fieldId })}
-                >
-                  <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{card.fieldName}</Text>
-                  <Text style={{ color: colors.textSecondary }}>
-                    {formatKg(card.oliveKg)} kg
-                  </Text>
-                </TouchableOpacity>
-              ))
-            : null}
+          {cards.map((card) => (
+            <TouchableOpacity
+              key={card.fieldId}
+              style={[
+                styles.fieldCard,
+                {
+                  backgroundColor: colors.surfaceElevated,
+                  borderColor: colors.borderLight,
+                  minHeight: tapMin,
+                },
+              ]}
+              onPress={() => navigation.navigate('FieldDetail', { fieldId: card.fieldId })}
+            >
+              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{card.fieldName}</Text>
+              <Text style={{ color: colors.textSecondary }}>
+                {formatKg(card.oliveKg)} kg
+              </Text>
+            </TouchableOpacity>
+          ))}
         </>
       )}
     </ScreenLayout>

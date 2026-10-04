@@ -1,0 +1,7 @@
+.app-back-link {
+  margin: 0 0 var(--spacing-sm, 0.5rem);
+}
+
+.app-back-link .btn {
+  justify-content: flex-start;
+}

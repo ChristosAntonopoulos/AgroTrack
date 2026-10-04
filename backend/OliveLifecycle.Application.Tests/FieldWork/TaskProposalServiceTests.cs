@@ -20,6 +20,7 @@ public class TaskProposalServiceTests
     private readonly Mock<IFieldWorkTaskTemplateVersionRepository> _versions = new();
     private readonly Mock<IFieldWorkProfileRepository> _profiles = new();
     private readonly Mock<IFieldWorkAuthorizationService> _auth = new();
+    private readonly Mock<IFieldAccessScopeService> _fieldAccessScope = new();
     private readonly Mock<IDateTimeProvider> _clock = new();
     private readonly TaskProposalService _service;
 
@@ -32,6 +33,9 @@ public class TaskProposalServiceTests
             .ReturnsAsync((TaskWeatherEvaluation?)null);
         _profiles.Setup(r => r.GetByFieldIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((FieldWorkProfile?)null);
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldIdsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
         var logger = new Mock<Microsoft.Extensions.Logging.ILogger<TaskProposalService>>();
         _service = new TaskProposalService(
             _proposals.Object,
@@ -40,6 +44,7 @@ public class TaskProposalServiceTests
             _versions.Object,
             _profiles.Object,
             _auth.Object,
+            _fieldAccessScope.Object,
             _clock.Object,
             weather.Object,
             logger.Object);

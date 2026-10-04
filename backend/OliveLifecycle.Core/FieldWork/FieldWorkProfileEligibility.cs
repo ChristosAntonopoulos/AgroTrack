@@ -932,7 +932,7 @@ public static class FieldWorkProfileEligibilityLabels
                 : "Δεν υπάρχει ακόμη ενεργό προφίλ εργασίας — χρησιμοποιείται το εποχικό σχέδιο.",
             ReasonCodes.NotPersonalised => en
                 ? "This work is not personalised for this field."
-                : "Αυτή η εργασία δεν έχει προσωποποίηση για το χωράφι.",
+                : "Αυτή η εργασία δεν έχει προσωποποίηση για τον ελαιώνα.",
             ReasonCodes.OfficialSafetyVisible => en
                 ? "Official or safety information stays visible even when you skip this kind of work."
                 : "Οι επίσημες ή πληροφορίες ασφαλείας παραμένουν ορατές ακόμα κι αν δεν κάνετε αυτή την εργασία.",
@@ -948,10 +948,10 @@ public static class FieldWorkProfileEligibilityLabels
                 : "Το κλάδεμα προβλέπεται φέτος με βάση τη συνήθη συχνότητά σας.",
             ReasonCodes.PruningNeedsEvidence => en
                 ? "Pruning is only suggested when there is a field reason to check."
-                : "Το κλάδεμα προτείνεται μόνο όταν υπάρχει ένδειξη από το χωράφι.",
+                : "Το κλάδεμα προτείνεται μόνο όταν υπάρχει ένδειξη από τον ελαιώνα.",
             ReasonCodes.PruningEvidencePresent => en
                 ? "There is a field reason to review pruning."
-                : "Υπάρχει ένδειξη από το χωράφι για ανασκόπηση κλαδέματος.",
+                : "Υπάρχει ένδειξη από τον ελαιώνα για ανασκόπηση κλαδέματος.",
             ReasonCodes.PruningAgronomistReview => en
                 ? "Review pruning with your agronomist or collaborator — not an instruction to prune now."
                 : "Ανασκοπήστε το κλάδεμα με τον γεωπόνο ή συνεργάτη σας — όχι εντολή «κλαδέψτε τώρα».",
@@ -963,20 +963,20 @@ public static class FieldWorkProfileEligibilityLabels
                 : "Επιβεβαιώστε κάθε πότε κλαδεύετε πριν προτείνουμε συνήθη χρονιά.",
             ReasonCodes.PruningDisabled => en
                 ? "Routine pruning proposals are turned off for this field."
-                : "Οι συνήθεις προτάσεις κλαδέματος είναι απενεργοποιημένες για αυτό το χωράφι.",
+                : "Οι συνήθεις προτάσεις κλαδέματος είναι απενεργοποιημένες για αυτόν τον ελαιώνα.",
             ReasonCodes.PruningResidueSuppressed => en
                 ? "Pruning-residue follow-up is skipped because pruning is not proposed this year."
                 : "Η διαχείριση υπολειμμάτων παραλείπεται επειδή δεν προτείνεται κλάδεμα φέτος.",
 
             ReasonCodes.IrrigationRainFed => en
                 ? "This field is rain-fed — recurring irrigation proposals are hidden."
-                : "Το χωράφι είναι ξερικό — οι επαναλαμβανόμενες προτάσεις άρδευσης δεν εμφανίζονται.",
+                : "Ο ελαιώνας είναι ξερικό — οι επαναλαμβανόμενες προτάσεις άρδευσης δεν εμφανίζονται.",
             ReasonCodes.IrrigationAskFirst => en
                 ? "Ask before proposing irrigation — this field is irrigated only in some years."
-                : "Ρωτήστε πριν προτείνετε πότισμα — το χωράφι ποτίζεται μόνο μερικές χρονιές.",
+                : "Ρωτήστε πριν προτείνετε πότισμα — ο ελαιώνας ποτίζεται μόνο μερικές χρονιές.",
             ReasonCodes.IrrigationUnknownNoRecurring => en
                 ? "Irrigation scheduling is paused until we know whether the field is irrigated."
-                : "Ο προγραμματισμός άρδευσης παγώνει μέχρι να γνωρίζουμε αν το χωράφι ποτίζεται.",
+                : "Ο προγραμματισμός άρδευσης παγώνει μέχρι να γνωρίζουμε αν ο ελαιώνας ποτίζεται.",
             ReasonCodes.IrrigationUnknownInspection => en
                 ? "A light irrigation-system check may be worth reviewing."
                 : "Ένας ελαφρύς έλεγχος αρδευτικού μπορεί να αξίζει ανασκόπηση.",
@@ -985,7 +985,7 @@ public static class FieldWorkProfileEligibilityLabels
                 : "Ανασκοπήστε τον χρόνο ποτίσματος με όποιον αποφασίζει.",
             ReasonCodes.IrrigationEnabled => en
                 ? "Irrigation proposals are enabled for this irrigated field."
-                : "Οι προτάσεις άρδευσης είναι ενεργές για αυτό το ποτιστικό χωράφι.",
+                : "Οι προτάσεις άρδευσης είναι ενεργές για αυτόν τον ποτιστικό ελαιώνα.",
 
             ReasonCodes.FertilisationDisabled => en
                 ? "Routine fertilisation proposals are hidden — inspection information may still appear."
@@ -1001,7 +1001,7 @@ public static class FieldWorkProfileEligibilityLabels
                 : "Ανασκοπήστε τη λίπανση με τον γεωπόνο σας πριν την εφαρμογή.",
             ReasonCodes.FertilisationAskFirst => en
                 ? "Confirm before proposing fertilisation for this field."
-                : "Επιβεβαιώστε πριν προτείνουμε λίπανση για αυτό το χωράφι.",
+                : "Επιβεβαιώστε πριν προτείνουμε λίπανση για αυτόν τον ελαιώνα.",
             ReasonCodes.FertilisationUnknownReview => en
                 ? "A nutrition-plan review may be worth checking."
                 : "Μια ανασκόπηση σχεδίου θρέψης μπορεί να αξίζει έλεγχο.",
@@ -1051,14 +1051,14 @@ public static class FieldWorkProfileEligibilityLabels
                 : "Επιβεβαιώστε πώς αποφασίζετε για προσβολές πριν προτείνουμε συνήθη παρακολούθηση.",
             ReasonCodes.PestTrapsNotInstalled => en
                 ? "Confirm whether traps should be installed on this field."
-                : "Επιβεβαιώστε αν πρέπει να τοποθετηθούν παγίδες σε αυτό το χωράφι.",
+                : "Επιβεβαιώστε αν πρέπει να τοποθετηθούν παγίδες σε αυτόν τον ελαιώνα.",
             ReasonCodes.PestMonitoringEnabled => en
                 ? "Pest monitoring proposals follow how you decide on this field."
-                : "Οι προτάσεις παρακολούθησης ακολουθούν τον τρόπο απόφασης στο χωράφι.",
+                : "Οι προτάσεις παρακολούθησης ακολουθούν τον τρόπο απόφασης στον ελαιώνα.",
 
             ReasonCodes.AnalysisDisabled => en
                 ? "Routine analysis proposals are turned off for this field."
-                : "Οι συνήθεις προτάσεις αναλύσεων είναι απενεργοποιημένες για αυτό το χωράφι.",
+                : "Οι συνήθεις προτάσεις αναλύσεων είναι απενεργοποιημένες για αυτόν τον ελαιώνα.",
             ReasonCodes.AnalysisNotDue => en
                 ? "The next analysis is not due yet based on your last sample."
                 : "Η επόμενη ανάλυση δεν προβλέπεται ακόμη με βάση το τελευταίο δείγμα.",
@@ -1082,7 +1082,7 @@ public static class FieldWorkProfileEligibilityLabels
                 ? "Pre-harvest readiness and PHI review may be due."
                 : "Μπορεί να χρειάζεται έλεγχος ετοιμότητας και διαστήματος PHI πριν τη συγκομιδή.",
 
-            _ => en ? "Personalised for this field." : "Προσωποποιημένο για αυτό το χωράφι."
+            _ => en ? "Personalised for this field." : "Προσωποποιημένο για αυτόν τον ελαιώνα."
         };
     }
 }

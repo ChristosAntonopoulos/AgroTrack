@@ -26,7 +26,7 @@ export type AttentionItem = {
   titleParams?: Record<string, string | number>;
   reasonKey: string;
   reasonParams?: Record<string, string | number>;
-  action: 'open_task' | 'capture' | 'weather' | 'schedule' | 'tasks';
+  action: 'open_task' | 'capture' | 'weather' | 'schedule' | 'tasks' | 'harvest_add' | 'harvest_evening';
   taskId?: string;
   fieldId?: string;
 };
@@ -217,7 +217,14 @@ export const useTodaySummary = (input: {
         featured: proposals.featured,
         rainConflictCount,
       }),
-    [partitioned.dueToday, partitioned.nextTasks, partitioned.overdue, proposals.featured, rainConflictCount, weather]
+    [
+      partitioned.dueToday,
+      partitioned.nextTasks,
+      partitioned.overdue,
+      proposals.featured,
+      rainConflictCount,
+      weather,
+    ]
   );
 
   const conditions = useMemo(

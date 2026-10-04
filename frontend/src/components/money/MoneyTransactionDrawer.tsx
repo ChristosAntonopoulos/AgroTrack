@@ -15,7 +15,10 @@ import {
 } from '../../finance/display';
 import { formatOfficialAmount } from '../../finance/format';
 import { formatQuantityLine } from '../../finance/moneyUi';
+import { harvestYearRangeLabel, harvestYearSpan } from '../../finance/harvestYear';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { harvestPath, taskPeekPath } from '../../navigation/intents';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import './Money.css';
 
 type Props = {
@@ -24,7 +27,6 @@ type Props = {
   relatedTaskTitle?: string;
   relatedHarvestTitle?: string;
   canManage: boolean;
-  fullPicture: boolean;
   onClose: () => void;
   onVoid: (id: string, reason: string) => Promise<void>;
   onPostDraft: (id: string) => Promise<void>;
@@ -40,13 +42,13 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
   relatedTaskTitle,
   relatedHarvestTitle,
   canManage,
-  fullPicture,
   onClose,
   onVoid,
   onPostDraft,
   onDeleteDraft,
 }) => {
   const { t, i18n } = useTranslation(['money', 'common']);
+  const { formatDate, formatDateTime } = useLocaleFormatters();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmVoid, setConfirmVoid] = useState(false);
@@ -180,10 +182,16 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
             </div>
             <div>
               <dt>{t('money:date')}</dt>
+              <dd>{formatDate(transaction.occurredOn)}</dd>
+            </div>
+            <div>
+              <dt>{t('money:harvestYearName')}</dt>
               <dd>
-                {new Date(transaction.occurredOn).toLocaleDateString(i18n.language, {
-                  dateStyle: 'long',
-                })}
+                {harvestYearSpan(transaction.resultYear)}
+                <span className="money-summary-note">
+                  {' '}
+                  {harvestYearRangeLabel(transaction.resultYear, i18n.language)}
+                </span>
               </dd>
             </div>
             <div>
@@ -199,72 +207,91 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
                 <dt>{t('money:relatedTask')}</dt>
                 <dd>
                   {relatedTaskTitle ? (
-                    <Link to={`/tasks/${transaction.relatedTaskId}`}>{relatedTaskTitle}</Link>
+                    <Link to={taskPeekPath(transaction.relatedTaskId)}>{relatedTaskTitle}</Link>
                   ) : (
                     t('money:relatedTask')
                   )}
                 </dd>
               </div>
             ) : null}
-            {transaction.relatedHarvestId ? (
+            {transaction.relatedHarvestId || transaction.sourceType === 'harvest' ? (
               <div>
                 <dt>{t('money:relatedHarvest')}</dt>
-                <dd>{relatedHarvestTitle || t('money:relatedHarvest')}</dd>
+                <dd>
+                  <Link
+                    to={harvestPath({
+                      fieldId: transaction.fieldId || undefined,
+                      harvestId: transaction.relatedHarvestId || undefined,
+                      day: transaction.occurredOn.slice(0, 10),
+                    })}
+                  >
+                    {relatedHarvestTitle || t('money:openHarvestDay')}
+                  </Link>
+                </dd>
               </div>
             ) : null}
-            {fullPicture ? (
-              <>
-                {transaction.paymentMethod ? (
-                  <div>
-                    <dt>{t('money:payment')}</dt>
-                    <dd>{paymentMethodLabel(transaction.paymentMethod, i18n.language)}</dd>
-                  </div>
+            {transaction.paymentMethod ? (
+              <div>
+                <dt>{t('money:payment')}</dt>
+                <dd>{paymentMethodLabel(transaction.paymentMethod, i18n.language)}</dd>
+              </div>
+            ) : null}
+            {transaction.counterpartyName ? (
+              <div>
+                <dt>{t('money:counterparty')}</dt>
+                <dd>{transaction.counterpartyName}</dd>
+              </div>
+            ) : null}
+            {transaction.category === 'olive_oil_sale' ? (
+              <div>
+                <dt>{t('money:openMyOil')}</dt>
+                <dd>
+                  <Link to="/my-oil" onClick={onClose}>
+                    {t('money:oilSaleInCellar')}
+                  </Link>
+                </dd>
+              </div>
+            ) : null}
+            <div>
+              <dt>{t('money:receipts')}</dt>
+              <dd>
+                {transaction.attachmentIds.length
+                  ? t('money:receiptCount', { count: transaction.attachmentIds.length })
+                  : t('money:noReceipts')}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('money:source')}</dt>
+              <dd>
+                {labelOr(
+                  transaction.sourceTypeLabel,
+                  financialSourceLabel(
+                    transaction.sourceType as 'manual' | 'task' | 'harvest' | 'service',
+                    i18n.language
+                  )
+                )}
+                {transaction.sourceType === 'harvest' ? (
+                  <span className="money-summary-note"> {t('money:harvestExpenseHere')}</span>
                 ) : null}
-                {transaction.counterpartyName ? (
-                  <div>
-                    <dt>{t('money:counterparty')}</dt>
-                    <dd>{transaction.counterpartyName}</dd>
-                  </div>
-                ) : null}
-                <div>
-                  <dt>{t('money:receipts')}</dt>
-                  <dd>
-                    {transaction.attachmentIds.length
-                      ? t('money:receiptCount', { count: transaction.attachmentIds.length })
-                      : t('money:noReceipts')}
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t('money:source')}</dt>
-                  <dd>
-                    {labelOr(
-                      transaction.sourceTypeLabel,
-                      financialSourceLabel(
-                        transaction.sourceType as 'manual' | 'task' | 'harvest' | 'service',
-                        i18n.language
-                      )
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t('money:createdAt', { date: '' }).trim()}</dt>
-                  <dd>
-                    {t('money:createdAt', {
-                      date: new Date(transaction.createdAt).toLocaleString(i18n.language),
-                    })}
-                  </dd>
-                </div>
-                {transaction.postedAt ? (
-                  <div>
-                    <dt>{t('money:postedAt', { date: '' }).trim()}</dt>
-                    <dd>
-                      {t('money:postedAt', {
-                        date: new Date(transaction.postedAt).toLocaleString(i18n.language),
-                      })}
-                    </dd>
-                  </div>
-                ) : null}
-              </>
+              </dd>
+            </div>
+            <div>
+              <dt>{t('money:createdAt', { date: '' }).trim()}</dt>
+              <dd>
+                {t('money:createdAt', {
+                  date: formatDateTime(transaction.createdAt),
+                })}
+              </dd>
+            </div>
+            {transaction.postedAt ? (
+              <div>
+                <dt>{t('money:postedAt', { date: '' }).trim()}</dt>
+                <dd>
+                  {t('money:postedAt', {
+                    date: formatDateTime(transaction.postedAt),
+                  })}
+                </dd>
+              </div>
             ) : null}
             {transaction.notes ? (
               <div>

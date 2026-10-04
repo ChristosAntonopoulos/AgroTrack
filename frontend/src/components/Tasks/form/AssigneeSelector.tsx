@@ -12,9 +12,17 @@ interface AssigneeSelectorProps {
   options: AssigneeOption[];
   value: string;
   onChange: (key: string) => void;
+  hideLabel?: boolean;
+  labelId?: string;
 }
 
-const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({ options, value, onChange }) => {
+const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
+  options,
+  value,
+  onChange,
+  hideLabel = false,
+  labelId = 'task-assignee-label',
+}) => {
   const { t } = useTranslation('tasks');
   const selfOption = options.find((option) => option.group === 'self') || options[0];
   const selfKey = selfOption?.key || 'later';
@@ -42,13 +50,15 @@ const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({ options, value, onC
 
   return (
     <div className="task-form-field">
-      <p className="task-form-label" id="task-assignee-label">
-        {t('fieldWork.form.whoQuestion')}
-      </p>
+      {hideLabel ? null : (
+        <p className="task-form-label" id="task-assignee-label">
+          {t('fieldWork.form.whoQuestion')}
+        </p>
+      )}
       <div
         className={`task-assignee-toggle${peopleOptions.length > 0 ? '' : ' is-compact'}`}
         role="radiogroup"
-        aria-labelledby="task-assignee-label"
+        aria-labelledby={labelId}
       >
         <button
           type="button"
@@ -136,6 +146,12 @@ const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({ options, value, onC
 
       {isSelf && !showPicker ? (
         <p className="task-form-help">{t('fieldWork.form.assigneeMeHint')}</p>
+      ) : null}
+      {showPicker && selectedPerson?.key.startsWith('contact:') ? (
+        <p className="task-form-help">{t('fieldWork.form.assignOutcomeContact')}</p>
+      ) : null}
+      {showPicker && selectedPerson?.key.startsWith('user:') ? (
+        <p className="task-form-help">{t('fieldWork.form.assignOutcomeCollaborator')}</p>
       ) : null}
     </div>
   );

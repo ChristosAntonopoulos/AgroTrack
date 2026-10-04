@@ -16,17 +16,18 @@ import {
   FIELD_HERO_POLYGON_FACTOR,
   FIELD_HERO_POLYGON_PADDING,
 } from '../../utils/fieldMapFraming';
-import { DEFAULT_MAP_LAYER, MapLayerType } from '../../utils/mapLayers';
+import { DEFAULT_MAP_LAYER, MAP_MAX_ZOOM, MapLayerType } from '../../utils/mapLayers';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import AppMapView, { AppMapViewRef } from '../maps/AppMapView';
 import MapPolygonLayer from '../maps/MapPolygonLayer';
-import MapPointLayer from '../maps/MapPointLayer';
+import MapFieldPins from '../maps/MapFieldPins';
 import MapRasterOverlay from '../maps/MapRasterOverlay';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import MapExploreCue from '../onboarding/MapExploreCue';
 import MapLayerToggle from './MapLayerToggle';
 import MapLayerSheet from './MapLayerSheet';
 import MapZoomControls from '../maps/MapZoomControls';
 import { SATELLITE_LAYER_IDS, useFieldMapLayers } from '../../hooks/useFieldMapLayers';
-import { usePreferences } from '../../context/PreferencesContext';
 import { typography, spacing } from '../../theme';
 import { createElevation } from '../../theme/elevation';
 
@@ -36,6 +37,8 @@ export interface FieldDetailMapProps {
   onGestureActiveChange?: (active: boolean) => void;
   /** Set to false where only the boundary matters, such as compact previews. */
   showDataLayers?: boolean;
+  /** Overview peek — opens the Map tab (mirrors web FieldDetailMap). */
+  onOpenMapTab?: () => void;
 }
 
 const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
@@ -43,15 +46,11 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
   height = 210,
   onGestureActiveChange,
   showDataLayers,
+  onOpenMapTab,
 }) => {
   const { colors } = useTheme();
-  const { showWidget, isEveryday, recordIntelligenceOpen } = usePreferences();
-  const { t } = useTranslation(['fields', 'common', 'settings']);
-  const [layersPeeked, setLayersPeeked] = useState(false);
-  const allowDataLayers =
-    showDataLayers === false
-      ? false
-      : Boolean(showDataLayers) || showWidget('mapLayerPanel') || layersPeeked;
+  const { t } = useTranslation(['fields', 'common']);
+  const allowDataLayers = showDataLayers !== false;
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [opacity, setOpacity] = useState(0.5);
@@ -168,7 +167,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         key={`field-map-${field.id}-${mapLayer}`}
         style={styles.map}
         initialRegion={region}
-        maxZoom={FIELD_HERO_MAX_ZOOM}
+        maxZoom={MAP_MAX_ZOOM}
         mapLayer={mapLayer}
         scrollEnabled
         zoomEnabled
@@ -196,14 +195,20 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
             fillOpacity={activeLayerId ? 0 : 0.28}
             strokeWidth={activeLayerId ? 3 : 2.5}
           />
-        ) : (
-          <MapPointLayer
-            sourceId="field-center"
-            points={[{ id: field.id, coordinate: center, color: accent }]}
-            radius={10}
-          />
-        )}
+        ) : null}
+        <MapFieldPins
+          pins={[
+            {
+              id: field.id,
+              coordinate: center,
+              color: accent,
+              label: friendlyFieldLabel(field.name),
+              selected: true,
+            },
+          ]}
+        />
       </AppMapView>
+      <MapExploreCue />
       <View style={styles.toggle} pointerEvents="box-none">
         {allowDataLayers ? (
           <Pressable
@@ -225,12 +230,33 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
             </Text>
           </Pressable>
         ) : (
-          <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact={isEveryday} />
+          <MapLayerToggle value={mapLayer} onChange={setMapLayer} compact={false} />
         )}
       </View>
       <View style={styles.zoom} pointerEvents="box-none">
         <MapZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
       </View>
+
+      {!allowDataLayers && onOpenMapTab ? (
+        <View style={styles.openTabWrap} pointerEvents="box-none">
+          <Pressable
+            onPress={onOpenMapTab}
+            style={[
+              styles.openTabBtn,
+              {
+                backgroundColor: colors.primary,
+                ...createElevation(colors, 'sm'),
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={t('fields:mapWorkspace.openTab', { defaultValue: 'Open map' })}
+          >
+            <Text style={styles.openTabLabel}>
+              {t('fields:mapWorkspace.openTab', { defaultValue: 'Open map' })}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {allowDataLayers ? (
         <MapLayerSheet
@@ -251,23 +277,12 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
         />
       ) : null}
     </View>
-    {showDataLayers !== false && isEveryday && !allowDataLayers ? (
-      <Pressable
-        onPress={() => {
-          setLayersPeeked(true);
-          void recordIntelligenceOpen();
-        }}
-        style={[styles.peekBtn, { borderColor: colors.borderLight, backgroundColor: colors.surface }]}
-        accessibilityRole="button"
-      >
-        <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>
-          {t('settings:experience.peekMoreAboutField')}
-        </Text>
-      </Pressable>
-    ) : null}
     {overlayChips ? (
       <View style={styles.chipBlock}>
-        <View style={styles.chipRow}>
+        <Text style={[styles.chipHeading, { color: colors.textSecondary }]}>
+          {t('fields:mapLayers.dataOverlay')}
+        </Text>
+        <View style={styles.chipGrid}>
           <Pressable
             onPress={() => selectLayer(undefined)}
             style={[
@@ -280,7 +295,13 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
             accessibilityRole="button"
             accessibilityState={{ selected: !activeLayerId }}
           >
-            <Text style={{ color: !activeLayerId ? colors.onOlive : colors.textPrimary, fontSize: 12, fontWeight: '600' }}>
+            <Text
+              style={[
+                styles.chipLabel,
+                { color: !activeLayerId ? colors.onOlive : colors.textPrimary },
+              ]}
+              numberOfLines={1}
+            >
               {t('fields:mapLayers.none')}
             </Text>
           </Pressable>
@@ -300,7 +321,10 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={{ color: active ? colors.onOlive : colors.textPrimary, fontSize: 12, fontWeight: '600' }}>
+                <Text
+                  style={[styles.chipLabel, { color: active ? colors.onOlive : colors.textPrimary }]}
+                  numberOfLines={1}
+                >
                   {t(`fields:mapLayers.names.${definition.id}`, { defaultValue: definition.name })}
                 </Text>
               </Pressable>
@@ -320,15 +344,35 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
   },
-  chipBlock: { gap: 6 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chipBlock: { gap: 8 },
+  chipHeading: {
+    ...typography.styles.caption,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  chipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
+    flexBasis: '47%',
+    flexGrow: 1,
+    flexShrink: 1,
+    maxWidth: '48.5%',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    minHeight: 34,
+    minHeight: 44,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chipLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+    textAlign: 'center',
   },
   map: { flex: 1 },
   toggle: {
@@ -353,6 +397,23 @@ const styles = StyleSheet.create({
     bottom: spacing.sm,
     right: spacing.sm,
   },
+  openTabWrap: {
+    position: 'absolute',
+    left: spacing.sm,
+    bottom: spacing.sm,
+  },
+  openTabBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: 10,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  openTabLabel: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
   empty: {
     borderRadius: 12,
     borderWidth: 1,
@@ -363,14 +424,6 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.styles.bodySmall,
     textAlign: 'center',
-  },
-  peekBtn: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    minHeight: 44,
-    justifyContent: 'center',
   },
 });
 

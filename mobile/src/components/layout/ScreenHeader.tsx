@@ -1,103 +1,123 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { typography, spacing, radii, motion } from '../../theme';
+import { appFonts, typography, spacing } from '../../theme';
 
 export interface ScreenHeaderProps {
   title: string;
   subtitle?: string;
-  actionLabel?: string;
-  onActionPress?: () => void;
+  /** Trailing controls (prefer HeaderIconButton) */
   action?: React.ReactNode;
+  /** Slot under the title row (field pill, search, etc.) */
+  context?: React.ReactNode;
+  /** Compact mode for collapse-on-scroll */
+  compact?: boolean;
+  /** Shorter title block for dense screens such as harvest. */
+  dense?: boolean;
+  /** @deprecated Prefer `action` with HeaderIconButton */
+  actionLabel?: string;
+  /** @deprecated Prefer `action` with HeaderIconButton */
+  onActionPress?: () => void;
 }
 
+/** Large-title chrome for tab roots — quiet, no competing borders. */
 const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   title,
   subtitle,
-  actionLabel,
-  onActionPress,
   action,
+  context,
+  compact = false,
+  dense = false,
 }) => {
-  const { colors, fontScaleMultiplier, tapMin } = useTheme();
+  const { colors, fontScaleMultiplier } = useTheme();
+  const titleSize = (dense ? 22 : compact ? 20 : 28) * fontScaleMultiplier;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.textBlock}>
-        <Text style={[styles.title, { color: colors.textPrimary, fontSize: 26 * fontScaleMultiplier }]}>
-          {title}
-        </Text>
-        {subtitle ? (
+    <View style={[styles.container, dense && styles.containerDense, compact && styles.containerCompact]}>
+      <View style={styles.topRow}>
+        <View style={styles.textBlock}>
           <Text
             style={[
-              styles.subtitle,
+              styles.title,
               {
-                color: colors.textSecondary,
-                fontSize: 14 * fontScaleMultiplier,
-                lineHeight: 20 * fontScaleMultiplier,
+                color: colors.textPrimary,
+                fontSize: titleSize,
+                lineHeight: titleSize * 1.2,
               },
             ]}
+            numberOfLines={compact ? 1 : 2}
+            accessibilityRole="header"
           >
-            {subtitle}
+            {title}
           </Text>
-        ) : null}
+          {subtitle && !compact ? (
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  color: colors.textSecondary,
+                  fontSize: (dense ? 13 : 14) * fontScaleMultiplier,
+                  lineHeight: (dense ? 16 : 20) * fontScaleMultiplier,
+                },
+              ]}
+              numberOfLines={3}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {action ? <View style={styles.actions}>{action}</View> : null}
       </View>
-      {action ?? (actionLabel && onActionPress ? (
-        <TouchableOpacity
-          onPress={onActionPress}
-          activeOpacity={motion.pressOpacity}
-          style={[
-            styles.actionChip,
-            {
-              backgroundColor: colors.primary + '20',
-              borderColor: colors.primary + '50',
-              minHeight: tapMin,
-            },
-          ]}
-        >
-          <Text style={[styles.actionText, { color: colors.link, fontSize: 12 * fontScaleMultiplier }]}>
-            {actionLabel}
-          </Text>
-        </TouchableOpacity>
-      ) : null)}
+      {context && !compact ? (
+        <View style={[styles.context, dense && styles.contextDense]}>{context}</View>
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  containerCompact: {
+    paddingBottom: spacing.sm,
+    minHeight: 44,
+  },
+  containerDense: {
+    paddingTop: 0,
+    paddingBottom: spacing.xs,
+    gap: 4,
+  },
+  topRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.base,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
     gap: spacing.md,
   },
-  textBlock: { flex: 1 },
+  textBlock: { flex: 1, minWidth: 0 },
   title: {
     ...typography.styles.h2,
+    fontFamily: appFonts.bold,
     fontWeight: '700',
-    fontSize: 26,
-    letterSpacing: -0.5,
+    letterSpacing: -0.2,
   },
   subtitle: {
-    ...typography.styles.body,
+    ...typography.styles.bodySmall,
     marginTop: spacing.xs,
-    fontSize: 14,
-    lineHeight: 20,
   },
-  actionChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.full,
-    justifyContent: 'center',
-    borderWidth: 1,
-    marginTop: 4,
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: 2,
   },
-  actionText: {
-    ...typography.styles.caption,
-    fontWeight: '700',
-    fontSize: 12,
+  context: {
+    gap: spacing.sm,
+  },
+  contextDense: {
+    gap: 8,
   },
 });
 

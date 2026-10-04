@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Card from '../components/Common/Card';
+import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { getPartnerService } from '../services/serviceFactory';
@@ -17,7 +18,6 @@ const PartnerProfilePage: React.FC = () => {
   const { t, i18n } = useTranslation(['partners', 'common']);
   const { userId } = useParams<{ userId: string }>();
   const [params] = useSearchParams();
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<PartnerPublicProfile | null>(null);
   const [message, setMessage] = useState('');
   const [start, setStart] = useState(params.get('start') || '');
@@ -70,7 +70,11 @@ const PartnerProfilePage: React.FC = () => {
     try {
       setAdding(true);
       setError(null);
-      await fieldPeopleService.upsertMembership(fieldId, userId, ['work']);
+      await fieldPeopleService.upsertMembership(fieldId, userId, {
+        role: 'Partner',
+        modules: ['fields', 'tasks', 'photos', 'chronologio'],
+        accessLevel: 'work',
+      });
       setAdded(true);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t));
@@ -104,6 +108,7 @@ const PartnerProfilePage: React.FC = () => {
     <PageContainer>
       <div className="partners-page">
         <Breadcrumbs />
+        <BackLink to="/partners">{t('common:back')}</BackLink>
         <div className="partner-result">
           {profile.photoUrl && <img className="partner-photo" src={profile.photoUrl} alt="" />}
           <div>
@@ -189,10 +194,6 @@ const PartnerProfilePage: React.FC = () => {
             </span>
           </p>
         ) : null}
-
-        <Button variant="ghost" onClick={() => navigate(-1)}>
-          {t('common:back')}
-        </Button>
       </div>
     </PageContainer>
   );

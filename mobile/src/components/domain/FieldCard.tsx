@@ -1,77 +1,125 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { Field } from '../../services/fieldService';
 import { useTheme } from '../../context/ThemeContext';
-import { usePreferences } from '../../context/PreferencesContext';
-import { spacing, radii, typography } from '../../theme';
+import { spacing, radii, typography, motion } from '../../theme';
 import { createElevation } from '../../theme/elevation';
-import FieldIdentity from '../fields/FieldIdentity';
+import { resolveFieldColor } from '../../utils/fieldColors';
+import { formatFieldArea } from '../../utils/fieldGeo';
+import { getFieldShortLocation } from '../../utils/shortLocation';
+import { getFieldStatusLabel, isFieldSetupIncomplete } from '../../utils/fieldDisplay';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import FieldPolygonThumbnail from '../fields/FieldPolygonThumbnail';
+import FieldPinMark from '../maps/FieldPinMark';
 
 export interface FieldCardStats {
   todayTaskCount: number;
+  tasksReady?: boolean;
 }
 
 interface FieldCardProps {
   field: Field;
   stats: FieldCardStats;
+  compact?: boolean;
   selected?: boolean;
   onPress?: () => void;
+  onSelect?: () => void;
 }
 
-const FieldCard: React.FC<FieldCardProps> = ({ field, stats, selected, onPress }) => {
+/**
+ * Field list card — title, place, status/size, one metadata line.
+ */
+const FieldCard: React.FC<FieldCardProps> = ({
+  field,
+  stats,
+  compact = false,
+  selected,
+  onPress,
+  onSelect,
+}) => {
   const { colors } = useTheme();
-  const { tapMin } = usePreferences();
-  const { t } = useTranslation('fields');
-  const hasTasks = stats.todayTaskCount > 0;
+  const { t, i18n } = useTranslation('fields');
+  const accent = resolveFieldColor(field.color, field.id);
+  const incomplete = isFieldSetupIncomplete(field.status);
+  const hasTasks = Boolean(stats.tasksReady) && stats.todayTaskCount > 0;
+  const displayName = friendlyFieldLabel(field.name);
+  const shortLocation = getFieldShortLocation(field);
+  const status = getFieldStatusLabel(field.status, t);
+  const locale = i18n.language?.startsWith('el')
+    ? 'el'
+    : i18n.language?.startsWith('it')
+      ? 'it'
+      : 'en';
+  const area = formatFieldArea(field, locale);
+  const facts = [status, area && area !== '—' ? area : null].filter(Boolean).join(' · ');
+
+  const metaLine = incomplete
+    ? t('card.continueSetup')
+    : !stats.tasksReady
+      ? t('card.todayTasksLoading')
+      : hasTasks
+        ? t('card.todayTasks', { count: stats.todayTaskCount })
+        : null;
+
+  const handleActivate = () => {
+    if (onSelect) onSelect();
+    else onPress?.();
+  };
 
   return (
     <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
+      onPress={handleActivate}
+      accessibilityRole={onSelect ? 'button' : 'link'}
+      accessibilityState={{ selected }}
+      accessibilityLabel={[displayName, shortLocation, facts, metaLine].filter(Boolean).join(', ')}
       style={({ pressed }) => [
         styles.card,
+        compact && styles.cardCompact,
         {
           backgroundColor: selected ? colors.surfaceSelected : colors.surface,
           borderColor: selected ? colors.oliveBorder : colors.borderLight,
-          minHeight: Math.max(tapMin + 28, 96),
-          opacity: pressed ? 0.92 : 1,
-          borderLeftWidth: hasTasks ? 4 : 1,
-          borderLeftColor: hasTasks ? colors.primary : selected ? colors.oliveBorder : colors.borderLight,
+          opacity: pressed ? motion.pressOpacity : 1,
           ...createElevation(colors, 'sm'),
         },
       ]}
     >
+      {compact ? (
+        <View style={styles.pinWrap} pointerEvents="none">
+          <FieldPinMark color={accent} selected={selected} compact />
+        </View>
+      ) : (
+        <FieldPolygonThumbnail field={field} size={96} circular={false} />
+      )}
       <View style={styles.main}>
-        <FieldIdentity field={field} size="card" />
-        <View style={styles.footer}>
-          <View
+        <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={2}>
+          {displayName}
+        </Text>
+        {shortLocation ? (
+          <Text style={[styles.place, { color: colors.textSecondary }]} numberOfLines={1}>
+            {shortLocation}
+          </Text>
+        ) : null}
+        {facts ? (
+          <Text style={[styles.facts, { color: colors.textSecondary }]} numberOfLines={1}>
+            {facts}
+          </Text>
+        ) : null}
+        {metaLine ? (
+          <Text
             style={[
-              styles.todayPill,
+              styles.meta,
               {
-                backgroundColor: hasTasks ? colors.primaryLight : colors.surfaceMuted,
-                borderColor: hasTasks ? colors.oliveBorder : colors.borderLight,
+                color: incomplete || hasTasks ? colors.primary : colors.textTertiary,
+                fontWeight: incomplete || hasTasks ? '700' : '500',
               },
             ]}
+            numberOfLines={1}
           >
-            <Text
-              style={[
-                styles.today,
-                { color: hasTasks ? colors.link : colors.textSecondary },
-              ]}
-            >
-              {t('card.todayTasks', { count: stats.todayTaskCount })}
-            </Text>
-          </View>
-          <View style={styles.openRow}>
-            <Text style={[styles.open, { color: colors.link }]}>{t('card.open')}</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.link} />
-          </View>
-        </View>
+            {metaLine}
+          </Text>
+        ) : null}
       </View>
-      <FieldPolygonThumbnail field={field} />
     </Pressable>
   );
 };
@@ -79,33 +127,49 @@ const FieldCard: React.FC<FieldCardProps> = ({ field, stats, selected, onPress }
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.xl,
-    padding: spacing.base,
-    marginBottom: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.base,
+    marginBottom: spacing.sm,
   },
-  main: { flex: 1, minWidth: 0, gap: spacing.sm },
-  footer: {
-    flexDirection: 'row',
+  cardCompact: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    borderRadius: radii.lg,
+  },
+  pinWrap: {
+    width: 28,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  todayPill: {
-    flexShrink: 1,
-    borderWidth: 1,
-    borderRadius: radii.full,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    minHeight: 28,
     justifyContent: 'center',
   },
-  today: { ...typography.styles.caption, fontWeight: '600' },
-  openRow: { flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
-  open: { fontSize: 13, fontWeight: '700' },
+  main: { flex: 1, minWidth: 0, gap: 2 },
+  name: {
+    ...typography.styles.body,
+    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 21,
+    letterSpacing: -0.2,
+  },
+  place: {
+    ...typography.styles.bodySmall,
+    fontSize: 13,
+    lineHeight: 17,
+  },
+  facts: {
+    ...typography.styles.caption,
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  meta: {
+    ...typography.styles.caption,
+    marginTop: 2,
+    fontSize: 13,
+  },
 });
 
 export default FieldCard;

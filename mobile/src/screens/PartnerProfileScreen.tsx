@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { Text, TextInput, StyleSheet, View } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme } from '../context/ThemeContext';
@@ -19,6 +18,7 @@ type Route = RouteProp<RootStackParamList, 'PartnerProfile'>;
 const PartnerProfileScreen = () => {
   const { t, i18n } = useTranslation('partners');
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const { params } = useRoute<Route>();
   const [profile, setProfile] = useState<PartnerPublicProfile | null>(null);
   const [message, setMessage] = useState('');
@@ -32,6 +32,12 @@ const PartnerProfileScreen = () => {
       .then(setProfile)
       .finally(() => setLoading(false));
   }, [params.userId]);
+
+  useLayoutEffect(() => {
+    if (profile?.displayName) {
+      navigation.setOptions({ title: profile.displayName });
+    }
+  }, [navigation, profile?.displayName]);
 
   const send = async () => {
     const categoryId = params.categoryId || profile?.categories[0]?.id;
@@ -47,7 +53,11 @@ const PartnerProfileScreen = () => {
 
   const addToField = async () => {
     if (!params.fieldId) return;
-    await fieldPeopleService.upsertMembership(params.fieldId, params.userId, ['work']);
+    await fieldPeopleService.upsertMembership(params.fieldId, params.userId, {
+      role: 'Partner',
+      modules: ['fields', 'tasks', 'photos', 'chronologio'],
+      accessLevel: 'work',
+    });
     setAdded(true);
   };
 
@@ -55,7 +65,6 @@ const PartnerProfileScreen = () => {
 
   return (
     <ScreenLayout scroll padded>
-      <ScreenHeader title={profile.displayName} />
       <View style={styles.chips}>
         {profile.categories.map((c) => (
           <Text key={c.id} style={[styles.chip, { color: colors.textPrimary, backgroundColor: colors.surfaceElevated }]}>

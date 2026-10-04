@@ -1,0 +1,222 @@
+/* Harvest campaign — wheat gold, terracotta, harvest olive. Full room swap. */
+
+:root {
+  --harvest-gold: #c8a06a;
+  --harvest-gold-deep: #7a5a3a;
+  --harvest-gold-soft: #f3e6d0;
+  --harvest-ink: #2f2a23;
+  --harvest-live: #b77357;
+  --harvest-olive: #6b6a3c;
+  --harvest-earth: #7a5a3a;
+}
+
+[data-theme='dark'] {
+  --harvest-gold: #d0a56b;
+  --harvest-gold-deep: #a07a58;
+  --harvest-gold-soft: color-mix(in srgb, #d0a56b 22%, #221b16);
+  --harvest-ink: #f2ebdd;
+  --harvest-live: #c18667;
+  --harvest-olive: #8d8a53;
+  --harvest-earth: #a07a58;
+}
+
+/* Live harvest: olive stays the action colour; wheat gold is highlight; terracotta is fruit. */
+html[data-harvest-mode='active'],
+html[data-harvest-mode='paused'] {
+  --olive-primary: var(--harvest-olive);
+  --olive-hover: color-mix(in srgb, var(--harvest-olive) 82%, #1a1810);
+  --olive-active: color-mix(in srgb, var(--harvest-olive) 70%, #1a1810);
+  --olive-soft: var(--harvest-gold-soft);
+  --olive-border: color-mix(in srgb, var(--harvest-olive) 42%, var(--border-default));
+  --on-olive: #fffdf8;
+  --color-primary: var(--harvest-olive);
+  --color-primary-light: color-mix(in srgb, var(--harvest-olive) 82%, #1a1810);
+  --color-accent: var(--harvest-gold);
+  --bg-button: var(--harvest-olive);
+  --bg-button-hover: color-mix(in srgb, var(--harvest-olive) 82%, #1a1810);
+  --link: color-mix(in srgb, var(--harvest-olive) 78%, #1a1810);
+  --focus-ring: var(--harvest-olive);
+  --event-harvest: var(--harvest-live);
+  --event-harvest-soft: color-mix(in srgb, var(--harvest-live) 16%, transparent);
+  --chart-harvest: var(--harvest-live);
+  --chart-gold: var(--harvest-gold);
+  --chart-olive: var(--harvest-olive);
+}
+
+html[data-harvest-mode='active'][data-theme='light'],
+html[data-harvest-mode='paused'][data-theme='light'],
+html[data-harvest-mode='active']:not([data-theme='dark']),
+html[data-harvest-mode='paused']:not([data-theme='dark']) {
+  --bg-page: #f6f1e7;
+  --bg-sidebar: #eee4d6;
+  --bg-header: #fff9f2;
+  --bg-canvas: url('../assets/images/harvest-canvas-light.jpg');
+
+  --surface-1: #fff9f2;
+  --surface-2: #eee4d6;
+  --surface-3: #e6dcce;
+  --surface-hover: #f3ebe0;
+  --surface-selected: #e8e4d0;
+  --surface-popover: #fffcf8;
+
+  --border-subtle: #D4C2A6;
+  --border-default: #C4AE90;
+  --border-strong: #A88B66;
+  --card-edge: #C09A6C;
+
+  --text-primary: #2f2a23;
+  --text-secondary: #7b7367;
+  --text-muted: #9a9286;
+  --text-disabled: #b8b0a4;
+
+  --olive-primary: #6b6a3c;
+  --olive-hover: #5a5933;
+  --olive-active: #4c4b2b;
+  --olive-soft: #ede8d4;
+  --olive-pale: #f4f0e4;
+  --olive-border: #c9c4a8;
+  --on-olive: #fffdf8;
+
+  --harvest-gold: #c8a06a;
+  --harvest-gold-deep: #7a5a3a;
+  --harvest-gold-soft: #f3e6d0;
+  --harvest-ink: #2f2a23;
+  --harvest-live: #b77357;
+  --harvest-olive: #6b6a3c;
+  --harvest-earth: #7a5a3a;
+
+  --link: #5a5933;
+  --link-hover: #4c4b2b;
+  --focus-ring: #6b6a3c;
+  --color-primary: #6b6a3c;
+  --color-primary-light: #5a5933;
+  --color-accent: #c8a06a;
+  --bg-button: #6b6a3c;
+  --bg-button-hover: #5a5933;
+
+  --event-harvest: #b77357;
+  --event-harvest-soft: rgba(183, 115, 87, 0.16);
+  --map-boundary: #6b6a3c;
+  --map-selected-fill: rgba(107, 106, 60, 0.18);
+  --map-hover-fill: rgba(107, 106, 60, 0.1);
+  --color-lifecycle-high-bg: #f3e6d0;
+
+  --shadow-card:
+    0 1px 2px rgba(47, 42, 35, 0.07),
+    0 8px 18px rgba(47, 42, 35, 0.08);
+  --shadow-floating: 0 8px 24px rgba(47, 42, 35, 0.14);
+  --shadow-overlay: -12px 0 40px rgba(47, 42, 35, 0.22);
+  --shadow-card-hover:
+    0 2px 4px rgba(47, 42, 35, 0.08),
+    0 10px 22px rgba(47, 42, 35, 0.1);
+  --shadow-sm: 0 1px 2px rgba(47, 42, 35, 0.07);
+  --shadow-md: var(--shadow-card);
+  --shadow-lg: var(--shadow-floating);
+  --shadow-xl: var(--shadow-overlay);
+
+  --backdrop: rgba(47, 42, 35, 0.42);
+}
+
+html[data-harvest-mode='active'][data-theme='dark'],
+html[data-harvest-mode='paused'][data-theme='dark'] {
+  --bg-page: #17130f;
+  --bg-sidebar: #221b16;
+  --bg-header: #2d241d;
+  --bg-canvas: url('../assets/images/harvest-canvas-dark.jpg');
+
+  --surface-1: #221b16;
+  --surface-2: #2d241d;
+  --surface-3: #352c24;
+  --surface-hover: #3a3028;
+  --surface-selected: #3d3828;
+  --surface-popover: #2d241d;
+  --olive-pale: rgba(141, 138, 83, 0.14);
+
+  --border-subtle: rgba(242, 235, 221, 0.18);
+  --border-default: #5C4A3C;
+  --border-strong: #7D6756;
+  --card-edge: #8C7360;
+
+  --text-primary: #f2ebdd;
+  --text-secondary: #b6aa9b;
+  --text-muted: #9a8f82;
+  --text-disabled: #6f675c;
+
+  --olive-primary: #8d8a53;
+  --olive-hover: #9a975e;
+  --olive-active: #7a7748;
+  --olive-soft: rgba(141, 138, 83, 0.2);
+  --olive-border: rgba(141, 138, 83, 0.45);
+  --on-olive: #fffdf8;
+
+  --harvest-gold: #d0a56b;
+  --harvest-gold-deep: #a07a58;
+  --harvest-gold-soft: color-mix(in srgb, #d0a56b 22%, #221b16);
+  --harvest-ink: #f2ebdd;
+  --harvest-live: #c18667;
+  --harvest-olive: #8d8a53;
+  --harvest-earth: #a07a58;
+
+  --link: #c4c08a;
+  --link-hover: #d8d4a8;
+  --focus-ring: #d0a56b;
+  --color-primary: #8d8a53;
+  --color-primary-light: #9a975e;
+  --color-accent: #d0a56b;
+  --bg-button: #8d8a53;
+  --bg-button-hover: #9a975e;
+
+  --event-harvest: #c18667;
+  --event-harvest-soft: rgba(193, 134, 103, 0.2);
+  --map-boundary: #8d8a53;
+  --map-selected-fill: rgba(141, 138, 83, 0.2);
+  --map-hover-fill: rgba(141, 138, 83, 0.1);
+  --color-lifecycle-high-bg: #3a3224;
+
+  --shadow-card:
+    0 1px 2px rgba(8, 6, 4, 0.32),
+    0 4px 14px rgba(8, 6, 4, 0.28);
+  --shadow-floating: 0 8px 24px rgba(5, 4, 3, 0.45);
+  --shadow-overlay: -12px 0 40px rgba(5, 4, 3, 0.55);
+  --shadow-card-hover:
+    0 2px 4px rgba(8, 6, 4, 0.36),
+    0 10px 28px rgba(8, 6, 4, 0.32);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: var(--shadow-card);
+  --shadow-lg: var(--shadow-floating);
+  --shadow-xl: var(--shadow-overlay);
+
+  --backdrop: rgba(8, 6, 4, 0.72);
+}
+
+html[data-harvest-mode='active'] .app-canvas,
+html[data-harvest-mode='paused'] .app-canvas {
+  background-image: url('../assets/images/harvest-canvas-light.jpg');
+}
+
+html[data-harvest-mode='active'][data-theme='dark'] .app-canvas,
+html[data-harvest-mode='paused'][data-theme='dark'] .app-canvas {
+  background-image: url('../assets/images/harvest-canvas-dark.jpg');
+}
+
+html[data-harvest-mode='active'] .app-header,
+html[data-harvest-mode='paused'] .app-header {
+  border-bottom-color: color-mix(in srgb, var(--harvest-gold) 48%, var(--color-border));
+}
+
+html[data-harvest-mode='active'] .nav-link.active,
+html[data-harvest-mode='paused'] .nav-link.active {
+  background: var(--olive-soft);
+  color: var(--harvest-ink);
+}
+
+html[data-harvest-mode='active'] .nav-link.active::before,
+html[data-harvest-mode='paused'] .nav-link.active::before {
+  background: var(--harvest-gold);
+}
+
+html[data-harvest-mode='paused'] {
+  --olive-primary: color-mix(in srgb, var(--harvest-olive) 72%, var(--text-muted));
+  --color-primary: var(--olive-primary);
+  --bg-button: var(--olive-primary);
+}

@@ -3,6 +3,7 @@ using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.FieldWork;
 using OliveLifecycle.Application.Mappings;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -56,6 +57,7 @@ public class TaskProposalService : ITaskProposalService
     private readonly IFieldWorkTaskTemplateVersionRepository _versions;
     private readonly IFieldWorkProfileRepository _profiles;
     private readonly IFieldWorkAuthorizationService _auth;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IDateTimeProvider _clock;
     private readonly IFieldTaskWeatherEvaluationService _weatherEvaluation;
     private readonly ILogger<TaskProposalService> _logger;
@@ -67,6 +69,7 @@ public class TaskProposalService : ITaskProposalService
         IFieldWorkTaskTemplateVersionRepository versions,
         IFieldWorkProfileRepository profiles,
         IFieldWorkAuthorizationService auth,
+        IFieldAccessScopeService fieldAccessScope,
         IDateTimeProvider clock,
         IFieldTaskWeatherEvaluationService weatherEvaluation,
         ILogger<TaskProposalService> logger)
@@ -77,6 +80,7 @@ public class TaskProposalService : ITaskProposalService
         _versions = versions;
         _profiles = profiles;
         _auth = auth;
+        _fieldAccessScope = fieldAccessScope;
         _clock = clock;
         _weatherEvaluation = weatherEvaluation;
         _logger = logger;
@@ -90,14 +94,25 @@ public class TaskProposalService : ITaskProposalService
         string language = "el",
         CancellationToken cancellationToken = default)
     {
+        IReadOnlyList<string>? scopedFieldIds = null;
         if (!string.IsNullOrWhiteSpace(fieldId))
         {
             await _auth.EnsureCanViewFieldWorkAsync(fieldId, userId, userRole, cancellationToken);
+        }
+        else
+        {
+            scopedFieldIds = await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+                userId, userRole, FamilyModules.Tasks, cancellationToken);
+            if (scopedFieldIds.Count == 0)
+            {
+                return Array.Empty<TaskProposalDto>();
+            }
         }
 
         var query = new TaskProposalQuery
         {
             FieldId = fieldId,
+            FieldIds = scopedFieldIds,
             ResultYear = resultYear,
             ActiveOnly = true
         };

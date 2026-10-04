@@ -21,7 +21,17 @@
     "newTitle": "New Task",
     "editTitle": "Edit Task",
     "title": "Title",
-    "save": "Save Task"
+    "save": "Save Task",
+    "stepsAria": "Passaggi creazione lavoro",
+    "steps": {
+      "what": "Lavoro",
+      "where": "Campo",
+      "when": "Data",
+      "who": "Responsabile",
+      "review": "Conferma",
+      "field": "Campo",
+      "schedule": "Programma"
+    }
   },
   "fieldWork": {
     "pageTitle": "Lavori",
@@ -31,7 +41,7 @@
     "allFields": "Tutti i campi",
     "person": "Chi",
     "unknownField": "Campo",
-    "seeCompletedInChronologio": "Vedi i lavori completati nel Chronologio →",
+    "seeCompletedInChronologio": "Vedi i lavori completati nella Cronologia →",
     "plannedGroups": {
       "today": "Oggi",
       "thisWeek": "Questa settimana",
@@ -53,8 +63,11 @@
     "views": {
       "aria": "Viste dei lavori",
       "proposals": "Proposte",
-      "planned": "Programmati",
-      "active": "In corso"
+      "planned": "Prossime",
+      "active": "Ora",
+      "now": "Ora",
+      "upcoming": "Prossime",
+      "history": "Cronologia"
     },
     "a11y": {
       "advancedOpened": "Altri dettagli sono aperti."
@@ -146,6 +159,8 @@
       "assigneeHintFamily": "Famiglia",
       "assigneeHintAdvisor": "Consulente",
       "assigneeHintContact": "Contatto",
+      "assignOutcomeContact": "Il lavoro verrà registrato con questa persona come responsabile. L’app non invierà una notifica.",
+      "assignOutcomeCollaborator": "Il collaboratore vedrà l’assegnazione nell’app.",
       "decideLater": "Deciderò più tardi",
       "collaborator": "Collaboratore",
       "more": "Altro",
@@ -195,28 +210,42 @@
       "createAnother": "Creane un altro",
       "undo": "Annulla",
       "types": {
-        "pruning": "Potatura",
+        "irrigation": "Controllo irrigazione",
+        "fly": "Controllo mosca",
         "fertilisation": "Concimazione",
+        "pruning": "Potatura",
         "weeds": "Erba",
-        "irrigation": "Irrigazione",
-        "inspection": "Controllo",
-        "protection": "Difesa",
         "harvest": "Raccolta",
-        "transport": "Trasporto",
-        "maintenance": "Manutenzione",
         "other": "Altro lavoro"
       },
       "suggestions": {
-        "pruning": ["Potatura dei rami secchi", "Potatura di produzione"],
-        "fertilisation": ["Concimazione di base", "Concimazione di copertura"],
-        "weeds": ["Pulizia dell’erba", "Taglio della copertura"],
-        "irrigation": ["Irrigazione", "Controllo irrigazione"],
-        "inspection": ["Controllo del campo", "Osservazione degli alberi"],
-        "protection": ["Controllo trappole", "Monitoraggio mosca"],
-        "harvest": ["Raccolta", "Trasporto al frantoio"],
-        "transport": ["Trasporto olive", "Trasporto olio"],
-        "maintenance": ["Manutenzione irrigazione", "Riparazione"],
-        "other": ["Lavoro in campo"]
+        "irrigation": [
+          "Controllo della pompa",
+          "Controllo delle perdite"
+        ],
+        "fly": [
+          "Conteggio delle trappole",
+          "Controllo dei frutti"
+        ],
+        "fertilisation": [
+          "Concimazione di base",
+          "Concimazione di copertura"
+        ],
+        "pruning": [
+          "Potatura dei rami secchi",
+          "Potatura di produzione"
+        ],
+        "weeds": [
+          "Pulizia dell’erba",
+          "Taglio della copertura"
+        ],
+        "harvest": [
+          "Raccolta",
+          "Trasporto al frantoio"
+        ],
+        "other": [
+          "Lavoro in campo"
+        ]
       },
       "time": {
         "morning": "Mattina",
@@ -320,7 +349,7 @@
       "completion": {
         "title": "Il campo è pronto",
         "body": "Il profilo lavori è attivo. Alcuni passi utili:",
-        "openChronologio": "Apri Chronologio",
+        "openChronologio": "Apri Cronologia",
         "reviewProposal": "Rivedi la prima proposta",
         "addCollaborator": "Aggiungi un collaboratore",
         "backToField": "Torna al campo"
@@ -566,12 +595,25 @@
     "completion": {
       "title": "Completamento lavoro",
       "step": "Passo {{current}} di {{total}}",
+      "steps": {
+        "checks": "Controlli",
+        "result": "Risultato",
+        "cost": "Costo",
+        "confirm": "Conferma"
+      },
+      "checksTitle": "Cosa sei riuscito a fare?",
+      "incompleteOnly": "Solo ciò che manca — segna ciascuno.",
+      "resultTitle": "Registra il risultato",
+      "resultLead": "Compila i campi di questo lavoro.",
       "whatHappened": "Cosa è successo?",
       "confirm": "Conferma",
+      "chronologioConfirm": "Verrà salvato nella Cronologia per {{field}}, il {{date}}.",
       "save": "Salva",
+      "saveYes": "Sì, completato",
+      "return": "Indietro",
       "createFollowUp": "Crea lavoro per il resto",
-      "savedTitle": "Registrato",
-      "savedBody": "Il completamento è salvato nel Chronologio.",
+      "savedTitle": "Lavoro completato",
+      "savedBody": "Salvato nella Cronologia.",
       "undo": "Annulla",
       "undoFailed": "Annullamento non riuscito.",
       "openFollowUp": "Apri il seguito",
@@ -580,10 +622,24 @@
       "hadCostYes": "Sì, c’è stato un costo",
       "hadCostNo": "No, senza costo",
       "recordCost": "Registra costo",
+      "required": "obbligatorio",
+      "blockEssential": "Completa {{count}} controlli obbligatori per continuare.",
+      "blockResults": "Compila {{count}} campi obbligatori per finire.",
+      "showOptional": "Opzionali · altri {{count}}",
+      "hideOptional": "Nascondi opzionali",
+      "notesPlaceholder": "Nota opzionale…",
+      "check": {
+        "done": "Fatto",
+        "notNeeded": "Non serviva",
+        "couldNot": "Non riuscito"
+      },
       "outcomes": {
         "completed": "Completato",
         "partial": "Parzialmente fatto",
-        "notDone": "Non fatto"
+        "notDone": "Non fatto",
+        "completedHint": "Tutto il necessario",
+        "partialHint": "Resta qualcosa per dopo",
+        "notDoneHint": "Registra senza risultato"
       }
     }
   }

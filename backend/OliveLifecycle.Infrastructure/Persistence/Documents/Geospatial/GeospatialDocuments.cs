@@ -153,6 +153,27 @@ public class FieldWeatherPeriodReviewDocument
     public DateTime UpdatedAt { get; set; }
 }
 
+public class FieldWeatherExtremeEventDocument
+{
+    [BsonId]
+    public string Id { get; set; } = string.Empty;
+    public string FieldId { get; set; } = string.Empty;
+    public string DedupKey { get; set; } = string.Empty;
+    public string Kind { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public DateTime OccurredAt { get; set; }
+    public int StreakDays { get; set; }
+    public double? MinTemperatureC { get; set; }
+    public double? MaxTemperatureC { get; set; }
+    public double? RainTotalMm { get; set; }
+    public bool IsStronger { get; set; }
+    public string WeatherProvider { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
 public class FieldEnvironmentalAlertDocument
 {
     [BsonId]

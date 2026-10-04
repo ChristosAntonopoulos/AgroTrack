@@ -24,8 +24,15 @@ public static class UserMapper
                 LargeControls = document.Preferences.LargeControls,
                 Language = string.IsNullOrWhiteSpace(document.Preferences.Language)
                     ? "en"
-                    : document.Preferences.Language
+                    : document.Preferences.Language,
+                Notifications = MapNotifications(document.Preferences.Notifications)
             },
+        PasswordResetTokenHash = document.PasswordResetTokenHash,
+        PasswordResetExpiresAt = document.PasswordResetExpiresAt,
+        PendingEmail = document.PendingEmail,
+        EmailChangeTokenHash = document.EmailChangeTokenHash,
+        EmailChangeExpiresAt = document.EmailChangeExpiresAt,
+        DeletedAt = document.DeletedAt,
         CreatedAt = document.CreatedAt,
         UpdatedAt = document.UpdatedAt
     };
@@ -38,18 +45,61 @@ public static class UserMapper
         Role = entity.Role.ToString(),
         FirstName = entity.FirstName,
         LastName = entity.LastName,
-        Preferences = new UserExperiencePreferencesDocument
-        {
-            ExperienceMode = entity.Preferences.ExperienceMode,
-            ExperienceModeChosen = entity.Preferences.ExperienceModeChosen,
-            FontScale = entity.Preferences.FontScale,
-            LargeControls = entity.Preferences.LargeControls,
-            Language = entity.Preferences.Language
-        },
+        Preferences = MapPreferences(entity.Preferences),
+        PasswordResetTokenHash = entity.PasswordResetTokenHash,
+        PasswordResetExpiresAt = entity.PasswordResetExpiresAt,
+        PendingEmail = entity.PendingEmail,
+        EmailChangeTokenHash = entity.EmailChangeTokenHash,
+        EmailChangeExpiresAt = entity.EmailChangeExpiresAt,
+        DeletedAt = entity.DeletedAt,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };
 
     private static UserRole ParseRole(string role) =>
         Enum.TryParse<UserRole>(role, out var parsed) ? parsed : UserRole.FieldOwner;
+
+    /// <summary>
+    /// A missing sub-document keeps the in-code defaults. A saved sub-document is honored as stored.
+    /// </summary>
+    private static UserExperiencePreferencesDocument MapPreferences(UserExperiencePreferences? prefs)
+    {
+        prefs ??= new UserExperiencePreferences();
+        var notes = prefs.Notifications ?? new NotificationPreferences();
+        return new UserExperiencePreferencesDocument
+        {
+            ExperienceMode = prefs.ExperienceMode,
+            ExperienceModeChosen = prefs.ExperienceModeChosen,
+            FontScale = prefs.FontScale,
+            LargeControls = prefs.LargeControls,
+            Language = prefs.Language,
+            Notifications = new NotificationPreferencesDocument
+            {
+                TaskAssignment = notes.TaskAssignment,
+                Approval = notes.Approval,
+                Harvest = notes.Harvest,
+                Financial = notes.Financial,
+                SatelliteWeather = notes.SatelliteWeather,
+                MarketingSystem = notes.MarketingSystem
+            }
+        };
+    }
+
+    private static NotificationPreferences MapNotifications(NotificationPreferencesDocument? document)
+    {
+        if (document == null)
+        {
+            return new NotificationPreferences();
+        }
+
+        return new NotificationPreferences
+        {
+            TaskAssignment = document.TaskAssignment,
+            Approval = document.Approval,
+            Harvest = document.Harvest,
+            Financial = document.Financial,
+            SatelliteWeather = document.SatelliteWeather,
+            MarketingSystem = document.MarketingSystem
+        };
+    }
 }

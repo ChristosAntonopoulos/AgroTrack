@@ -40,6 +40,14 @@ export interface GreekCadastreInfo {
   areaDifferencePercent?: number;
 }
 
+export interface FieldDocumentAttachment {
+  id: string;
+  type: string;
+  fileName: string;
+  storagePath: string;
+  uploadedAt: string;
+}
+
 export interface Field {
   id: string;
   ownerId: string;
@@ -47,6 +55,10 @@ export interface Field {
   latitude?: number;
   longitude?: number;
   area: number;
+  /** Canonical area in square metres when the API sends it. */
+  areaSqm?: number;
+  /** Canonical area in hectares when the API sends it. */
+  areaHectares?: number;
   variety?: string;
   treeAge?: number;
   groundType?: string;
@@ -54,6 +66,7 @@ export interface Field {
   currentLifecycleYear: string;
   currentLifecycleStage?: string;
   assignedProducerIds?: string[];
+  memberships?: import('./fieldPeopleService').FieldMembership[];
   createdAt: string;
   updatedAt: string;
   status?: FieldStatus;
@@ -70,7 +83,9 @@ export interface Field {
   accessNotes?: string;
   color?: string;
   greekCadastre?: GreekCadastreInfo;
+  documents?: FieldDocumentAttachment[];
   advisorComments?: import('./fieldPeopleService').AdvisorComment[];
+  capabilities?: import('./fieldPeopleService').FieldCapabilities;
 }
 
 export interface CreateFieldDto {
@@ -128,8 +143,14 @@ export interface ActivateFieldResponse {
 }
 
 export const fieldService = {
-  getFields: async (userId: string, _userRole: string): Promise<Field[]> => {
-    // Cache-first when offline so cold start / app reopen works without API
+  /**
+   * @param module When set, returns only groves where the user has that Family module.
+   * When omitted, returns every grove with an active seat (identity list).
+   * Module-scoped lists do not replace the identity EntityCache.
+   */
+  getFields: async (userId: string, _userRole: string, module?: string): Promise<Field[]> => {
+    const scoped = Boolean(module);
+
     if (!(await isDeviceOnline())) {
       const cached = await EntityCache.getFields(userId);
       if (cached) return cached.data;
@@ -137,9 +158,27 @@ export const fieldService = {
     }
 
     try {
-      const response = await api.get<Field[]>('/api/v1/fields');
-      await EntityCache.setFields(userId, response.data);
-      return response.data;
+      const startedAt = Date.now();
+      const response = await api.get<Field[]>('/api/v1/fields', {
+        params: module ? { module } : undefined,
+      });
+      const incoming = response.data ?? [];
+
+      if (scoped) {
+        return incoming;
+      }
+
+      const cached = (await EntityCache.getFields(userId))?.data ?? [];
+      const incomingIds = new Set(incoming.map((field) => field.id));
+      // A list request that started before create must not wipe the grove just saved.
+      const recentLocal = cached.filter((field) => {
+        if (incomingIds.has(field.id)) return false;
+        const updated = Date.parse(field.updatedAt || '');
+        return Number.isFinite(updated) && updated >= startedAt - 5000;
+      });
+      const merged = [...incoming, ...recentLocal];
+      await EntityCache.setFields(userId, merged);
+      return merged;
     } catch (error) {
       if (isNetworkError(error)) {
         const cached = await EntityCache.getFields(userId);

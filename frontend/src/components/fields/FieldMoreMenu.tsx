@@ -8,11 +8,14 @@ import './FieldMoreMenu.css';
 type Props = {
   field: Field;
   canOwn: boolean;
-  onDocuments?: () => void;
-  onDelete?: () => void;
+  canManageAccess?: boolean;
 };
 
-const FieldMoreMenu: React.FC<Props> = ({ field, canOwn, onDocuments, onDelete }) => {
+const FieldMoreMenu: React.FC<Props> = ({
+  field,
+  canOwn,
+  canManageAccess = false,
+}) => {
   const { t } = useTranslation(['fields', 'common']);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -34,6 +37,14 @@ const FieldMoreMenu: React.FC<Props> = ({ field, canOwn, onDocuments, onDelete }
     };
   }, [open]);
 
+  const capabilities = field.capabilities;
+  const canEdit = capabilities?.canEditField ?? canOwn;
+  const canManage = capabilities?.canManageAccess ?? canManageAccess;
+  const canArchive = capabilities?.canArchiveField ?? false;
+  const hasItems = canEdit || canManage || canArchive;
+
+  if (!hasItems) return null;
+
   return (
     <div className="field-more" ref={wrapRef}>
       <button
@@ -48,7 +59,7 @@ const FieldMoreMenu: React.FC<Props> = ({ field, canOwn, onDocuments, onDelete }
       </button>
       {open ? (
         <div className="field-more-menu" role="menu">
-          {canOwn ? (
+          {canEdit ? (
             <button
               type="button"
               role="menuitem"
@@ -60,42 +71,21 @@ const FieldMoreMenu: React.FC<Props> = ({ field, canOwn, onDocuments, onDelete }
               {t('fields:page.editField')}
             </button>
           ) : null}
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              navigate(`/partners?fieldId=${encodeURIComponent(field.id)}`);
-            }}
-          >
-            {t('fields:page.manageAccess')}
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onDocuments?.();
-            }}
-          >
-            {t('fields:page.documents')}
-          </button>
-          {canOwn ? (
-            <button type="button" role="menuitem" disabled title={t('fields:page.archiveUnavailable')}>
-              {t('fields:page.archive')}
-            </button>
-          ) : null}
-          {canOwn && onDelete ? (
+          {canManage ? (
             <button
               type="button"
               role="menuitem"
-              className="field-more-danger"
               onClick={() => {
                 setOpen(false);
-                onDelete();
+                navigate(`/partners?fieldId=${encodeURIComponent(field.id)}`);
               }}
             >
-              {t('common:delete')}
+              {t('fields:page.manageAccess')}
+            </button>
+          ) : null}
+          {canArchive ? (
+            <button type="button" role="menuitem" disabled title={t('fields:page.archiveUnavailable')}>
+              {t('fields:page.archive')}
             </button>
           ) : null}
         </div>

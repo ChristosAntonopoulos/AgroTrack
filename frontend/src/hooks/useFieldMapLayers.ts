@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FieldMapData,
   MapLayerData,
@@ -54,6 +54,18 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [reloadToken, setReloadToken] = useState(0);
+  /** Once the grower (or restore) picks overlays, catalogue/date loads must not clear them. */
+  const userChoseOverlayRef = useRef(false);
+
+  useEffect(() => {
+    // Switching fields resets local selection state; restore happens in the map component.
+    setActiveLayerIds([]);
+    setSelectedDateId(undefined);
+    setCompareDateId(undefined);
+    setMapData(undefined);
+    setCompareData(undefined);
+    userChoseOverlayRef.current = false;
+  }, [fieldId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,8 +96,8 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
         const available = await geospatialService.getSatelliteDates(fieldId);
         if (cancelled) return;
         setDates(available);
-        const firstUsable = available.find((d) => d.isUsable)?.observationId;
-        setSelectedDateId((current) => current ?? firstUsable);
+        // Only seed a default date when none is chosen yet — never replace the user's date.
+        setSelectedDateId((current) => current ?? available.find((d) => d.isUsable)?.observationId);
       } catch {
         if (!cancelled) setDates([]);
       }
@@ -99,7 +111,11 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
 
   useEffect(() => {
     if (!fieldId || activeLayerIds.length === 0) {
-      setMapData(undefined);
+      // Keep prior raster visible while the grower is on "boundary only"; do not wipe
+      // selection when catalogue/weather finish loading with empty ids after a remount.
+      if (!userChoseOverlayRef.current || activeLayerIds.length === 0) {
+        setMapData(undefined);
+      }
       return;
     }
 
@@ -148,6 +164,7 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
   }, [fieldId, activeLayerIds, compareDateId, reloadToken]);
 
   const selectLayer = useCallback((layerId: string | undefined) => {
+    userChoseOverlayRef.current = true;
     setActiveLayerIds(layerId ? [layerId] : []);
     if (!layerId) {
       setCompareDateId(undefined);
@@ -155,6 +172,7 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
   }, []);
 
   const setOverlayIds = useCallback((layerIds: string[]) => {
+    userChoseOverlayRef.current = true;
     setActiveLayerIds(layerIds.slice(0, 3));
     if (layerIds.length === 0) setCompareDateId(undefined);
   }, []);
@@ -175,7 +193,8 @@ export const useFieldMapLayers = (fieldId: string | undefined): FieldMapLayersSt
     activeLayer,
     compareLayer,
     dates,
-    selectedDateId: mapData?.observationId ?? selectedDateId,
+    // Prefer the grower's selected date; fall back to the observation returned with the raster.
+    selectedDateId: selectedDateId ?? mapData?.observationId,
     compareDateId,
     loading,
     error,

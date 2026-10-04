@@ -1,8 +1,8 @@
 import React, { createContext, useCallback, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService, AuthResponse } from '../services/authService';
-import { mockAuthService } from '../services/mock/mockAuthService';
-import { isMockDataEnabled } from '../config/apiConfig';
 import { setUnauthorizedHandler } from '../services/api';
+import { EntityCache } from '../utils/entityCache';
+import { OfflineQueue } from '../utils/offlineQueue';
 
 interface AuthContextType {
   user: AuthResponse | null;
@@ -10,10 +10,21 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName?: string, lastName?: string, inviteCode?: string) => Promise<void>;
   logout: () => void;
+  updateSession: (patch: Partial<AuthResponse>) => void;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const persistSession = (response: AuthResponse) => {
+  localStorage.setItem('token', response.token);
+  localStorage.setItem('user', JSON.stringify(response));
+};
+
+const clearSessionCaches = () => {
+  EntityCache.clearAll();
+  void OfflineQueue.clearQueue();
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthResponse | null>(null);
@@ -30,10 +41,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
-    const service = isMockDataEnabled() ? mockAuthService : authService;
-    const response = await service.login({ email, password });
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('user', JSON.stringify(response));
+    const response = await authService.login({ email, password });
+    clearSessionCaches();
+    persistSession(response);
     setUser(response);
   };
 
@@ -44,29 +54,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     lastName?: string,
     inviteCode?: string
   ) => {
-    const service = isMockDataEnabled() ? mockAuthService : authService;
-    const response = await service.register({
+    const response = await authService.register({
       email,
       password,
       firstName,
       lastName,
       inviteCode: inviteCode?.trim() || undefined,
     });
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('user', JSON.stringify(response));
+    clearSessionCaches();
+    persistSession(response);
     setUser(response);
   };
 
   const logout = useCallback(() => {
-    try {
-      // Clear entity cache on logout so the next user never sees stale data.
-      void import('../utils/entityCache').then(({ EntityCache }) => EntityCache.clearAll());
-      void import('../utils/offlineQueue').then(({ OfflineQueue }) => OfflineQueue.clearQueue());
-    } catch {
-      // ignore
-    }
+    clearSessionCaches();
     authService.logout();
     setUser(null);
+  }, []);
+
+  const updateSession = useCallback((patch: Partial<AuthResponse>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      localStorage.setItem('user', JSON.stringify(next));
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -75,7 +87,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout, updateSession, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -26,8 +26,7 @@ public static class FieldMapper
         IrrigationStatus = document.IrrigationStatus,
         CurrentLifecycleYear = document.CurrentLifecycleYear,
         CurrentLifecycleStage = document.CurrentLifecycleStage,
-        AssignedProducerIds = document.AssignedProducerIds,
-        Memberships = document.Memberships.Select(ToMembershipEntity).ToList(),
+        People = document.Memberships.Select(ToPersonEntity).ToList(),
         AdvisorComments = document.AdvisorComments.Select(ToAdvisorCommentEntity).ToList(),
         Status = document.Status,
         CropType = document.CropType,
@@ -66,8 +65,8 @@ public static class FieldMapper
         IrrigationStatus = entity.IrrigationStatus,
         CurrentLifecycleYear = entity.CurrentLifecycleYear,
         CurrentLifecycleStage = entity.CurrentLifecycleStage,
-        AssignedProducerIds = entity.AssignedProducerIds,
-        Memberships = entity.Memberships.Select(ToMembershipDocument).ToList(),
+        AssignedProducerIds = [],
+        Memberships = entity.People.Select(ToMembershipDocument).ToList(),
         AdvisorComments = entity.AdvisorComments.Select(ToAdvisorCommentDocument).ToList(),
         Status = entity.Status,
         CropType = entity.CropType,
@@ -171,23 +170,65 @@ public static class FieldMapper
         UploadedAt = entity.UploadedAt
     };
 
-    private static FieldMembership ToMembershipEntity(FieldMembershipDocument doc) => new()
+    private static FieldPerson ToPersonEntity(FieldMembershipDocument doc)
     {
-        UserId = doc.UserId,
-        Capacities = doc.Capacities,
-        Status = doc.Status,
-        InvitedBy = doc.InvitedBy,
-        CreatedAt = doc.CreatedAt
-    };
+        var person = new FieldPerson
+        {
+            UserId = doc.UserId,
+            Modules = doc.Modules?.ToList() ?? new List<string>(),
+            AccessLevel = doc.AccessLevel ?? string.Empty,
+            Status = doc.Status,
+            InviteId = doc.InviteId,
+            InvitedBy = doc.InvitedBy,
+            DisplayName = doc.DisplayName ?? string.Empty,
+            Email = doc.Email,
+            CreatedAt = doc.CreatedAt,
+            Role = InferRole(doc.Role, doc.Capacities)
+        };
 
-    private static FieldMembershipDocument ToMembershipDocument(FieldMembership entity) => new()
+        return person;
+    }
+
+    private static FieldMembershipDocument ToMembershipDocument(FieldPerson entity) => new()
     {
         UserId = entity.UserId,
-        Capacities = entity.Capacities,
+        Role = entity.Role.ToString(),
+        Modules = entity.Modules?.ToList() ?? new List<string>(),
+        AccessLevel = entity.AccessLevel,
         Status = entity.Status,
+        InviteId = entity.InviteId,
         InvitedBy = entity.InvitedBy,
+        DisplayName = entity.DisplayName,
+        Email = entity.Email,
         CreatedAt = entity.CreatedAt
     };
+
+    /// <summary>
+    /// Prefer stored Role; otherwise infer from legacy Capacities BSON (own→Admin, work/advise→Partner, help→Family).
+    /// </summary>
+    internal static FieldPersonRole InferRole(string? role, IEnumerable<string>? capacities)
+    {
+        if (!string.IsNullOrWhiteSpace(role)
+            && Enum.TryParse<FieldPersonRole>(role, ignoreCase: true, out var parsed)
+            && parsed != default)
+        {
+            return parsed;
+        }
+
+        var caps = capacities?.ToList() ?? [];
+        if (caps.Any(c => string.Equals(c, "own", StringComparison.OrdinalIgnoreCase)))
+        {
+            return FieldPersonRole.Admin;
+        }
+
+        if (caps.Any(c => string.Equals(c, "work", StringComparison.OrdinalIgnoreCase)
+                          || string.Equals(c, "advise", StringComparison.OrdinalIgnoreCase)))
+        {
+            return FieldPersonRole.Partner;
+        }
+
+        return FieldPersonRole.Family;
+    }
 
     private static AdvisorComment ToAdvisorCommentEntity(AdvisorCommentDocument doc) => new()
     {

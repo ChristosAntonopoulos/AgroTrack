@@ -1,6 +1,8 @@
 import type { ChronologioEntry } from '../services/chronologioService';
 import type { HarvestRecord } from '../services/harvestService';
+import { formatLitres } from '../finance/format';
 import { HARVEST_COST_CATEGORIES } from './categoryNormalize';
+import { localeTagFor } from './localeFormatters';
 
 export type GroveTotals = {
   recordedExpenses: number;
@@ -18,6 +20,40 @@ export type GroveTotals = {
   hasExpenses: boolean;
   hasIncome: boolean;
 };
+
+/**
+ * Grove mass display number: olives kg / oil kg.
+ * One decimal unless the value is an exact integer. Never pass oilKg into litre formatters.
+ */
+export const formatGroveMassKg = (
+  kg: number | null | undefined,
+  locale: string,
+  unknownLabel = '—'
+): string => {
+  if (kg == null || !Number.isFinite(kg)) return unknownLabel;
+  const rounded = Math.round(kg * 10) / 10;
+  return new Intl.NumberFormat(localeTagFor(locale), {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: Number.isInteger(rounded) ? 0 : 1,
+  }).format(rounded);
+};
+
+/** Grove mass with a " kg" suffix (olives or oil kg only). */
+export const formatGroveMassKgLabel = (
+  kg: number | null | undefined,
+  locale: string,
+  unknownLabel = '—'
+): string => {
+  const n = formatGroveMassKg(kg, locale, unknownLabel);
+  return n === unknownLabel ? unknownLabel : `${n} kg`;
+};
+
+/** Litres labeled as litres — do not pass oilKg. */
+export const formatGroveLitres = (
+  litres: number | null | undefined,
+  locale: string,
+  unknownLabel = '—'
+): string => formatLitres(litres, localeTagFor(locale), unknownLabel);
 
 export const oilYieldPercent = (oliveKg: number, oilKg: number): number | null => {
   if (!(oliveKg > 0) || !(oilKg >= 0) || !Number.isFinite(oliveKg) || !Number.isFinite(oilKg)) {

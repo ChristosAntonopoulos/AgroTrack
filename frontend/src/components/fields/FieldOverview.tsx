@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
 import type { FieldPhenology, FieldTask, TaskProposal } from '../../services/fieldWorkService';
@@ -6,12 +6,14 @@ import type { FieldEnvironmentalAlert, FieldWeather } from '../../services/geosp
 import type { FieldYearSummary, YearFinancialSummary } from '../../services/financialSummaryService';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import { countPlannedRemaining, resolveFieldAttention } from '../../utils/fieldOverviewAttention';
+import GroveWeatherCard from '../weather/GroveWeatherCard';
 import FieldStatusStrip from './FieldStatusStrip';
-import FieldAttentionCard from './FieldAttentionCard';
 import FieldWeatherCard from './FieldWeatherCard';
 import FieldYearGlance from './FieldYearGlance';
 import FieldRecentChronologio from './FieldRecentChronologio';
 import FieldDetailMap from './FieldDetailMap';
+import FieldPhotosStrip from './FieldPhotosStrip';
+import GroveEnrichmentCards from './GroveEnrichmentCards';
 
 type Props = {
   field: Field;
@@ -30,6 +32,8 @@ type Props = {
   recentEntries: ChronologioEntry[];
   onOpenChronologio: (entry?: ChronologioEntry) => void;
   onOpenMap: () => void;
+  canViewMoney?: boolean;
+  canEdit?: boolean;
 };
 
 const FieldOverview: React.FC<Props> = ({
@@ -49,9 +53,10 @@ const FieldOverview: React.FC<Props> = ({
   recentEntries,
   onOpenChronologio,
   onOpenMap,
+  canViewMoney = true,
+  canEdit = false,
 }) => {
-  const { i18n } = useTranslation();
-  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const { t, i18n } = useTranslation('fields');
   const isDraft = field.status === 'Draft';
   const isHistoricalYear = year < currentYear;
   const latestEntry = useMemo(
@@ -71,62 +76,104 @@ const FieldOverview: React.FC<Props> = ({
         tasks,
         proposals,
         language: i18n.language,
-        dismissedIds,
       }),
-    [isDraft, isHistoricalYear, alerts, tasks, proposals, dismissedIds, i18n.language]
+    [isDraft, isHistoricalYear, alerts, tasks, proposals, i18n.language]
   );
+
+  const harvestDaySacks = useMemo(() => {
+    const harvestEntries = recentEntries.filter((e) => e.category === 'harvest');
+    if (harvestEntries.length === 0) return null;
+    let sacks = 0;
+    let found = false;
+    for (const entry of harvestEntries) {
+      const raw = entry.details?.harvest?.sackCount;
+      if (raw != null && Number.isFinite(Number(raw))) {
+        sacks += Number(raw);
+        found = true;
+      }
+    }
+    return found ? sacks : null;
+  }, [recentEntries]);
 
   return (
     <div className="field-overview">
+      <GroveEnrichmentCards field={field} canEdit={canEdit} />
+
       <FieldStatusStrip
         phenology={phenology}
+        currentLifecycleStage={field.currentLifecycleStage}
         tasks={tasks}
         attention={attention}
         latestEntry={latestEntry}
       />
 
+      {field.capabilities?.canViewEnvironmentalData !== false ? (
       <div className="field-overview-grid">
         <div className="field-overview-map">
           <FieldDetailMap
             field={field}
-            heightPx={470}
+            heightPx={320}
             variant="peek"
             weather={weather}
             onOpenMapTab={onOpenMap}
           />
         </div>
         <aside className="field-overview-side">
-          <FieldAttentionCard
-            attention={attention}
-            onKeepDate={(id) => setDismissedIds((prev) => [...prev, id])}
-          />
-          <FieldWeatherCard
-            weather={weather}
-            loading={weatherLoading}
-            error={weatherError}
-            year={year}
-            isHistoricalYear={isHistoricalYear}
-            allowRecommendation={!isDraft}
-            attention={attention}
-            nextTaskTitle={attention.kind === 'nextTask' || attention.kind === 'weatherReschedule' ? attention.title : undefined}
-            onRetry={onRetryWeather}
-          />
+          {weather && !weatherLoading && !weatherError ? (
+            <div className="field-overview-weather">
+              {isHistoricalYear ? (
+                <p className="field-weather-year-note">{t('weather.notThatYear', { year })}</p>
+              ) : null}
+              <GroveWeatherCard
+                fieldWeather={weather}
+                fieldName={field.name}
+                fieldId={field.id}
+                fieldColor={field.color}
+              />
+              <button type="button" className="field-weather-more" onClick={onOpenMap}>
+                {t('weather.seeCharts')}
+              </button>
+            </div>
+          ) : (
+            <FieldWeatherCard
+              weather={weather}
+              loading={weatherLoading}
+              error={weatherError}
+              year={year}
+              isHistoricalYear={isHistoricalYear}
+              allowRecommendation={!isDraft}
+              attention={attention}
+              nextTaskTitle={
+                attention.kind === 'weatherReschedule' ? attention.title : undefined
+              }
+              onRetry={onRetryWeather}
+              onSeeMore={onOpenMap}
+            />
+          )}
         </aside>
       </div>
+      ) : null}
 
-      <FieldYearGlance
-        fieldId={field.id}
-        year={year}
-        costSummary={costSummary}
-        yearRollup={yearRollup}
-        plannedRemaining={countPlannedRemaining(tasks)}
-      />
+      <div className="field-overview-lower">
+        <FieldYearGlance
+          fieldId={field.id}
+          year={year}
+          costSummary={costSummary}
+          yearRollup={yearRollup}
+          plannedRemaining={countPlannedRemaining(tasks)}
+          harvestDaySacks={harvestDaySacks}
+          canViewMoney={canViewMoney}
+        />
+        {field.capabilities?.canViewChronologio !== false ? (
+          <FieldRecentChronologio
+            fieldId={field.id}
+            entries={recentEntries}
+            onSelect={onOpenChronologio}
+          />
+        ) : null}
+      </div>
 
-      <FieldRecentChronologio
-        fieldId={field.id}
-        entries={recentEntries}
-        onSelect={onOpenChronologio}
-      />
+      {field.capabilities?.canViewPhotos !== false ? <FieldPhotosStrip fieldId={field.id} /> : null}
     </div>
   );
 };

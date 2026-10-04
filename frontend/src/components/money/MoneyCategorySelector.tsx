@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ChevronRight,
   Droplets,
   FlaskConical,
   Fuel,
@@ -37,45 +38,61 @@ type Props = {
   type: FinancialTransactionType;
   value: string;
   onChange: (category: FinancialCategory) => void;
+  hideLabel?: boolean;
 };
 
-const MoneyCategorySelector: React.FC<Props> = ({ type, value, onChange }) => {
+const MoneyCategorySelector: React.FC<Props> = ({ type, value, onChange, hideLabel }) => {
   const { t, i18n } = useTranslation('capture');
   const [showAll, setShowAll] = useState(false);
   const featured = type === 'income' ? FEATURED_INCOME_CATEGORIES : FEATURED_EXPENSE_CATEGORIES;
   const all = categoriesForType(type);
   const options = showAll ? all : featured;
-  const extraSelected = value && !featured.includes(value as FinancialCategory);
+  const extraSelected = value && !featured.includes(value as FinancialCategory) && !showAll;
 
   return (
-    <div>
-      <div className="money-form-label">{t('money.whatAbout')}</div>
-      <div className="money-category-grid" role="listbox" aria-label={t('money.whatAbout')}>
+    <div className="money-field-block">
+      {hideLabel ? null : <div className="money-form-label">{t('money.whatAbout')}</div>}
+      <div
+        className="money-category-list"
+        role="listbox"
+        aria-labelledby={hideLabel ? 'money-step-title' : undefined}
+        aria-label={hideLabel ? undefined : t('money.whatAbout')}
+      >
+        {extraSelected ? (
+          <button
+            type="button"
+            className="money-category-push is-active"
+            role="option"
+            aria-selected
+            onClick={() => onChange(value as FinancialCategory)}
+          >
+            <Wallet size={18} aria-hidden />
+            <span>{financialCategoryLabel(value, i18n.language)}</span>
+            <ChevronRight className="money-field-choice__go" size={18} aria-hidden />
+          </button>
+        ) : null}
         {options.map((category) => {
           const Icon = ICONS[category] || Wallet;
+          const selected = value === category;
           return (
             <button
               key={category}
               type="button"
               role="option"
-              aria-selected={value === category}
-              className={`money-category-option${value === category ? ' is-active' : ''}`}
+              aria-selected={selected}
+              className={`money-category-push${selected ? ' is-active' : ''}`}
               onClick={() => onChange(category)}
             >
               <Icon size={18} aria-hidden />
-              {financialCategoryLabel(category, i18n.language)}
+              <span>{financialCategoryLabel(category, i18n.language)}</span>
+              <ChevronRight className="money-field-choice__go" size={18} aria-hidden />
             </button>
           );
         })}
-        {extraSelected && !showAll ? (
-          <button type="button" className="money-category-option is-active" aria-selected>
-            {financialCategoryLabel(value, i18n.language)}
-          </button>
-        ) : null}
         {!showAll ? (
-          <button type="button" className="money-category-option" onClick={() => setShowAll(true)}>
+          <button type="button" className="money-category-push is-more" onClick={() => setShowAll(true)}>
             <MoreHorizontal size={18} aria-hidden />
-            {t('money.moreCategories')}
+            <span>{t('money.moreCategories')}</span>
           </button>
         ) : null}
       </div>

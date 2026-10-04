@@ -23,6 +23,36 @@ export function formatOfficialNet(
   return formatted;
 }
 
+export function formatLitres(
+  litres: number | null | undefined,
+  locale: string,
+  unknownLabel: string
+): string {
+  if (litres == null) return unknownLabel;
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(litres)} L`;
+}
+
+export function formatEuroPerLitre(
+  value: number | null | undefined,
+  locale: string,
+  unknownLabel: string
+): string {
+  if (value == null) return unknownLabel;
+  return `${new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(value)} €/L`;
+}
+
+/** Greek UI shows €/στρέμμα; API stores €/ha (1 ha = 10 στρ.). */
+export function perAreaForDisplay(
+  perHectare: number | null | undefined,
+  locale: string
+): number | null {
+  if (perHectare == null) return null;
+  return locale.toLowerCase().startsWith('el') ? perHectare / 10 : perHectare;
+}
+
 export function isForbiddenError(error: unknown): boolean {
   return Boolean(
     error &&

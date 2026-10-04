@@ -27,6 +27,7 @@ export type ChronologioSourceType =
   | 'Income'
   | 'Harvest'
   | 'Note'
+  | 'Photo'
   | 'Activity'
   | 'WeatherReview';
 
@@ -78,6 +79,8 @@ export interface ChronologioHarvestDetails {
   mill?: string;
   quality?: string;
   workers: number;
+  sackCount?: number;
+  hasOfficialWeight?: boolean;
   harvestMethod?: string;
 }
 
@@ -159,6 +162,11 @@ export interface ChronologioWeatherDetails {
   temperatureMaxSeries?: Array<number | null>;
   source?: string;
   vegetationNote?: string;
+  extremeKind?: string;
+  streakDays?: number;
+  isStronger?: boolean;
+  extremeStartDate?: string;
+  extremeEndDate?: string;
 }
 
 export interface ChronologioIntelligenceDetails {
@@ -222,7 +230,7 @@ export interface ChronologioFilters {
   offset?: number;
 }
 
-export type ChronologioAxis = 'calendar' | 'season';
+export type ChronologioAxis = 'calendar' | 'season' | 'agricultural';
 
 export interface ChronologioSummaryFilters {
   axis?: ChronologioAxis | string;

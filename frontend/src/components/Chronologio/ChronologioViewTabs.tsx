@@ -48,8 +48,12 @@ const ChronologioViewTabs: React.FC<Props> = ({ view, onChange }) => {
       className="chrono-view-tabs"
       role="tablist"
       aria-label={t('living.zoomLabel')}
+      aria-describedby="chrono-view-tabs-hint"
       onKeyDown={onKeyDown}
     >
+      <p id="chrono-view-tabs-hint" className="sr-only">
+        {t('dateControl.viewTabs')}
+      </p>
       {VIEW_ORDER.map((id, index) => {
         const selected = id === view;
         return (

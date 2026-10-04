@@ -34,6 +34,17 @@ export const testUsers: TestUser[] = [
     subtitleKey: 'login.demoServicesSubtitle',
   },
   {
+    email: 'family@olivefarm.com',
+    password: 'password123',
+    role: 'FieldOwner',
+    displayName: 'Ελένη Παπαδάκη',
+    firstName: 'Ελένη',
+    lastName: 'Παπαδάκη',
+    userId: '675555555555555555555503',
+    nameKey: 'login.demoFamilyName',
+    subtitleKey: 'login.demoFamilyNameSubtitle',
+  },
+  {
     email: 'producer2@olivefarm.com',
     password: 'password123',
     role: 'Producer',
@@ -89,9 +100,11 @@ export const getUserByEmail = (email: string): TestUser | undefined => {
   return testUsers.find(user => user.email === email);
 };
 
-/** Owner + primary producer — shown on mobile demo login */
+/** Owner + συνεργάτης + family — shown on mobile demo login */
 export const mobileDemoUsers = testUsers.filter(
   (u): u is TestUser & { nameKey: string; subtitleKey: string } =>
     Boolean(u.nameKey && u.subtitleKey) &&
-    (u.role === 'FieldOwner' || u.email === 'producer1@olivefarm.com')
+    (u.email === 'owner@olivefarm.com'
+      || u.email === 'producer1@olivefarm.com'
+      || u.email === 'family@olivefarm.com')
 );

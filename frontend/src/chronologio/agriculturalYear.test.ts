@@ -2,6 +2,7 @@ import {
   agriculturalYearFor,
   agriculturalYearMonths,
   agriculturalYearRangeLabel,
+  agriculturalYearSlashLabel,
   agriculturalYearTitle,
 } from './agriculturalYear';
 
@@ -23,5 +24,9 @@ describe('agriculturalYear', () => {
     expect(agriculturalYearTitle(2026)).toBe('Καλλιεργητική χρονιά 2026');
     expect(agriculturalYearRangeLabel(2026)).toMatch(/Φεβ/);
     expect(agriculturalYearRangeLabel(2026)).toMatch(/Ιαν/);
+  });
+
+  it('prints the campaign span as 2025/26', () => {
+    expect(agriculturalYearSlashLabel(2025)).toBe('2025/26');
   });
 });

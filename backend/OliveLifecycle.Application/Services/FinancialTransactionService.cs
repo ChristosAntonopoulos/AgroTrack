@@ -17,6 +17,7 @@ public class FinancialTransactionService : IFinancialTransactionService
 {
     private readonly IFinancialTransactionRepository _transactions;
     private readonly IFieldRepository _fields;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IFieldTaskRepository _fieldTasks;
     private readonly IHarvestRecordRepository _harvests;
     private readonly IFinancialAuthorizationService _authorization;
@@ -27,6 +28,7 @@ public class FinancialTransactionService : IFinancialTransactionService
     public FinancialTransactionService(
         IFinancialTransactionRepository transactions,
         IFieldRepository fields,
+        IFieldAccessScopeService fieldAccessScope,
         IFieldTaskRepository fieldTasks,
         IHarvestRecordRepository harvests,
         IFinancialAuthorizationService authorization,
@@ -36,6 +38,7 @@ public class FinancialTransactionService : IFinancialTransactionService
     {
         _transactions = transactions;
         _fields = fields;
+        _fieldAccessScope = fieldAccessScope;
         _fieldTasks = fieldTasks;
         _harvests = harvests;
         _authorization = authorization;
@@ -77,7 +80,8 @@ public class FinancialTransactionService : IFinancialTransactionService
 
         var now = _clock.UtcNow;
         var occurredOn = NormalizeOccurredOn(dto.OccurredOn, now);
-        var resultYear = dto.ResultYear ?? AthensTime.CalendarYear(occurredOn);
+        // Καλλιεργητική χρονιά (1 Feb Y – 31 Jan Y+1), not calendar year.
+        var resultYear = dto.ResultYear ?? AgriculturalYear.For(occurredOn);
         EnsureResultYear(resultYear, now);
 
         var category = FinancialTransactionCategoryExtensions.FromApiString(dto.Category);
@@ -210,17 +214,17 @@ public class FinancialTransactionService : IFinancialTransactionService
             };
         }
 
-        var owned = (await _fields.GetByOwnerIdAsync(userId, cancellationToken)).ToList();
+        var fieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Money, cancellationToken)).ToList();
         var unassignedAccess = await _authorization.ResolveForUnassignedAsync(userId, userRole, cancellationToken);
-        if (unassignedAccess.IsProfessional && !unassignedAccess.IsOwner && owned.Count == 0)
+        if (unassignedAccess.IsProfessional && !unassignedAccess.IsOwner && fieldIds.Count == 0)
         {
             throw new ForbiddenException("You do not have access to financial data.");
         }
 
-        var fieldIds = owned.Select(f => f.Id).ToList();
         var pageFarm = await _transactions.QueryAsync(new FinancialTransactionQuery
         {
-            OwnerUserId = userId,
+            OwnerUserId = unassignedAccess.IsOwner ? userId : null,
             FieldIds = fieldIds,
             IncludeUnassigned = unassignedAccess.IsOwner,
             ResultYear = query.ResultYear,

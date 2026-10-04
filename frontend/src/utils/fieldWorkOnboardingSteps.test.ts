@@ -1,7 +1,9 @@
 import {
   buildStepSequence,
+  hasSelectedAnalysisKinds,
   inferResumeStep,
   nextStep,
+  normalizeOnboardingStep,
   prevStep,
   primaryIndexForStep,
   PRIMARY_TOTAL,
@@ -11,16 +13,16 @@ import type { FieldWorkProfile } from '../services/fieldWorkService';
 import { mergePendingUpdates } from './fieldWorkProfileDraft';
 
 describe('fieldWorkOnboardingSteps', () => {
-  it('maps primary progress indices 1–9', () => {
+  it('maps primary progress indices 1–8', () => {
     expect(primaryIndexForStep('welcome')).toBeNull();
     expect(primaryIndexForStep('purpose')).toBe(1);
     expect(primaryIndexForStep('irrigationWho')).toBe(2);
-    expect(primaryIndexForStep('reminders')).toBe(9);
-    expect(primaryIndexForStep('finished')).toBeNull();
-    expect(PRIMARY_TOTAL).toBe(9);
+    expect(primaryIndexForStep('harvestWho')).toBe(8);
+    expect(primaryIndexForStep('personalizing')).toBeNull();
+    expect(PRIMARY_TOTAL).toBe(8);
   });
 
-  it('builds conditional step sequences', () => {
+  it('builds conditional step sequences without mill, reminders, or months', () => {
     const minimal = buildStepSequence({
       irrigationEnabled: false,
       pruningEnabled: false,
@@ -33,7 +35,10 @@ describe('fieldWorkOnboardingSteps', () => {
     expect(minimal).toContain('purpose');
     expect(minimal).not.toContain('irrigationMethod');
     expect(minimal).not.toContain('pruningLastYear');
-    expect(minimal[minimal.length - 1]).toBe('planPreview');
+    expect(minimal).not.toContain('groundCoverMonths');
+    expect(minimal).not.toContain('harvestMill');
+    expect(minimal).not.toContain('reminders');
+    expect(minimal[minimal.length - 1]).toBe('personalizing');
 
     const full = buildStepSequence({
       irrigationEnabled: true,
@@ -61,11 +66,17 @@ describe('fieldWorkOnboardingSteps', () => {
     expect(nextStep('welcome', seq)).toBe('purpose');
     expect(prevStep('purpose', seq)).toBe('welcome');
     expect(prevStep('welcome', seq)).toBeNull();
+    expect(nextStep('harvestWho', seq)).toBe('personalizing');
   });
 
   it('offers real result years', () => {
     const years = resultYearOptions(2026);
     expect(years.map((y) => y.value)).toEqual([2026, 2025, 2024, 2023]);
+  });
+
+  it('treats none/unknown analysis kinds as unselected', () => {
+    expect(hasSelectedAnalysisKinds([{ kind: 'none' }])).toBe(false);
+    expect(hasSelectedAnalysisKinds([{ kind: 'soil' }])).toBe(true);
   });
 
   it('infers resume step from draft profile', () => {
@@ -90,6 +101,24 @@ describe('fieldWorkOnboardingSteps', () => {
       productionPurpose: 'olive_oil',
     } as FieldWorkProfile;
     expect(inferResumeStep(withPurpose)).toBe('irrigation');
+  });
+
+  it('maps retired steps onto the live flow', () => {
+    const answered = {
+      status: 'draft',
+      productionPurpose: 'olive_oil',
+      irrigation: { preferenceMode: 'disabled', method: 'unknown', decisionMaker: 'unknown' },
+      pruning: { preferenceMode: 'disabled', lastPerformedYear: null, datePrecision: null },
+      fertilisation: { preferenceMode: 'disabled', frequencyType: 'unknown' },
+      groundCover: { preferenceMode: 'disabled', methods: ['no_fixed_clearing'] },
+      pestManagement: { decisionApproach: 'no_usual_treatments', trapStatus: 'unknown' },
+      analysis: { preferenceMode: 'disabled', kinds: [] },
+      harvest: { expectedStartMonth: 11, organizer: 'self', needsMillBooking: 'unknown' },
+      notificationPreference: { intensity: 'unknown' },
+    } as unknown as FieldWorkProfile;
+
+    expect(normalizeOnboardingStep('reminders', answered)).toBe('personalizing');
+    expect(normalizeOnboardingStep('groundCoverMonths', answered)).toBe('pest');
   });
 });
 

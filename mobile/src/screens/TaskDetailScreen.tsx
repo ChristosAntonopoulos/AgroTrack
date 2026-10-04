@@ -1,492 +1,449 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  Alert,
-  TouchableOpacity,
-  TextInput,
-  Pressable,
-} from 'react-native';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { FieldTask, fieldTaskTypeKey } from '../services/fieldWorkService';
-import { Field } from '../services/fieldService';
-import { getFieldWorkService, getFieldService } from '../services/serviceFactory';
+import ScreenLayout from '../components/layout/ScreenLayout';
+import LoadingSpinner from '../components/LoadingSpinner';
+import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { usePreferences } from '../context/PreferencesContext';
 import { useCaptureOptional } from '../context/CaptureContext';
-import Card from '../components/ui/Card';
-import Section from '../components/layout/Section';
-import StatusBadge from '../components/StatusBadge';
-import TaskStatusStepper from '../components/domain/TaskStatusStepper';
-import Button from '../components/ui/Button';
-import LoadingSpinner from '../components/LoadingSpinner';
-import OfflineBanner from '../components/OfflineBanner';
-import { typography, spacing } from '../theme';
-import { createElevation } from '../theme/elevation';
-import { formatDate } from '../utils/formatters';
-import { toBoolean } from '../utils/booleanConverter';
-import { isTaskOverdue } from '../utils/taskListUtils';
-import { harvestFocusForPhase, harvestJobType, resolveHarvestPhase } from '../utils/harvestUtils';
-import { RootStackParamList } from '../navigation/types';
+import {
+  getFieldService,
+  getFieldWorkService,
+  getFinancialSummaryService,
+} from '../services/serviceFactory';
+import type { FieldTask, FieldTaskChecklistItem } from '../services/fieldWorkService';
+import type { Field } from '../services/fieldService';
+import type { TaskFinancialSummary } from '../services/financialSummaryService';
+import { taskDisplayTitle } from '../utils/taskDisplayTitle';
+import { checklistCount, notebookStatus, requiredChecksRemaining } from '../utils/taskNotebook';
+import { friendlyFieldLabel } from '../utils/fieldLabels';
+import { formatOfficialAmount } from '../finance/format';
+import { taskExpenseCaptureContext } from '../utils/taskExpenseContext';
+import { formatCompactTaskPeriod } from '../utils/taskDateRange';
+import type { RootStackParamList } from '../navigation/types';
+import { createElevation, radii, spacing, typography } from '../theme';
+import TaskCategoryGlyph from '../components/tasks/TaskCategoryGlyph';
+import { resolveTaskCategoryAccent } from '../utils/taskCategoryAccents';
+import { hexToRgba } from '../utils/hexToRgba';
 
 type Route = RouteProp<RootStackParamList, 'TaskDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'TaskDetail'>;
 
-const DetailRow = ({
-  label,
-  value,
-  colors,
-}: {
-  label: string;
-  value: string;
-  colors: ReturnType<typeof useTheme>['colors'];
-}) => (
-  <View style={styles.detailRow}>
-    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text>
-    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{value}</Text>
-  </View>
-);
+const checkLabel = (item: FieldTaskChecklistItem, language: string) => {
+  if (language.toLowerCase().startsWith('el')) return item.greekLabel || item.label;
+  return item.englishLabel || item.label;
+};
 
 const TaskDetailScreen = () => {
-  const route = useRoute<Route>();
+  const { t, i18n } = useTranslation(['tasks', 'common', 'money']);
   const navigation = useNavigation<Nav>();
-  const { taskId } = route.params;
-  const { isFieldOwner, user } = useAuth();
-  const { colors } = useTheme();
-  const { isEveryday, tapMin, fontScaleMultiplier } = usePreferences();
+  const { taskId } = useRoute<Route>().params;
+  const { user } = useAuth();
   const capture = useCaptureOptional();
-  const { t } = useTranslation(['tasks', 'common', 'partners', 'capture']);
+  const { colors, tapMin, fontScaleMultiplier } = useTheme();
+
   const [task, setTask] = useState<FieldTask | null>(null);
   const [field, setField] = useState<Field | null>(null);
+  const [money, setMoney] = useState<TaskFinancialSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-  const [checked, setChecked] = useState<Record<number, boolean>>({});
-  const [prepareNote, setPrepareNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [explaining, setExplaining] = useState(false);
 
-  const isUpdating = toBoolean(updating);
-  const phase = task ? resolveHarvestPhase(task) : null;
-  const jobType = task ? harvestJobType(task) : '';
-  const typeKey = task ? fieldTaskTypeKey(task) : '';
-
-  const canWork = Boolean(
-    user?.id &&
-      (field?.ownerId === user.id ||
-        (field?.assignedProducerIds || []).includes(user.id) ||
-        user.role === 'Producer')
-  );
-
-  useEffect(() => {
-    void loadTaskDetails();
-  }, [taskId]);
-
-  const loadTaskDetails = async () => {
+  const load = useCallback(async () => {
     try {
-      setLoading(true);
-      const taskData = await getFieldWorkService().getFieldTask(taskId);
-      setTask(taskData);
-      try {
-        const fieldData = await getFieldService().getField(taskData.fieldId);
-        setField(fieldData);
-      } catch {
-        /* field optional */
-      }
+      setError(null);
+      const data = await getFieldWorkService().getFieldTask(taskId);
+      setTask(data);
+      setNote(data.notes || '');
+      const [fields, taskMoney] = await Promise.all([
+        getFieldService()
+          .getFields(user?.id || '', user?.role || '')
+          .catch(() => [] as Field[]),
+        getFinancialSummaryService().getTaskSummary(taskId).catch(() => null),
+      ]);
+      setField(fields.find((item) => item.id === data.fieldId) || null);
+      setMoney(taskMoney);
     } catch {
-      Alert.alert(t('common:confirm'), t('tasks:loadError'));
+      setError(t('detail.failedLoad'));
+      setTask(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [t, taskId, user?.id, user?.role]);
 
-  const checklist = useMemo(() => {
-    if (!phase || phase !== 'prepare') return [];
-    return t(`tasks:harvestJobs.${jobType}.checklist`, {
-      returnObjects: true,
-      defaultValue: t('tasks:harvestJobs.prepare.checklist', {
-        returnObjects: true,
-        defaultValue: [],
-      }),
-    }) as string[];
-  }, [phase, jobType, t]);
+  useEffect(() => {
+    setLoading(true);
+    void load();
+  }, [load]);
 
-  const openHarvestNext = (completed: FieldTask) => {
-    const nextPhase = resolveHarvestPhase(completed);
-    if (nextPhase === 'daily') {
-      Alert.alert(t('tasks:harvest.writeKilosTitle'), t('tasks:harvest.writeKilosBody'), [
-        { text: t('tasks:notNow'), style: 'cancel' },
-        {
-          text: t('tasks:harvest.writeKilosNow'),
-          onPress: () =>
-            navigation.navigate('FieldDetail', {
-              fieldId: completed.fieldId,
-              focus: harvestFocusForPhase('daily'),
-            }),
-        },
-      ]);
-      return;
-    }
-    if (nextPhase === 'final') {
-      Alert.alert(t('tasks:harvest.closeTitle'), t('tasks:harvest.closeBody'), [
-        {
-          text: t('tasks:harvest.writeMoneyIn'),
-          onPress: () =>
-            navigation.navigate('FieldDetail', { fieldId: completed.fieldId, focus: 'money' }),
-        },
-        {
-          text: t('tasks:harvest.addMillOil'),
-          onPress: () =>
-            navigation.navigate('FieldDetail', {
-              fieldId: completed.fieldId,
-              focus: harvestFocusForPhase('final'),
-            }),
-        },
-      ]);
-    }
-  };
-
-  const completeTask = async () => {
-    if (!task) return;
+  const handleStart = async () => {
+    setBusy(true);
     try {
-      setUpdating(true);
-      await getFieldWorkService().completeFieldTask(taskId, {
-        outcome: 'done',
-        notes: prepareNote.trim() || undefined,
-      });
-      const updated = await getFieldWorkService().getFieldTask(taskId);
-      setTask(updated);
-      if (resolveHarvestPhase(updated)) {
-        openHarvestNext(updated);
-      }
-    } catch (err: unknown) {
-      Alert.alert(t('common:confirm'), err instanceof Error ? err.message : 'Error');
+      setTask(await getFieldWorkService().startFieldTask(taskId));
+    } catch {
+      setError(t('fieldWork.errors.start'));
     } finally {
-      setUpdating(false);
+      setBusy(false);
     }
   };
 
-  const handleStart = () => {
+  const toggleCheck = async (item: FieldTaskChecklistItem) => {
     if (!task) return;
-    Alert.alert(t('tasks:confirmStatus'), t('tasks:startTask'), [
-      { text: t('common:cancel'), style: 'cancel' },
-      {
-        text: t('common:confirm'),
-        onPress: async () => {
-          try {
-            setUpdating(true);
-            const updated = await getFieldWorkService().startFieldTask(taskId);
-            setTask(updated);
-          } catch (err: unknown) {
-            Alert.alert(t('common:confirm'), err instanceof Error ? err.message : 'Error');
-          } finally {
-            setUpdating(false);
-          }
-        },
-      },
-    ]);
+    const status = notebookStatus(task.status);
+    if (status === 'completed' || status === 'cancelled' || status === 'skipped') return;
+    setBusy(true);
+    try {
+      let current = task;
+      if (status === 'todo') {
+        current = await getFieldWorkService().startFieldTask(taskId);
+      }
+      const updated = await getFieldWorkService().setChecklistItem(taskId, item.key, !item.isAnswered);
+      setTask({ ...updated, startedAt: updated.startedAt || current.startedAt });
+    } catch {
+      setError(t('detail.failedStatus', { defaultValue: t('fieldWork.errors.start') }));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleCompleteConfirm = () => {
+  const saveNote = async (value: string) => {
     if (!task) return;
-    Alert.alert(t('tasks:confirmDoneTitle'), t('tasks:confirmDoneBody', { title: task.title }), [
-      { text: t('common:cancel'), style: 'cancel' },
-      { text: t('common:done'), onPress: () => void completeTask() },
-    ]);
+    if ((value.trim() || '') === (task.notes || '').trim()) return;
+    setBusy(true);
+    try {
+      setTask(await getFieldWorkService().updateFieldTask(taskId, { notes: value.trim() }));
+    } catch {
+      setError(t('detail.failedStatus', { defaultValue: t('fieldWork.errors.start') }));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const doneLabel = useMemo(() => {
-    if (!task) return t('tasks:completeTask');
-    if (phase === 'daily') return t('tasks:harvest.doneDaily');
-    if (phase === 'final') return t('tasks:harvest.doneFinal');
-    if (phase === 'prepare') return t('tasks:harvest.doneNamed', { title: task.title });
-    return isEveryday ? t('common:done') : t('tasks:completeTask');
-  }, [task, phase, isEveryday, t]);
-
-  const helperText = useMemo(() => {
-    if (!phase) return null;
-    return t(`tasks:harvestJobs.${jobType}.helper`, {
-      defaultValue: t(`tasks:harvest.helpers.${phase}`),
-    });
-  }, [phase, jobType, t]);
-
-  const primaryAction = useMemo(() => {
-    if (!task || !canWork) return null;
-    if (
-      task.status === 'planned' ||
-      task.status === 'ready' ||
-      task.status === 'blocked' ||
-      task.status === 'pending'
-    ) {
-      return { label: t('tasks:startTask'), onPress: handleStart };
+  const confirmComplete = async (allowIncomplete: boolean) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await getFieldWorkService().completeFieldTask(taskId, {
+        outcome: 'completed',
+        notes: note.trim() || undefined,
+        allowIncomplete,
+      });
+      navigation.navigate('Main', { screen: 'Tasks', params: { view: 'done' } });
+    } catch {
+      setError(t('fieldWork.errors.complete'));
+    } finally {
+      setBusy(false);
     }
-    if (task.status === 'in_progress') {
-      return { label: doneLabel, onPress: handleCompleteConfirm };
+  };
+
+  const blockTask = async () => {
+    setBusy(true);
+    try {
+      setTask(await getFieldWorkService().blockFieldTask(taskId, note.trim() || undefined));
+      setConfirming(false);
+      setExplaining(false);
+    } catch {
+      setError(t('fieldWork.errors.complete'));
+    } finally {
+      setBusy(false);
     }
-    return null;
-  }, [task, canWork, doneLabel, t]);
+  };
 
   if (loading) return <LoadingSpinner fullScreen />;
 
   if (!task) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.error }}>{t('tasks:notFound')}</Text>
-        <Button title={t('common:back')} onPress={() => navigation.goBack()} variant="outline" />
-      </View>
+      <ScreenLayout scroll padded>
+        <Text style={{ color: colors.textSecondary }}>{error || t('detail.notFound')}</Text>
+        <Button title={t('detail.backToTasks')} variant="outline" onPress={() => navigation.goBack()} />
+      </ScreenLayout>
     );
   }
 
-  const overdue = isTaskOverdue(task);
-  const prepareFieldLabel = t(`tasks:harvestJobs.${jobType}.field`, { defaultValue: '' });
+  const status = notebookStatus(task.status);
+  const title = taskDisplayTitle(task.title, task.templateCode, i18n.language);
+  const fieldName = friendlyFieldLabel(field?.name) || task.fieldId;
+  const started = task.startedAt
+    ? new Date(task.startedAt).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
+    : '';
+  const locked = status === 'completed' || status === 'cancelled' || status === 'skipped';
+  const checks = [...(task.checklist || [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  const checkProgress = checklistCount(task);
+  const remaining = requiredChecksRemaining(task);
+  const needsExplanation = confirming && remaining > 0 && !explaining;
+  const accent = resolveTaskCategoryAccent(task.templateCode);
+  const period = formatCompactTaskPeriod(
+    task.plannedStart,
+    task.plannedEnd,
+    i18n.language,
+    task.resultYear
+  );
+  const statusLabel = status !== 'todo' ? t(`notebook.status.${status}`) : '';
+  const metaParts = [
+    fieldName,
+    period,
+    started ? t('notebook.work.started', { time: started }) : '',
+    statusLabel,
+  ].filter(Boolean);
+  const actualCost = formatOfficialAmount(
+    money?.actualCost,
+    task.estimatedCostCurrency || 'EUR',
+    i18n.language,
+    t('fieldWork.detail.noActual')
+  );
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <OfflineBanner />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.hero, { backgroundColor: colors.surfaceElevated, borderColor: colors.borderLight }]}>
-          <Text
-            style={[
-              styles.taskTitle,
-              { color: colors.textPrimary, fontSize: isEveryday ? 24 * fontScaleMultiplier : undefined },
-            ]}
-          >
-            {task.title}
-          </Text>
-          {phase ? (
-            <Text style={[styles.phaseWord, { color: colors.primary, fontSize: 15 * fontScaleMultiplier }]}>
-              {t('tasks:harvest.word')} · {t(`tasks:harvest.phases.${phase}`)}
+    <ScreenLayout scroll padded>
+      <View style={styles.stack}>
+        <View style={styles.hero}>
+          <TaskCategoryGlyph templateCode={task.templateCode} accent={accent} size={44} />
+          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+            <Text style={[styles.title, { color: colors.textPrimary, fontSize: 22 * fontScaleMultiplier }]}>
+              {title}
             </Text>
-          ) : null}
-          <View style={styles.heroMeta}>
-            <StatusBadge status={task.status} showIcon />
-            {overdue ? (
-              <View style={[styles.overduePill, { backgroundColor: colors.errorLight }]}>
-                <Text style={{ color: colors.error, fontSize: 10, fontWeight: '700' }}>
-                  {t('tasks:overdue')}
-                </Text>
-              </View>
-            ) : null}
+            <Text style={{ color: colors.textSecondary, lineHeight: 20 }} numberOfLines={2}>
+              {metaParts.join(' · ')}
+            </Text>
           </View>
-          {field ? (
-            <TouchableOpacity style={styles.fieldLink} onPress={() => navigation.navigate('FieldDetail', { fieldId: field.id })}>
-              <Ionicons name="leaf-outline" size={14} color={colors.link} />
-              <Text style={{ color: colors.link, fontWeight: '600' }}>{field.name}</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
-            </TouchableOpacity>
-          ) : null}
-          {helperText ? (
-            <Text style={[styles.helper, { color: colors.textSecondary, fontSize: 16 * fontScaleMultiplier }]}>
-              {helperText}
-            </Text>
-          ) : null}
-          {!isEveryday ? <TaskStatusStepper status={task.status} /> : null}
         </View>
+        {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
 
-        {isFieldOwner() ? (
-          <Button
-            title={t('partners:findPartner')}
-            variant="outline"
-            onPress={() =>
-              navigation.navigate('Partners', {
-                fieldId: task.fieldId,
-                taskId: task.id,
-                category: typeKey,
-              })
-            }
-          />
-        ) : null}
-
-        {capture ? (
-          <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, marginBottom: spacing.sm }}>
-            <Button
-              title={t('capture:types.expense.title')}
-              variant="outline"
-              style={{ flex: 1, minHeight: tapMin }}
-              onPress={() =>
-                capture.openCapture({
-                  fieldId: task.fieldId,
-                  taskId: task.id,
-                  preferredType: 'expense',
-                })
-              }
-            />
-            <Button
-              title={t('capture:types.observation.title')}
-              variant="outline"
-              style={{ flex: 1, minHeight: tapMin }}
-              onPress={() =>
-                capture.openCapture({
-                  fieldId: task.fieldId,
-                  taskId: task.id,
-                  preferredType: 'observation',
-                })
-              }
-            />
-          </View>
-        ) : null}
-
-        {phase === 'prepare' && checklist.length > 0 ? (
-          <Section title={t('tasks:harvest.checklist')}>
-            {checklist.map((item, index) => {
-              const on = !!checked[index];
-              return (
-                <Pressable
-                  key={`${item}-${index}`}
-                  onPress={() => setChecked((prev) => ({ ...prev, [index]: !prev[index] }))}
-                  style={[
-                    styles.checkRow,
-                    {
-                      minHeight: tapMin,
-                      borderColor: on ? colors.oliveBorder : colors.borderLight,
-                      backgroundColor: on ? colors.primaryLight : colors.surfaceElevated,
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name={on ? 'checkbox' : 'square-outline'}
-                    size={22}
-                    color={on ? colors.primary : colors.textTertiary}
-                  />
-                  <Text style={{ color: colors.textPrimary, flex: 1, fontSize: 16 * fontScaleMultiplier }}>
-                    {item}
-                  </Text>
-                </Pressable>
-              );
-            })}
-            {prepareFieldLabel ? (
-              <TextInput
-                value={prepareNote}
-                onChangeText={setPrepareNote}
-                placeholder={prepareFieldLabel}
-                placeholderTextColor={colors.textTertiary}
-                style={[
-                  styles.noteInput,
-                  {
-                    color: colors.textPrimary,
-                    borderColor: colors.border,
-                    minHeight: tapMin,
-                  },
-                ]}
-              />
-            ) : null}
-          </Section>
-        ) : null}
-
-        {!isEveryday || !phase ? (
-          <>
-            <Section title={t('tasks:detailInfo')}>
-              <Card variant="outlined">
-                <DetailRow label={t('tasks:type')} value={typeKey} colors={colors} />
-                {task.description ? (
-                  <DetailRow label={t('tasks:notes')} value={task.description} colors={colors} />
-                ) : null}
-                {task.statusLabel ? (
-                  <DetailRow label={t('tasks:status')} value={task.statusLabel} colors={colors} />
-                ) : null}
-              </Card>
-            </Section>
-
-            <Section title={t('tasks:detailSchedule')}>
-              <Card variant="outlined">
-                {task.plannedStart ? (
-                  <DetailRow
-                    label={t('tasks:scheduled')}
-                    value={formatDate(task.plannedStart)}
-                    colors={colors}
-                  />
-                ) : null}
-                {task.plannedEnd ? (
-                  <DetailRow label={t('tasks:due')} value={formatDate(task.plannedEnd)} colors={colors} />
-                ) : null}
-                {task.estimatedCost !== undefined ? (
-                  <DetailRow
-                    label={t('tasks:cost')}
-                    value={`${task.estimatedCost} ${task.estimatedCostCurrency || 'EUR'}`}
-                    colors={colors}
-                  />
-                ) : null}
-              </Card>
-            </Section>
-          </>
-        ) : null}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {primaryAction ? (
         <View
           style={[
-            styles.footer,
-            {
-              backgroundColor: colors.surfaceElevated,
-              borderTopColor: colors.border,
-              ...createElevation(colors, 'lg'),
-            },
+            styles.card,
+            { backgroundColor: colors.surface, borderColor: colors.borderLight, ...createElevation(colors, 'sm') },
           ]}
         >
-          <Button
-            title={primaryAction.label}
-            onPress={primaryAction.onPress}
-            loading={isUpdating}
-            style={{ ...styles.footerBtn, flex: 1, minHeight: tapMin }}
+          <Text style={[styles.heading, { color: colors.textTertiary }]}>{t('notebook.work.checks')}</Text>
+          {checks.length > 0 ? (
+            <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 4 }}>
+              {t('notebook.work.checksProgress', {
+                done: checkProgress.done,
+                total: checkProgress.total,
+              })}
+            </Text>
+          ) : null}
+          {checks.length === 0 ? (
+            <Text style={{ color: colors.textSecondary }}>{t('notebook.work.noChecks')}</Text>
+          ) : (
+            checks.map((item) => (
+              <Pressable
+                key={item.key}
+                onPress={() => void toggleCheck(item)}
+                disabled={busy || locked}
+                style={[
+                  styles.checkRow,
+                  {
+                    minHeight: Math.max(52, tapMin),
+                    opacity: busy || locked ? 0.6 : 1,
+                    backgroundColor: item.isAnswered ? hexToRgba(colors.primary, 0.08) : colors.surfaceMuted,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={item.isAnswered ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={item.isAnswered ? colors.primary : colors.textTertiary}
+                />
+                <Text style={{ color: colors.textPrimary, flex: 1, fontSize: 15 * fontScaleMultiplier }}>
+                  {checkLabel(item, i18n.language)}
+                </Text>
+              </Pressable>
+            ))
+          )}
+        </View>
+
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.surface, borderColor: colors.borderLight, ...createElevation(colors, 'sm') },
+          ]}
+        >
+          <Text style={[styles.heading, { color: colors.textTertiary }]}>{t('notebook.work.note')}</Text>
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            onBlur={() => void saveNote(note)}
+            editable={!locked && !busy}
+            multiline
+            style={[
+              styles.note,
+              {
+                color: colors.textPrimary,
+                borderColor: colors.borderLight,
+                backgroundColor: colors.surfaceElevated,
+              },
+            ]}
           />
         </View>
-      ) : null}
-    </View>
+
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.surface, borderColor: colors.borderLight, ...createElevation(colors, 'sm') },
+          ]}
+        >
+          <Text style={[styles.heading, { color: colors.textTertiary }]}>{t('fieldWork.detail.money')}</Text>
+          <Text style={{ color: colors.textSecondary }}>{t('fieldWork.detail.actual')}</Text>
+          <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 20 * fontScaleMultiplier }}>
+            {actualCost}
+          </Text>
+          <Text style={{ color: colors.textTertiary }}>{t('fieldWork.detail.estimateHint')}</Text>
+          {!locked ? (
+            <View style={styles.secondaryActions}>
+              <Button
+                title={t('notebook.work.addPhoto')}
+                variant="outline"
+                onPress={() =>
+                  capture?.openCapture({
+                    preferredType: 'observation',
+                    fieldId: task.fieldId,
+                    taskId: task.id,
+                  })
+                }
+              />
+              <Button
+                title={t('fieldWork.detail.addExpense')}
+                variant="outline"
+                onPress={() => capture?.openCapture(taskExpenseCaptureContext(task))}
+              />
+            </View>
+          ) : null}
+        </View>
+
+        {(task.activity || []).length > 0 ? (
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.surface, borderColor: colors.borderLight, ...createElevation(colors, 'sm') },
+            ]}
+          >
+            <Text style={[styles.heading, { color: colors.textTertiary }]}>{t('notebook.work.activity')}</Text>
+            {task.activity?.map((event, index) => (
+              <Text key={`${event.action}-${event.occurredAt}-${index}`} style={{ color: colors.textSecondary }}>
+                {t(`notebook.work.activityActions.${event.action}`, { defaultValue: event.action })}
+                {' · '}
+                {new Date(event.occurredAt).toLocaleString(i18n.language, {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
+        {confirming ? (
+          <View
+            style={[
+              styles.confirmCard,
+              { backgroundColor: colors.surfaceMuted, borderColor: colors.borderLight },
+            ]}
+          >
+            <Text style={[styles.confirmTitle, { color: colors.textPrimary }]}>{t('notebook.work.doneNow')}</Text>
+            {needsExplanation ? (
+              <>
+                <Text style={{ color: colors.textSecondary }}>
+                  {t('notebook.work.incomplete', { open: remaining })}
+                </Text>
+                <Button
+                  title={t('notebook.work.backToChecks')}
+                  onPress={() => {
+                    setConfirming(false);
+                    setExplaining(false);
+                  }}
+                />
+                <Pressable onPress={() => setExplaining(true)} style={styles.quietAction}>
+                  <Text style={{ color: colors.textSecondary, fontWeight: '600', textAlign: 'center' }}>
+                    {t('notebook.work.completeAnyway')}
+                  </Text>
+                </Pressable>
+                <Pressable onPress={() => void blockTask()} disabled={busy} style={styles.quietAction}>
+                  <Text style={{ color: colors.textSecondary, fontWeight: '600', textAlign: 'center' }}>
+                    {t('notebook.menu.block')}
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <Button
+                title={t('notebook.work.confirm')}
+                disabled={busy}
+                onPress={() => void confirmComplete(remaining > 0)}
+              />
+            )}
+          </View>
+        ) : !locked ? (
+          <View style={styles.sticky}>
+            {status === 'todo' ? (
+              <Button title={t('fieldWork.actions.start')} disabled={busy} onPress={() => void handleStart()} />
+            ) : null}
+            {status === 'blocked' ? (
+              <Button
+                title={t('notebook.actions.resolve')}
+                disabled={busy}
+                onPress={() => {
+                  setBusy(true);
+                  void getFieldWorkService()
+                    .resolveFieldTask(taskId)
+                    .then(setTask)
+                    .catch(() => setError(t('fieldWork.errors.start')))
+                    .finally(() => setBusy(false));
+                }}
+              />
+            ) : null}
+            {status === 'in_progress' ? (
+              <Button title={t('notebook.work.complete')} disabled={busy} onPress={() => setConfirming(true)} />
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md },
-  content: { padding: spacing.base },
-  hero: {
-    borderRadius: 16,
-    borderWidth: 1,
+  stack: { gap: spacing.md, paddingBottom: spacing['2xl'] },
+  hero: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  title: { fontWeight: '700', letterSpacing: -0.4 },
+  heading: { ...typography.styles.overline, marginBottom: spacing.sm },
+  card: {
+    borderRadius: radii.xl,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: spacing.base,
-    marginBottom: spacing.md,
-  },
-  taskTitle: { ...typography.styles.h2, fontWeight: '700', marginBottom: spacing.sm },
-  phaseWord: { fontWeight: '700', marginBottom: spacing.sm },
-  helper: { marginTop: spacing.sm, lineHeight: 22 },
-  heroMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
-  overduePill: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: 10 },
-  fieldLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing.sm },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    gap: spacing.md,
-  },
-  detailLabel: { ...typography.styles.bodySmall, flex: 1 },
-  detailValue: { ...typography.styles.bodySmall, fontWeight: '600', flex: 1, textAlign: 'right' },
-  footer: {
-    flexDirection: 'row',
     gap: spacing.sm,
-    padding: spacing.base,
-    paddingBottom: spacing.lg,
-    borderTopWidth: 1,
   },
-  footerBtn: { minWidth: 120 },
   checkRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.sm,
+  },
+  note: {
+    minHeight: 96,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.md,
     padding: spacing.md,
-    marginBottom: spacing.sm,
+    textAlignVertical: 'top',
   },
-  noteInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 16,
+  secondaryActions: { gap: spacing.sm, marginTop: spacing.xs },
+  confirmCard: {
+    borderRadius: radii.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.base,
+    gap: spacing.sm,
   },
+  confirmTitle: { fontSize: 17, fontWeight: '700' },
+  quietAction: { paddingVertical: 10 },
+  sticky: { gap: spacing.sm, paddingTop: spacing.sm },
 });
 
 export default TaskDetailScreen;

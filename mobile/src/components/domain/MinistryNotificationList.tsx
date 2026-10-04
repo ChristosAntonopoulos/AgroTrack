@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
-import { ministryNotificationService, MinistryNotification } from '../../services/ministryNotificationService';
+import { getMinistryService } from '../../services/serviceFactory';
+import type { MinistryNotification } from '../../services/ministryApiService';
 import MinistryNotificationCard from './MinistryNotificationCard';
 import { colors, typography, spacing, spacingPatterns } from '../../theme';
 import { toBoolean } from '../../utils/booleanConverter';
@@ -29,16 +30,14 @@ const MinistryNotificationList: React.FC<MinistryNotificationListProps> = ({
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const allNotifications = await ministryNotificationService.getNotifications(userRole);
+      const allNotifications = await getMinistryService().getNotifications(userRole);
       const filtered = showUnreadOnly
         ? allNotifications.filter(n => !n.read)
         : allNotifications;
       
       const limited = maxItems ? filtered.slice(0, maxItems) : filtered;
       setNotifications(limited);
-      
-      const count = await ministryNotificationService.getUnreadCount(userRole);
-      setUnreadCount(count);
+      setUnreadCount(allNotifications.filter(n => !n.read).length);
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {
@@ -54,7 +53,7 @@ const MinistryNotificationList: React.FC<MinistryNotificationListProps> = ({
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      await ministryNotificationService.markAsRead(id);
+      await getMinistryService().markAsRead(id);
       await loadNotifications();
     } catch (error) {
       console.error('Error marking notification as read:', error);

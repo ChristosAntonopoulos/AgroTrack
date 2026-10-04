@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
+import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import OnboardingChoiceList from '../components/FieldWork/OnboardingChoiceList';
@@ -15,7 +15,6 @@ import type { Field } from '../services/fieldService';
 import type {
   AnalysisKindEntry,
   CurrentYearDeclaredWork,
-  FieldWorkPlanPreview,
   FieldWorkProfile,
   UpdateFieldWorkProfileInput,
 } from '../services/fieldWorkService';
@@ -27,8 +26,10 @@ import { isDeviceOnline, isNetworkError } from '../utils/networkStatus';
 import { OfflineQueue } from '../utils/offlineQueue';
 import {
   buildStepSequence,
+  hasSelectedAnalysisKinds,
   inferResumeStep,
   nextStep,
+  normalizeOnboardingStep,
   prevStep,
   primaryIndexForStep,
   PRIMARY_TOTAL,
@@ -41,8 +42,6 @@ import {
   readWorkProfileDraft,
   writeWorkProfileDraft,
 } from '../utils/fieldWorkProfileDraft';
-import WorkProfileCopyWizard from '../components/FieldWork/WorkProfileCopyWizard';
-import FieldWorkPlanReview from '../components/FieldWork/FieldWorkPlanReview';
 import './FieldWorkSetupPage.css';
 import './FieldWorkProfilePage.css';
 
@@ -65,16 +64,12 @@ const FieldWorkSetupPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [blocked, setBlocked] = useState<'draft' | 'permission' | 'active' | null>(null);
-  const [planPreview, setPlanPreview] = useState<FieldWorkPlanPreview | null>(null);
-  const [planLoading, setPlanLoading] = useState(false);
   const [activating, setActivating] = useState(false);
   const [returnToPlanAfterSave, setReturnToPlanAfterSave] = useState(false);
-  const [copyFromSimilar, setCopyFromSimilar] = useState(false);
 
   // Local UI state for multi-select / follow-ups
   const [groundMethods, setGroundMethods] = useState<string[]>([]);
   const [analysisKinds, setAnalysisKinds] = useState<AnalysisKindEntry[]>([]);
-  const [pendingMonths, setPendingMonths] = useState<number[]>([]);
   const [fertilisationAnnual, setFertilisationAnnual] = useState(false);
 
   const capacity = useFieldCapacity(field);
@@ -91,8 +86,7 @@ const FieldWorkSetupPage: React.FC = () => {
         pestMonitoring:
           profile?.pestManagement.decisionApproach === 'trap_and_fruit_checks' ||
           profile?.pestManagement.decisionApproach === 'combined',
-        analysisKindsSelected:
-          analysisKinds.length > 0 || (profile?.analysis.kinds.length ?? 0) > 0,
+        analysisKindsSelected: hasSelectedAnalysisKinds(analysisKinds) || hasSelectedAnalysisKinds(profile?.analysis.kinds),
       }),
     [profile, fertilisationAnnual, analysisKinds]
   );
@@ -130,7 +124,7 @@ const FieldWorkSetupPage: React.FC = () => {
       const targetStep =
         advanceTo ??
         (resumePlan
-          ? 'planPreview'
+          ? 'personalizing'
           : nextStep(step, buildStepSequence({
           irrigationEnabled:
             patch.irrigation?.preferenceMode === 'enabled' ||
@@ -150,9 +144,9 @@ const FieldWorkSetupPage: React.FC = () => {
             profile?.pestManagement.decisionApproach === 'trap_and_fruit_checks' ||
             profile?.pestManagement.decisionApproach === 'combined',
           analysisKindsSelected:
-            Boolean(patch.analysis?.kinds?.length) ||
-            analysisKinds.length > 0 ||
-            (profile?.analysis.kinds.length ?? 0) > 0,
+            hasSelectedAnalysisKinds(patch.analysis?.kinds) ||
+            hasSelectedAnalysisKinds(analysisKinds) ||
+            hasSelectedAnalysisKinds(profile?.analysis.kinds),
         })));
 
       if (resumePlan) {
@@ -243,7 +237,7 @@ const FieldWorkSetupPage: React.FC = () => {
             (m) =>
               m.userId === user?.userId &&
               m.status === 'active' &&
-              m.capacities?.includes('own')
+              m.role === 'Admin'
           );
         if (fieldData.status === 'Draft') {
           setBlocked('draft');
@@ -314,11 +308,9 @@ const FieldWorkSetupPage: React.FC = () => {
 
         const resumeRaw =
           local?.stepId && local.stepId !== 'welcome'
-            ? local.stepId
+            ? (local.stepId as OnboardingStepId)
             : inferResumeStep(workProfile);
-        const resume: OnboardingStepId =
-          resumeRaw === 'finished' ? 'planPreview' : (resumeRaw as OnboardingStepId);
-        setStep(resume === 'welcome' && workProfile ? inferResumeStep(workProfile) : resume);
+        setStep(normalizeOnboardingStep(resumeRaw, workProfile));
       } catch (err: unknown) {
         if (!cancelled) {
           setError(getApiErrorMessage(err, t) || t('tasks:fieldWork.onboarding.loadFailed'));
@@ -335,64 +327,59 @@ const FieldWorkSetupPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fieldId, refreshGeneration, user?.userId, allowActiveEdit, navigate]);
 
-  // Load plan preview when entering preview step
+  // After the last question, gather answers and open Chronologio.
   useEffect(() => {
-    if (!fieldId || step !== 'planPreview') return;
+    if (!fieldId || step !== 'personalizing') return;
     let cancelled = false;
 
-    const loadPreview = async () => {
+    const finish = async () => {
+      const started = Date.now();
       try {
-        setPlanLoading(true);
+        setActivating(true);
         setError(null);
-        const preview = await getFieldWorkService().getPlanPreview(fieldId, resultYear);
-        if (!cancelled) setPlanPreview(preview);
+        await getFieldWorkService().updateWorkProfile(fieldId, {
+          harvest: { needsMillBooking: 'unknown', source: SOURCE },
+          notificationPreference: {
+            intensity: 'decisions_and_upcoming',
+            acceptedTaskReminderDaysBefore: 3,
+          },
+        }).catch(() => undefined);
+
+        const activated = await getFieldWorkService().activateWorkProfile(fieldId);
+        if (cancelled) return;
+        setProfile(activated);
+        try {
+          await getFieldWorkService().evaluateFieldProposals(fieldId, {
+            resultYear,
+          });
+        } catch {
+          /* Chronologio can refresh later */
+        }
+        clearWorkProfileDraft(fieldId);
+        const elapsed = Date.now() - started;
+        if (elapsed < 1600) {
+          await new Promise((resolve) => setTimeout(resolve, 1600 - elapsed));
+        }
+        if (!cancelled) navigate('/chronologio');
       } catch (err: unknown) {
         if (!cancelled) {
           setError(
-            getApiErrorMessage(err, t) || t('tasks:fieldWork.onboarding.planPreview.loadFailed')
+            getApiErrorMessage(err, t) || t('tasks:fieldWork.onboarding.planPreview.activateFailed')
           );
         }
       } finally {
-        if (!cancelled) setPlanLoading(false);
+        if (!cancelled) setActivating(false);
       }
     };
 
-    void loadPreview();
+    void finish();
     return () => {
       cancelled = true;
     };
-  }, [fieldId, step, resultYear, t]);
+  }, [fieldId, step, resultYear, t, navigate]);
 
   const goBack = () => {
-    if (returnToPlanAfterSave) {
-      setReturnToPlanAfterSave(false);
-      setStep('planPreview');
-      if (fieldId) {
-        const draft = readWorkProfileDraft(fieldId);
-        writeWorkProfileDraft({
-          fieldId,
-          stepId: 'planPreview',
-          pendingUpdate: draft?.pendingUpdate ?? {},
-          needsSync: Boolean(draft?.needsSync),
-          updatedAt: new Date().toISOString(),
-        });
-      }
-      return;
-    }
-    if (step === 'planPreview') {
-      setStep('reminders');
-      if (fieldId) {
-        const draft = readWorkProfileDraft(fieldId);
-        writeWorkProfileDraft({
-          fieldId,
-          stepId: 'reminders',
-          pendingUpdate: draft?.pendingUpdate ?? {},
-          needsSync: Boolean(draft?.needsSync),
-          updatedAt: new Date().toISOString(),
-        });
-      }
-      return;
-    }
+    if (step === 'personalizing') return;
     const back = prevStep(step, sequence);
     if (back) {
       setStep(back);
@@ -406,47 +393,6 @@ const FieldWorkSetupPage: React.FC = () => {
           updatedAt: new Date().toISOString(),
         });
       }
-    }
-  };
-
-  const jumpToPreference = (target: OnboardingStepId) => {
-    setReturnToPlanAfterSave(true);
-    setStep(target);
-    if (fieldId) {
-      const draft = readWorkProfileDraft(fieldId);
-      writeWorkProfileDraft({
-        fieldId,
-        stepId: target,
-        pendingUpdate: draft?.pendingUpdate ?? {},
-        needsSync: Boolean(draft?.needsSync),
-        updatedAt: new Date().toISOString(),
-      });
-    }
-  };
-
-  const acceptPlan = async () => {
-    if (!fieldId) return;
-    try {
-      setActivating(true);
-      setError(null);
-      const activated = await getFieldWorkService().activateWorkProfile(fieldId);
-      setProfile(activated);
-      // Evaluate proposals for the field — creates TaskProposals only, never FieldTasks.
-      try {
-        await getFieldWorkService().evaluateFieldProposals(fieldId, {
-          resultYear: planPreview?.resultYear ?? resultYear,
-        });
-      } catch {
-        // Activation succeeded; proposals can refresh later from Chronologio.
-      }
-      clearWorkProfileDraft(fieldId);
-      setStep('similarFields');
-    } catch (err: unknown) {
-      setError(
-        getApiErrorMessage(err, t) || t('tasks:fieldWork.onboarding.planPreview.activateFailed')
-      );
-    } finally {
-      setActivating(false);
     }
   };
 
@@ -473,11 +419,6 @@ const FieldWorkSetupPage: React.FC = () => {
       onSelect={onPick}
     />
   );
-
-  const monthChoices = [3, 4, 5, 6, 9, 10].map((m) => ({
-    id: String(m),
-    title: t(`tasks:fieldWork.onboarding.months.${m}`),
-  }));
 
   const yearCards = resultYearOptions(resultYear).map((opt) => ({
     id: String(opt.value),
@@ -552,9 +493,7 @@ const FieldWorkSetupPage: React.FC = () => {
       <PageContainer>
         <div className="error-container">
           <div className="error-message">{error}</div>
-          <Button to="/fields" icon={<ArrowLeft />} variant="outline">
-            {t('fields:controlRoom.backToFields')}
-          </Button>
+          <BackLink to="/fields">{t('fields:controlRoom.backToFields')}</BackLink>
         </div>
       </PageContainer>
     );
@@ -567,6 +506,11 @@ const FieldWorkSetupPage: React.FC = () => {
     <PageContainer>
       <div className="fw-setup">
         <Breadcrumbs />
+        {step !== 'personalizing' && fieldId ? (
+          <BackLink to={`/fields/${fieldId}`}>
+            {t('tasks:fieldWork.onboarding.backToField')}
+          </BackLink>
+        ) : null}
         <div className="fw-setup-top">
           {progress != null ? (
             <span className="fw-setup-progress">
@@ -578,16 +522,14 @@ const FieldWorkSetupPage: React.FC = () => {
           ) : (
             <span className="fw-setup-progress" />
           )}
-          <button type="button" className="fw-setup-exit" onClick={exitToField}>
-            {t('tasks:fieldWork.onboarding.exit')}
-          </button>
         </div>
 
         {returnToPlanAfterSave &&
         step !== 'planPreview' &&
         step !== 'finished' &&
         step !== 'similarFields' &&
-        step !== 'completion' ? (
+        step !== 'completion' &&
+        step !== 'personalizing' ? (
           <p className="fw-setup-return-note">{t('tasks:fieldWork.onboarding.planPreview.returnNote')}</p>
         ) : null}
 
@@ -1051,49 +993,6 @@ const FieldWorkSetupPage: React.FC = () => {
           </>
         )}
 
-        {step === 'groundCoverMonths' && (
-          <>
-            <h1 className="fw-setup-question">{question('groundCoverMonths')}</h1>
-            <p className="fw-setup-hint">{hint('optionalMonths')}</p>
-            <OnboardingChoiceList
-              multi
-              selectedIds={pendingMonths.map(String)}
-              choices={monthChoices}
-              onSelect={(id) => {
-                const m = Number(id);
-                setPendingMonths((prev) =>
-                  prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m].sort((a, b) => a - b)
-                );
-              }}
-            />
-            <div className="fw-setup-actions">
-              <Button
-                variant="primary"
-                size="lg"
-                loading={saving}
-                onClick={() =>
-                  void saveAnswer({
-                    groundCover: { preferredMonths: pendingMonths, source: SOURCE },
-                  })
-                }
-              >
-                {t('tasks:fieldWork.onboarding.continue')}
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() =>
-                  void saveAnswer({
-                    groundCover: { preferredMonths: [], source: SOURCE },
-                  })
-                }
-              >
-                {label('skip')}
-              </Button>
-            </div>
-          </>
-        )}
-
         {step === 'pest' && (
           <>
             <h1 className="fw-setup-question">{question('pest')}</h1>
@@ -1176,28 +1075,33 @@ const FieldWorkSetupPage: React.FC = () => {
         {step === 'analyses' && (
           <>
             <h1 className="fw-setup-question">{question('analyses')}</h1>
-            <p className="fw-setup-hint">{hint('multiSelect')}</p>
+            {analysisKinds.some((k) => k.kind === 'none') ? (
+              <p className="fw-setup-hint">{t('tasks:fieldWork.onboarding.hints.analysisNone')}</p>
+            ) : (
+              <p className="fw-setup-hint">{hint('multiSelect')}</p>
+            )}
             <OnboardingChoiceList
               multi
               selectedIds={analysisKinds.map((k) => k.kind)}
-              choices={[
-                { id: 'soil', title: label('analysis.soil') },
-                { id: 'leaf', title: label('analysis.leaf') },
-                { id: 'water', title: label('analysis.water') },
-                { id: 'none', title: label('analysis.none') },
-                { id: 'unknown', title: label('unsure') },
-              ]}
+              choices={
+                analysisKinds.some((k) => k.kind === 'none')
+                  ? [{ id: 'none', title: label('analysis.none') }]
+                  : [
+                      { id: 'soil', title: label('analysis.soil') },
+                      { id: 'leaf', title: label('analysis.leaf') },
+                      { id: 'water', title: label('analysis.water') },
+                      { id: 'none', title: label('analysis.none') },
+                    ]
+              }
               onSelect={(id) => {
                 if (id === 'none') {
-                  setAnalysisKinds([]);
-                  return;
-                }
-                if (id === 'unknown') {
-                  setAnalysisKinds([{ kind: 'unknown' }]);
+                  setAnalysisKinds((prev) =>
+                    prev.some((k) => k.kind === 'none') ? [] : [{ kind: 'none' }]
+                  );
                   return;
                 }
                 setAnalysisKinds((prev) => {
-                  const cleaned = prev.filter((k) => k.kind !== 'unknown');
+                  const cleaned = prev.filter((k) => k.kind !== 'unknown' && k.kind !== 'none');
                   if (cleaned.some((k) => k.kind === id)) {
                     return cleaned.filter((k) => k.kind !== id);
                   }
@@ -1211,7 +1115,10 @@ const FieldWorkSetupPage: React.FC = () => {
                 size="lg"
                 loading={saving}
                 onClick={() => {
-                  const kinds = analysisKinds.filter((k) => k.kind !== 'unknown');
+                  const noneOnly = analysisKinds.some((k) => k.kind === 'none');
+                  const kinds = noneOnly
+                    ? []
+                    : analysisKinds.filter((k) => k.kind !== 'unknown' && k.kind !== 'none');
                   void saveAnswer({
                     analysis: {
                       preferenceMode: kinds.length ? 'enabled' : 'disabled',
@@ -1223,17 +1130,19 @@ const FieldWorkSetupPage: React.FC = () => {
               >
                 {t('tasks:fieldWork.onboarding.continue')}
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() =>
-                  unsure({
-                    analysis: { preferenceMode: 'unknown', kinds: [], source: SOURCE },
-                  })
-                }
-              >
-                {label('unsure')}
-              </Button>
+              {analysisKinds.some((k) => k.kind === 'none') ? null : (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() =>
+                    unsure({
+                      analysis: { preferenceMode: 'unknown', kinds: [], source: SOURCE },
+                    })
+                  }
+                >
+                  {label('unsure')}
+                </Button>
+              )}
             </div>
           </>
         )}
@@ -1344,188 +1253,26 @@ const FieldWorkSetupPage: React.FC = () => {
           </>
         )}
 
-        {step === 'harvestMill' && (
-          <>
-            <h1 className="fw-setup-question">{question('harvestMill')}</h1>
-            {renderChoices(
-              [
-                { id: 'yes', titleKey: 'yes' },
-                { id: 'no', titleKey: 'no' },
-                { id: 'unknown', titleKey: 'unsure' },
-              ],
-              (id) =>
-                void saveAnswer({
-                  harvest: { needsMillBooking: id, source: SOURCE },
-                })
-            )}
-          </>
-        )}
-
-        {step === 'reminders' && (
-          <>
-            <h1 className="fw-setup-question">{question('reminders')}</h1>
-            <p className="fw-setup-hint">{hint('reminders')}</p>
-            {renderChoices(
-              [
-                { id: 'decisions_only', titleKey: 'reminders.decisions' },
-                { id: 'decisions_and_upcoming', titleKey: 'reminders.upcoming' },
-                { id: 'all_proposals', titleKey: 'reminders.all' },
-                { id: 'configure_later', titleKey: 'reminders.later' },
-                { id: 'unknown', titleKey: 'unsure' },
-              ],
-              (id) =>
-                void saveAnswer(
-                  {
-                    notificationPreference: {
-                      intensity: id,
-                      acceptedTaskReminderDaysBefore: 3,
-                    },
-                  },
-                  'planPreview'
-                )
-            )}
-          </>
-        )}
-
-        {(step === 'finished' || step === 'planPreview') && (
-          <>
-            {planLoading && !planPreview ? (
-              <LoadingSpinner />
-            ) : planPreview ? (
-              <FieldWorkPlanReview
-                profile={profile}
-                preview={planPreview}
-                activating={activating}
-                onChangeAnswer={jumpToPreference}
-                onAccept={() => void acceptPlan()}
-              />
-            ) : null}
-          </>
-        )}
-
-        {step === 'similarFields' && profile && fieldId ? (
-          copyFromSimilar ? (
-            <WorkProfileCopyWizard
-              sourceFieldId={fieldId}
-              profile={profile}
-              onCancel={() => setCopyFromSimilar(false)}
-              onDone={() => {
-                setCopyFromSimilar(false);
-                setStep('completion');
-              }}
-            />
-          ) : (
-            <>
-              <h1 className="fw-setup-question">
-                {t('tasks:fieldWork.profile.similar.title')}
-              </h1>
-              <p className="fw-setup-hint">{t('tasks:fieldWork.profile.similar.body')}</p>
-              <div className="fw-setup-choices">
-                <button
-                  type="button"
-                  className="fw-setup-choice"
-                  onClick={() => setCopyFromSimilar(true)}
-                >
-                  <span className="fw-setup-choice-body">
-                    <span className="fw-setup-choice-title">
-                      {t('tasks:fieldWork.profile.similar.copy')}
-                    </span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="fw-setup-choice"
-                  onClick={() => navigate('/fields')}
-                >
-                  <span className="fw-setup-choice-body">
-                    <span className="fw-setup-choice-title">
-                      {t('tasks:fieldWork.profile.similar.separate')}
-                    </span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="fw-setup-choice"
-                  onClick={() => setStep('completion')}
-                >
-                  <span className="fw-setup-choice-body">
-                    <span className="fw-setup-choice-title">
-                      {t('tasks:fieldWork.profile.similar.later')}
-                    </span>
-                  </span>
-                </button>
-              </div>
-            </>
-          )
-        ) : null}
-
-        {step === 'completion' && (
-          <>
+        {step === 'personalizing' && (
+          <div className="fw-setup-personalizing" aria-live="polite" aria-busy={activating}>
+            <div className="fw-setup-personalizing-orb" aria-hidden />
             <h1 className="fw-setup-question">
-              {t('tasks:fieldWork.onboarding.completion.title')}
+              {t('tasks:fieldWork.onboarding.personalizing.title')}
             </h1>
-            <p className="fw-setup-hint">{t('tasks:fieldWork.onboarding.completion.body')}</p>
-            <div className="fw-setup-choices">
-              <button
-                type="button"
-                className="fw-setup-choice"
-                onClick={() => navigate('/chronologio')}
-              >
-                <span className="fw-setup-choice-body">
-                  <span className="fw-setup-choice-title">
-                    {t('tasks:fieldWork.onboarding.completion.openChronologio')}
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="fw-setup-choice"
-                onClick={() => navigate('/chronologio')}
-              >
-                <span className="fw-setup-choice-body">
-                  <span className="fw-setup-choice-title">
-                    {t('tasks:fieldWork.onboarding.completion.reviewProposal')}
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="fw-setup-choice"
-                onClick={() => navigate(`/fields/${fieldId}?tab=people`)}
-              >
-                <span className="fw-setup-choice-body">
-                  <span className="fw-setup-choice-title">
-                    {t('tasks:fieldWork.onboarding.completion.addCollaborator')}
-                  </span>
-                </span>
-              </button>
-            </div>
-            <div className="fw-setup-actions">
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                onClick={() => navigate('/chronologio')}
-              >
-                {t('tasks:fieldWork.onboarding.completion.openChronologio')}
+            <p className="fw-setup-hint">{t('tasks:fieldWork.onboarding.personalizing.body')}</p>
+            {error ? (
+              <Button variant="primary" size="lg" onClick={() => setStep('personalizing')}>
+                {t('tasks:fieldWork.onboarding.continue')}
               </Button>
-              <Button variant="ghost" size="lg" fullWidth onClick={exitToField}>
-                {t('tasks:fieldWork.onboarding.completion.backToField')}
-              </Button>
-            </div>
-          </>
+            ) : null}
+          </div>
         )}
 
         {step !== 'welcome' &&
-        step !== 'finished' &&
-        step !== 'planPreview' &&
-        step !== 'similarFields' &&
-        step !== 'completion' ? (
+        step !== 'personalizing' ? (
           <div className="fw-setup-actions">
             <Button variant="ghost" size="lg" onClick={goBack} disabled={saving}>
-              {returnToPlanAfterSave
-                ? t('tasks:fieldWork.onboarding.planPreview.backToPlan')
-                : t('common:back', { defaultValue: 'Πίσω' })}
+              {t('common:back', { defaultValue: 'Πίσω' })}
             </Button>
           </div>
         ) : null}

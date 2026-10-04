@@ -1,5 +1,6 @@
 using System.Globalization;
 using OliveLifecycle.Core.Enums;
+using OliveLifecycle.Core.Units;
 
 namespace OliveLifecycle.Core;
 
@@ -36,7 +37,7 @@ public static class ChronologioDisplayLabels
                     ? (singular ? "Weather" : "Weather & warnings")
                     : (singular ? "Καιρός" : "Καιρός & προειδοποιήσεις"),
             ChronologioPrimaryCategory.FieldChange =>
-                IsEnglish(language) ? "Field change" : "Αλλαγές χωραφιού",
+                IsEnglish(language) ? "Field change" : "Αλλαγές ελαιώνα",
             _ => IsEnglish(language) ? "Activity" : "Δραστηριότητα"
         };
 
@@ -53,11 +54,12 @@ public static class ChronologioDisplayLabels
         string language = "el")
     {
         var culture = Culture(language);
+        var olive = GroveMass.RoundKg(oliveKg);
         var parts = new List<string>
         {
             IsEnglish(language)
-                ? $"{oliveKg.ToString("0.##", culture)} kg olives"
-                : $"{oliveKg.ToString("0.##", culture)} kg ελιές"
+                ? $"{olive.ToString("0.#", culture)} kg olives"
+                : $"{olive.ToString("0.#", culture)} kg ελιές"
         };
 
         if (oilLitres is > 0)
@@ -68,9 +70,10 @@ public static class ChronologioDisplayLabels
         }
         else if (oilKg is > 0)
         {
+            var oil = GroveMass.RoundKg(oilKg.Value);
             parts.Add(IsEnglish(language)
-                ? $"{oilKg.Value.ToString("0.##", culture)} kg oil"
-                : $"{oilKg.Value.ToString("0.##", culture)} kg λάδι");
+                ? $"{oil.ToString("0.#", culture)} kg oil"
+                : $"{oil.ToString("0.#", culture)} kg λάδι");
         }
 
         if (yieldPercent is > 0)
@@ -142,7 +145,58 @@ public static class ChronologioDisplayLabels
 
     public static string NoteTitle(string language = "el") => Category(ChronologioCategory.Note, language);
 
-    public static string HarvestTitle(string language = "el") => Category(ChronologioCategory.Harvest, language);
+    public static string PhotoTitle(string language = "el") =>
+        IsEnglish(language) ? "Photo" : "Φωτογραφία";
+
+    public static string HarvestTitle(string language = "el") => HarvestDayTitle(language);
+
+    public static string HarvestDayTitle(string language = "el") =>
+        IsEnglish(language) ? "Harvest day" : "Ημέρα συγκομιδής";
+
+    public static string HarvestDaySummary(
+        double officialKg,
+        int sackCount,
+        int people,
+        double? oilKg,
+        double? yieldPercent,
+        string language = "el")
+    {
+        var culture = Culture(language);
+        var parts = new List<string>();
+        if (officialKg > 0)
+        {
+            var olive = GroveMass.RoundKg(officialKg);
+            parts.Add(IsEnglish(language)
+                ? $"{olive.ToString("0.#", culture)} kg official weight"
+                : $"{olive.ToString("0.#", culture)} kg επίσημο βάρος");
+        }
+        else if (sackCount > 0)
+        {
+            parts.Add(IsEnglish(language) ? $"{sackCount} sacks" : $"{sackCount} σακιά");
+        }
+
+        if (people > 0)
+        {
+            parts.Add(IsEnglish(language) ? $"{people} people" : $"{people} άτομα");
+        }
+
+        if (oilKg is > 0)
+        {
+            var oil = GroveMass.RoundKg(oilKg.Value);
+            parts.Add(IsEnglish(language)
+                ? $"{oil.ToString("0.#", culture)} kg oil"
+                : $"{oil.ToString("0.#", culture)} kg λάδι");
+        }
+
+        if (yieldPercent is > 0)
+        {
+            parts.Add(IsEnglish(language)
+                ? $"{yieldPercent.Value.ToString("0.#", culture)}% yield"
+                : $"Απόδοση {yieldPercent.Value.ToString("0.#", culture)}%");
+        }
+
+        return parts.Count > 0 ? string.Join(" · ", parts) : HarvestSummary(officialKg, oilKg, null, yieldPercent, language);
+    }
 
     public static string TaskFallbackTitle(string language = "el") => Category(ChronologioCategory.Task, language);
 
@@ -173,6 +227,68 @@ public static class ChronologioDisplayLabels
 
     public static string WeatherYearTitle(int year, string language = "el") =>
         IsEnglish(language) ? $"{year} weather" : $"Καιρός {year}";
+
+    public static string WeatherExtremeTitle(
+        string kind,
+        int streakDays,
+        double? minTempC,
+        double? maxTempC,
+        double? rainMm,
+        bool isStronger,
+        string language = "el")
+    {
+        var culture = Culture(language);
+        var en = IsEnglish(language);
+        return kind switch
+        {
+            "heatwave" => en
+                ? (isStronger
+                    ? $"Severe heatwave — {streakDays} days above 37°C"
+                    : $"Prolonged heatwave — {streakDays} days above 37°C")
+                : $"Παρατεταμένος καύσωνας — {streakDays} ημέρες πάνω από 37°C",
+            "frost" => en
+                ? $"Frost in the grove — min {FormatTemp(minTempC, culture)}°C"
+                : $"Παγετός στον ελαιώνα — ελάχιστη {FormatTemp(minTempC, culture)}°C",
+            "nearFrost" => en
+                ? $"Near frost — min {FormatTemp(minTempC, culture)}°C"
+                : $"Κοντά σε παγετό — ελάχιστη {FormatTemp(minTempC, culture)}°C",
+            "heavyRain" => en
+                ? (isStronger
+                    ? $"Extreme rainfall — {FormatRain(rainMm, culture)} mm in one day"
+                    : $"Heavy rainfall — {FormatRain(rainMm, culture)} mm in one day")
+                : $"Έντονη βροχόπτωση — {FormatRain(rainMm, culture)} mm σε μία ημέρα",
+            "drought" => en
+                ? $"Prolonged dry period — {streakDays} days without meaningful rain"
+                : $"Παρατεταμένη ξηρασία — {streakDays} ημέρες χωρίς ουσιαστική βροχή",
+            "coldSpell" => en
+                ? "Unusually low temperatures for the season"
+                : "Ασυνήθιστα χαμηλές θερμοκρασίες για την εποχή",
+            _ => en ? "Weather event" : "Καιρικό φαινόμενο"
+        };
+    }
+
+    public static string WeatherExtremeSummary(
+        DateOnly start,
+        DateOnly end,
+        int streakDays,
+        string language = "el")
+    {
+        var culture = Culture(language);
+        if (start == end)
+        {
+            return start.ToString("d MMM yyyy", culture);
+        }
+
+        return IsEnglish(language)
+            ? $"{start.ToString("d MMM", culture)} – {end.ToString("d MMM yyyy", culture)} · {streakDays} days"
+            : $"{start.ToString("d MMM", culture)} – {end.ToString("d MMM yyyy", culture)} · {streakDays} ημέρες";
+    }
+
+    private static string FormatTemp(double? value, CultureInfo culture) =>
+        (value ?? 0).ToString("0.#", culture);
+
+    private static string FormatRain(double? value, CultureInfo culture) =>
+        (value ?? 0).ToString("0.#", culture);
 
     public static string HarvestQuality(string? quality, string language = "el")
     {

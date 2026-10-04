@@ -31,8 +31,16 @@ const ChronologioDateRail: React.FC<Props> = ({
 
   if (years.length < 5) return null;
 
+  const navigates = zoom !== 'years';
+  const railHint = navigates
+    ? t('dateControl.railNavigates')
+    : t('dateControl.railScrolls');
+
   return (
-    <nav className="chrono-date-rail" aria-label={t('living.dateRail')}>
+    <nav className="chrono-date-rail" aria-label={t('living.dateRail')} aria-describedby="chrono-date-rail-hint">
+      <p id="chrono-date-rail-hint" className="chrono-control-hint chrono-date-rail-hint">
+        {railHint}
+      </p>
       <ul>
         {years.map((y) => {
           const active = y.periodYear === activePeriodYear;
@@ -48,7 +56,8 @@ const ChronologioDateRail: React.FC<Props> = ({
                     onJumpToYear(focusDateForPeriod(y.periodYear, axis));
                   }
                 }}
-                title={String(y.periodYear)}
+                title={`${y.periodYear} — ${railHint}`}
+                aria-label={`${y.periodYear}. ${railHint}`}
                 aria-current={active ? 'true' : undefined}
               >
                 <span className="chrono-rail-dot" aria-hidden />

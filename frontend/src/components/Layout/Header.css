@@ -21,26 +21,27 @@
   gap: var(--spacing-sm);
   width: var(--sidebar-width);
   flex-shrink: 0;
-  padding: 0 var(--spacing-lg);
+  padding: 0 var(--spacing-md);
+  background: var(--bg-sidebar);
   border-right: 1px solid var(--color-border-light);
 }
 
 .header-brand {
   display: flex;
   align-items: center;
+  width: 100%;
   min-width: 0;
   text-decoration: none;
   color: inherit;
 }
 
 .header-logo-lockup {
-  height: 26px;
-  width: auto;
-  max-width: 168px;
-}
-
-.header-logo-mark {
-  display: none;
+  display: block;
+  height: 52px !important;
+  width: auto !important;
+  max-width: min(280px, 100%);
+  object-fit: contain;
+  object-position: left center;
 }
 
 .menu-button {
@@ -125,7 +126,7 @@
   background-color: var(--surface-hover);
 }
 
-.notification-badge {
+.notification-bell-count {
   position: absolute;
   top: 0;
   right: 0;
@@ -165,8 +166,7 @@
 
 .header-lang-btn-active {
   background: var(--olive-soft);
-  color: var(--link);
-  box-shadow: inset 0 0 0 1px var(--olive-border);
+  color: var(--olive-primary);
 }
 
 .header-lang-btn-active:hover {
@@ -210,15 +210,24 @@
   color: var(--color-text-secondary);
 }
 
+.user-role-badge {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
 .logout-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   background: none;
   border: none;
-  font-size: 1.25rem;
+  font-size: calc(0.875rem * var(--font-scale, 1));
+  font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
   min-height: var(--tap-min, 44px);
   min-width: var(--tap-min, 44px);
-  padding: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-md);
   transition: background-color var(--transition-fast), color var(--transition-fast),
     opacity var(--transition-fast);
@@ -243,10 +252,12 @@
   right: 0;
   min-width: 220px;
   max-width: min(280px, calc(100vw - 24px));
-  background: var(--bg-card);
+  background: color-mix(in srgb, var(--bg-popover, var(--surface-popover, #fff)) 88%, transparent);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12));
+  box-shadow: var(--shadow-floating, var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12)));
   padding: var(--spacing-md);
   display: flex;
   flex-direction: column;
@@ -294,6 +305,42 @@
   white-space: nowrap;
 }
 
+.header-overflow-user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.header-overflow-user-role {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-overflow-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  min-height: var(--tap-min, 44px);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+
+.header-overflow-item:hover {
+  background: var(--bg-hover, var(--surface-hover));
+}
+
 .header-overflow-logout {
   display: flex;
   align-items: center;
@@ -318,6 +365,7 @@
 @media (max-width: 768px) {
   .header-brand-slot {
     width: auto;
+    background: transparent;
     border-right: none;
     padding: 0 var(--spacing-xs) 0 calc(var(--spacing-sm) + var(--safe-left));
     gap: var(--spacing-xs);
@@ -329,12 +377,12 @@
     justify-content: center;
   }
 
-  .header-logo-lockup {
-    display: none;
+  .header-brand {
+    width: min(240px, 62vw);
   }
 
-  .header-logo-mark {
-    display: block;
+  .header-logo-lockup {
+    height: 44px !important;
   }
 
   .page-title {
@@ -355,5 +403,13 @@
     min-width: 40px;
     min-height: 40px;
     padding: var(--spacing-xs);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .header-overflow-menu {
+    background: var(--bg-popover, var(--surface-popover, #fff));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }

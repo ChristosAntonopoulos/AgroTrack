@@ -1,5 +1,10 @@
 import type { FieldWeather } from '../services/geospatialService';
-import { resolveWeatherImplication, weatherOutlookBuckets } from './fieldWeatherImplication';
+import {
+  isOutlookDry,
+  resolveWeatherImplication,
+  weatherOutlookBars,
+  weatherOutlookBuckets,
+} from './fieldWeatherImplication';
 
 const weather = (overrides: Partial<FieldWeather> = {}): FieldWeather =>
   ({
@@ -85,5 +90,20 @@ describe('resolveWeatherImplication', () => {
     expect(
       weatherOutlookBuckets(weather({ rain: { ...weather().rain, forecast72hMm: 4 } })).map((b) => b.key)
     ).toEqual(['h24', 'h48', 'h72']);
+  });
+});
+
+describe('weatherOutlookBars', () => {
+  it('splits cumulative rain into each window', () => {
+    const bars = weatherOutlookBars(
+      weather({
+        rain: { ...weather().rain, forecast24hMm: 2, forecast48hMm: 8, forecast72hMm: 8 },
+      })
+    );
+    expect(bars.map((b) => Number(b.periodMm.toFixed(1)))).toEqual([2, 6, 0]);
+  });
+
+  it('treats a dry forecast as dry', () => {
+    expect(isOutlookDry(weatherOutlookBars(weather()))).toBe(true);
   });
 });

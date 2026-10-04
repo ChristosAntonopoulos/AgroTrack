@@ -1,0 +1,129 @@
+.hc-opening {
+  position: fixed;
+  inset: 0;
+  z-index: 14000;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.hc-opening-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(24, 20, 14, 0.62);
+  animation: hc-opening-veil-in 0.28s ease-out;
+}
+
+.hc-opening-card {
+  position: relative;
+  z-index: 1;
+  width: min(26rem, 100%);
+  padding: 2rem 1.75rem 1.45rem;
+  border-radius: 20px;
+  text-align: center;
+  color: #2f2a23;
+  background: #fbf7f0;
+  border: 1px solid rgba(122, 90, 58, 0.16);
+  box-shadow: 0 24px 60px rgba(16, 12, 8, 0.32);
+  animation: hc-opening-card-in 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hc-opening-kicker {
+  margin: 0 0 0.7rem;
+  color: #8a7358;
+  font-size: calc(0.75rem * var(--font-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.14em;
+}
+
+.hc-opening-card h2 {
+  margin: 0 0 1rem;
+  font-family: Palatino, 'Palatino Linotype', Georgia, serif;
+  font-size: calc(2rem * var(--font-scale, 1));
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #2c3426;
+}
+
+.hc-opening-copy p {
+  margin: 0;
+  color: #4e483f;
+  font-size: calc(1.02rem * var(--font-scale, 1));
+  line-height: 1.55;
+}
+
+.hc-opening-copy p + p {
+  margin-top: 0.75rem;
+}
+
+.hc-opening-promise {
+  display: grid;
+  gap: 0.15rem;
+  margin: 1.15rem 0 0.85rem;
+  color: #5c564c;
+  font-size: calc(0.98rem * var(--font-scale, 1));
+  line-height: 1.45;
+}
+
+.hc-opening-promise span:last-child {
+  font-family: Palatino, 'Palatino Linotype', Georgia, serif;
+  font-style: italic;
+  font-size: calc(1.12rem * var(--font-scale, 1));
+  color: #2c3426;
+}
+
+.hc-opening-blessing {
+  margin: 0 0 1.15rem;
+  color: #5c564c;
+  font-size: calc(0.98rem * var(--font-scale, 1));
+}
+
+.hc-opening-go {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #3f4a32;
+  color: #fbf7f0;
+  font: inherit;
+  font-weight: 700;
+  font-size: calc(1.02rem * var(--font-scale, 1));
+  cursor: pointer;
+}
+
+.hc-opening-go:hover {
+  background: #344028;
+}
+
+.hc-opening-go:focus-visible {
+  outline: 2px solid #8a7358;
+  outline-offset: 3px;
+}
+
+@keyframes hc-opening-veil-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes hc-opening-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hc-opening-veil,
+  .hc-opening-card {
+    animation: none;
+  }
+}

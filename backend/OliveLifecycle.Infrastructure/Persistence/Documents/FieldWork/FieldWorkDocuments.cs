@@ -293,6 +293,27 @@ public class FieldTaskDocument
     [BsonElement("latestExecutionId")]
     public string? LatestExecutionId { get; set; }
 
+    [BsonElement("startedAt")]
+    public DateTime? StartedAt { get; set; }
+
+    [BsonElement("isPaused")]
+    public bool IsPaused { get; set; }
+
+    [BsonElement("pauseReason")]
+    public string? PauseReason { get; set; }
+
+    [BsonElement("pausedAt")]
+    public DateTime? PausedAt { get; set; }
+
+    [BsonElement("workGroupId")]
+    public string? WorkGroupId { get; set; }
+
+    [BsonElement("blockedReason")]
+    public string? BlockedReason { get; set; }
+
+    [BsonElement("activity")]
+    public List<FieldTaskActivityDocument> Activity { get; set; } = [];
+
     [BsonElement("createdByUserId")]
     public string CreatedByUserId { get; set; } = string.Empty;
 
@@ -301,6 +322,21 @@ public class FieldTaskDocument
 
     [BsonElement("updatedAt")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class FieldTaskActivityDocument
+{
+    [BsonElement("action")]
+    public string Action { get; set; } = string.Empty;
+
+    [BsonElement("actorId")]
+    public string ActorId { get; set; } = string.Empty;
+
+    [BsonElement("occurredAt")]
+    public DateTime OccurredAt { get; set; }
+
+    [BsonElement("comment")]
+    public string? Comment { get; set; }
 }
 
 public class TaskExecutionDocument

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { usePreferences } from '../../context/PreferencesContext';
 import { FIELD_COLOR_PRESETS, resolveFieldColor } from '../../utils/fieldColors';
@@ -11,9 +12,16 @@ type Props = {
   fieldId?: string | null;
   onChange: (color: string) => void;
   disabled?: boolean;
+  showLabel?: boolean;
 };
 
-const FieldColorPicker: React.FC<Props> = ({ value, fieldId, onChange, disabled }) => {
+const FieldColorPicker: React.FC<Props> = ({
+  value,
+  fieldId,
+  onChange,
+  disabled,
+  showLabel = true,
+}) => {
   const { t } = useTranslation('fields');
   const { colors } = useTheme();
   const { tapMin } = usePreferences();
@@ -21,14 +29,18 @@ const FieldColorPicker: React.FC<Props> = ({ value, fieldId, onChange, disabled 
 
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.label, { color: colors.textPrimary }]}>
-        {t('form.color', { defaultValue: 'Field color' })}
-      </Text>
-      <Text style={[styles.hint, { color: colors.textSecondary }]}>
-        {t('form.colorHint', {
-          defaultValue: 'Used on Chronologio cards so you can spot this grove quickly.',
-        })}
-      </Text>
+      {showLabel ? (
+        <>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>
+            {t('form.color', { defaultValue: 'Field color' })}
+          </Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            {t('form.colorHint', {
+              defaultValue: 'Used on Chronologio cards so you can spot this grove quickly.',
+            })}
+          </Text>
+        </>
+      ) : null}
       <View style={styles.row} accessibilityRole="radiogroup">
         {FIELD_COLOR_PRESETS.map((color) => {
           const active = selected.toUpperCase() === color.toUpperCase();
@@ -44,12 +56,17 @@ const FieldColorPicker: React.FC<Props> = ({ value, fieldId, onChange, disabled 
                 {
                   backgroundColor: color,
                   borderColor: active ? colors.textPrimary : 'transparent',
-                  minWidth: Math.max(tapMin * 0.7, 36),
-                  minHeight: Math.max(tapMin * 0.7, 36),
+                  borderWidth: active ? 3 : 0,
+                  minWidth: Math.max(tapMin, 44),
+                  minHeight: Math.max(tapMin, 44),
                   opacity: disabled ? 0.5 : 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 },
               ]}
-            />
+            >
+              {active ? <Ionicons name="checkmark" size={18} color="#fff" /> : null}
+            </Pressable>
           );
         })}
       </View>

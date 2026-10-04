@@ -59,7 +59,12 @@ const MyServiceProfilePage: React.FC = () => {
       <PageContainer>
         <div className="partners-page">
           <Breadcrumbs />
-          <PageHeader title={t('partners:myServices')} subtitle={t('partners:offerHint')} />
+          <PageHeader
+            title={t('partners:myServices')}
+            subtitle={t('partners:offerHint')}
+            backTo="/partners"
+            backLabel={t('common:back')}
+          />
           <LoadingSpinner className="page-inline-loading" />
         </div>
       </PageContainer>
@@ -73,6 +78,8 @@ const MyServiceProfilePage: React.FC = () => {
         <PageHeader
           title={t('partners:myServices')}
           subtitle={t('partners:offerHint')}
+          backTo="/partners"
+          backLabel={t('common:back')}
           actions={
             profile ? (
               <div className="partner-actions">

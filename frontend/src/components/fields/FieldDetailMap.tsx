@@ -1,18 +1,27 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, useMap } from 'react-leaflet';
+import MapWheelZoom from '../maps/MapWheelZoom';
 import { useTranslation } from 'react-i18next';
 import { Field } from '../../services/fieldService';
 import {
   MapLayerType,
+  MAP_FIT_MAX_ZOOM,
+  MAP_MAX_ZOOM,
+  MAP_MAX_NATIVE_ZOOM,
+  MAP_MIN_ZOOM,
   SATELLITE_LABELS_TILE,
   SATELLITE_PLACES_TILE,
   SATELLITE_TILE,
   STREET_TILE,
-  TERRAIN_LABELS_TILE,
-  TERRAIN_TILE,
   fieldPolygonStyle,
 } from '../../utils/mapLayers';
 import { resolveFieldCenter, resolveFieldPolygon } from '../../utils/fieldGeo';
+import {
+  persistBaseLayer,
+  persistOverlayIds,
+  readPersistedBaseLayer,
+  readPersistedOverlayIds,
+} from '../../utils/fieldMapPreferences';
 import { MapLayerData, MapLayerDefinition } from '../../services/geospatialService';
 import { SATELLITE_LAYER_IDS, useFieldMapLayers } from '../../hooks/useFieldMapLayers';
 import DataSourceInfoModal, { DataSourceInfo } from '../Common/DataSourceInfoModal';
@@ -21,19 +30,18 @@ import MapLayerPanel from './MapLayerPanel';
 import MapLayerLegend from './MapLayerLegend';
 import SatelliteDateSelector from './SatelliteDateSelector';
 import type { FieldWeather } from '../../services/geospatialService';
-import type { SimpleMapPreset } from '../../utils/fieldMapPresets';
-import { FULL_OVERLAY_CAP, nextOverlayIds, resolveSimplePresetLayer } from '../../utils/fieldMapPresets';
+import { nextOverlayIds } from '../../utils/fieldMapPresets';
+import FieldTabStatus from './FieldTabStatus';
+import MapExploreCue from '../onboarding/MapExploreCue';
 import './FieldDetailMap.css';
 
-export type FieldMapVariant = 'peek' | 'simple' | 'full';
+export type FieldMapVariant = 'peek' | 'full';
 
 interface Props {
   field: Field;
   heightPx?: number;
   variant?: FieldMapVariant;
   weather?: FieldWeather | null;
-  preset?: SimpleMapPreset;
-  onPresetChange?: (preset: SimpleMapPreset) => void;
   onOpenMapTab?: () => void;
   showDataLayers?: boolean;
   compact?: boolean;
@@ -53,18 +61,24 @@ const EnsureMapPanes: React.FC = () => {
   return null;
 };
 
-const FitFieldBounds: React.FC<{ polygon?: [number, number][]; center: [number, number] }> = ({
-  polygon,
-  center,
-}) => {
+const FitFieldBounds: React.FC<{
+  polygon?: [number, number][];
+  center: [number, number];
+  fitKey: string;
+}> = ({ polygon, center, fitKey }) => {
   const map = useMap();
+  const lastKey = useRef('');
   useEffect(() => {
+    // Only auto-fit when the field geometry identity changes — not when weather
+    // or overlay catalogue finishes loading (those remount props with new refs).
+    if (lastKey.current === fitKey) return;
+    lastKey.current = fitKey;
     if (polygon?.length) {
-      map.fitBounds(polygon, { padding: [16, 16], maxZoom: 18, animate: false });
+      map.fitBounds(polygon, { padding: [16, 16], maxZoom: MAP_FIT_MAX_ZOOM, animate: false });
     } else {
-      map.setView(center, 16);
+      map.setView(center, Math.min(MAP_FIT_MAX_ZOOM, MAP_MAX_ZOOM));
     }
-  }, [map, polygon, center]);
+  }, [map, polygon, center, fitKey]);
   return null;
 };
 
@@ -105,29 +119,33 @@ const toLeafletBounds = (bounds?: number[]): OverlayBounds | undefined => {
 const FieldDetailMap: React.FC<Props> = ({
   field,
   heightPx = 240,
-  variant = 'simple',
+  variant = 'full',
   weather,
-  preset = 'field',
-  onPresetChange,
   onOpenMapTab,
   showDataLayers,
   compact = false,
 }) => {
   const mode: FieldMapVariant =
-    variant || (showDataLayers === false || compact ? 'peek' : 'simple');
+    variant === 'peek' || showDataLayers === false || compact ? 'peek' : 'full';
   const { t, i18n } = useTranslation(['fields', 'common', 'settings']);
   const isPeek = mode === 'peek';
   const isFull = mode === 'full';
-  const [baseLayer, setBaseLayer] = useState<MapLayerType>('satellite');
+  const [baseLayer, setBaseLayerState] = useState<MapLayerType>(
+    () => readPersistedBaseLayer(field.id) ?? 'satellite'
+  );
   const [opacity, setOpacity] = useState(0.75);
   const [layerInfo, setLayerInfo] = useState<DataSourceInfo>();
-  const [overlayCapMessage, setOverlayCapMessage] = useState(false);
   const [leafletMap, setLeafletMap] = useState<{
     fitBounds: (b: [number, number][], o: object) => void;
     setView: (c: [number, number], z: number) => void;
   } | null>(null);
   const center = useMemo(() => resolveFieldCenter(field), [field]);
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
+
+  const setBaseLayer = (layer: MapLayerType) => {
+    setBaseLayerState(layer);
+    persistBaseLayer(field.id, layer);
+  };
 
   const mapLayers = useFieldMapLayers(isPeek ? undefined : field.id);
   const {
@@ -141,30 +159,40 @@ const FieldDetailMap: React.FC<Props> = ({
     dates,
     selectedDateId,
     loading,
-    selectLayer,
+    error: mapLayersError,
     setOverlayIds,
     selectDate,
     selectCompareDate,
+    refresh: refreshMapLayers,
   } = mapLayers;
 
-  const availableIds = useMemo(
-    () => definitions.map((definition) => definition.id),
-    [definitions]
-  );
-  const simpleChoice = resolveSimplePresetLayer(preset, availableIds);
-
+  // Restore overlay choice once per field; never overwrite a live user selection.
+  const restoredOverlayRef = useRef<string | null>(null);
   useEffect(() => {
-    if (isPeek || isFull) return;
-    selectLayer(simpleChoice.layerId);
-  }, [isPeek, isFull, simpleChoice.layerId, selectLayer]);
+    if (isPeek) return;
+    if (restoredOverlayRef.current === field.id) return;
+    restoredOverlayRef.current = field.id;
+    const saved = readPersistedOverlayIds(field.id);
+    if (saved && saved.length > 0 && activeLayerIds.length === 0) {
+      setOverlayIds(saved);
+    }
+  }, [field.id, isPeek, activeLayerIds.length, setOverlayIds]);
+
+  const fitKey = useMemo(() => {
+    if (polygon?.length) {
+      return `${field.id}:poly:${polygon.length}:${polygon[0]?.[0]}:${polygon[0]?.[1]}`;
+    }
+    return `${field.id}:pt:${center?.[0]}:${center?.[1]}`;
+  }, [field.id, polygon, center]);
 
   const overlayBounds = toLeafletBounds(activeLayer?.bounds);
   const compareBounds = toLeafletBounds(compareLayer?.bounds);
-  const satelliteLayerActive = Boolean(activeLayerId && SATELLITE_LAYER_IDS.includes(activeLayerId));
   const activeDefinition = definitions.find((d) => d.id === activeLayerId);
-  const showDateDock = !isPeek && isFull && satelliteLayerActive;
+  const satelliteLook = Boolean(activeLayerId && SATELLITE_LAYER_IDS.includes(activeLayerId));
+  const showDateDock = isFull && satelliteLook && dates.length > 0;
+
   const frostLevel = String(weather?.frost?.level || '').toLowerCase();
-  const showFrostNote = preset === 'frost' || (isFull && frostLevel && frostLevel !== 'none');
+  const showFrostNote = isFull && frostLevel && frostLevel !== 'none';
 
   const formatPassDate = (observationId?: string) => {
     const pass = dates.find((d) => d.observationId === observationId);
@@ -172,6 +200,7 @@ const FieldDetailMap: React.FC<Props> = ({
     return new Date(pass.observationDate).toLocaleDateString(i18n.language, {
       day: 'numeric',
       month: 'short',
+      year: 'numeric',
     });
   };
 
@@ -188,86 +217,78 @@ const FieldDetailMap: React.FC<Props> = ({
     });
   };
 
-  const toggleFullOverlay = (layerId: string | undefined) => {
-    if (!layerId) {
-      setOverlayIds([]);
-      setOverlayCapMessage(false);
-      return;
+  const selectOverlay = (layerId: string | undefined) => {
+    const next = nextOverlayIds(activeLayerIds, layerId).ids;
+    setOverlayIds(next);
+    persistOverlayIds(field.id, next);
+  };
+
+  const pickDate = (observationId: string) => {
+    selectDate(observationId);
+    if (!activeLayerId || !SATELLITE_LAYER_IDS.includes(activeLayerId)) {
+      selectOverlay('ndvi');
     }
-    const next = nextOverlayIds(activeLayerIds, layerId);
-    setOverlayCapMessage(next.blocked);
-    if (!next.blocked) setOverlayIds(next.ids);
   };
 
   if (!center) {
     return (
-      <div className="field-detail-map field-detail-map--empty" style={{ height: heightPx }}>
-        <p>{t('fields:controlRoom.noGpsDescription')}</p>
-      </div>
+      <FieldTabStatus
+        kind="empty"
+        title={t('fields:page.mapNoPlace')}
+        description={t('fields:page.mapNoPlaceHint')}
+        className="field-detail-map-status"
+      />
     );
   }
 
   return (
     <div className={`field-detail-map-wrap field-detail-map-wrap--${mode}`}>
-      <div className={`field-detail-map field-detail-map--${mode}${isPeek ? ' field-detail-map--compact' : ''}`} style={{ height: heightPx }}>
-        <div className="field-detail-map-canvas">
-          {isFull ? (
-            <MapLayerPanel
-              baseLayer={baseLayer}
-              onBaseLayerChange={setBaseLayer}
-              overlays={definitions}
-              activeLayerIds={activeLayerIds}
-              onToggleOverlay={toggleFullOverlay}
-              activeLayer={activeLayer}
-              opacity={opacity}
-              onOpacityChange={setOpacity}
-              onShowInfo={showInfo}
-              loading={loading}
-              capReached={overlayCapMessage}
-            />
-          ) : null}
-
-          {!isPeek && !isFull ? (
-            <div className="field-map-preset-bar" role="group" aria-label={t('fields:mapWorkspace.whatToSee')}>
-              <p className="field-map-preset-label">{t('fields:mapWorkspace.whatToSee')}</p>
-              {(['field', 'water', 'frost', 'vegetation'] as SimpleMapPreset[]).map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={preset === item ? 'is-active' : ''}
-                  onClick={() => onPresetChange?.(item)}
-                >
-                  {t(`fields:mapWorkspace.presets.${item}`)}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
+      <div
+        className={`field-detail-map field-detail-map--${mode}${isPeek ? ' field-detail-map--compact' : ''}`}
+        style={isFull ? undefined : { height: heightPx }}
+      >
+        <div className="field-detail-map-stage">
+          <div className="field-detail-map-canvas">
+          <MapExploreCue />
           <MapContainer
             center={center}
-            zoom={16}
-            scrollWheelZoom={false}
+            zoom={Math.min(MAP_FIT_MAX_ZOOM, MAP_MAX_ZOOM)}
+            minZoom={MAP_MIN_ZOOM}
+            maxZoom={MAP_MAX_ZOOM}
+            scrollWheelZoom
             className="field-detail-map-leaflet"
           >
+            <MapWheelZoom />
             <EnsureMapPanes />
             {baseLayer === 'satellite' ? (
               <>
-                <TileLayer attribution="Tiles &copy; Esri" url={SATELLITE_TILE} />
-                <TileLayer url={SATELLITE_PLACES_TILE} opacity={0.92} />
-                <TileLayer url={SATELLITE_LABELS_TILE} opacity={0.55} />
+                <TileLayer
+                  attribution="Tiles &copy; Esri"
+                  url={SATELLITE_TILE}
+                  maxZoom={MAP_MAX_ZOOM}
+                  maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+                />
+                <TileLayer
+                  url={SATELLITE_PLACES_TILE}
+                  opacity={0.92}
+                  maxZoom={MAP_MAX_ZOOM}
+                  maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+                />
+                <TileLayer
+                  url={SATELLITE_LABELS_TILE}
+                  opacity={0.55}
+                  maxZoom={MAP_MAX_ZOOM}
+                  maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+                />
               </>
             ) : null}
             {baseLayer === 'street' ? (
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url={STREET_TILE}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
               />
-            ) : null}
-            {baseLayer === 'terrain' ? (
-              <>
-                <TileLayer attribution="Tiles &copy; Esri" url={TERRAIN_TILE} />
-                <TileLayer url={TERRAIN_LABELS_TILE} opacity={0.7} />
-              </>
             ) : null}
 
             {activeLayers.map((layer) =>
@@ -298,7 +319,7 @@ const FieldDetailMap: React.FC<Props> = ({
             ) : null}
 
             <CaptureMap onReady={setLeafletMap} />
-            <FitFieldBounds polygon={polygon} center={center} />
+            <FitFieldBounds polygon={polygon} center={center} fitKey={fitKey} />
             <InvalidateOnResize />
             {polygon?.length ? (
               <Polygon
@@ -315,14 +336,13 @@ const FieldDetailMap: React.FC<Props> = ({
             </p>
           ) : null}
 
-          {!isPeek && simpleChoice.missingKey ? (
-            <p className="field-map-missing">{t(`fields:${simpleChoice.missingKey}`)}</p>
-          ) : null}
-
           {!isPeek && activeLayer?.legend && activeDefinition ? (
             <MapLayerLegend
               legend={activeLayer.legend}
-              label={t(`fields:mapLayers.names.${activeDefinition.id}`, activeDefinition.name)}
+              label={t(
+                `fields:mapLayers.looks.${activeDefinition.id}`,
+                t(`fields:mapLayers.names.${activeDefinition.id}`, activeDefinition.name)
+              )}
               attribution={activeLayer.attribution}
             />
           ) : null}
@@ -331,8 +351,8 @@ const FieldDetailMap: React.FC<Props> = ({
             type="button"
             className="field-map-recenter"
             onClick={() => {
-              if (polygon?.length) leafletMap?.fitBounds(polygon, { padding: [16, 16], maxZoom: 18 });
-              else leafletMap?.setView(center, 16);
+              if (polygon?.length) leafletMap?.fitBounds(polygon, { padding: [16, 16], maxZoom: MAP_FIT_MAX_ZOOM });
+              else leafletMap?.setView(center, Math.min(MAP_FIT_MAX_ZOOM, MAP_MAX_ZOOM));
             }}
           >
             {t('fields:mapWorkspace.recenter')}
@@ -350,11 +370,29 @@ const FieldDetailMap: React.FC<Props> = ({
             <SatelliteDateSelector
               dates={dates}
               selectedId={selectedDateId}
-              onSelect={selectDate}
+              onSelect={pickDate}
               compareId={compareDateId}
               onCompareSelect={selectCompareDate}
             />
           </div>
+        ) : null}
+        </div>
+
+        {isFull ? (
+          <MapLayerPanel
+            baseLayer={baseLayer}
+            onBaseLayerChange={setBaseLayer}
+            overlays={definitions}
+            activeLayerIds={activeLayerIds}
+            onSelectOverlay={selectOverlay}
+            activeLayer={activeLayer}
+            opacity={opacity}
+            onOpacityChange={setOpacity}
+            onShowInfo={showInfo}
+            loading={loading}
+            error={mapLayersError ? t('fields:page.tabErrorHint') : undefined}
+            onRetryError={mapLayersError ? refreshMapLayers : undefined}
+          />
         ) : null}
       </div>
 

@@ -2,6 +2,7 @@ import type { Field } from '../services/fieldService';
 import type { FieldTask } from '../services/fieldWorkService';
 import type { Note } from '../services/noteService';
 import type { WeatherData } from '../services/weatherService';
+import { friendlyFieldLabel } from '../utils/fieldLabels';
 
 export type BriefProposalKind = 'stale_observation' | 'weather_rain' | 'harvest_hint';
 
@@ -26,16 +27,7 @@ export type RankedProposals = {
   hiddenCount: number;
 };
 
-export const friendlyFieldLabel = (name?: string | null): string => {
-  if (!name || !name.trim()) return '—';
-  let n = name.trim();
-  n = n.replace(/^Olive\s+Field\s*[-–—:]\s*/i, '');
-  n = n.replace(/^Ελαιώνας\s*[-–—:]\s*/i, '');
-  n = n.replace(/\s*[-–—]\s*/g, ' · ');
-  n = n.replace(/\s{2,}/g, ' ').trim();
-  n = n.replace(/(\s·\s)+/g, ' · ');
-  return n || name.trim();
-};
+export { friendlyFieldLabel };
 
 const startOfDay = (d: Date) => {
   const x = new Date(d);

@@ -7,13 +7,14 @@ interface BarChartProps {
   xAxisKey: string;
   bars: { dataKey: string; name: string; color: string }[];
   title?: string;
+  height?: number;
 }
 
-const BarChart: React.FC<BarChartProps> = ({ data, xAxisKey, bars, title }) => {
+const BarChart: React.FC<BarChartProps> = ({ data, xAxisKey, bars, title, height = 300 }) => {
   return (
     <div className="chart-container">
       {title && <h3 className="chart-title">{title}</h3>}
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={height}>
         <RechartsBarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey={xAxisKey} />

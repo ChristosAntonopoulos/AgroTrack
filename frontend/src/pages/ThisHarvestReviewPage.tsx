@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, Wallet, BookOpen, ArrowLeft } from 'lucide-react';
+import { ChevronRight, Wallet, BookOpen } from 'lucide-react';
 import PageContainer from '../components/Common/PageContainer';
 import PageHeader from '../components/Common/PageHeader';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -36,19 +36,15 @@ import {
 } from '../ravdos/seasonFinance';
 import type { HarvestRecord, FieldSummaryData } from '../data/mockReportData';
 import { useLocale } from '../context/LocaleProvider';
-import { useExperienceMode } from '../context/ExperienceModeContext';
 import { formatOfficialAmount } from '../finance/format';
 import type { YearFinancialSummary } from '../services/financialSummaryService';
-import { formatDate, formatNumber } from '../utils/localeFormatters';
+import { formatDate } from '../utils/localeFormatters';
+import { formatGroveMassKg } from '../utils/groveTotals';
 import './ThisHarvestPage.css';
-
-const formatKg = (kg: number, locale: string) =>
-  formatNumber(kg, { locale: locale.startsWith('el') ? 'el' : locale.startsWith('it') ? 'it' : 'en', maximumFractionDigits: 1 });
 
 const ThisHarvestReviewPage: React.FC = () => {
   const { t, i18n } = useTranslation(['fields', 'common', 'money']);
   const { locale } = useLocale();
-  const { isEveryday } = useExperienceMode();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
@@ -102,7 +98,8 @@ const ThisHarvestReviewPage: React.FC = () => {
         getNoteService().getNotes({ limit: 100 }).catch(() => [] as Note[]),
         Promise.all(years.map((y) => reports.getHarvestRecords(y).catch(() => [] as HarvestRecord[]))),
         Promise.all(years.map((y) => reports.getFieldSummaries(y).catch(() => [] as FieldSummaryData[]))),
-        getFinancialSummaryService().getYear(year + 1, undefined, i18n.language).catch(() => null),
+        // ResultYear S is the harvest year 1 Feb S – 31 Jan S+1, the same season the review is about.
+        getFinancialSummaryService().getYear(year, undefined, i18n.language).catch(() => null),
       ]);
 
       const harvests = harvestChunks.flat();
@@ -129,10 +126,10 @@ const ThisHarvestReviewPage: React.FC = () => {
         allNotes
           .filter((n) => noteInSeasonBounds(n, bounds))
           .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-          .slice(0, isEveryday ? 4 : 12)
+          .slice(0, 12)
       );
     },
-    [allTasks, anyIrrigated, i18n.language, isEveryday]
+    [allTasks, anyIrrigated, i18n.language]
   );
 
   useEffect(() => {
@@ -146,11 +143,12 @@ const ThisHarvestReviewPage: React.FC = () => {
     <PageContainer>
       <div className="ravdos-page">
         <Breadcrumbs />
-        <PageHeader title={t('fields:apologismos.title')} subtitle={t('fields:apologismos.subtitle')} />
-
-        <Link to="/this-harvest" className="ravdos-section-link ravdos-back">
-          <ArrowLeft size={16} aria-hidden /> {t('fields:apologismos.backToProgress')}
-        </Link>
+        <PageHeader
+          title={t('fields:apologismos.title')}
+          subtitle={t('fields:apologismos.subtitle')}
+          backTo="/harvest"
+          backLabel={t('fields:apologismos.backToProgress')}
+        />
 
         {closedYears.length === 0 ? (
           <EmptyState
@@ -188,9 +186,9 @@ const ThisHarvestReviewPage: React.FC = () => {
               </div>
               <h2 id="ravdos-result" className="ravdos-story-now">
                 {finance.oilKg > 0
-                  ? `${formatKg(finance.oilKg, locale)} ${t('fields:thisHarvest.oilUnit')}`
+                  ? `${formatGroveMassKg(finance.oilKg, locale)} ${t('fields:thisHarvest.oilUnit')}`
                   : finance.oliveKg > 0
-                    ? `${formatKg(finance.oliveKg, locale)} ${t('fields:thisHarvest.olivesUnit')}`
+                    ? `${formatGroveMassKg(finance.oliveKg, locale)} ${t('fields:thisHarvest.olivesUnit')}`
                     : t('fields:apologismos.progressNone')}
               </h2>
               <p className="ravdos-story-kicker">
@@ -210,16 +208,16 @@ const ThisHarvestReviewPage: React.FC = () => {
               <div className="ravdos-money-grid">
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.olives')}</span>
-                  <strong>{formatKg(finance.oliveKg, locale)} kg</strong>
+                  <strong>{formatGroveMassKg(finance.oliveKg, locale)} kg</strong>
                 </div>
                 <div className="ravdos-money-stat">
                   <span>{t('fields:apologismos.oil')}</span>
-                  <strong>{formatKg(finance.oilKg, locale)} kg</strong>
+                  <strong>{formatGroveMassKg(finance.oilKg, locale)} kg</strong>
                 </div>
                 {finance.oliveKg > 0 && finance.oilKg > 0 ? (
                   <div className="ravdos-money-stat">
                     <span>{t('fields:thisHarvest.oilYieldSoFar')}</span>
-                    <strong>{formatKg((finance.oilKg / finance.oliveKg) * 100, locale)}%</strong>
+                    <strong>{formatGroveMassKg((finance.oilKg / finance.oliveKg) * 100, locale)}%</strong>
                   </div>
                 ) : null}
                 <div className="ravdos-money-stat">
@@ -258,7 +256,7 @@ const ThisHarvestReviewPage: React.FC = () => {
               </div>
               <div className="ravdos-money-actions">
                 <Button
-                  to={selectedYear ? `/money?year=${selectedYear + 1}` : '/money'}
+                  to={selectedYear ? `/money?year=${selectedYear}` : '/money'}
                   variant="outline"
                   icon={<Wallet size={16} />}
                 >
@@ -271,7 +269,7 @@ const ThisHarvestReviewPage: React.FC = () => {
               <section className="ravdos-section" aria-labelledby="ravdos-happened">
                 <h2 id="ravdos-happened">{t('fields:apologismos.whatHappened')}</h2>
                 <ul className="ravdos-done-list">
-                  {(isEveryday ? doneTitles.slice(0, 6) : doneTitles).map((title) => (
+                  {doneTitles.map((title) => (
                     <li key={title}>{title}</li>
                   ))}
                 </ul>
@@ -310,7 +308,7 @@ const ThisHarvestReviewPage: React.FC = () => {
               </Link>
             )}
 
-            {!isEveryday && finance.fieldCards.length > 0 ? (
+            {finance.fieldCards.length > 0 ? (
               <section className="ravdos-section" aria-labelledby="ravdos-fields-review">
                 <h2 id="ravdos-fields-review">{t('fields:apologismos.fieldsTitle')}</h2>
                 <ul className="ravdos-fields">
@@ -319,8 +317,8 @@ const ThisHarvestReviewPage: React.FC = () => {
                       <Link to={`/fields/${card.fieldId}`} className="ravdos-field-link">
                         <span className="ravdos-field-name">{card.fieldName}</span>
                         <span className="ravdos-field-meta">
-                        {formatKg(card.oliveKg, locale)} kg
-                        {card.oilKg > 0 ? ` · ${formatKg(card.oilKg, locale)} kg` : ''}
+                        {formatGroveMassKg(card.oliveKg, locale)} kg
+                        {card.oilKg > 0 ? ` · ${formatGroveMassKg(card.oilKg, locale)} kg` : ''}
                       </span>
                       </Link>
                     </li>

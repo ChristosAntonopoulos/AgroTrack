@@ -34,7 +34,7 @@ const monthKey = (d: Date): string =>
  * Groups Chronologio entries newest-first into Year/Month → day (Today/Yesterday/date) → events.
  */
 export const groupChronologioEntries = (
-  entries: ChronologioEntry[],
+  entries: ChronologioEntry[] | null | undefined,
   now: Date = new Date()
 ): ChronologioTimelineModel => {
   const today = startOfLocalDay(now);
@@ -42,8 +42,9 @@ export const groupChronologioEntries = (
   yesterday.setDate(yesterday.getDate() - 1);
 
   const byMonth = new Map<string, ChronologioMonthGroup>();
+  const safeEntries = Array.isArray(entries) ? entries : [];
 
-  for (const entry of entries) {
+  for (const entry of safeEntries) {
     const occurred = new Date(entry.occurredAt);
     if (Number.isNaN(occurred.getTime())) continue;
 

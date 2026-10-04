@@ -13,7 +13,7 @@
   "yourFields": "Τα αγροτεμάχια σου",
   "seeAllFields": "Όλα τα αγροτεμάχια",
   "viewAllTasks": "Όλες οι εργασίες",
-  "allClearHint": "Έλεγξε το ημερολόγιο για επερχόμενες εργασίες.",
+  "allClearHint": "Έλεγξε τις εργασίες για ό,τι έρχεται.",
   "summaryFieldsLabel": "{{area}} ha σύνολο",
   "quickNav": {
     "fields": "Τα αγροτεμάχια",
@@ -112,7 +112,7 @@
       "contactPartnerSubtitle": "Ζήτα βοήθεια κοντά σου.",
       "contactPartnerCta": "Άνοιξε συνεργάτες",
       "ownerDefaultTitle": "Προγραμμάτισε την επόμενη εργασία",
-      "ownerDefaultSubtitle": "Δημιούργησε εργασία για το χωράφι σου.",
+      "ownerDefaultSubtitle": "Δημιούργησε εργασία για τον ελαιώνα σου.",
       "ownerDefaultCta": "Νέα εργασία"
     }
   },
@@ -124,6 +124,9 @@
     "pinField": "Σύνδεση με αγροτεμάχιο",
     "noField": "Χωρίς αγροτεμάχιο",
     "pinTop": "Κράτα στην κορυφή",
+    "pinHint": "Εμφανίζεται πρώτη στις σημειώσεις.",
+    "fieldHint": "Προαιρετικό. Η σημείωση μένει ιδιωτική.",
+    "charCount": "{{count}} / {{max}}",
     "bodyLabel": "Σημείωση",
     "bodyRequired": "Γράψε πρώτα μια σύντομη σημείωση.",
     "newTitle": "Νέα σημείωση",

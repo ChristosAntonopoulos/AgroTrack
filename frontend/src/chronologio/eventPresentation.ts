@@ -1,6 +1,7 @@
 import type { ChronologioEntry, ChronologioSourceType } from '../services/chronologioService';
 import { financialCategoryLabel } from '../finance/display';
 import { presentPrimaryCategory } from './primaryCategories';
+import { formatMonthHeading } from '../utils/taskFormDates';
 
 export type ChronologioEventKey = {
   sourceType: ChronologioSourceType | string;
@@ -41,11 +42,11 @@ const CATEGORY_EL: Record<string, string> = {
   note: 'Παρατήρηση',
   observation: 'Παρατήρηση',
   weather: 'Καιρός',
-  intelligence: 'OLEACHRON',
-  lifecycle: 'Αλλαγές χωραφιού',
-  collaborator: 'Αλλαγές χωραφιού',
-  activity: 'Αλλαγές χωραφιού',
-  field_change: 'Αλλαγές χωραφιού',
+  intelligence: 'The Olive Lot',
+  lifecycle: 'Αλλαγές ελαιώνα',
+  collaborator: 'Αλλαγές ελαιώνα',
+  activity: 'Αλλαγές ελαιώνα',
+  field_change: 'Αλλαγές ελαιώνα',
   photo: 'Παρατήρηση',
 };
 
@@ -59,7 +60,7 @@ const CATEGORY_EN: Record<string, string> = {
   note: 'Note',
   observation: 'Note',
   weather: 'Weather',
-  intelligence: 'OLEACHRON',
+  intelligence: 'The Olive Lot',
   lifecycle: 'Field change',
   collaborator: 'Field change',
   activity: 'Field change',
@@ -103,12 +104,14 @@ const ACTOR_EL: Record<string, string> = {
   'giorgos papadakis': 'Γιώργος Παπαδάκης',
   'giorgos papadopoulos': 'Γιώργος Παπαδόπουλος',
   'kostas manousakis': 'Κώστας Μανούσακης',
+  'eleni papadaki': 'Ελένη Παπαδάκη',
 };
 
 const ACTOR_EN: Record<string, string> = {
   'γιώργος παπαδάκης': 'Giorgos Papadakis',
   'γιώργος παπαδόπουλος': 'Giorgos Papadopoulos',
   'κώστας μανούσακης': 'Kostas Manousakis',
+  'ελένη παπαδάκη': 'Eleni Papadaki',
 };
 
 const QUALITY_EL: Record<string, string> = {
@@ -142,9 +145,13 @@ const STAGE_EN: Record<string, string> = {
 };
 
 const isEnglish = (language?: string) => (language || 'el').toLowerCase().startsWith('en');
+const isItalian = (language?: string) => (language || 'el').toLowerCase().startsWith('it');
 
 const pick = (el: Record<string, string>, en: Record<string, string>, key: string, language?: string) =>
   (isEnglish(language) ? en[key] : el[key]) || el[key];
+
+const isMergedHarvestDayEntry = (entry: ChronologioEntry): boolean =>
+  entry.sourceType === 'Harvest' && /^Harvest:day:/i.test(entry.id);
 
 export const chronologioEventKey = (entry: Pick<ChronologioEntry, 'sourceType' | 'sourceId'> & {
   occurrenceId?: string | null;
@@ -171,6 +178,17 @@ export const presentCategory = (category: string, language = 'el'): string => {
   const primary = presentPrimaryCategory(category, language, true);
   if (primary) return primary;
   return isEnglish(language) ? 'Activity' : 'Δραστηριότητα';
+};
+
+/** Uppercase meta labels without Greek τόνοι (ΣΥΓΚΟΜΙΔΗ, not ΣΥΓΚΟΜΙΔΉ). */
+export const presentMetaLabel = (label: string, language = 'el'): string => {
+  const text = (label || '').trim();
+  if (!text) return '';
+  const locale = isEnglish(language) ? 'en' : 'el-GR';
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleUpperCase(locale);
 };
 
 export const presentExpenseCategory = (category?: string | null, language = 'el'): string => {
@@ -241,15 +259,43 @@ const humanTitle = (raw: string | undefined, language: string, fallback: string)
 const weatherLabel = (entry: ChronologioEntry, language: string): string => {
   const weather = entry.details.weather;
   if (weather?.year && weather.month) {
-    const locale = isEnglish(language) ? 'en-US' : 'el-GR';
-    const monthName = new Date(Date.UTC(weather.year, weather.month - 1, 1)).toLocaleDateString(locale, {
-      month: 'long',
-      timeZone: 'UTC',
-    });
-    return isEnglish(language) ? `${monthName} ${weather.year}` : `${monthName} ${weather.year}`;
+    return formatMonthHeading(weather.year, weather.month, language);
   }
   if (weather?.year) return String(weather.year);
   return humanTitle(entry.title, language, presentCategory('weather', language));
+};
+
+const GENERIC_NOTE_TITLES = new Set([
+  'observation',
+  'note',
+  'photo',
+  'παρατήρηση',
+  'σημείωση',
+  'φωτογραφία',
+  'osservazione',
+  'nota',
+  'foto',
+]);
+
+/** First sentence, capped so the card preview stays two or three lines. */
+export const observationPreview = (text: string, max = 140): string => {
+  const trimmed = text.replace(/\s+/g, ' ').trim();
+  if (!trimmed) return '';
+  const breakAt = trimmed.search(/[.!;…](?:\s|$)/);
+  const sentence = (breakAt >= 0 ? trimmed.slice(0, breakAt) : trimmed).trim();
+  const source = sentence || trimmed;
+  if (source.length <= max) return source;
+  const cut = source.slice(0, max).replace(/\s+\S*$/, '').trim();
+  return `${cut || source.slice(0, max)}…`;
+};
+
+const isGenericNoteTitle = (title: string, body: string): boolean => {
+  const key = title.trim().toLowerCase();
+  if (!key) return true;
+  if (GENERIC_NOTE_TITLES.has(key)) return true;
+  if (looksLikeInternalCode(title)) return true;
+  if (body && key === body.trim().toLowerCase()) return true;
+  return false;
 };
 
 export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'): EventPresentation => {
@@ -258,20 +304,54 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
   const icon = iconFor(category);
   const accent = accentFor(category, String(entry.importance || ''));
 
-  if (category === 'note') {
-    const preview = (entry.details.note?.bodyPreview || entry.summary || '').trim();
+  if (category === 'note' || category === 'photo') {
+    const body = (entry.details.note?.bodyPreview || entry.summary || '').trim();
+    const rawTitle = (entry.title || '').trim();
+    if (category === 'photo' && (!body || body.toLowerCase() === 'photo' || body === 'Φωτογραφία') && isGenericNoteTitle(rawTitle, body)) {
+      const field = entry.field?.name;
+      const auto = field
+        ? isEnglish(language)
+          ? `Photo from ${field}`
+          : `Φωτογραφία από ${field}`
+        : presentCategory('photo', language);
+      return { label: auto, shortLabel, icon: 'photo', accent, description: undefined };
+    }
+    if (isGenericNoteTitle(rawTitle, body)) {
+      return {
+        label: observationPreview(body || presentCategory('note', language)),
+        shortLabel,
+        icon: category === 'photo' ? 'photo' : icon,
+        accent,
+        description: undefined,
+      };
+    }
+    const preview = observationPreview(body);
+    const repeatsTitle =
+      !preview ||
+      preview.toLowerCase() === rawTitle.toLowerCase() ||
+      body.toLowerCase().startsWith(rawTitle.toLowerCase());
     return {
-      label: preview || presentCategory('note', language),
+      label: humanTitle(rawTitle, language, presentCategory('note', language)),
       shortLabel,
-      icon,
+      icon: category === 'photo' ? 'photo' : icon,
       accent,
-      description: undefined,
+      description: repeatsTitle ? undefined : preview,
     };
   }
 
   if (category === 'harvest') {
+    if (isMergedHarvestDayEntry(entry)) {
+      return {
+        // Category already in the meta row — numbers render below; no repeated title.
+        label: '',
+        shortLabel: presentCategory('harvest', language),
+        icon,
+        accent,
+        description: undefined,
+      };
+    }
     return {
-      label: presentCategory('harvest', language),
+      label: '',
       shortLabel,
       icon,
       accent,
@@ -294,19 +374,26 @@ export const presentChronologioEvent = (entry: ChronologioEntry, language = 'el'
       entry.details.expense?.expenseCategoryLabel ||
       presentExpenseCategory(entry.details.expense?.expenseCategory, language);
     const titled = humanTitle(entry.title, language, '');
+    const stripped = titled.replace(/^[''΄`«»\s]+/, '');
     const genericMoneyTitle =
       !titled ||
       titled === shortLabel ||
-      titled.toLowerCase().startsWith(shortLabel.toLowerCase());
+      stripped === shortLabel ||
+      stripped.toLowerCase().startsWith(shortLabel.toLowerCase());
     const label = genericMoneyTitle
       ? categoryLabel || titled || shortLabel
       : titled;
+    const summary = (entry.summary || '').trim();
+    const extra =
+      summary && summary !== label && summary.toLowerCase() !== label.toLowerCase()
+        ? summary
+        : undefined;
     return {
       label,
       shortLabel,
       icon,
       accent,
-      description: label === categoryLabel ? entry.summary || undefined : categoryLabel || entry.summary || undefined,
+      description: label === categoryLabel ? extra : categoryLabel || extra,
     };
   }
 

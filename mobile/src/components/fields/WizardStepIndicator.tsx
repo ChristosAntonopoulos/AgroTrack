@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,65 +20,91 @@ interface Props {
   steps: WizardStepKey[];
   current: WizardStepKey;
   currentIndex: number;
+  onStepPress?: (step: WizardStepKey, index: number) => void;
 }
 
-const WizardStepIndicator: React.FC<Props> = ({ steps, current, currentIndex }) => {
-  const { colors } = useTheme();
+const WizardStepIndicator: React.FC<Props> = ({ steps, current, currentIndex, onStepPress }) => {
+  const { colors, tapMin } = useTheme();
   const { t } = useTranslation('fields');
 
   return (
-    <View style={styles.row}>
-      {steps.map((step, idx) => {
-        const done = idx < currentIndex;
-        const active = step === current;
-        return (
-          <View key={step} style={styles.item}>
-            <View
-              style={[
-                styles.dot,
-                {
-                  backgroundColor: done || active ? colors.primaryLight : colors.surface,
-                  borderColor: done || active ? colors.oliveBorder : colors.borderLight,
-                },
-              ]}
+    <View style={styles.wrap}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+        {steps.map((step, idx) => {
+          const done = idx < currentIndex;
+          const active = step === current;
+          const reachable = idx <= currentIndex;
+          return (
+            <Pressable
+              key={step}
+              disabled={!reachable}
+              onPress={() => reachable && onStepPress?.(step, idx)}
+              style={[styles.item, { minHeight: tapMin * 0.7 }]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active, disabled: !reachable }}
             >
-              {done ? (
-                <Ionicons name="checkmark" size={12} color={colors.primary} />
-              ) : (
-                <Ionicons
-                  name={STEP_ICONS[step]}
-                  size={12}
-                  color={active ? colors.primary : colors.textTertiary}
-                />
-              )}
-            </View>
-            {idx < steps.length - 1 ? (
               <View
                 style={[
-                  styles.line,
-                  { backgroundColor: done ? colors.primary : colors.borderLight },
+                  styles.dot,
+                  {
+                    backgroundColor: done || active ? colors.primaryLight : colors.surface,
+                    borderColor: done || active ? colors.oliveBorder : colors.borderLight,
+                  },
                 ]}
-              />
-            ) : null}
-          </View>
-        );
-      })}
-      <Text style={[styles.label, { color: colors.textSecondary }]} numberOfLines={1}>
-        {t(`addField.steps.${current === 'basics' ? 'basics' : current}`)}
+              >
+                {done ? (
+                  <Ionicons name="checkmark" size={12} color={colors.primary} />
+                ) : (
+                  <Ionicons
+                    name={STEP_ICONS[step]}
+                    size={12}
+                    color={active ? colors.primary : colors.textTertiary}
+                  />
+                )}
+              </View>
+              <Text
+                style={[
+                  styles.stepLabel,
+                  { color: active ? colors.textPrimary : colors.textSecondary },
+                ]}
+                numberOfLines={1}
+              >
+                {t(`addField.steps.${step}`)}
+              </Text>
+              {idx < steps.length - 1 ? (
+                <View
+                  style={[
+                    styles.line,
+                    { backgroundColor: done ? colors.primary : colors.borderLight },
+                  ]}
+                />
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <Text style={[styles.progress, { color: colors.textSecondary }]}>
+        {t('form.stepProgress', {
+          current: Math.max(currentIndex + 1, 1),
+          total: steps.length,
+          name: t(`addField.steps.${current}`),
+        })}
       </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  wrap: { marginBottom: spacing.md, gap: spacing.xs },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
     gap: spacing.xs,
-    marginBottom: spacing.md,
   },
-  item: { flexDirection: 'row', alignItems: 'center' },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   dot: {
     width: 26,
     height: 26,
@@ -87,12 +113,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  line: { width: 14, height: 2, marginHorizontal: 2 },
-  label: {
+  stepLabel: {
     ...typography.styles.caption,
     fontWeight: '600',
-    marginLeft: spacing.xs,
-    flex: 1,
+    marginLeft: 6,
+    maxWidth: 88,
+  },
+  line: { width: 14, height: 2, marginHorizontal: 6 },
+  progress: {
+    ...typography.styles.caption,
+    fontWeight: '600',
   },
 });
 

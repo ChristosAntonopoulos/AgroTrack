@@ -9,6 +9,7 @@ using OliveLifecycle.Application.DTOs.Geospatial;
 using OliveLifecycle.Application.Mappings;
 using OliveLifecycle.Application.Services.Geospatial;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
 
@@ -219,7 +220,7 @@ public class FieldSpatialController : BaseApiController
     {
         var field = await _fieldRepository.GetByIdAsync(fieldId, ct);
         if (field == null) throw new NotFoundException("Field not found.");
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(fieldId, UserContext.UserId, UserContext.Role, ct))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(fieldId, UserContext.UserId, UserContext.Role, FamilyModules.Fields, ct))
             throw new ForbiddenException("Access denied.");
         return field;
     }

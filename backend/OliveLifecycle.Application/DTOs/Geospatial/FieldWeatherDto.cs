@@ -11,7 +11,19 @@ public class FieldWeatherDto
     public FrostRiskDto Frost { get; set; } = new();
     public EvapotranspirationDto Evapotranspiration { get; set; } = new();
     public WaterBalanceDto WaterBalance { get; set; } = new();
+    /// <summary>Today through the next six days, derived from the hourly forecast.</summary>
+    public IReadOnlyList<DailyForecastDto> Days { get; set; } = Array.Empty<DailyForecastDto>();
     public DataSourceMetadataDto Metadata { get; set; } = new();
+}
+
+public class DailyForecastDto
+{
+    public DateOnly Date { get; set; }
+    public double? MinTemperatureC { get; set; }
+    public double? MaxTemperatureC { get; set; }
+    public int WeatherCode { get; set; }
+    public double RainMm { get; set; }
+    public double? MaxWindKmh { get; set; }
 }
 
 public class CurrentWeatherDto

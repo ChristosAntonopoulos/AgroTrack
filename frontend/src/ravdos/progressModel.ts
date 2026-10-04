@@ -140,7 +140,7 @@ const normalizeTypeKey = (task: FieldTask): string => {
 };
 
 const phaseForKey = (key: string, title: string): RodPhaseId => {
-  if (HARVEST_CODES.has(key) || /harvest|συγκομιδ|τρύγ|post.?harvest/i.test(`${key} ${title}`)) {
+  if (HARVEST_CODES.has(key) || /harvest|συγκομιδ|τρύγ|ράβδ|post.?harvest/i.test(`${key} ${title}`)) {
     return 'harvest';
   }
   if (/prun|κλάδ|dorman|winter/i.test(`${key} ${title}`)) return 'dormancy';

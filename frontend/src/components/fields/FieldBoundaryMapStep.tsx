@@ -1,32 +1,72 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Polygon, CircleMarker, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { createPortal } from 'react-dom';
+import { MapContainer, TileLayer, Polygon, Marker, useMap, useMapEvents } from 'react-leaflet';
+import MapWheelZoom from '../maps/MapWheelZoom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
-import { Crosshair, LocateFixed, Undo2, Trash2, Check, MapPin } from 'lucide-react';
+import { ArrowLeft, Crosshair, LocateFixed, Undo2, Trash2, Check, MapPin } from 'lucide-react';
 import { GeoJsonPolygon, GreekCadastreInfo } from '../../services/fieldService';
 import AreaComparisonCard from './AreaComparisonCard';
+import LocationSearchField from './LocationSearchField';
 import { locationService } from '../../services/locationService';
+import {
+  GREECE_CENTER,
+  GREECE_REGION_ZOOM,
+  PLACE_ZOOM,
+  searchPlaces,
+} from '../../utils/geocodeLocation';
 import {
   FIELD_POLYGON_STYLE,
   MapLayerType,
+  MAP_MAX_ZOOM,
+  MAP_MAX_NATIVE_ZOOM,
+  MAP_MIN_ZOOM,
   SATELLITE_LABELS_TILE,
   SATELLITE_PLACES_TILE,
   SATELLITE_TILE,
   STREET_TILE,
 } from '../../utils/mapLayers';
+import {
+  estimateGeodesicAreaSqm,
+  MIN_DRAW_ZOOM,
+  validateBoundaryPolygon,
+  type BoundaryValidationCode,
+} from '../../utils/boundaryValidation';
+import { formatAreaFromSqm } from '../../utils/area';
+import { normalizeLocale } from '../../i18n/config';
 
 interface Props {
   boundary?: GeoJsonPolygon;
-  officialAreaSqm?: number;
   cadastre?: GreekCadastreInfo;
   measuredAreaSqm?: number;
+  locationQuery?: string;
+  latitude?: number;
+  longitude?: number;
   onBoundaryChange: (boundary: GeoJsonPolygon | undefined, areaSqm?: number) => void;
+  onPlaceChange?: (place: { locationText: string; latitude: number; longitude: number }) => void;
+  /** First boundary is required — one CTA beside the measured area. */
+  onContinue?: () => void;
+  continueLoading?: boolean;
+  /** First-run: locate via search, then auto-start marking when a place is chosen. */
+  activationGuide?: boolean;
+  /** Grove steps, drawn on the map when the boundary fills the screen. */
+  setupRail?: React.ReactNode;
+  /** Leave the full-screen map. The page behind it is hidden, so this is the only way back. */
+  onBack?: () => void;
 }
 
 type DrawPhase = 'locate' | 'drawing' | 'done';
 
 type Corner = { lat: number; lng: number };
+
+const cornerIcon = (index: number) =>
+  L.divIcon({
+    className: 'boundary-corner-pin',
+    html: `<span class="boundary-corner-pin-dot" aria-hidden="true">${index + 1}</span>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
 
 const polygonToGeoJson = (corners: Corner[]): GeoJsonPolygon => {
   const ring = corners.map((c) => [c.lng, c.lat]);
@@ -36,17 +76,6 @@ const polygonToGeoJson = (corners: Corner[]): GeoJsonPolygon => {
     if (first[0] !== last[0] || first[1] !== last[1]) ring.push([...first]);
   }
   return { type: 'Polygon', coordinates: [ring] };
-};
-
-const estimateAreaSqm = (ring: number[][]): number => {
-  const rad = Math.PI / 180;
-  let total = 0;
-  for (let i = 0; i < ring.length - 1; i++) {
-    const [lon1, lat1] = ring[i];
-    const [lon2, lat2] = ring[i + 1];
-    total += (lon2 * rad - lon1 * rad) * (2 + Math.sin(lat1 * rad) + Math.sin(lat2 * rad));
-  }
-  return Math.abs((total * 6378137 * 6378137) / 2);
 };
 
 const boundaryToCorners = (boundary?: GeoJsonPolygon): Corner[] => {
@@ -64,8 +93,37 @@ const boundaryToCorners = (boundary?: GeoJsonPolygon): Corner[] => {
 const MapViewUpdater: React.FC<{ center: [number, number]; zoom?: number }> = ({ center, zoom = 18 }) => {
   const map = useMap();
   useEffect(() => {
+    map.invalidateSize();
     map.setView(center, zoom);
   }, [map, center, zoom]);
+  return null;
+};
+
+const MapZoomWatcher: React.FC<{ onZoom: (zoom: number) => void }> = ({ onZoom }) => {
+  const map = useMap();
+  useEffect(() => {
+    onZoom(map.getZoom());
+    const handler = () => onZoom(map.getZoom());
+    map.on('zoomend', handler);
+    return () => {
+      map.off('zoomend', handler);
+    };
+  }, [map, onZoom]);
+  return null;
+};
+
+const FitStage: React.FC = () => {
+  const map = useMap();
+  useEffect(() => {
+    const fit = () => map.invalidateSize();
+    fit();
+    const id = window.setTimeout(fit, 60);
+    window.addEventListener('resize', fit);
+    return () => {
+      window.clearTimeout(id);
+      window.removeEventListener('resize', fit);
+    };
+  }, [map]);
   return null;
 };
 
@@ -88,64 +146,142 @@ const buildCadastreSearchQuery = (cadastre?: GreekCadastreInfo): string | undefi
   return parts.length > 1 ? parts.join(', ') : cadastre.locationFromCadastre;
 };
 
+const hasCoords = (lat?: number, lng?: number) =>
+  lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);
+
 const FieldBoundaryMapStep: React.FC<Props> = ({
   boundary,
-  officialAreaSqm,
   cadastre,
   measuredAreaSqm,
+  locationQuery,
+  latitude,
+  longitude,
   onBoundaryChange,
+  onPlaceChange,
+  onContinue,
+  continueLoading = false,
+  activationGuide = false,
+  setupRail,
+  onBack,
 }) => {
-  const { t } = useTranslation('fields');
+  const { t, i18n } = useTranslation('fields');
+  const locale = normalizeLocale(i18n.language);
   const cadastreSearch = buildCadastreSearchQuery(cadastre);
+  const initialQuery = cadastreSearch || locationQuery || '';
   const initialCorners = useMemo(() => boundaryToCorners(boundary), [boundary]);
-  const [search, setSearch] = useState(cadastreSearch ?? '');
-  const [center, setCenter] = useState<[number, number]>([37.05, 21.85]);
-  const [mapZoom, setMapZoom] = useState(18);
+  const [search, setSearch] = useState(initialQuery);
+  const [center, setCenter] = useState<[number, number]>(
+    hasCoords(latitude, longitude) ? [latitude as number, longitude as number] : GREECE_CENTER
+  );
+  const [mapZoom, setMapZoom] = useState(hasCoords(latitude, longitude) ? PLACE_ZOOM : GREECE_REGION_ZOOM);
+  const [liveZoom, setLiveZoom] = useState(mapZoom);
   const [mapLayer, setMapLayer] = useState<MapLayerType>('satellite');
   const [corners, setCorners] = useState<Corner[]>(initialCorners);
   const [phase, setPhase] = useState<DrawPhase>(initialCorners.length >= 3 ? 'done' : 'locate');
   const [localMeasured, setLocalMeasured] = useState<number | undefined>(measuredAreaSqm);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'found' | 'missing'>('idle');
+  const [drawError, setDrawError] = useState<string | null>(null);
 
-  const geocodeSearch = useCallback(async (query: string) => {
-    if (!query.trim()) return;
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
-        { headers: { 'Accept-Language': 'el,en' } }
-      );
-      const data = await res.json();
-      if (data[0]) {
-        setCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
-        setMapZoom(18);
-      }
-    } catch {
-      /* ignore */
-    }
+  const zoomTooLow = liveZoom < MIN_DRAW_ZOOM;
+
+  const validationMessage = useCallback(
+    (code: BoundaryValidationCode): string => t(`addField.boundaryValidation.${code}`),
+    [t]
+  );
+
+  const showGreece = useCallback(() => {
+    setCenter(GREECE_CENTER);
+    setMapZoom(GREECE_REGION_ZOOM);
+    setLocationStatus('missing');
   }, []);
 
   useEffect(() => {
-    if (cadastreSearch) void geocodeSearch(cadastreSearch);
+    if (hasCoords(latitude, longitude)) {
+      setCenter([latitude as number, longitude as number]);
+      setMapZoom(PLACE_ZOOM);
+      setLocationStatus('found');
+      return;
+    }
+    // Cadastre-only: resolve once into the map. Free-text typing uses the dropdown pick.
+    if (cadastreSearch?.trim()) {
+      let cancelled = false;
+      void searchPlaces(cadastreSearch, 1).then((places) => {
+        if (cancelled) return;
+        if (places[0]) {
+          setCenter([places[0].latitude, places[0].longitude]);
+          setMapZoom(PLACE_ZOOM);
+          setLocationStatus('found');
+          setSearch(places[0].label);
+          return;
+        }
+        showGreece();
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    showGreece();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cadastre?.municipality, cadastre?.prefecture, cadastre?.postalCode]);
+  }, [cadastre?.municipality, cadastre?.prefecture, cadastre?.postalCode, latitude, longitude]);
+
+  const applyPlace = useCallback((label: string, lat: number, lng: number) => {
+    setSearch(label);
+    setCenter([lat, lng]);
+    setMapZoom(PLACE_ZOOM);
+    setLocationStatus('found');
+    onPlaceChange?.({ locationText: label, latitude: lat, longitude: lng });
+  }, [onPlaceChange]);
+
+  const handleCurrentLocation = async () => {
+    try {
+      const loc = await locationService.getCurrentLocation();
+      applyPlace(t('addField.useCurrentLocation'), loc.latitude, loc.longitude);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const publishPolygon = useCallback(
     (nextCorners: Corner[]) => {
       if (nextCorners.length < 3) {
         setLocalMeasured(undefined);
         onBoundaryChange(undefined);
+        setDrawError(null);
         return;
       }
       const geo = polygonToGeoJson(nextCorners);
-      const area = estimateAreaSqm(geo.coordinates[0]);
-      setLocalMeasured(area);
-      onBoundaryChange(geo, area);
+      const result = validateBoundaryPolygon(geo);
+      if (!result.ok) {
+        setDrawError(validationMessage(result.code));
+        setLocalMeasured(result.areaSqm);
+        onBoundaryChange(undefined);
+        return;
+      }
+      setLocalMeasured(result.areaSqm);
+      setDrawError(result.warnLarge ? t('addField.boundaryValidation.warnLarge') : null);
+      onBoundaryChange(geo, result.areaSqm);
     },
-    [onBoundaryChange]
+    [onBoundaryChange, t, validationMessage]
   );
 
   const addCorner = (corner: Corner) => {
+    if (zoomTooLow) {
+      setDrawError(t('addField.boundaryValidation.zoomTooLow'));
+      return;
+    }
+    setDrawError(null);
+    setCorners((prev) => [...prev, corner]);
+  };
+
+  const moveCorner = (index: number, corner: Corner) => {
     setCorners((prev) => {
-      const next = [...prev, corner];
+      const next = prev.map((c, i) => (i === index ? corner : c));
+      if (phase === 'done') {
+        publishPolygon(next);
+      } else if (next.length >= 3) {
+        const geo = polygonToGeoJson(next);
+        setLocalMeasured(estimateGeodesicAreaSqm(geo.coordinates[0]));
+      }
       return next;
     });
   };
@@ -166,31 +302,49 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
     setLocalMeasured(undefined);
     onBoundaryChange(undefined);
     setPhase('drawing');
+    setDrawError(null);
   };
 
   const finishShape = () => {
     if (corners.length < 3) return;
+    if (zoomTooLow) {
+      setDrawError(t('addField.boundaryValidation.zoomTooLow'));
+      return;
+    }
+    const geo = polygonToGeoJson(corners);
+    const result = validateBoundaryPolygon(geo, { mapZoom: liveZoom });
+    if (!result.ok) {
+      setDrawError(validationMessage(result.code));
+      return;
+    }
     setPhase('done');
     publishPolygon(corners);
   };
 
   const startDrawing = () => {
+    if (zoomTooLow) {
+      setDrawError(t('addField.boundaryValidation.zoomTooLow'));
+      return;
+    }
+    setDrawError(null);
     setPhase('drawing');
   };
 
-  const handleSearch = async () => {
-    await geocodeSearch(search);
-  };
+  useEffect(() => {
+    if (!activationGuide) return;
+    if (locationStatus !== 'found' || phase !== 'locate') return;
+    if (zoomTooLow) return;
+    setDrawError(null);
+    setPhase('drawing');
+  }, [activationGuide, locationStatus, phase, zoomTooLow]);
 
-  const handleCurrentLocation = async () => {
-    try {
-      const loc = await locationService.getCurrentLocation();
-      setCenter([loc.latitude, loc.longitude]);
-      setMapZoom(19);
-    } catch {
-      /* ignore */
-    }
-  };
+  const liveAreaLabel =
+    corners.length >= 3
+      ? formatAreaFromSqm(
+          localMeasured ?? estimateGeodesicAreaSqm(polygonToGeoJson(corners).coordinates[0]),
+          { locale }
+        )
+      : null;
 
   const previewPath = corners.length >= 2 ? corners.map((c) => [c.lat, c.lng] as [number, number]) : [];
   const closedPath =
@@ -198,20 +352,268 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
       ? corners.map((c) => [c.lat, c.lng] as [number, number])
       : null;
 
+  const placeQuestion = phase === 'locate' || (phase === 'drawing' && corners.length === 0);
   const coachText =
     phase === 'locate'
       ? t('addField.boundaryCoachLocate')
       : phase === 'drawing'
-        ? corners.length === 0
-          ? t('addField.boundaryCoachFirst')
-          : corners.length < 3
-            ? t('addField.boundaryCoachMore', { count: corners.length })
-            : t('addField.boundaryCoachFinish')
+        ? corners.length === 0 && locationStatus === 'found'
+          ? t('addField.boundaryCoachFound')
+          : corners.length === 0
+            ? t('addField.boundaryCoachFirst')
+            : corners.length < 3
+              ? t('addField.boundaryCoachMore', { count: corners.length })
+              : t('addField.boundaryCoachFinish')
         : t('addField.boundaryCoachDone');
 
+  const canDragCorners = phase === 'drawing' || phase === 'done';
+  const stage = Boolean(onContinue);
+  const sheetLine =
+    phase === 'locate'
+      ? t('addField.boundarySheet.locate')
+      : phase === 'drawing'
+        ? corners.length < 3
+          ? t('addField.boundarySheet.corners', { count: corners.length })
+          : t('addField.boundarySheet.ready')
+        : liveAreaLabel
+          ? t('addField.boundaryAreaExplained', { area: liveAreaLabel })
+          : t('addField.boundarySheet.saved');
+
+  const searchTools = (
+    <div
+      className={`boundary-search-block boundary-search-block--typeahead${stage ? ' is-in-stage' : ''}`}
+      data-onboarding-target="boundary-search"
+    >
+      <div className="boundary-toolbar boundary-toolbar--typeahead">
+        <div className="boundary-typeahead">
+          <LocationSearchField
+            value={search}
+            hideHint
+            embed
+            onChange={(next) => {
+              setSearch(next.locationText);
+              if (
+                next.latitude != null &&
+                next.longitude != null &&
+                Number.isFinite(next.latitude) &&
+                Number.isFinite(next.longitude)
+              ) {
+                applyPlace(next.locationText, next.latitude, next.longitude);
+              } else if (!next.locationText.trim()) {
+                showGreece();
+              } else {
+                setLocationStatus('idle');
+              }
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          className="btn btn-secondary boundary-tool-btn boundary-locate-btn"
+          onClick={() => void handleCurrentLocation()}
+          aria-label={t('addField.useCurrentLocation')}
+        >
+          <LocateFixed size={18} aria-hidden />
+          {stage ? null : <span>{t('addField.useCurrentLocation')}</span>}
+        </button>
+      </div>
+    </div>
+  );
+
+  const stageView = (
+    <div
+      className={`field-boundary-step is-handoff is-stage${phase === 'done' ? ' is-ready' : ''}${onBack ? ' has-back' : ''}`}
+      data-onboarding-boundary-phase={phase}
+      data-onboarding-located={locationStatus === 'found' || hasCoords(latitude, longitude) ? 'true' : 'false'}
+    >
+      <div
+        className={`field-boundary-map${phase === 'drawing' ? ' is-drawing' : ''}`}
+        data-onboarding-target="boundary-map"
+      >
+        <MapContainer
+          center={center}
+          zoom={Math.min(mapZoom, MAP_MAX_ZOOM)}
+          minZoom={MAP_MIN_ZOOM}
+          maxZoom={MAP_MAX_ZOOM}
+          scrollWheelZoom
+          style={{ height: '100%', width: '100%' }}
+        >
+          <MapWheelZoom />
+          <FitStage />
+          {mapLayer === 'satellite' ? (
+            <>
+              <TileLayer
+                attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
+                url={SATELLITE_TILE}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              />
+              <TileLayer
+                attribution=""
+                url={SATELLITE_PLACES_TILE}
+                opacity={0.92}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              />
+              <TileLayer
+                attribution=""
+                url={SATELLITE_LABELS_TILE}
+                opacity={0.65}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              />
+            </>
+          ) : (
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url={STREET_TILE}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+            />
+          )}
+          <MapViewUpdater center={center} zoom={mapZoom} />
+          <MapZoomWatcher onZoom={setLiveZoom} />
+          <TapCorners enabled={phase === 'drawing' && !zoomTooLow} onAdd={addCorner} />
+          {previewPath.length >= 2 && !closedPath ? (
+            <Polygon
+              positions={previewPath}
+              pathOptions={{
+                ...FIELD_POLYGON_STYLE,
+                dashArray: '6 8',
+                fillOpacity: 0.08,
+              }}
+            />
+          ) : null}
+          {closedPath ? <Polygon positions={closedPath} pathOptions={FIELD_POLYGON_STYLE} /> : null}
+          {corners.map((corner, index) => (
+            <Marker
+              key={`corner-${index}`}
+              position={[corner.lat, corner.lng]}
+              icon={cornerIcon(index)}
+              draggable={canDragCorners}
+              eventHandlers={{
+                click(e) {
+                  L.DomEvent.stopPropagation(e.originalEvent);
+                },
+                dragend(e) {
+                  const { lat, lng } = e.target.getLatLng();
+                  moveCorner(index, { lat, lng });
+                },
+              }}
+              title={`${index + 1}`}
+            />
+          ))}
+        </MapContainer>
+
+        <div className="boundary-stage-top">
+          {onBack ? (
+            <button type="button" className="boundary-stage-back" onClick={onBack}>
+              <ArrowLeft size={18} aria-hidden />
+              {t('form.back')}
+            </button>
+          ) : null}
+          {setupRail}
+          {searchTools}
+          {locationStatus === 'missing' && search.trim() ? (
+            <p className="boundary-location-status" role="status">
+              {t('addField.locationNotFound')}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="boundary-map-overlays">
+          <div className="boundary-layer-toggle" role="group" aria-label={t('addField.mapLayerAria')}>
+            <button
+              type="button"
+              className={`boundary-layer-btn ${mapLayer === 'satellite' ? 'active' : ''}`}
+              onClick={() => setMapLayer('satellite')}
+            >
+              {t('mapLayerSatellite')}
+            </button>
+            <button
+              type="button"
+              className={`boundary-layer-btn ${mapLayer === 'street' ? 'active' : ''}`}
+              onClick={() => setMapLayer('street')}
+            >
+              {t('mapLayerStreet')}
+            </button>
+          </div>
+        </div>
+
+        <div className="boundary-stage-sheet" role="region" aria-label={sheetLine}>
+          <p className="boundary-stage-line">{sheetLine}</p>
+          {drawError || (zoomTooLow && phase !== 'done') ? (
+            <p className="boundary-location-status field-boundary-error" role="alert">
+              {drawError || t('addField.boundaryValidation.zoomTooLow')}
+            </p>
+          ) : null}
+          <div className="boundary-stage-actions">
+            {corners.length > 0 && phase === 'drawing' ? (
+              <button
+                type="button"
+                className="boundary-sheet-icon"
+                onClick={undoCorner}
+                aria-label={t('addField.boundaryUndo')}
+              >
+                <Undo2 size={18} aria-hidden />
+              </button>
+            ) : null}
+            {corners.length > 0 ? (
+              <button
+                type="button"
+                className="boundary-sheet-icon"
+                onClick={clearCorners}
+                aria-label={phase === 'done' ? t('addField.boundaryRedraw') : t('addField.boundaryClear')}
+              >
+                <Trash2 size={18} aria-hidden />
+              </button>
+            ) : null}
+            {phase === 'done' ? (
+              <button
+                type="button"
+                className="boundary-sheet-primary"
+                onClick={onContinue}
+                disabled={continueLoading}
+                data-onboarding-target="boundary-save"
+              >
+                {t('addField.continueToChronologio')}
+              </button>
+            ) : phase === 'locate' ? (
+              <button
+                type="button"
+                className="boundary-sheet-primary"
+                onClick={startDrawing}
+                disabled={zoomTooLow}
+              >
+                <Crosshair size={18} aria-hidden />
+                {t('addField.boundaryStartMarking')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="boundary-sheet-primary"
+                onClick={finishShape}
+                disabled={corners.length < 3 || zoomTooLow}
+              >
+                <Check size={18} aria-hidden />
+                {t('addField.boundaryFinish')}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (stage) return createPortal(stageView, document.body);
+
   return (
-    <div className="field-form-panel field-boundary-step">
-      <h2>{t('addField.steps.boundary')}</h2>
+    <div
+      className={`field-form-panel field-boundary-step${phase === 'done' ? ' is-ready' : ''}`}
+      data-onboarding-boundary-phase={phase}
+      data-onboarding-located={locationStatus === 'found' || hasCoords(latitude, longitude) ? 'true' : 'false'}
+    >
+      <h2>{placeQuestion ? t('createGrove.placeHeading') : t('addField.steps.boundary')}</h2>
       <p className="field-form-panel-desc">{t('addField.boundaryDescFriendly')}</p>
 
       <ol className="boundary-steps-guide" aria-hidden={false}>
@@ -227,66 +629,104 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
         <p>{coachText}</p>
       </div>
 
-      <div className="boundary-toolbar">
-        <input
-          type="search"
-          className="boundary-search-input"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              void handleSearch();
-            }
-          }}
-          placeholder={t('addField.searchLocation')}
-          aria-label={t('addField.searchLocation')}
-        />
-        <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={handleSearch}>
-          {t('addField.search')}
-        </button>
-        <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={handleCurrentLocation}>
-          <LocateFixed size={18} aria-hidden />
-          {t('addField.useCurrentLocation')}
-        </button>
-      </div>
+      {zoomTooLow && phase !== 'done' ? (
+        <p className="boundary-location-status" role="status">
+          {t('addField.boundaryValidation.zoomTooLow')}
+        </p>
+      ) : null}
+      {drawError ? (
+        <p className="boundary-location-status field-boundary-error" role="alert">
+          {drawError}
+        </p>
+      ) : null}
 
-      <div className="boundary-layer-toggle" role="group" aria-label={t('addField.mapLayerAria')}>
-        <button
-          type="button"
-          className={`boundary-layer-btn ${mapLayer === 'satellite' ? 'active' : ''}`}
-          onClick={() => setMapLayer('satellite')}
-        >
-          {t('mapLayerSatellite')}
-        </button>
-        <button
-          type="button"
-          className={`boundary-layer-btn ${mapLayer === 'street' ? 'active' : ''}`}
-          onClick={() => setMapLayer('street')}
-        >
-          {t('mapLayerStreet')}
-        </button>
+      <div className="boundary-search-block boundary-search-block--typeahead" data-onboarding-target="boundary-search">
+        <div className="boundary-toolbar boundary-toolbar--typeahead">
+          <div className="boundary-typeahead">
+            <LocationSearchField
+              value={search}
+              hideHint
+              embed
+              onChange={(next) => {
+                setSearch(next.locationText);
+                if (
+                  next.latitude != null &&
+                  next.longitude != null &&
+                  Number.isFinite(next.latitude) &&
+                  Number.isFinite(next.longitude)
+                ) {
+                  applyPlace(next.locationText, next.latitude, next.longitude);
+                } else if (!next.locationText.trim()) {
+                  showGreece();
+                } else {
+                  setLocationStatus('idle');
+                }
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary boundary-tool-btn"
+            onClick={() => void handleCurrentLocation()}
+          >
+            <LocateFixed size={18} aria-hidden />
+            {t('addField.useCurrentLocation')}
+          </button>
+        </div>
       </div>
+      {locationStatus === 'missing' && search.trim() ? (
+        <p className="boundary-location-status" role="status">
+          {t('addField.locationNotFound')}
+        </p>
+      ) : null}
 
-      <div className={`field-boundary-map${phase === 'drawing' ? ' is-drawing' : ''}`}>
-        <MapContainer center={center} zoom={mapZoom} style={{ height: 460, width: '100%' }}>
+      <div
+        className={`field-boundary-map${phase === 'drawing' ? ' is-drawing' : ''}`}
+        data-onboarding-target="boundary-map"
+      >
+        <MapContainer
+          center={center}
+          zoom={Math.min(mapZoom, MAP_MAX_ZOOM)}
+          minZoom={MAP_MIN_ZOOM}
+          maxZoom={MAP_MAX_ZOOM}
+          scrollWheelZoom
+          style={{ height: '100%', width: '100%' }}
+        >
+          <MapWheelZoom />
           {mapLayer === 'satellite' ? (
             <>
               <TileLayer
                 attribution="Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
                 url={SATELLITE_TILE}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
               />
-              <TileLayer attribution="" url={SATELLITE_PLACES_TILE} opacity={0.92} />
-              <TileLayer attribution="" url={SATELLITE_LABELS_TILE} opacity={0.65} />
+              <TileLayer
+                attribution=""
+                url={SATELLITE_PLACES_TILE}
+                opacity={0.92}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              />
+              <TileLayer
+                attribution=""
+                url={SATELLITE_LABELS_TILE}
+                opacity={0.65}
+                maxZoom={MAP_MAX_ZOOM}
+                maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
+              />
             </>
           ) : (
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url={STREET_TILE}
+              maxZoom={MAP_MAX_ZOOM}
+              maxNativeZoom={MAP_MAX_NATIVE_ZOOM}
             />
           )}
           <MapViewUpdater center={center} zoom={mapZoom} />
-          <TapCorners enabled={phase === 'drawing'} onAdd={addCorner} />
+          <MapZoomWatcher onZoom={setLiveZoom} />
+          <TapCorners enabled={phase === 'drawing' && !zoomTooLow} onAdd={addCorner} />
           {previewPath.length >= 2 && !closedPath ? (
             <Polygon
               positions={previewPath}
@@ -299,86 +739,151 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
           ) : null}
           {closedPath ? <Polygon positions={closedPath} pathOptions={FIELD_POLYGON_STYLE} /> : null}
           {corners.map((corner, index) => (
-            <CircleMarker
-              key={`${corner.lat}-${corner.lng}-${index}`}
-              center={[corner.lat, corner.lng]}
-              radius={12}
-              pathOptions={{
-                color: '#1C1A14',
-                fillColor: '#F5C842',
-                fillOpacity: 1,
-                weight: 3,
+            <Marker
+              key={`corner-${index}`}
+              position={[corner.lat, corner.lng]}
+              icon={cornerIcon(index)}
+              draggable={canDragCorners}
+              eventHandlers={{
+                click(e) {
+                  L.DomEvent.stopPropagation(e.originalEvent);
+                },
+                dragend(e) {
+                  const { lat, lng } = e.target.getLatLng();
+                  moveCorner(index, { lat, lng });
+                },
               }}
-            >
-              <Tooltip permanent direction="top" offset={[0, -8]} className="boundary-corner-tip">
-                {index + 1}
-              </Tooltip>
-            </CircleMarker>
+              title={`${index + 1}`}
+            />
           ))}
         </MapContainer>
-      </div>
 
-      <div className="boundary-action-bar">
-        {phase === 'locate' ? (
-          <button type="button" className="btn btn-primary boundary-primary-action" onClick={startDrawing}>
-            <Crosshair size={20} aria-hidden />
-            {t('addField.boundaryStartMarking')}
-          </button>
-        ) : null}
-
-        {phase === 'drawing' ? (
-          <>
+        <div className="boundary-map-overlays">
+          <div className="boundary-layer-toggle" role="group" aria-label={t('addField.mapLayerAria')}>
             <button
               type="button"
-              className="btn btn-secondary boundary-tool-btn"
-              onClick={undoCorner}
-              disabled={corners.length === 0}
+              className={`boundary-layer-btn ${mapLayer === 'satellite' ? 'active' : ''}`}
+              onClick={() => setMapLayer('satellite')}
             >
-              <Undo2 size={18} aria-hidden />
-              {t('addField.boundaryUndo')}
+              {t('mapLayerSatellite')}
             </button>
             <button
               type="button"
-              className="btn btn-secondary boundary-tool-btn"
-              onClick={clearCorners}
-              disabled={corners.length === 0}
+              className={`boundary-layer-btn ${mapLayer === 'street' ? 'active' : ''}`}
+              onClick={() => setMapLayer('street')}
             >
-              <Trash2 size={18} aria-hidden />
-              {t('addField.boundaryClear')}
+              {t('mapLayerStreet')}
             </button>
+          </div>
+        </div>
+
+        <div className="boundary-map-actions" role="toolbar" aria-label={t('addField.boundaryGuide2')}>
+          {phase === 'locate' ? (
             <button
               type="button"
               className="btn btn-primary boundary-primary-action"
-              onClick={finishShape}
-              disabled={corners.length < 3}
+              onClick={() => {
+                startDrawing();
+              }}
             >
-              <Check size={20} aria-hidden />
-              {t('addField.boundaryFinish')}
+              <Crosshair size={16} aria-hidden />
+              {t('addField.boundaryStartMarking')}
             </button>
-          </>
-        ) : null}
+          ) : null}
 
-        {phase === 'done' ? (
-          <>
-            <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={clearCorners}>
-              <Trash2 size={18} aria-hidden />
-              {t('addField.boundaryRedraw')}
-            </button>
-            <p className="boundary-done-note">{t('addField.boundarySavedHint')}</p>
-          </>
-        ) : null}
+          {phase === 'drawing' ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-secondary boundary-tool-btn"
+                onClick={undoCorner}
+                disabled={corners.length === 0}
+              >
+                <Undo2 size={16} aria-hidden />
+                {t('addField.boundaryUndo')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary boundary-tool-btn"
+                onClick={clearCorners}
+                disabled={corners.length === 0}
+              >
+                <Trash2 size={16} aria-hidden />
+                {t('addField.boundaryClear')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary boundary-primary-action"
+                onClick={finishShape}
+                disabled={corners.length < 3 || zoomTooLow}
+                title={
+                  corners.length < 3
+                    ? t('addField.boundaryValidation.tooFewPoints')
+                    : zoomTooLow
+                      ? t('addField.boundaryValidation.zoomTooLow')
+                      : undefined
+                }
+              >
+                <Check size={16} aria-hidden />
+                {t('addField.boundaryFinish')}
+              </button>
+            </>
+          ) : null}
+
+          {phase === 'done' ? (
+            <>
+              <button type="button" className="btn btn-secondary boundary-tool-btn" onClick={clearCorners}>
+                <Trash2 size={16} aria-hidden />
+                {t('addField.boundaryRedraw')}
+              </button>
+              {onContinue ? null : (
+                <p className="boundary-done-note">{t('addField.boundarySavedHint')}</p>
+              )}
+            </>
+          ) : null}
+
+          {phase === 'drawing' && corners.length > 0 && corners.length < 3 ? (
+            <p className="boundary-location-status" role="status">
+              {t('addField.boundaryValidation.tooFewPoints')}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {corners.length > 0 ? (
         <p className="boundary-corner-count">
-          {t('addField.boundaryCornerCount', { count: corners.length })}
+          {liveAreaLabel
+            ? t('addField.boundaryCornerArea', { count: corners.length, area: liveAreaLabel })
+            : t('addField.boundaryCornerCount', { count: corners.length })}
         </p>
       ) : null}
 
-      <AreaComparisonCard
-        officialAreaSqm={officialAreaSqm ?? cadastre?.officialAreaSqm}
-        measuredAreaSqm={localMeasured}
-      />
+      {onContinue ? null : <AreaComparisonCard measuredAreaSqm={localMeasured} />}
+
+      {phase === 'done' && liveAreaLabel && !onContinue ? (
+        <div className="boundary-result">
+          <p>{t('addField.boundaryAreaExplained', { area: liveAreaLabel })}</p>
+        </div>
+      ) : null}
+
+      {phase === 'done' && onContinue ? (
+        <div className="boundary-continue-dock" role="region">
+          <p>
+            {liveAreaLabel
+              ? t('addField.boundaryAreaExplained', { area: liveAreaLabel })
+              : t('addField.boundaryCoachDone')}
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary boundary-primary-action"
+            onClick={onContinue}
+            disabled={continueLoading}
+            data-onboarding-target="boundary-save"
+          >
+            {t('addField.continueToChronologio')}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 };

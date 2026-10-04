@@ -42,6 +42,18 @@ describe('area conversion', () => {
     const formatted = formatAreaFromSqm(sqm, { locale: 'el', style: 'withConversions' });
     expect(formatted).not.toMatch(/3\.041,76 ha/);
     expect(formatted).not.toMatch(/3041\.7584604638014/);
+    expect(formatted).toMatch(/στρ/);
+    expect(formatted).not.toMatch(/\bha\b/);
+  });
+
+  it('uses stremmata as the primary unit in English and Italian', () => {
+    const formattedEn = formatAreaFromSqm(10_000, { locale: 'en' });
+    const formattedIt = formatAreaFromSqm(10_000, { locale: 'it' });
+    expect(formattedEn).toContain('10');
+    expect(formattedEn.toLowerCase()).toContain('stremmata');
+    expect(formattedEn).not.toMatch(/\bha\b/);
+    expect(formattedIt.toLowerCase()).toContain('stremmi');
+    expect(formattedIt).not.toMatch(/\bha\b/);
   });
 
   it('treats demo Area as hectares when no m² fields exist', () => {

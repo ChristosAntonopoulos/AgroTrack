@@ -114,34 +114,39 @@ public class FinancialAuthorizationService : IFinancialAuthorizationService
         string userRole,
         CancellationToken cancellationToken)
     {
-        if (userRole == Roles.Administrator || field.OwnerId == userId
+        FieldPeopleRules.EnsureNormalized(field);
+
+        if (userRole == Roles.Administrator
+            || FieldPeopleRules.IsAdmin(field, userId)
             || await _fieldAccessService.CanUserModifyFieldAsync(field.Id, userId, cancellationToken))
         {
             return OwnerAccess();
         }
 
-        if (IsProfessionalRole(userRole) || FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Advise))
+        if (IsProfessionalRole(userRole))
         {
             return FinancialAccess.None;
         }
 
-        var family = await _fieldAccessService.GetFamilyAccessForFieldAsync(field.Id, userId, cancellationToken);
-        if (family != null)
+        var seat = FieldPeopleRules.GetActiveByUserId(field, userId);
+        if (seat != null)
         {
-            var hasMoney = family.Modules.Any(m =>
-                string.Equals(m, FamilyModules.Money, StringComparison.OrdinalIgnoreCase));
-            if (!hasMoney || !FamilyAccessLevels.CanCreateContent(family.AccessLevel))
+            var hasMoney = FieldPeopleRules.HasModule(field, userId, FamilyModules.Money);
+            if (!hasMoney)
             {
                 return FinancialAccess.None;
             }
 
-            return CollaboratorAccess();
-        }
+            var canWrite = FamilyAccessLevels.CanCreateContent(seat.AccessLevel);
 
-        if (FieldMembershipSync.HasCapacity(field, userId, FieldCapacities.Work)
-            || field.AssignedProducerIds.Contains(userId))
-        {
-            return CollaboratorAccess();
+            // Family keeps the household books. A partner with the money module
+            // may only add (and see) their own expenses. View depth = read only.
+            if (seat.Role == FieldPersonRole.Family)
+            {
+                return canWrite ? HouseholdAccess() : HouseholdViewAccess();
+            }
+
+            return canWrite ? CollaboratorAccess() : CollaboratorViewAccess();
         }
 
         return FinancialAccess.None;
@@ -153,10 +158,26 @@ public class FinancialAuthorizationService : IFinancialAuthorizationService
         Capabilities = FinancialCapabilities.OwnerAll.ToHashSet()
     };
 
+    private static FinancialAccess HouseholdAccess() => new()
+    {
+        Capabilities = FinancialCapabilities.HouseholdBooks.ToHashSet()
+    };
+
+    private static FinancialAccess HouseholdViewAccess() => new()
+    {
+        Capabilities = FinancialCapabilities.HouseholdViewOnly.ToHashSet()
+    };
+
     private static FinancialAccess CollaboratorAccess() => new()
     {
         OwnExpensesOnly = true,
         Capabilities = FinancialCapabilities.CollaboratorExpenseOnly.ToHashSet()
+    };
+
+    private static FinancialAccess CollaboratorViewAccess() => new()
+    {
+        OwnExpensesOnly = true,
+        Capabilities = new HashSet<string>()
     };
 
     private static bool IsProfessionalRole(string userRole) =>

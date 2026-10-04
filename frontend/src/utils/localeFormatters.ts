@@ -1,8 +1,10 @@
 import { SupportedLocale } from '../i18n/config';
+import { ATHENS_TIME_ZONE } from './athensDate';
 
 export interface FormatOptions {
   locale: SupportedLocale;
   dateFormat?: string;
+  timeZone?: string;
 }
 
 export const localeTagFor = (locale: SupportedLocale | string): string => {
@@ -19,19 +21,24 @@ export const localeTagFor = (locale: SupportedLocale | string): string => {
 
 const localeTag = (locale: SupportedLocale): string => localeTagFor(locale);
 
+const workspaceTimeZone = (options: FormatOptions): string =>
+  options.timeZone || ATHENS_TIME_ZONE;
+
 const dateFormatToOptions = (
-  dateFormat: string | undefined
+  dateFormat: string | undefined,
+  timeZone: string
 ): Intl.DateTimeFormatOptions => {
+  const base: Intl.DateTimeFormatOptions = { timeZone };
   switch (dateFormat) {
     case 'dd/MM/yyyy':
-      return { day: '2-digit', month: '2-digit', year: 'numeric' };
+      return { ...base, day: '2-digit', month: '2-digit', year: 'numeric' };
     case 'yyyy-MM-dd':
-      return { year: 'numeric', month: '2-digit', day: '2-digit' };
+      return { ...base, year: 'numeric', month: '2-digit', day: '2-digit' };
     case 'medium':
-      return { day: 'numeric', month: 'short', year: 'numeric' };
+      return { ...base, day: 'numeric', month: 'short', year: 'numeric' };
     case 'MM/dd/yyyy':
     default:
-      return { month: '2-digit', day: '2-digit', year: 'numeric' };
+      return { ...base, month: '2-digit', day: '2-digit', year: 'numeric' };
   }
 };
 
@@ -43,17 +50,35 @@ export const formatDate = (
 ): string => {
   const d = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(d.getTime())) return '';
+  const tz = workspaceTimeZone(options);
   if (options.dateFormat === 'yyyy-MM-dd') {
-    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const map: Record<string, string> = {};
+    for (const p of parts) if (p.type !== 'literal') map[p.type] = p.value;
+    return `${map.year}-${map.month}-${map.day}`;
   }
   if (options.dateFormat === 'dd/MM/yyyy') {
-    return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+    return d.toLocaleDateString(localeTag(options.locale), dateFormatToOptions('dd/MM/yyyy', tz));
   }
   if (options.dateFormat === 'MM/dd/yyyy') {
-    return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}/${d.getFullYear()}`;
+    return d.toLocaleDateString(localeTag(options.locale), dateFormatToOptions('MM/dd/yyyy', tz));
   }
-  return d.toLocaleDateString(localeTag(options.locale), dateFormatToOptions(options.dateFormat));
+  return d.toLocaleDateString(
+    localeTag(options.locale),
+    dateFormatToOptions(options.dateFormat || 'medium', tz)
+  );
 };
+
+/** Photo hub card date — honors the workspace date-format preference. */
+export const formatPhotoCardDate = (
+  date: Date | string | number,
+  options: FormatOptions
+): string => formatDate(date, options);
 
 export const formatDateTime = (
   date: Date | string | number,
@@ -61,10 +86,12 @@ export const formatDateTime = (
 ): string => {
   const d = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(d.getTime())) return '';
+  const tz = workspaceTimeZone(options);
   return d.toLocaleString(localeTag(options.locale), {
-    ...dateFormatToOptions(options.dateFormat),
+    ...dateFormatToOptions(options.dateFormat || 'medium', tz),
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   });
 };
 
@@ -75,8 +102,10 @@ export const formatTime = (
   const d = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleTimeString(localeTag(options.locale), {
+    timeZone: workspaceTimeZone(options),
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   });
 };
 

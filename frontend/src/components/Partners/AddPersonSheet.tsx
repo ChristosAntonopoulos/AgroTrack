@@ -1,25 +1,31 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookUser, UserPlus } from 'lucide-react';
+import { BookUser, Handshake, Smartphone, UserPlus, Users } from 'lucide-react';
 import Button from '../Common/Button';
 import { Field } from '../../services/fieldService';
 import { ServiceCategory } from '../../services/partnerService';
-import { fieldPeopleService, FieldCapacity, FieldInvite } from '../../services/fieldPeopleService';
-import { getApiErrorMessage } from '../../utils/translateApiError';
 import SavedContactSheet from './SavedContactSheet';
 import PartnersSheet from './PartnersSheet';
+import { canPickDeviceContact } from '../../utils/pickDeviceContact';
 
-type Step = 'choose' | 'save' | 'invite';
+type Step = 'choose' | 'inviteRole' | 'save';
 
 type Props = {
   open?: boolean;
   fieldId?: string;
   fields: Field[];
   categories?: ServiceCategory[];
-  canInvite?: boolean;
+  canInviteFamily?: boolean;
+  canInvitePartner?: boolean;
+  familyUsed?: number;
+  familyMax?: number;
+  partnerUsed?: number;
+  partnerMax?: number;
   onClose: () => void;
-  onInvited?: () => void;
   onSaved?: () => void;
+  onInviteFamily?: () => void;
+  onInvitePartner?: () => void;
+  onImportPhone?: () => void;
 };
 
 const AddPersonSheet: React.FC<Props> = ({
@@ -27,21 +33,22 @@ const AddPersonSheet: React.FC<Props> = ({
   fieldId,
   fields,
   categories,
-  canInvite = false,
+  canInviteFamily = false,
+  canInvitePartner = false,
+  familyUsed = 0,
+  familyMax = 2,
+  partnerUsed = 0,
+  partnerMax = 1,
   onClose,
-  onInvited,
   onSaved,
+  onInviteFamily,
+  onInvitePartner,
+  onImportPhone,
 }) => {
   const { t } = useTranslation(['partners', 'common']);
   const [step, setStep] = useState<Step>('choose');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [worksHere, setWorksHere] = useState(true);
-  const [canSee, setCanSee] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [invite, setInvite] = useState<FieldInvite | null>(null);
+  const canPickPhone = useMemo(() => canPickDeviceContact(), []);
+  const canInviteAnyone = canInviteFamily || canInvitePartner;
 
   if (step === 'save') {
     return (
@@ -56,56 +63,63 @@ const AddPersonSheet: React.FC<Props> = ({
     );
   }
 
-  const submitInvite = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!fieldId) return;
-    const capacities: FieldCapacity[] = [];
-    if (worksHere) capacities.push('work');
-    if (canSee && !worksHere) capacities.push('view');
-    if (capacities.length === 0) capacities.push('work');
-    try {
-      setSaving(true);
-      setError(null);
-      const created = await fieldPeopleService.createInvite(fieldId, {
-        capacities,
-        phone: phone.trim() || undefined,
-        email: email.trim() || undefined,
-        displayName: name.trim() || undefined,
-      });
-      setInvite(created);
-      onInvited?.();
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (step === 'choose') {
+  if (step === 'inviteRole') {
     return (
       <PartnersSheet
         open={open}
-        title={t('partners:addPerson')}
-        subtitle={t('partners:addPersonChoicesHint')}
+        title={t('partners:inviteOleachronUser')}
+        subtitle={t('partners:inviteOleachronUserHint')}
         onClose={onClose}
       >
         <div className="partners-choice-grid">
-          <button type="button" className="partners-choice-card" onClick={() => setStep('save')}>
+          <button
+            type="button"
+            className="partners-choice-card"
+            disabled={!canInviteFamily}
+            onClick={() => {
+              if (!canInviteFamily) return;
+              onClose();
+              onInviteFamily?.();
+            }}
+          >
             <span className="partners-choice-icon" aria-hidden>
-              <BookUser size={22} />
+              <Users size={22} />
             </span>
-            <span className="partners-choice-title">{t('partners:saveContact')}</span>
-            <span className="partners-choice-desc">{t('partners:saveContactHint')}</span>
+            <span className="partners-choice-title">{t('partners:inviteMember')}</span>
+            <span className="partners-choice-desc">
+              {canInviteFamily
+                ? t('partners:inviteFamilySeatHint')
+                : t('partners:inviteFamilySeatFull', { used: familyUsed, max: familyMax })}
+            </span>
           </button>
-          {canInvite && fieldId ? (
-            <button type="button" className="partners-choice-card" onClick={() => setStep('invite')}>
-              <span className="partners-choice-icon" aria-hidden>
-                <UserPlus size={22} />
-              </span>
-              <span className="partners-choice-title">{t('partners:inviteToOleachron')}</span>
-              <span className="partners-choice-desc">{t('partners:addPersonHint')}</span>
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className="partners-choice-card"
+            disabled={!canInvitePartner}
+            onClick={() => {
+              if (!canInvitePartner) return;
+              onClose();
+              onInvitePartner?.();
+            }}
+          >
+            <span className="partners-choice-icon" aria-hidden>
+              <Handshake size={22} />
+            </span>
+            <span className="partners-choice-title">{t('partners:inviteCollaborator')}</span>
+            <span className="partners-choice-desc">
+              {canInvitePartner
+                ? t('partners:invitePartnerSeatHint')
+                : t('partners:invitePartnerSeatFull', { used: partnerUsed, max: partnerMax })}
+            </span>
+          </button>
+        </div>
+        <div className="partners-sheet-actions">
+          <Button type="button" variant="ghost" onClick={() => setStep('choose')}>
+            {t('common:back')}
+          </Button>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            {t('common:close')}
+          </Button>
         </div>
       </PartnersSheet>
     );
@@ -114,70 +128,57 @@ const AddPersonSheet: React.FC<Props> = ({
   return (
     <PartnersSheet
       open={open}
-      title={t('partners:inviteToOleachron')}
-      subtitle={invite ? t('partners:inviteReady') : t('partners:addPersonHint')}
+      title={t('partners:addPerson')}
+      subtitle={t('partners:contactsVsUsers')}
       onClose={onClose}
-      footer={
-        invite ? (
-          <div className="partners-sheet-actions">
-            <a className="btn btn-primary btn-md" href={invite.whatsAppUrl} target="_blank" rel="noreferrer">
-              {t('partners:shareWhatsApp')}
-            </a>
-            <Button variant="outline" onClick={() => void navigator.clipboard?.writeText(invite.shareUrl)}>
-              {t('partners:copyLink')}
-            </Button>
-            <Button variant="ghost" onClick={onClose}>
-              {t('common:close')}
-            </Button>
-          </div>
-        ) : undefined
-      }
     >
-      {invite ? (
-        <a className="partner-invite-link" href={invite.shareUrl} target="_blank" rel="noreferrer">
-          {invite.shareUrl}
-        </a>
-      ) : (
-        <form className="partners-form" onSubmit={submitInvite}>
-          <label>
-            <span>{t('partners:inviteName')}</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder="…" />
-          </label>
-          <label>
-            <span>{t('partners:invitePhone')}</span>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              autoComplete="tel"
-              inputMode="tel"
-            />
-          </label>
-          <label>
-            <span>{t('partners:inviteEmail')}</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-          </label>
-          <div className="partners-toggle-list" role="group" aria-label={t('partners:addPerson')}>
-            <label className={`partner-toggle ${worksHere ? 'is-on' : ''}`}>
-              <input type="checkbox" checked={worksHere} onChange={(e) => setWorksHere(e.target.checked)} />
-              <span>{t('partners:connection.works')}</span>
-            </label>
-            <label className={`partner-toggle ${canSee ? 'is-on' : ''}`}>
-              <input type="checkbox" checked={canSee} onChange={(e) => setCanSee(e.target.checked)} />
-              <span>{t('partners:connection.sees')}</span>
-            </label>
-          </div>
-          {error ? <div className="error-message">{error}</div> : null}
-          <div className="partners-sheet-actions">
-            <Button type="submit" loading={saving} disabled={!name.trim() && !phone.trim() && !email.trim()}>
-              {t('partners:createInvite')}
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => setStep('choose')}>
-              {t('common:back')}
-            </Button>
-          </div>
-        </form>
-      )}
+      <div className="partners-choice-grid">
+        {canPickPhone && onImportPhone ? (
+          <button
+            type="button"
+            className="partners-choice-card"
+            onClick={() => {
+              onClose();
+              onImportPhone();
+            }}
+          >
+            <span className="partners-choice-icon" aria-hidden>
+              <Smartphone size={22} />
+            </span>
+            <span className="partners-choice-title">{t('partners:importPhone.openPhone')}</span>
+            <span className="partners-choice-desc">{t('partners:importPhone.pickHint')}</span>
+          </button>
+        ) : null}
+        <button type="button" className="partners-choice-card" onClick={() => setStep('save')}>
+          <span className="partners-choice-icon" aria-hidden>
+            <BookUser size={22} />
+          </span>
+          <span className="partners-choice-title">{t('partners:addContact')}</span>
+          <span className="partners-choice-desc">{t('partners:saveContactHint')}</span>
+        </button>
+        <button
+          type="button"
+          className="partners-choice-card"
+          disabled={!canInviteAnyone}
+          onClick={() => {
+            if (!canInviteAnyone) return;
+            setStep('inviteRole');
+          }}
+        >
+          <span className="partners-choice-icon" aria-hidden>
+            <UserPlus size={22} />
+          </span>
+          <span className="partners-choice-title">{t('partners:inviteOleachronUser')}</span>
+          <span className="partners-choice-desc">
+            {canInviteAnyone ? t('partners:inviteOleachronUserHint') : t('partners:seatsFullHint')}
+          </span>
+        </button>
+      </div>
+      <div className="partners-sheet-actions">
+        <Button type="button" variant="ghost" onClick={onClose}>
+          {t('common:close')}
+        </Button>
+      </div>
     </PartnersSheet>
   );
 };

@@ -85,6 +85,19 @@ public static class FieldWorkMapper
         WeatherSuitability = task.WeatherSuitability.ToApiString(),
         WeatherSuitabilityLabel = FieldWorkDisplayLabels.ForWeatherSuitability(task.WeatherSuitability, language),
         LatestExecutionId = task.LatestExecutionId,
+        StartedAt = task.StartedAt,
+        IsPaused = task.IsPaused,
+        PauseReason = task.PauseReason,
+        PausedAt = task.PausedAt,
+        WorkGroupId = task.WorkGroupId,
+        BlockedReason = task.BlockedReason,
+        Activity = (task.Activity ?? []).Select(a => new FieldTaskActivityDto
+        {
+            Action = a.Action,
+            ActorId = a.ActorId,
+            OccurredAt = a.OccurredAt,
+            Comment = a.Comment
+        }).ToList(),
         CreatedByUserId = task.CreatedByUserId,
         CreatedAt = task.CreatedAt,
         UpdatedAt = task.UpdatedAt

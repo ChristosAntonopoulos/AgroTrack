@@ -8,7 +8,7 @@ ANDROID_DIR="${MOBILE_DIR}/android"
 GRADLE_APK_ROOT="${ANDROID_DIR}/app/build/outputs/apk"
 cd "${MOBILE_DIR}"
 
-API_URL="${BACKEND_API_URL:-http://185.193.66.50:31847}"
+API_URL="${BACKEND_API_URL:-https://api.theolivelot.com}"
 BUILD_ID="${BUILD_BUILDID:-${BUILD_ID:-1}}"
 OUTPUT_APK="${MOBILE_DIR}/oleachron-mobile.apk"
 BUILD_INFO="${MOBILE_DIR}/build-info.json"

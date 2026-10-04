@@ -7,14 +7,18 @@ export interface HarvestRecord {
   harvestMethod: string;
   workersUsed: number;
   oliveKg: number;
+  sackCount?: number;
   millName?: string;
   oilKg?: number;
+  oilLitres?: number | null;
   oilYieldPercent?: number;
   qualityGrade: string;
   notes?: string;
   status: 'posted' | 'voided';
   voidReason?: string;
   voidedAt?: string;
+  batchId?: string | null;
+  allocationWeight?: number | null;
 }
 
 export interface CreateHarvestRecordInput {
@@ -23,14 +27,18 @@ export interface CreateHarvestRecordInput {
   oliveKg: number;
   harvestMethod?: string;
   workersUsed?: number;
+  sackCount?: number;
   millName?: string;
   oilKg?: number;
+  oilLitres?: number;
   oilYieldPercent?: number;
   qualityGrade?: string;
   notes?: string;
   saleAmount?: number;
   millCost?: number;
   mediaUrls?: string[];
+  batchId?: string;
+  allocationWeight?: number;
 }
 
 export const harvestService = {

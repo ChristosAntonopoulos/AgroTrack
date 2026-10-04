@@ -123,14 +123,22 @@ export function paymentMethodLabel(method: string, language = 'el'): string {
   return map[key] || method;
 }
 
+export const UNASSIGNED_FIELD_LABEL = {
+  el: 'Γενική εκμετάλλευση',
+  en: 'General farm',
+};
+
+export const RESULT_YEAR_HELP = {
+  el: 'Η καλλιεργητική χρονιά στην οποία μετράει αυτή η καταχώρηση (1 Φεβ – 31 Ιαν).',
+  en: 'The agricultural year this entry should count toward (1 Feb – 31 Jan).',
+};
+
 export function unassignedFieldLabel(language = 'el'): string {
-  return isEnglish(language) ? 'General farm' : 'Γενική εκμετάλλευση';
+  return isEnglish(language) ? UNASSIGNED_FIELD_LABEL.en : UNASSIGNED_FIELD_LABEL.el;
 }
 
 export function resultYearHelp(language = 'el'): string {
-  return isEnglish(language)
-    ? 'The year this entry should count toward.'
-    : 'Το έτος στο οποίο θέλεις να υπολογιστεί αυτή η καταχώρηση.';
+  return isEnglish(language) ? RESULT_YEAR_HELP.en : RESULT_YEAR_HELP.el;
 }
 
 export function categoriesForType(type: FinancialTransactionType): readonly FinancialCategory[] {
@@ -141,17 +149,64 @@ export function defaultCategoryForType(type: FinancialTransactionType): Financia
   return type === 'income' ? 'olive_oil_sale' : 'labor';
 }
 
+export type ResultLabelOptions = {
+  /** Current agricultural year — avoid calling early expenses a "loss". */
+  isActiveYear?: boolean;
+  totalIncome?: number | null;
+  /** True when olive/oil sales (or other harvest income) have been posted. */
+  hasHarvestIncome?: boolean;
+};
+
+/** Active year with expenses but no harvest income yet — not a final loss. */
+export function isProvisionalActiveYearResult(
+  net: number | null | undefined,
+  hasPostedRecords: boolean,
+  options?: ResultLabelOptions
+): boolean {
+  if (!options?.isActiveYear || !hasPostedRecords || net == null || net >= 0) return false;
+  if (options.hasHarvestIncome === true) return false;
+  if ((options.totalIncome ?? 0) <= 0) return true;
+  return options.hasHarvestIncome === false;
+}
+
 export function resultLabel(
   net: number | null | undefined,
   hasPostedRecords: boolean,
-  language = 'el'
+  language = 'el',
+  options?: ResultLabelOptions
 ): string {
   if (!hasPostedRecords || net == null) {
     return isEnglish(language) ? 'There are no entries yet' : 'Δεν υπάρχουν ακόμη καταχωρήσεις';
   }
+  if (isProvisionalActiveYearResult(net, hasPostedRecords, options)) {
+    return isEnglish(language) ? 'Provisional balance' : 'Προσωρινό υπόλοιπο';
+  }
   if (net > 0) return isEnglish(language) ? 'Profit' : 'Κέρδος';
   if (net < 0) return isEnglish(language) ? 'Loss' : 'Ζημιά';
   return isEnglish(language) ? 'Balanced' : 'Ισοσκελισμένο';
+}
+
+/** Short month labels that keep Ιούν / Ιούλ distinct in Greek. */
+export function shortMonthLabel(year: number, monthIndex0: number, locale: string): string {
+  const date = new Date(year, monthIndex0, 1);
+  if ((locale || 'el').toLowerCase().startsWith('el')) {
+    const elShort = [
+      'Ιαν',
+      'Φεβ',
+      'Μαρ',
+      'Απρ',
+      'Μάι',
+      'Ιούν',
+      'Ιούλ',
+      'Αύγ',
+      'Σεπ',
+      'Οκτ',
+      'Νοε',
+      'Δεκ',
+    ];
+    return elShort[monthIndex0] || elShort[0];
+  }
+  return new Intl.DateTimeFormat(locale, { month: 'short' }).format(date);
 }
 
 export function noMonthEntriesLabel(language = 'el'): string {

@@ -1,18 +1,19 @@
 import api from './api';
 
-export type FamilyModule = 'fields' | 'tasks' | 'documents' | 'money' | 'calendar' | 'harvest';
+export type FamilyModule = 'fields' | 'tasks' | 'photos' | 'documents' | 'money' | 'chronologio' | 'harvest';
 export type FamilyAccessLevel = 'view' | 'help' | 'work';
 
 export const FAMILY_MODULES: FamilyModule[] = [
   'fields',
   'tasks',
+  'photos',
   'documents',
   'money',
-  'calendar',
+  'chronologio',
   'harvest',
 ];
 
-export const DEFAULT_FAMILY_MODULES: FamilyModule[] = ['fields', 'tasks', 'calendar'];
+export const DEFAULT_FAMILY_MODULES: FamilyModule[] = ['fields', 'tasks', 'photos', 'chronologio'];
 
 export interface FamilyMemberChecklist {
   hasContact: boolean;
@@ -25,6 +26,7 @@ export interface FamilyMemberChecklist {
 export interface FamilyInviteShare {
   id: string;
   token: string;
+  code?: string;
   memberId: string;
   displayName?: string;
   phone?: string;

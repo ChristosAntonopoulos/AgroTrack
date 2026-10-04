@@ -1,0 +1,200 @@
+.grove-week {
+  display: flex;
+  gap: 6px;
+  margin: 0.35rem 0 0;
+  padding: 0.55rem 0 0;
+  border-top: 1px solid var(--gw-line, rgba(240, 244, 238, 0.1));
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.grove-week::-webkit-scrollbar {
+  display: none;
+}
+
+.grove-week-dow,
+.grove-week-high,
+.grove-week-low,
+.grove-week-rain {
+  font-variant-numeric: tabular-nums;
+}
+
+.grove-week li {
+  position: relative;
+  display: flex;
+  flex: 1 0 52px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  min-width: 52px;
+  padding: 8px 4px 7px;
+  border-radius: 12px;
+  background: rgba(244, 246, 242, 0.05);
+  color: var(--gw-muted, var(--text-secondary));
+}
+
+.grove-week li.is-today {
+  background: rgba(168, 197, 158, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(168, 197, 158, 0.35);
+  color: var(--gw-ink, var(--text-primary));
+}
+
+.grove-week-dow {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.grove-week-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+
+.grove-week-icon svg {
+  display: block;
+}
+
+.grove-week-temps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.grove-week-high,
+.grove-week-low {
+  white-space: nowrap;
+}
+
+.grove-week-high {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 720;
+  color: var(--gw-ink, var(--text-primary));
+}
+
+.grove-week-low {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  color: var(--gw-muted, var(--text-secondary));
+}
+
+.grove-week-rain {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  min-height: 12px;
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 650;
+  color: #9ec3dd;
+}
+
+.grove-week-rain.is-empty {
+  color: transparent;
+}
+
+.grove-week--strip {
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 6px 0 0;
+}
+
+.grove-week--strip li {
+  flex-basis: 40px;
+  min-width: 40px;
+  gap: 2px;
+  padding: 5px 2px 4px;
+  border-radius: 10px;
+}
+
+.grove-week--strip .grove-week-dow {
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.grove-week--strip .grove-week-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.grove-week--strip .grove-week-high {
+  font-size: 12px;
+  line-height: 14px;
+}
+
+.grove-week--detail {
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+}
+
+.grove-week--detail li {
+  flex: 1 1 0;
+  min-width: 46px;
+  padding: 10px 4px 8px;
+  border-radius: 14px;
+}
+
+.grove-week--detail li.is-today {
+  background: rgba(168, 197, 158, 0.16);
+}
+
+.grove-week--detail .grove-week-dow {
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.grove-week--detail .grove-week-icon {
+  height: 22px;
+  margin: 3px 0 1px;
+}
+
+.grove-week--detail .grove-week-high {
+  font-size: 15px;
+  line-height: 18px;
+}
+
+html:not([data-theme='dark']) .grove-week li {
+  background: var(--surface-2, #f2f3ec);
+}
+
+html:not([data-theme='dark']) .grove-week li.is-today {
+  background: rgba(122, 146, 98, 0.2);
+}
+
+html:not([data-theme='dark']) .grove-week--detail li {
+  background: var(--surface-2, #f2f3ec);
+}
+
+html:not([data-theme='dark']) .grove-week--detail li.is-today {
+  background: rgba(122, 146, 98, 0.18);
+}
+
+html:not([data-theme='dark']) .grove-week-rain {
+  color: #3d6a86;
+}
+
+.grove-week-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

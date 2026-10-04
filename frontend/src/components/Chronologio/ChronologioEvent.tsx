@@ -15,10 +15,15 @@ import {
 import type { ChronologioEntry, ChronologioCategory } from '../../services/chronologioService';
 import { formatChronologioMoney } from '../../utils/chronologioGrouping';
 import ChronologioEntryCard from './ChronologioEntryCard';
+import ChronologioExtremeBanner from './ChronologioExtremeBanner';
 import ChronologioThumbnail from './ChronologioThumbnail';
 import { pickRealMediaUrl } from '../../chronologio/mediaGuard';
 import { presentChronologioEvent } from '../../chronologio/eventPresentation';
+import { resolvePublicAssetUrl } from '../../config/apiConfig';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { isWeatherExtremeEventType } from '../../chronologio/weatherExtreme';
 import type { SupportedLocale } from '../../i18n/config';
+import './Chronologio.css';
 
 export type EventDensity = 'summary' | 'compact' | 'card';
 
@@ -77,7 +82,7 @@ const ChronologioEvent: React.FC<Props> = ({
   weatherTile = false,
   onSelect,
 }) => {
-  const { t, i18n } = useTranslation('chronologio');
+  const { i18n } = useTranslation('chronologio');
   const numberLocale = i18n.language?.startsWith('el')
     ? 'el-GR'
     : i18n.language?.startsWith('it')
@@ -87,10 +92,15 @@ const ChronologioEvent: React.FC<Props> = ({
   const category = entry.category as ChronologioCategory;
   const harvest = entry.details.harvest;
   const time = formatEventTime(entry.occurredAt, i18n.language);
-  const thumb = pickRealMediaUrl(
+  const thumbRaw = pickRealMediaUrl(
     (entry.media || []).flatMap((m) => [m.thumbnailUrl, m.url])
   );
+  const thumb = resolvePublicAssetUrl(thumbRaw) || thumbRaw;
   const extraPhotos = Math.max(0, (entry.media?.length || 0) - 1);
+
+  if (isWeatherExtremeEventType(entry.eventType)) {
+    return <ChronologioExtremeBanner entry={entry} showField={showField} />;
+  }
 
   if (density === 'summary') {
     return (
@@ -129,7 +139,7 @@ const ChronologioEvent: React.FC<Props> = ({
           </span>
           <span className="chrono-event-compact-title">{presented.label}</span>
           {showField && entry.field?.name ? (
-            <span className="chrono-event-compact-field">{entry.field.name}</span>
+            <span className="chrono-event-compact-field">{friendlyFieldLabel(entry.field.name)}</span>
           ) : null}
         </span>
         {money ? <span className="chrono-event-compact-value">{money}</span> : null}

@@ -1,61 +1,48 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { readFieldId } from '../navigation/intents';
+import { athensCalendarDateKey } from '../utils/athensDate';
 import type { ChronologioAxis, ChronologioCategory } from '../services/chronologioService';
+import { readChronologioFilters, writeChronologioFilters } from './filterPreferences';
 import {
   ZOOM_ORDER,
-  VIEW_TO_ZOOM,
   focusDateForMonth,
   focusDateForPeriod,
   getPeriodYear,
-  parseChronologioView,
+  livingZoomFromSearch,
   parseFocusDate,
   stepZoom,
-  toIsoDate,
   viewFromZoom,
   type ChronologioZoom,
   type LivingFilters,
 } from './livingTypes';
-
-const parseZoom = (view: string | null, zoom: string | null, focusToday: boolean): ChronologioZoom => {
-  if (focusToday) return 'month';
-  return VIEW_TO_ZOOM[parseChronologioView(view || zoom)];
-};
 
 const parseAxis = (v: string | null, zoom: ChronologioZoom): ChronologioAxis => {
   if (v === 'agricultural' || v === 'season' || v === 'calendar') return v;
   return zoom === 'year' || zoom === 'years' ? 'agricultural' : 'calendar';
 };
 
-const parseCompare = (v: string | null): [number, number] | null => {
-  if (!v) return null;
-  const parts = v.split(',').map((p) => Number(p.trim()));
-  if (parts.length === 2 && parts.every((n) => Number.isFinite(n))) {
-    return [parts[0], parts[1]];
-  }
-  return null;
-};
-
 export const useChronologioLivingState = (fieldModeFieldId?: string) => {
   const [params, setParams] = useSearchParams();
+  const restoredRef = useRef(false);
 
   const focusToday = params.get('focus') === 'today';
-  const zoom = parseZoom(params.get('view'), params.get('zoom'), focusToday);
+  const zoom = livingZoomFromSearch(params.get('view'), params.get('zoom'));
   const axis = parseAxis(params.get('axis'), zoom);
   const yearParam = params.get('year');
+  const todayIso = athensCalendarDateKey(new Date());
   const focusDate =
     focusToday
-      ? toIsoDate(new Date())
+      ? todayIso
       : params.get('date') ||
         (yearParam && Number.isFinite(Number(yearParam))
           ? focusDateForPeriod(Number(yearParam), axis)
-          : toIsoDate(new Date()));
-  const compareYears = parseCompare(params.get('compare'));
-  const compareOpen = params.get('compareMode') === '1' || Boolean(compareYears);
+          : todayIso);
   const selectedEntryId = params.get('entry');
 
   const filters: LivingFilters = useMemo(
     () => ({
-      fieldId: fieldModeFieldId || params.get('field') || undefined,
+      fieldId: fieldModeFieldId || readFieldId(params) || undefined,
       category: (params.get('category') as ChronologioCategory | 'all') || 'all',
       lifecycleYear: params.get('lifecycleYear') || '',
     }),
@@ -79,12 +66,43 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     [setParams]
   );
 
+  /** Restore saved filters when the URL has none; strip stale compare params. */
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    const next: Record<string, string | null | undefined> = {};
+    if (params.has('compare') || params.has('compareMode')) {
+      next.compare = null;
+      next.compareMode = null;
+    }
+
+    const stored = readChronologioFilters();
+    if (!params.has('category') && stored.category) {
+      next.category = stored.category;
+    }
+    // Light/heavy year filter retired.
+    if (params.has('lifecycleYear') || stored.lifecycleYear) {
+      next.lifecycleYear = null;
+    }
+    if (
+      !fieldModeFieldId &&
+      !params.has('fieldId') &&
+      !params.has('field') &&
+      stored.fieldId
+    ) {
+      next.fieldId = stored.fieldId;
+    }
+
+    if (Object.keys(next).length > 0) patch(next);
+  }, [fieldModeFieldId, params, patch]);
+
   const setZoom = useCallback(
     (next: ChronologioZoom) => {
       patch({
         view: viewFromZoom(next),
         zoom: null,
-        focus: next === 'month' ? undefined : null,
+        focus: null,
         axis: next === 'month' ? undefined : 'agricultural',
       });
     },
@@ -93,13 +111,13 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
 
   /** Day view from today — the product home of Chronologio. */
   const openJournal = useCallback(() => {
-    patch({ view: 'days', zoom: null, date: toIsoDate(new Date()), focus: 'today' });
+    patch({ view: 'days', zoom: null, date: athensCalendarDateKey(new Date()), focus: 'today' });
   }, [patch]);
 
   const zoomBy = useCallback(
     (delta: 1 | -1) => {
       const next = stepZoom(zoom, delta);
-      patch({ view: viewFromZoom(next), zoom: null, focus: next === 'month' ? undefined : null });
+      patch({ view: viewFromZoom(next), zoom: null, focus: null });
     },
     [patch, zoom]
   );
@@ -113,7 +131,21 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
 
   const setFocusDate = useCallback(
     (iso: string) => {
-      patch({ date: iso });
+      patch({ date: iso, focus: null });
+    },
+    [patch]
+  );
+
+  /** Open the Days journal on a specific calendar day (keeps the day, not mid-month). */
+  const jumpToDate = useCallback(
+    (iso: string) => {
+      patch({
+        view: 'days',
+        zoom: null,
+        date: iso,
+        focus: null,
+        axis: 'calendar',
+      });
     },
     [patch]
   );
@@ -147,6 +179,7 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
       axis: 'agricultural',
       year: String(periodYear),
       date: focusDateForPeriod(periodYear, 'agricultural'),
+      focus: null,
     });
   }, [patch]);
 
@@ -165,7 +198,8 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
   const setFilters = useCallback(
     (next: Partial<LivingFilters>) => {
       patch({
-        field: fieldModeFieldId ? null : next.fieldId === undefined ? undefined : next.fieldId || null,
+        fieldId: fieldModeFieldId ? null : next.fieldId === undefined ? undefined : next.fieldId || null,
+        field: fieldModeFieldId || next.fieldId !== undefined ? null : undefined,
         category:
           next.category === undefined ? undefined : next.category === 'all' ? null : next.category,
         lifecycleYear:
@@ -173,46 +207,24 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
             ? undefined
             : next.lifecycleYear || null,
       });
+      writeChronologioFilters(next, { preserveFieldId: Boolean(fieldModeFieldId) });
     },
     [fieldModeFieldId, patch]
   );
 
   const clearFilters = useCallback(() => {
-    patch({ field: null, category: null, lifecycleYear: null });
-  }, [patch]);
+    patch({ fieldId: null, field: null, category: null, lifecycleYear: null });
+    writeChronologioFilters(
+      { category: 'all', fieldId: '', lifecycleYear: '' },
+      { preserveFieldId: Boolean(fieldModeFieldId) }
+    );
+  }, [fieldModeFieldId, patch]);
 
   const setSelectedEntry = useCallback(
     (id: string | null) => {
       patch({ entry: id });
     },
     [patch]
-  );
-
-  const setCompare = useCallback(
-    (years: [number, number] | null) => {
-      if (!years) {
-        patch({ compare: null, compareMode: null });
-        return;
-      }
-      patch({ compare: `${years[0]},${years[1]}`, compareMode: '1' });
-    },
-    [patch]
-  );
-
-  const setCompareOpen = useCallback(
-    (open: boolean) => {
-      if (!open) {
-        patch({ compareMode: null, compare: null });
-        return;
-      }
-      const d = parseFocusDate(focusDate);
-      const y = getPeriodYear(d, axis);
-      patch({
-        compareMode: '1',
-        compare: compareYears ? `${compareYears[0]},${compareYears[1]}` : `${y - 1},${y}`,
-      });
-    },
-    [axis, compareYears, focusDate, patch]
   );
 
   const periodYear = getPeriodYear(parseFocusDate(focusDate), axis);
@@ -230,8 +242,6 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     periodYear,
     monthYear,
     month,
-    compareYears,
-    compareOpen,
     selectedEntryId,
     filters,
     canZoomOut,
@@ -241,6 +251,7 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     zoomBy,
     setAxis,
     setFocusDate,
+    jumpToDate,
     openPeriod,
     openSeasonYear,
     focusSeasonYear,
@@ -248,7 +259,5 @@ export const useChronologioLivingState = (fieldModeFieldId?: string) => {
     setFilters,
     clearFilters,
     setSelectedEntry,
-    setCompare,
-    setCompareOpen,
   };
 };

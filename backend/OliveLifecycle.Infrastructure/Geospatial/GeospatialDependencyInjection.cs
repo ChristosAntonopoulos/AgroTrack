@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OliveLifecycle.Application.Abstractions.Geospatial;
@@ -19,7 +21,18 @@ public static class GeospatialDependencyInjection
         services.Configure<GeospatialOptions>(configuration.GetSection(GeospatialOptions.SectionName));
 
         // Typed HTTP clients keep provider handler rotation under HttpClientFactory control.
-        services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherProvider>();
+        // Open-Meteo sometimes resets the TLS handshake. A short connect timeout keeps a
+        // stuck handshake from occupying the call, and the provider retries that failure.
+        services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherProvider>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("TheOliveLot/1.0");
+        }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            ConnectTimeout = TimeSpan.FromSeconds(10),
+            PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+            AutomaticDecompression = DecompressionMethods.All
+        });
         services.AddHttpClient<IElevationProvider, CopernicusElevationProvider>();
         services.AddHttpClient<ISoilProvider, SoilGridsProvider>();
         services.AddHttpClient<ISatelliteCatalogProvider, CopernicusStacProvider>();
@@ -47,6 +60,7 @@ public static class GeospatialDependencyInjection
         services.AddScoped<IWeatherCacheRepository, WeatherCacheRepository>();
         services.AddScoped<IFieldDailyWeatherSnapshotRepository, FieldDailyWeatherSnapshotRepository>();
         services.AddScoped<IFieldWeatherPeriodReviewRepository, FieldWeatherPeriodReviewRepository>();
+        services.AddScoped<IFieldWeatherExtremeEventRepository, FieldWeatherExtremeEventRepository>();
         services.AddScoped<IFieldSatelliteObservationRepository, FieldSatelliteObservationRepository>();
         services.AddScoped<IFieldEnvironmentalAlertRepository, FieldEnvironmentalAlertRepository>();
         services.AddScoped<IFireDetectionRepository, FireDetectionRepository>();
@@ -60,6 +74,7 @@ public static class GeospatialDependencyInjection
 
         services.AddScoped<IWeatherIntelligenceService, WeatherIntelligenceService>();
         services.AddScoped<IWeatherReviewCompiler, WeatherReviewCompiler>();
+        services.AddScoped<IWeatherExtremeEventScanner, WeatherExtremeEventScanner>();
         services.AddScoped<IFieldSpatialProfileService, FieldSpatialProfileService>();
         services.AddScoped<IFieldMapDataService, FieldMapDataService>();
         services.AddScoped<IFieldEnvironmentalAlertEvaluator, FieldEnvironmentalAlertEvaluator>();

@@ -38,6 +38,30 @@ export interface FinancialDataAvailability {
   areaIsMissing: boolean;
   oilQuantityIsMissing: boolean;
   includesUnassigned: boolean;
+  /** Posted fields left out of per-stremma because area is missing. */
+  missingAreaFieldIds?: string[];
+  missingAreaFieldNames?: string[];
+  /** Incomplete fields left out of the totals. */
+  incompleteFieldNames?: string[];
+  /** Entries with no field are in the totals and left out of per-stremma. */
+  perAreaExcludesUnassigned?: boolean;
+}
+
+export interface OliveOilEconomics {
+  producedLitres: number | null;
+  producedLitresAreEstimated: boolean;
+  soldLitres: number | null;
+  remainingLitres: number | null;
+  remainingIsConfirmed: boolean;
+  averageSalePricePerLitre: number | null;
+  productionCostPerLitre: number | null;
+  resultPerLitre: number | null;
+  postedOliveOilSaleCount: number;
+  postedOliveOilSalesMissingLitres: number;
+  hasProductionOrSales: boolean;
+  productionCostMessage?: string | null;
+  averagePriceMessage?: string | null;
+  remainingMessage?: string | null;
 }
 
 export interface YearFinancialSummary {
@@ -60,22 +84,41 @@ export interface YearFinancialSummary {
   netPerHectare: number | null;
   costPerKilogramOfOil: number | null;
   costPerKilogramMessage?: string | null;
-  oliveOil?: {
-    producedLitres: number | null;
-    producedLitresAreEstimated: boolean;
-    soldLitres: number | null;
-    remainingLitres: number | null;
-    remainingIsConfirmed: boolean;
-    averageSalePricePerLitre: number | null;
-    productionCostPerLitre: number | null;
-    resultPerLitre: number | null;
-    postedOliveOilSaleCount: number;
-    postedOliveOilSalesMissingLitres: number;
-    hasProductionOrSales: boolean;
-    productionCostMessage?: string | null;
-    averagePriceMessage?: string | null;
-    remainingMessage?: string | null;
-  } | null;
+  oliveOil?: OliveOilEconomics | null;
+  dataAvailability: FinancialDataAvailability;
+}
+
+export interface TaskFinancialSummary {
+  taskId: string;
+  fieldId: string;
+  estimatedCost: number | null;
+  actualCost: number | null;
+  difference: number | null;
+  transactionCount: number;
+}
+
+export interface FieldYearSummary {
+  fieldId: string;
+  fieldName: string;
+  resultYear: number;
+  currency: string;
+  totalIncome: number | null;
+  totalExpenses: number | null;
+  netResult: number | null;
+  resultLabel: string;
+  costPerKilogramOfOil: number | null;
+  costPerKilogramMessage?: string | null;
+  oilKilograms: number | null;
+  oliveKilograms: number | null;
+  oliveOil?: OliveOilEconomics | null;
+  postedTransactionCount: number;
+  draftTransactionCount: number;
+  completedExecutionCount: number;
+  partialExecutionCount: number;
+  confirmedHarvestCount: number;
+  phenologyObservationCount: number;
+  weatherReviewCount: number;
+  activeOfficialWarningCount: number;
   dataAvailability: FinancialDataAvailability;
 }
 
@@ -84,6 +127,22 @@ export const financialSummaryService = {
     const scopedFieldId = fieldId && fieldId !== UNASSIGNED_FIELD_QUERY ? fieldId : undefined;
     const response = await api.get<YearFinancialSummary>(`/api/v1/financial-summary/year/${year}`, {
       params: { fieldId: scopedFieldId, language },
+    });
+    return response.data;
+  },
+
+  getTaskSummary: async (taskId: string): Promise<TaskFinancialSummary> => {
+    const response = await api.get<TaskFinancialSummary>(`/api/v1/field-tasks/${taskId}/financial-summary`);
+    return response.data;
+  },
+
+  getFieldYear: async (
+    fieldId: string,
+    year: number,
+    language?: string
+  ): Promise<FieldYearSummary> => {
+    const response = await api.get<FieldYearSummary>(`/api/v1/fields/${fieldId}/year/${year}/summary`, {
+      params: { language },
     });
     return response.data;
   },

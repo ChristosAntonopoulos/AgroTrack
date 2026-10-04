@@ -33,12 +33,6 @@ public class FieldRepository : MongoRepositoryBase<FieldDocument, Field>, IField
         return documents.Select(ToEntity);
     }
 
-    public async Task<IEnumerable<Field>> GetByAssignedProducerIdAsync(string producerId, CancellationToken cancellationToken = default)
-    {
-        var documents = await Collection.Find(f => f.AssignedProducerIds.Contains(producerId)).ToListAsync(cancellationToken);
-        return documents.Select(ToEntity);
-    }
-
     public async Task<IEnumerable<Field>> GetByMemberUserIdAsync(string userId, CancellationToken cancellationToken = default)
     {
         var filter = Builders<FieldDocument>.Filter.ElemMatch(

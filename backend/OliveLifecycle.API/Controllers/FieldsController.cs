@@ -19,9 +19,12 @@ public class FieldsController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<FieldDto>>> GetFields(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<FieldDto>>> GetFields(
+        [FromQuery] string? module,
+        CancellationToken cancellationToken)
     {
-        var fields = await _fieldService.GetFieldsForUserAsync(UserContext.UserId, UserContext.Role, cancellationToken);
+        var fields = await _fieldService.GetFieldsForUserAsync(
+            UserContext.UserId, UserContext.Role, module, cancellationToken);
         return OkResult(fields);
     }
 
@@ -137,26 +140,5 @@ public class FieldsController : BaseApiController
             type ?? "Other",
             cancellationToken);
         return OkResult(field);
-    }
-
-    [HttpGet("{id}/producers")]
-    public async Task<ActionResult<IEnumerable<string>>> GetAssignedProducers(string id, CancellationToken cancellationToken)
-    {
-        var producerIds = await _fieldService.GetAssignedProducerIdsAsync(id, UserContext.UserId, UserContext.Role, cancellationToken);
-        return OkResult(producerIds);
-    }
-
-    [HttpPut("{id}/producers/{producerId}")]
-    public async Task<IActionResult> AssignProducer(string id, string producerId, CancellationToken cancellationToken)
-    {
-        await _fieldService.AssignProducerAsync(id, UserContext.UserId, producerId, cancellationToken);
-        return NoContent();
-    }
-
-    [HttpDelete("{id}/producers/{producerId}")]
-    public async Task<IActionResult> UnassignProducer(string id, string producerId, CancellationToken cancellationToken)
-    {
-        await _fieldService.UnassignProducerAsync(id, UserContext.UserId, producerId, cancellationToken);
-        return NoContent();
     }
 }

@@ -70,48 +70,6 @@
   "statusUpdated": "Task status updated",
   "evidenceAdded": "Evidence added",
   "approvalNote": "Approval note (optional)",
-  "createWizard": {
-    "subtitle": "Set up a task in a few quick steps",
-    "steps": {
-      "field": "Grove",
-      "template": "Job",
-      "details": "When",
-      "review": "Review"
-    },
-    "fieldTitle": "Which grove?",
-    "fieldDesc": "Select the grove this job is for.",
-    "searchFields": "Search groves…",
-    "templateTitle": "Which job?",
-    "templateDesc": "Pick the job. Harvest jobs are a short sequence.",
-    "whenTitle": "When?",
-    "customTask": "Custom task",
-    "customTaskDesc": "Enter your own title and type.",
-    "detailsTitle": "Task details",
-    "taskTitle": "Title",
-    "taskTitlePlaceholder": "e.g. Winter pruning – north grove",
-    "typePlaceholder": "e.g. Pruning, Harvesting",
-    "notesPlaceholder": "Optional instructions for the producer",
-    "scheduleTitle": "When should it happen?",
-    "startDate": "Start date",
-    "endDate": "End date",
-    "reviewTitle": "Ready to create?",
-    "reviewDesc": "Check everything looks right before saving.",
-    "presets": {
-      "today": "Today",
-      "threeDays": "3 days",
-      "week": "This week"
-    },
-    "errors": {
-      "fieldRequired": "Please select a field.",
-      "templateRequired": "Pick a job or write your own.",
-      "titleRequired": "Enter a task title.",
-      "typeRequired": "Enter a task type.",
-      "invalidStart": "Start date must be YYYY-MM-DD.",
-      "invalidEnd": "End date must be YYYY-MM-DD.",
-      "endBeforeStart": "End date cannot be before start date.",
-      "required": "Fill in all required fields."
-    }
-  },
   "harvest": {
     "word": "Harvest",
     "phases": {
@@ -138,30 +96,46 @@
   },
   "harvestJobs": {
     "prepare": {
-      "checklist": ["Ready?", "Nothing blocking the work"]
+      "checklist": [
+        "Ready?",
+        "Nothing blocking the work"
+      ]
     },
     "harvest_ready_nets": {
       "title": "Ready nets and crates",
       "helper": "Lay out nets, crates, and rakes before picking.",
-      "checklist": ["Nets are out", "Crates are ready", "Rakes and bags are with you"],
+      "checklist": [
+        "Nets are out",
+        "Crates are ready",
+        "Rakes and bags are with you"
+      ],
       "field": "Anything missing?"
     },
     "harvest_book_mill": {
       "title": "Book the mill",
       "helper": "Call the mill and confirm a slot.",
-      "checklist": ["Called the mill", "Slot is booked"],
+      "checklist": [
+        "Called the mill",
+        "Slot is booked"
+      ],
       "field": "Mill name"
     },
     "harvest_call_crew": {
       "title": "Call the crew",
       "helper": "Confirm who is coming to pick.",
-      "checklist": ["People are confirmed", "They know the grove"],
+      "checklist": [
+        "People are confirmed",
+        "They know the grove"
+      ],
       "field": "Who is coming?"
     },
     "harvest_check_access": {
       "title": "Check access and weather",
       "helper": "Walk the entrance and check the forecast.",
-      "checklist": ["Road is clear", "Weather is workable"],
+      "checklist": [
+        "Road is clear",
+        "Weather is workable"
+      ],
       "field": "Notes"
     },
     "harvest_daily_kilos": {
@@ -176,5 +150,738 @@
       "title": "Close this harvest",
       "helper": "Mark harvest done and write the sale if you were paid."
     }
+  },
+  "failedLoad": "Failed to load tasks",
+  "fieldFilterLabel": "Filter by field",
+  "form": {
+    "back": "Back",
+    "next": "Next",
+    "stepsAria": "Task creation steps"
+  },
+  "detail": {
+    "assignedTo": "Assigned to",
+    "actualStart": "Actual start",
+    "backToTasks": "Back to tasks",
+    "notFound": "Task not found.",
+    "failedLoad": "Failed to load task.",
+    "failedAssign": "Failed to assign task.",
+    "description": "Description"
+  },
+  "fieldWork": {
+    "pageTitle": "Tasks",
+    "pageSubtitle": "Organise what needs doing in the fields.",
+    "addTask": "New task",
+    "year": "Year",
+    "allFields": "All fields",
+    "allAssignees": "All people",
+    "allAssigneesLabel": "Assignee",
+    "moreFilters": "More filters",
+    "person": "Who",
+    "unknownField": "Field",
+    "seeCompletedInChronologio": "See completed work in History →",
+    "plannedGroups": {
+      "today": "Today",
+      "thisWeek": "This week",
+      "later": "Later"
+    },
+    "task": {
+      "blocked": "Waiting",
+      "paused": "Paused",
+      "checksShort": "{{done}}/{{total}} checks",
+      "checksLong": "{{done}} of {{total}} checks completed",
+      "progressSentence": "{{started}} · {{done}} of {{total}} checks",
+      "started": "Started {{date}}",
+      "startedRecently": "Started recently",
+      "startedToast": "Task started",
+      "updated": "Updated {{date}}"
+    },
+    "weather": {
+      "unknown": "Not enough weather data"
+    },
+    "views": {
+      "aria": "Task views",
+      "now": "Now",
+      "upcoming": "Upcoming",
+      "proposals": "Proposals",
+      "history": "History",
+      "planned": "Upcoming",
+      "active": "Now"
+    },
+    "season": {
+      "afterHarvest": "After harvest",
+      "winterCare": "Winter care",
+      "springGrowth": "Spring growth",
+      "summerProtection": "Summer protection",
+      "harvestPrep": "Harvest preparation",
+      "harvest": "Harvest",
+      "summary": "{{attention}} tasks need attention · {{suitable}} suitable today"
+    },
+    "nowSections": {
+      "attention": "Need attention",
+      "inProgress": "In progress",
+      "today": "Today",
+      "thisWeek": "This week",
+      "seeAllUpcoming": "See all upcoming"
+    },
+    "upcomingGroups": {
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This week",
+      "nextWeek": "Next week",
+      "later": "Later",
+      "undated": "No date",
+      "withCount": "{{label}} · {{count}} tasks"
+    },
+    "attention": {
+      "reasons": {
+        "overdue": "This task is overdue.",
+        "weatherBlocked": "Weather makes this task difficult today.",
+        "unassigned": "No one is assigned yet.",
+        "windowEnding": "The recommended period ends in {{days}} days.",
+        "incompletePrep": "Preparation has not started yet.",
+        "paused": "This task is paused."
+      }
+    },
+    "history": {
+      "banner": "Completed tasks also appear in Chronologio with weather, money, and harvest.",
+      "openChronologio": "Open full History"
+    },
+    "pause": {
+      "title": "Pause task",
+      "copy": "Why is it pausing?",
+      "reasons": {
+        "weather": "Weather",
+        "waitingPerson": "Waiting for a partner",
+        "waitingEquipment": "Waiting for equipment",
+        "anotherDay": "I will continue another day",
+        "other": "Other reason"
+      }
+    },
+    "dismiss": {
+      "title": "Not relevant",
+      "copy": "Choose what applies to this proposal.",
+      "dontDo": "I do not do this task",
+      "dontDoHint": "We will stop suggesting it for these fields.",
+      "alreadyDone": "I already did it",
+      "alreadyDoneHint": "We will close it for this year.",
+      "remindLater": "Remind me later",
+      "remindLaterHint": "It will come back in a few days."
+    },
+    "scheduleGroup": {
+      "title": "Schedule proposal",
+      "copy": "Choose which fields and when to do the work.",
+      "allFields": "All recommended fields",
+      "whenLabel": "When",
+      "differentDates": "Different date per field",
+      "differentDatesHint": "Pick a day for each field.",
+      "sameDate": "Same date for all",
+      "sameDateHint": "One day for every selected field.",
+      "sharedDate": "Work day",
+      "selectedCount": "{{selected}} of {{total}}"
+    },
+    "reschedule": {
+      "title": "Change date",
+      "newDate": "New date",
+      "confirm": "Move"
+    },
+    "undoStart": {
+      "message": "Task started.",
+      "action": "Undo"
+    },
+    "proposalsIntro": {
+      "title": "Proposals for your fields",
+      "subtitle": "See why each task is suggested and decide whether to schedule it."
+    },
+    "empty": {
+      "proposalsTitle": "No new proposals",
+      "proposalsDescription": "We will show something here when the season, weather, or field records need a decision.",
+      "plannedTitle": "No planned tasks",
+      "plannedDescription": "You can create one or schedule a proposal.",
+      "activeTitle": "No tasks in progress",
+      "activeDescription": "Tasks you start will appear here.",
+      "nowTitle": "Nothing needs doing today",
+      "nowDescription": "When a task needs attention, it will show here.",
+      "nowNext": "The next task is {{title}}, {{date}}.",
+      "seeUpcoming": "See upcoming",
+      "upcomingTitle": "No upcoming tasks",
+      "upcomingDescription": "Schedule a proposal or create a new task.",
+      "historyTitle": "No history yet",
+      "historyDescription": "Completed and cancelled tasks will appear here."
+    },
+    "context": {
+      "clearYear": "Reset year",
+      "clearField": "Remove field filter",
+      "clearAssignee": "Remove assignee filter"
+    },
+    "proposalGroups": {
+      "needsDecision": "Need a decision",
+      "canWait": "Can wait",
+      "doNow": "Good to do now",
+      "laterYear": "Later in the year"
+    },
+    "proposal": {
+      "period": "Period:",
+      "suitablePeriod": "Suitable period",
+      "forFields": "Suggested for {{count}} fields",
+      "moreFields": "+{{count}} more",
+      "whyRecommended": "Why is this suggested?",
+      "whyIntro": "What this suggestion means",
+      "whyScheduleHint": "If it fits, schedule it on your fields.",
+      "fieldsLabel": "Fields",
+      "showLater": "Show",
+      "hideLater": "Hide",
+      "more": "More actions",
+      "remindLater": "Remind me later",
+      "notForField": "Not for this field",
+      "notThisYear": "Not this year",
+      "why": "Why am I seeing this?",
+      "source": "Source:",
+      "confidence": "Confidence:",
+      "close": "Close",
+      "chips": {
+        "official": "Official warning",
+        "expiring": "Ending soon",
+        "good": "Good day",
+        "caution": "Needs caution",
+        "unsuitable": "Unsuitable day",
+        "unknown": "No weather data",
+        "seasonal": "Seasonal reminder"
+      }
+    },
+    "actions": {
+      "schedule": "Schedule",
+      "scheduleIt": "Schedule it",
+      "notRelevant": "Not relevant",
+      "start": "Start",
+      "more": "More",
+      "continueIt": "Continue",
+      "complete": "Complete",
+      "open": "Open",
+      "pause": "Pause",
+      "changeDate": "Change date",
+      "viewResult": "View result",
+      "restore": "Restore",
+      "repeat": "Repeat",
+      "recordResult": "Record result",
+      "continueChecks": "Continue checks"
+    },
+    "errors": {
+      "dismiss": "Could not dismiss the proposal.",
+      "snooze": "Could not snooze.",
+      "start": "Could not start the task.",
+      "pause": "Could not pause.",
+      "complete": "Could not complete the task.",
+      "undoStart": "Could not undo start.",
+      "reschedule": "Could not change the date.",
+      "cancel": "Could not update the task.",
+      "schedule": "Could not schedule the proposal."
+    },
+    "form": {
+      "newTitle": "New task",
+      "scheduleTitle": "Schedule task",
+      "manualSubtitle": "What needs to happen, and when?",
+      "fromSuggestion": "From suggestion · {{title}}{{field}}",
+      "whatQuestion": "What needs to be done?",
+      "fieldQuestion": "Which field?",
+      "whenQuestion": "When should it happen?",
+      "whoQuestion": "Who will do it?",
+      "typeLabel": "What kind of work is it?",
+      "titlePlaceholder": "e.g. Prune the dry branches",
+      "unassigned": "I’ll decide later",
+      "assigneeMe": "Me",
+      "assigneeMeHint": "You’ll do it — you can assign someone else if needed.",
+      "assigneeSomeoneElse": "Someone else",
+      "assigneeHintPartner": "Partner",
+      "assigneeHintFamily": "Family",
+      "assigneeHintAdvisor": "Advisor",
+      "assigneeHintContact": "Contact",
+      "decideLater": "I’ll decide later",
+      "collaborator": "Collaborator",
+      "moreDetails": "+ More details",
+      "hideMore": "Less",
+      "preferredTime": "Preferred time",
+      "estimatedCost": "Estimated cost",
+      "costHint": "An estimate only — it is not recorded in finances.",
+      "notes": "Notes",
+      "notesForPerson": "Something the person doing the work should know",
+      "createSubmit": "Create task",
+      "scheduleSubmit": "Schedule",
+      "cancel": "Cancel",
+      "needTitle": "Write what needs to be done.",
+      "needField": "Choose a field.",
+      "needDate": "Choose a date or “I haven’t decided”.",
+      "failedSave": "Could not save.",
+      "failedLoad": "Could not load.",
+      "whyProposed": "Why it’s suggested",
+      "recommendedWindow": "Suggested period",
+      "proposalSummary": "Proposal summary",
+      "assigneeGroupPartners": "Partners & family",
+      "assigneeGroupContacts": "Contacts",
+      "assigneeGroupOthers": "Others",
+      "assignOutcomeContact": "The task will be recorded with this person as responsible. The app will not send them a notification.",
+      "assignOutcomeCollaborator": "This collaborator will see the assignment in the app.",
+      "periodEnds": "Until",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "when": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "thisWeek": "This week",
+        "pick": "Pick a date",
+        "undecided": "I haven’t decided"
+      },
+      "moreDays": "It needs more than one day",
+      "singleDay": "One day is enough",
+      "checklistIntro": "Basic checks — {{count}} things to confirm.",
+      "showChecklist": "Show list",
+      "hideChecklist": "Hide list",
+      "resultYear": "Result year",
+      "resultYearHint": "Change this only if the work belongs to the previous harvest.",
+      "createdTitle": "The task was scheduled",
+      "viewTask": "View task",
+      "createAnother": "Create another",
+      "undo": "Undo",
+      "types": {
+        "irrigation": "Irrigation check",
+        "fly": "Olive-fly check",
+        "fertilisation": "Fertilisation",
+        "pruning": "Pruning",
+        "weeds": "Weed management",
+        "harvest": "Harvest",
+        "other": "Custom work"
+      },
+      "suggestions": {
+        "irrigation": [
+          "Check the pump",
+          "Check for leaks"
+        ],
+        "fly": [
+          "Count trap catches",
+          "Check the fruit"
+        ],
+        "fertilisation": [
+          "Base fertilisation",
+          "Top dressing"
+        ],
+        "pruning": [
+          "Prune the dry branches",
+          "Fruiting prune"
+        ],
+        "weeds": [
+          "Clear the grass",
+          "Cut the cover crop"
+        ],
+        "harvest": [
+          "Harvest",
+          "Take olives to the mill"
+        ],
+        "other": [
+          "Field work"
+        ]
+      },
+      "time": {
+        "morning": "Morning",
+        "midday": "Midday",
+        "afternoon": "Afternoon",
+        "anytime": "Any time",
+        "specific": "A specific time"
+      }
+    },
+    "detail": {
+      "checklist": "Checks",
+      "moreChecks": "More checks",
+      "hideMoreChecks": "Fewer checks",
+      "money": "Money",
+      "estimated": "Estimated (planning)",
+      "actual": "Actual cost",
+      "difference": "Difference",
+      "noActual": "No cost has been recorded yet",
+      "addExpense": "Record expense",
+      "seeMoney": "See in Money",
+      "estimateHint": "The estimate never enters the year’s official totals.",
+      "nextStep": "Next step",
+      "nextStepStart": "Start the task when you are in the field.",
+      "nextStepComplete": "When you finish, record the outcome and checks.",
+      "checklistHint": "Answers are filled in at completion — here you see progress.",
+      "checkPending": "Pending",
+      "noChecks": "There are no checks for this task.",
+      "fillChecks": "Fill in checks",
+      "notesOnComplete": "You can add notes when you complete the task.",
+      "noNotes": "No notes."
+    },
+    "onboarding": {
+      "progress": "{{current}} of {{total}}",
+      "exit": "Exit",
+      "continue": "Continue",
+      "saving": "Saving…",
+      "savedOffline": "Saved on this device. It will sync when you are online.",
+      "saveFailed": "Could not save. Please try again.",
+      "loadFailed": "Could not load work setup.",
+      "needOnlineFirst": "You need to be online the first time to start work setup.",
+      "backToField": "Back to field",
+      "welcome": {
+        "title": "Shall we set up this field’s year?",
+        "body": "A few simple questions — so we can suggest what fits your field. You can stop and continue later.",
+        "start": "Let’s start",
+        "later": "I’ll do it later"
+      },
+      "planPreview": {
+        "activateFailed": "Could not activate the plan. Please try again."
+      },
+      "personalizing": {
+        "title": "Gathering your data",
+        "body": "Personalizing your timeline…"
+      },
+      "blocked": {
+        "draftTitle": "Finish the field first",
+        "draftBody": "Work setup is available after the field is active — not while it is still a draft.",
+        "permissionTitle": "Only the field manager can do this",
+        "permissionBody": "This setup is for whoever manages the field. Collaborators do not complete it.",
+        "activeTitle": "Setup is already complete",
+        "activeBody": "The work profile is active. You can view and change it from the settings page."
+      },
+      "questions": {
+        "purpose": "What do you mainly produce from this field?",
+        "irrigation": "Do you irrigate this field?",
+        "irrigationMethod": "How do you usually irrigate?",
+        "irrigationWho": "Who decides about irrigation?",
+        "pruning": "Do you prune this field?",
+        "pruningLastYear": "When was the last pruning?",
+        "pruningWho": "Who usually does the pruning? (optional)",
+        "fertilisation": "Do you fertilise?",
+        "fertilisationFrequency": "About how many times a year?",
+        "fertilisationDone": "Have you already fertilised for {{year}}?",
+        "fertilisationWho": "Who decides about fertiliser? (optional)",
+        "groundCover": "How do you manage weeds / ground cover?",
+        "groundCoverTimes": "About how many times a year?",
+        "pest": "How do you decide on sprays / olive fly?",
+        "pestTraps": "Do you have olive-fly traps?",
+        "pestWho": "Who checks the traps? (optional)",
+        "analyses": "Do you do analyses (soil, leaf, water)?",
+        "analysesYears": "When was the last analysis?",
+        "harvestMonth": "When does harvest usually start?",
+        "harvestWho": "Who organises the harvest?"
+      },
+      "hints": {
+        "purpose": "Pick what fits most.",
+        "irrigation": "If you’re unsure, say so — we’ll ask first.",
+        "irrigationPrefill": "Field details suggest irrigation is present. Please confirm.",
+        "pruning": "Pruning helps us know which years to suggest it.",
+        "optionalWho": "You can skip this.",
+        "multiSelect": "You can pick more than one.",
+        "analysisNone": "Tap “I don’t do analyses” again if you want to change it.",
+        "analysesYears": "Year is enough — no exact date needed."
+      },
+      "choices": {
+        "unsure": "I’m not sure",
+        "skip": "Skip",
+        "yes": "Yes",
+        "no": "No",
+        "partially": "Partially",
+        "purpose": {
+          "oil": "Olive oil",
+          "table": "Table olives",
+          "both": "Both"
+        },
+        "irrigation": {
+          "yes": "Yes, I irrigate",
+          "no": "No irrigation",
+          "ask": "Ask me first"
+        },
+        "irrigationMethod": {
+          "drip": "Drip",
+          "sprinklers": "Sprinklers",
+          "portable": "Portable / hose",
+          "other": "Other"
+        },
+        "who": {
+          "self": "Me",
+          "family": "Family / collaborator",
+          "agronomist": "Agronomist",
+          "auto": "Automatic system",
+          "contractor": "Contractor",
+          "nofixed": "No fixed way"
+        },
+        "pruning": {
+          "yes": "Yes, regularly",
+          "whenNeeded": "When needed",
+          "pro": "A professional decides",
+          "no": "No",
+          "never": "Not yet / don’t remember the year"
+        },
+        "fertilisation": {
+          "annual": "Yes, every year",
+          "sometimes": "Sometimes / when needed",
+          "pro": "An agronomist decides",
+          "no": "No",
+          "once": "Once",
+          "twice": "Twice",
+          "thrice": "3 or more"
+        },
+        "ground": {
+          "mower": "Mower / mulcher",
+          "tillage": "Tillage",
+          "grazing": "Grazing",
+          "herbicide": "Herbicide",
+          "nofixed": "No fixed clearing"
+        },
+        "times": {
+          "1": "Once",
+          "2": "Twice",
+          "3": "3 or more",
+          "whenNeeded": "When needed"
+        },
+        "pest": {
+          "official": "Official warnings",
+          "agronomist": "With an agronomist",
+          "traps": "Traps and fruit checks",
+          "combined": "Combined",
+          "none": "Usually no sprays"
+        },
+        "traps": {
+          "active": "Yes, installed",
+          "notYet": "Not yet this year",
+          "none": "I don’t use traps"
+        },
+        "analysis": {
+          "soil": "Soil",
+          "leaf": "Leaf",
+          "water": "Water",
+          "none": "I don’t do analyses"
+        }
+      },
+      "months": {
+        "1": "January",
+        "2": "February",
+        "10": "October",
+        "11": "November",
+        "12": "December"
+      },
+      "years": {
+        "thisYear": "This year ({{year}})",
+        "lastYear": "Last year ({{year}})",
+        "twoYearsAgo": "Two years ago ({{year}})",
+        "threePlus": "{{year}} or earlier"
+      },
+      "banner": {
+        "title": "Shall we set up this field’s year?",
+        "body": "A few questions so we can suggest what fits here.",
+        "start": "Let’s start",
+        "resume": "Continue setup",
+        "later": "Later"
+      }
+    },
+    "profile": {
+      "title": "How I work this field",
+      "subtitle": "A short view of your settings. Tap Change to adjust something.",
+      "change": "Change",
+      "loadFailed": "Could not load the work profile.",
+      "revisitSetup": "Go through the questions again",
+      "sections": {
+        "purpose": "What you produce"
+      },
+      "categories": {
+        "pruning": "Pruning",
+        "fertilisation": "Fertilisation",
+        "ground_cover": "Weeds / ground",
+        "irrigation": "Irrigation",
+        "monitoring": "Checks / traps",
+        "harvest": "Harvest"
+      },
+      "pref": {
+        "enabled": "Yes",
+        "disabled": "No",
+        "ask_first": "Ask me first",
+        "unknown": "Not set",
+        "olive_oil": "Olive oil",
+        "table_olives": "Table olives",
+        "both": "Both"
+      },
+      "learning": {
+        "dismissalTitle": "Task proposals",
+        "dismissalMessage": "Should we stop proposing this task for the field?",
+        "dontPropose": "Don’t propose",
+        "askWhenIndicated": "Only when there’s a signal",
+        "keepProposing": "Keep proposing",
+        "completionTitle": "Pruning frequency",
+        "completionMessage": "Pruning was recorded for {{year}}. Propose again in {{nextYear}}?",
+        "everyTwoYears": "Yes, every 2 years",
+        "everyYear": "Every year",
+        "whenNeeded": "Only when needed",
+        "noChange": "No change",
+        "applyFailed": "Could not save that choice. Try again.",
+        "reviewTitle": "Annual review",
+        "reviewBody": "About a year has passed since the last review. Want to check your settings?",
+        "reviewNow": "Yes, review",
+        "reviewLater": "Later"
+      },
+      "copy": {
+        "open": "Copy to other fields",
+        "title": "Copy settings",
+        "pickBody": "Choose active fields (not drafts).",
+        "noTargets": "There are no other active fields to copy to.",
+        "continue": "Continue",
+        "optionsTitle": "What should be copied?",
+        "optionsBody": "Core practices are always copied. Irrigation, last dates, and people only if you choose.",
+        "optIrrigation": "Yes, also copy irrigation",
+        "optLastPerformed": "Yes, also copy last-performed dates",
+        "optAssignments": "Yes, also copy default people (only if they already have access)",
+        "review": "Review before applying",
+        "reviewTitle": "Review differences",
+        "reviewBody": "Will apply to {{count}} fields:",
+        "willCopy": "Will be copied",
+        "willSkip": "Not copied",
+        "apply": "Apply",
+        "applying": "Applying…",
+        "applyFailed": "Copy failed.",
+        "loadFailed": "Could not load fields.",
+        "doneTitle": "Done",
+        "ok": "OK",
+        "finish": "Finish",
+        "diff": {
+          "purpose": "Production purpose",
+          "pruning": "Pruning",
+          "fertilisation": "Fertilisation",
+          "groundCover": "Weeds / ground",
+          "pest": "Sprays / olive fly",
+          "analysis": "Analyses",
+          "harvest": "Harvest",
+          "irrigation": "Irrigation",
+          "lastPerformed": "Last-performed dates",
+          "assignments": "Default people"
+        }
+      }
+    },
+    "completion": {
+      "title": "Complete task",
+      "step": "Step {{current}} of {{total}}",
+      "steps": {
+        "checks": "Checks",
+        "result": "Result",
+        "cost": "Cost",
+        "confirm": "Confirm"
+      },
+      "checksTitle": "What did you get done?",
+      "incompleteOnly": "Only what is still open — mark each one.",
+      "resultTitle": "Record the result",
+      "resultLead": "Fill in the fields for this task.",
+      "whatHappened": "What happened?",
+      "confirm": "Confirm",
+      "chronologioConfirm": "This will be saved to Chronologio for {{field}}, on {{date}}.",
+      "save": "Save",
+      "saveYes": "Yes, completed",
+      "return": "Back",
+      "createFollowUp": "Create a follow-up for the remainder",
+      "savedTitle": "Task completed",
+      "savedBody": "Saved to Chronologio.",
+      "openHarvest": "Open harvest",
+      "undo": "Undo",
+      "undoFailed": "Could not undo.",
+      "openFollowUp": "Open follow-up",
+      "hadCost": "Was there a cost?",
+      "hadCostHint": "If yes, you can record it in Money. No zero-amount row is created.",
+      "hadCostYes": "Yes, there was a cost",
+      "hadCostNo": "No cost",
+      "recordCost": "Record cost",
+      "required": "required",
+      "blockEssential": "Complete {{count}} required checks to continue.",
+      "blockResults": "Fill in {{count}} required fields to finish.",
+      "showOptional": "Optional · {{count}} more",
+      "hideOptional": "Hide optional",
+      "notesPlaceholder": "Optional note…",
+      "check": {
+        "done": "Done",
+        "notNeeded": "Not needed",
+        "couldNot": "Couldn’t"
+      },
+      "outcomes": {
+        "completed": "Completed",
+        "partial": "Partially completed",
+        "notDone": "Not done",
+        "completedHint": "Everything that was needed",
+        "partialHint": "Something left for later",
+        "notDoneHint": "Log without a result"
+      }
+    }
+  },
+  "notebook": {
+    "sections": {
+      "attention": "Needs attention",
+      "today": "Today",
+      "next": "Next",
+      "suggestions": "Suggestions"
+    },
+    "status": {
+      "todo": "To do",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "blocked": "Blocked",
+      "skipped": "Skipped",
+      "cancelled": "Cancelled"
+    },
+    "when": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "overdue": "Overdue",
+      "noDate": "No date yet"
+    },
+    "fieldCount": "{{n}} fields",
+    "fieldProgress": "{{done}} of {{total}} completed",
+    "checks": "{{done}} of {{total}} steps",
+    "unassigned": "Unassigned",
+    "actions": {
+      "resolve": "Resolve"
+    },
+    "menu": {
+      "reschedule": "Reschedule",
+      "block": "Cannot do",
+      "skip": "Skip",
+      "cancel": "Cancel",
+      "reopen": "Reopen"
+    },
+    "search": "Search",
+    "mine": "Mine",
+    "everyone": "Everyone",
+    "tabs": {
+      "todo": "To do",
+      "done": "Completed"
+    },
+    "weather": {
+      "unsuitable": "Unsuitable weather",
+      "caution": "Weather warning"
+    },
+    "work": {
+      "started": "Started {{time}}",
+      "checks": "Checks",
+      "checksProgress": "{{done}} of {{total}}",
+      "note": "Note",
+      "saveNote": "Save note",
+      "complete": "Complete",
+      "pause": "Pause",
+      "incomplete": "{{open}} required checks are still open.",
+      "backToChecks": "Return to checks",
+      "completeAnyway": "Complete with explanation",
+      "doneNow": "Completed now",
+      "confirm": "Confirm",
+      "activity": "Activity",
+      "addPhoto": "Add photo",
+      "noChecks": "No checks. You can complete this as soon as the work is done.",
+      "activityActions": {
+        "created": "Created",
+        "started": "Started",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "rescheduled": "Rescheduled",
+        "check_completed": "Check marked",
+        "check_cleared": "Check cleared",
+        "blocked": "Blocked",
+        "skipped": "Skipped",
+        "resolved": "Resolved",
+        "reopened": "Reopened"
+      }
+    },
+    "scope": "Who is shown",
+    "frequent": "Common work",
+    "oneField": "One field",
+    "severalFields": "Several fields"
   }
 }

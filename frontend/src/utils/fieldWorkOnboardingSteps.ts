@@ -29,10 +29,30 @@ export type OnboardingStepId =
   | 'finished'
   | 'planPreview'
   | 'similarFields'
-  | 'completion';
+  | 'completion'
+  | 'personalizing';
 
-/** Primary question index (1–9) for progress display; welcome/finished/preview excluded. */
-export const PRIMARY_TOTAL = 9;
+/** Primary question index (1–8) for progress display; welcome/personalizing excluded. */
+export const PRIMARY_TOTAL = 8;
+
+const RETIRED_TO_PERSONALIZING: ReadonlySet<OnboardingStepId> = new Set([
+  'harvestMill',
+  'reminders',
+  'finished',
+  'planPreview',
+  'similarFields',
+  'completion',
+]);
+
+export const hasSelectedAnalysisKinds = (
+  kinds?: Array<{ kind?: string | null }> | null
+): boolean =>
+  Boolean(
+    kinds?.some((entry) => {
+      const kind = entry.kind || '';
+      return kind && kind !== 'none' && kind !== 'unknown';
+    })
+  );
 
 export const primaryIndexForStep = (step: OnboardingStepId): number | null => {
   switch (step) {
@@ -41,6 +61,7 @@ export const primaryIndexForStep = (step: OnboardingStepId): number | null => {
     case 'planPreview':
     case 'similarFields':
     case 'completion':
+    case 'personalizing':
       return null;
     case 'purpose':
       return 1;
@@ -73,7 +94,7 @@ export const primaryIndexForStep = (step: OnboardingStepId): number | null => {
     case 'harvestMill':
       return 8;
     case 'reminders':
-      return 9;
+      return 8;
     default:
       return null;
   }
@@ -87,7 +108,7 @@ const isUnknown = (value?: string | null) => !value || value === 'unknown';
  */
 export const inferResumeStep = (profile: FieldWorkProfile | null): OnboardingStepId => {
   if (!profile) return 'welcome';
-  if (profile.status === 'active') return 'finished';
+  if (profile.status === 'active') return 'personalizing';
 
   if (isUnknown(profile.productionPurpose)) return 'purpose';
 
@@ -111,7 +132,6 @@ export const inferResumeStep = (profile: FieldWorkProfile | null): OnboardingSte
     profile.pruning.lastPerformedYear == null &&
     isUnknown(profile.pruning.datePrecision)
   ) {
-    // last year not set — still ask unless they cleared via "never"/unsure with precision
     return 'pruningLastYear';
   }
 
@@ -140,7 +160,7 @@ export const inferResumeStep = (profile: FieldWorkProfile | null): OnboardingSte
   }
 
   if (
-    profile.analysis.kinds.length === 0 &&
+    !hasSelectedAnalysisKinds(profile.analysis.kinds) &&
     isUnknown(profile.analysis.preferenceMode)
   ) {
     return 'analyses';
@@ -150,12 +170,17 @@ export const inferResumeStep = (profile: FieldWorkProfile | null): OnboardingSte
     return 'harvestMonth';
   }
   if (isUnknown(profile.harvest.organizer)) return 'harvestWho';
-  if (isUnknown(profile.harvest.needsMillBooking)) return 'harvestMill';
 
-  if (isUnknown(profile.notificationPreference.intensity)) return 'reminders';
+  return 'personalizing';
+};
 
-  // Answers complete — show plan preview (Phase 4) before activate.
-  return 'planPreview';
+export const normalizeOnboardingStep = (
+  step: OnboardingStepId,
+  profile: FieldWorkProfile | null
+): OnboardingStepId => {
+  if (step === 'groundCoverMonths') return 'pest';
+  if (RETIRED_TO_PERSONALIZING.has(step)) return inferResumeStep(profile);
+  return step;
 };
 
 export const buildStepSequence = (ctx: {
@@ -179,7 +204,7 @@ export const buildStepSequence = (ctx: {
     if (ctx.fertilisationAnnual) steps.push('fertilisationFrequency');
     steps.push('fertilisationDone', 'fertilisationWho');
   }
-  steps.push('groundCover', 'groundCoverTimes', 'groundCoverMonths');
+  steps.push('groundCover', 'groundCoverTimes');
   steps.push('pest');
   if (ctx.pestMonitoring) {
     steps.push('pestTraps', 'pestWho');
@@ -188,7 +213,7 @@ export const buildStepSequence = (ctx: {
   if (ctx.analysisKindsSelected) {
     steps.push('analysesYears');
   }
-  steps.push('harvestMonth', 'harvestWho', 'harvestMill', 'reminders', 'planPreview');
+  steps.push('harvestMonth', 'harvestWho', 'personalizing');
   return steps;
 };
 
@@ -197,7 +222,7 @@ export const nextStep = (
   sequence: OnboardingStepId[]
 ): OnboardingStepId => {
   const idx = sequence.indexOf(current);
-  if (idx < 0 || idx >= sequence.length - 1) return 'planPreview';
+  if (idx < 0 || idx >= sequence.length - 1) return 'personalizing';
   return sequence[idx + 1];
 };
 

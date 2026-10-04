@@ -32,4 +32,30 @@ public static class FinancialCapabilities
         AddExpense,
         EditOwnDraft
     ];
+
+    /// <summary>
+    /// Family seat that keeps the grove books: can see and record income and expenses.
+    /// Posted corrections and voids stay with the field admin.
+    /// </summary>
+    public static readonly string[] HouseholdBooks =
+    [
+        ViewSummary,
+        ViewTransactions,
+        ViewIncome,
+        AddExpense,
+        AddIncome,
+        EditOwnDraft,
+        ViewReceipts
+    ];
+
+    /// <summary>
+    /// Family with money module at view depth — see household books, no writes.
+    /// </summary>
+    public static readonly string[] HouseholdViewOnly =
+    [
+        ViewSummary,
+        ViewTransactions,
+        ViewIncome,
+        ViewReceipts
+    ];
 }

@@ -1,41 +1,115 @@
-import React, { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Field } from '../../services/fieldService';
 import { useTheme } from '../../context/ThemeContext';
-import { resolveFieldPolygon, type LatLng } from '../../utils/fieldGeo';
+import { resolveFieldCenter, resolveFieldPolygon, type LatLng } from '../../utils/fieldGeo';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { hexToRgba } from '../../utils/hexToRgba';
+import { bboxForPreview, buildSatellitePreviewUrl, type GeoBBox } from '../../utils/satellitePreview';
 
 type Props = {
   field: Field;
   size?: number;
+  /** Circular clip — default for list cards. */
+  circular?: boolean;
 };
 
-const project = (poly: LatLng[], size: number, pad: number) => {
-  const lats = poly.map((p) => p.latitude);
-  const lngs = poly.map((p) => p.longitude);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const latSpan = Math.max(maxLat - minLat, 0.00001);
-  const lngSpan = Math.max(maxLng - minLng, 0.00001);
-  const inner = size - pad * 2;
+type Pt = { x: number; y: number };
+
+const projectRingToBbox = (poly: LatLng[], bbox: GeoBBox, size: number): Pt[] => {
+  const geoW = Math.max(bbox.maxLng - bbox.minLng, 1e-8);
+  const geoH = Math.max(bbox.maxLat - bbox.minLat, 1e-8);
   return poly.map((p) => ({
-    x: pad + ((p.longitude - minLng) / lngSpan) * inner,
-    y: pad + (1 - (p.latitude - minLat) / latSpan) * inner,
+    x: ((p.longitude - bbox.minLng) / geoW) * size,
+    y: ((bbox.maxLat - p.latitude) / geoH) * size,
   }));
 };
 
-const FieldPolygonThumbnail: React.FC<Props> = ({ field, size = 88 }) => {
+const closeRing = (pts: Pt[]): Pt[] => {
+  if (pts.length < 2) return pts;
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  if (Math.abs(first.x - last.x) < 0.5 && Math.abs(first.y - last.y) < 0.5) return pts;
+  return [...pts, first];
+};
+
+/**
+ * Field card preview — Esri satellite crop with boundary outline when available.
+ * Outline uses View edges (not react-native-svg) to avoid class-extends crashes
+ * when Polygon/Shape native modules are not ready on the fields list.
+ */
+const FieldPolygonThumbnail: React.FC<Props> = ({ field, size = 96, circular = false }) => {
   const { colors } = useTheme();
   const accent = resolveFieldColor(field.color, field.id);
+  const [imageFailed, setImageFailed] = useState(false);
+
   const polygon = useMemo(() => resolveFieldPolygon(field), [field]);
-  const points = useMemo(
-    () => (polygon && polygon.length > 1 ? project(polygon, size, 10) : []),
-    [polygon, size]
-  );
+  const center = useMemo(() => resolveFieldCenter(field), [field]);
+
+  const preview = useMemo(() => {
+    const points =
+      polygon && polygon.length >= 2 ? polygon : center ? [center] : [];
+    const bbox = bboxForPreview(points);
+    if (!bbox) return null;
+    const pixel = Math.round(size * 2);
+    const ring =
+      polygon && polygon.length >= 2 ? closeRing(projectRingToBbox(polygon, bbox, size)) : [];
+    return {
+      uri: buildSatellitePreviewUrl(bbox, pixel, pixel),
+      ring,
+    };
+  }, [polygon, center, size]);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [preview?.uri]);
+
+  const edges = useMemo(() => {
+    const points = preview?.ring || [];
+    if (points.length < 2) return [];
+    const out: Array<{ key: string; left: number; top: number; width: number; angle: number }> = [];
+    for (let i = 1; i < points.length; i += 1) {
+      const prev = points[i - 1];
+      const point = points[i];
+      const dx = point.x - prev.x;
+      const dy = point.y - prev.y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      if (length < 0.8) continue;
+      out.push({
+        key: `${i}-${prev.x.toFixed(1)}-${prev.y.toFixed(1)}`,
+        left: prev.x,
+        top: prev.y,
+        width: length,
+        angle: Math.atan2(dy, dx),
+      });
+    }
+    return out;
+  }, [preview]);
+
+  const radius = circular ? size / 2 : 16;
+  const stroke = Math.max(2, size * 0.028);
+
+  if (!preview) {
+    return (
+      <View
+        style={[
+          styles.thumb,
+          {
+            width: size,
+            height: size,
+            borderRadius: radius,
+            backgroundColor: hexToRgba(accent, 0.14),
+            borderColor: hexToRgba(accent, 0.35),
+          },
+        ]}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Ionicons name="location-outline" size={Math.round(size * 0.28)} color={accent} />
+      </View>
+    );
+  }
 
   return (
     <View
@@ -44,38 +118,48 @@ const FieldPolygonThumbnail: React.FC<Props> = ({ field, size = 88 }) => {
         {
           width: size,
           height: size,
-          backgroundColor: hexToRgba(accent, 0.28),
-          borderColor: colors.borderLight,
+          borderRadius: radius,
+          backgroundColor: colors.surfaceMuted || hexToRgba(accent, 0.1),
+          borderColor: hexToRgba(accent, 0.4),
         },
       ]}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      {points.length > 1 ? (
-        points.slice(1).map((point, index) => {
-          const prev = points[index];
-          const dx = point.x - prev.x;
-          const dy = point.y - prev.y;
-          const length = Math.sqrt(dx * dx + dy * dy);
-          const angle = Math.atan2(dy, dx);
-          return (
-            <View
-              key={`${index}-${point.x}`}
-              style={[
-                styles.edge,
-                {
-                  left: prev.x,
-                  top: prev.y,
-                  width: length,
-                  backgroundColor: accent,
-                  transform: [{ rotate: `${angle}rad` }],
-                },
-              ]}
-            />
-          );
-        })
+      {!imageFailed ? (
+        <Image
+          source={{ uri: preview.uri }}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+          onError={() => setImageFailed(true)}
+        />
       ) : (
-        <Ionicons name="location-outline" size={22} color={accent} />
+        <View
+          style={[StyleSheet.absoluteFillObject, { backgroundColor: hexToRgba(accent, 0.18) }]}
+        />
+      )}
+      {edges.length > 0 ? (
+        edges.map((edge) => (
+          <View
+            key={edge.key}
+            style={[
+              styles.edge,
+              {
+                left: edge.left,
+                top: edge.top - stroke / 2,
+                width: edge.width,
+                height: stroke,
+                backgroundColor: accent,
+                borderRadius: stroke,
+                transform: [{ rotate: `${edge.angle}rad` }],
+              },
+            ]}
+          />
+        ))
+      ) : (
+        <View style={styles.centerPin}>
+          <Ionicons name="location" size={Math.round(size * 0.32)} color={accent} />
+        </View>
       )}
     </View>
   );
@@ -83,16 +167,19 @@ const FieldPolygonThumbnail: React.FC<Props> = ({ field, size = 88 }) => {
 
 const styles = StyleSheet.create({
   thumb: {
-    borderRadius: 12,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexShrink: 0,
   },
   edge: {
     position: 'absolute',
-    height: 2.5,
-    borderRadius: 1,
+  },
+  centerPin: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

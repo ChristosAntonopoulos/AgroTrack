@@ -1,5 +1,6 @@
 import type {
   ChronologioAxis,
+  ChronologioEntry,
   ChronologioMonthSummary,
   ChronologioWeatherDetails,
 } from '../services/chronologioService';
@@ -17,6 +18,26 @@ export const isHarvestMonth = (month: ChronologioMonthSummary): boolean =>
 
 export const monthCardLayout = (month: ChronologioMonthSummary): MonthCardLayout =>
   harvestHasResult(month) ? 'harvest' : 'standard';
+
+export type MonthChapterFocus = 'work' | 'money' | 'harvest' | 'observation';
+
+const sameReading = (a?: number | null, b?: number | null) =>
+  (a ?? null) === (b ?? null);
+
+/** Nearby fields that published the same monthly weather point. */
+export const weatherReviewsShareReading = (reviews: ChronologioEntry[]): boolean => {
+  const points = reviews
+    .map((entry) => entry.details.weather)
+    .filter((weather): weather is ChronologioWeatherDetails => Boolean(weather));
+  if (points.length < 2) return false;
+  const first = points[0];
+  return points.every(
+    (weather) =>
+      sameReading(weather.rainfallMm, first.rainfallMm) &&
+      sameReading(weather.temperatureMin, first.temperatureMin) &&
+      sameReading(weather.temperatureMax, first.temperatureMax)
+  );
+};
 
 export const monthHasActivity = (month: ChronologioMonthSummary): boolean =>
   periodEventCount(month) > 0 ||

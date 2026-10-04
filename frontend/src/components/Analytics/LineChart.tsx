@@ -8,13 +8,14 @@ interface LineChartProps {
   xAxisKey: string;
   lines: { dataKey: string; name: string; color: string }[];
   title?: string;
+  height?: number;
 }
 
-const LineChart: React.FC<LineChartProps> = ({ data, dataKey, xAxisKey, lines, title }) => {
+const LineChart: React.FC<LineChartProps> = ({ data, dataKey, xAxisKey, lines, title, height = 300 }) => {
   return (
     <div className="chart-container">
       {title && <h3 className="chart-title">{title}</h3>}
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={height}>
         <RechartsLineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey={xAxisKey} />

@@ -24,5 +24,82 @@
     "attempts": "Attempts",
     "failedAt": "Failed at",
     "noFailures": "No recent job failures."
+  },
+  "campaigns": {
+    "nav": "Messages",
+    "title": "In-app messages",
+    "subtitle": "Compose announcements, questionnaires, and polls. Choose inbox and/or popup placement.",
+    "editorSubtitle": "Draft content in English and Greek, target roles, then publish.",
+    "forbidden": "You do not have permission to manage campaigns.",
+    "loadFailed": "Could not load campaigns.",
+    "empty": "No campaigns yet. Create one to notify growers.",
+    "new": "New campaign",
+    "edit": "Edit campaign",
+    "publish": "Publish",
+    "archive": "Archive",
+    "backToList": "Back to campaigns",
+    "kinds": {
+      "announcement": "Announcement",
+      "questionnaire": "Questionnaire",
+      "poll": "Poll"
+    },
+    "columns": {
+      "title": "Title",
+      "kind": "Kind",
+      "status": "Status",
+      "placements": "Placements",
+      "updated": "Updated"
+    },
+    "fields": {
+      "kind": "Kind",
+      "priority": "Priority",
+      "inbox": "Show in inbox",
+      "modal": "Show as popup",
+      "dismissible": "Popup can be dismissed",
+      "startsAt": "Starts at",
+      "endsAt": "Ends at",
+      "titleEn": "Title (EN)",
+      "titleEl": "Title (EL)",
+      "bodyEn": "Body (EN)",
+      "bodyEl": "Body (EL)",
+      "audience": "Audience roles",
+      "audienceHint": "Leave all unchecked to target every signed-in role.",
+      "ctaEn": "CTA label (EN)",
+      "ctaEl": "CTA label (EL)",
+      "ctaUrl": "CTA URL",
+      "question": "Question",
+      "questionType": "Question type",
+      "required": "Required",
+      "promptEn": "Prompt (EN)",
+      "promptEl": "Prompt (EL)",
+      "addOption": "Add option",
+      "addQuestion": "Add question",
+      "showResults": "Show poll results after voting"
+    },
+    "responses": {
+      "title": "Responses",
+      "completed": "Completed",
+      "dismissed": "Dismissed",
+      "seen": "Seen",
+      "delivered": "Engaged",
+      "textAnswers": "Text answers",
+      "recent": "Recent answers"
+    }
+  },
+  "feedback": {
+    "nav": "User feedback",
+    "title": "User feedback inbox",
+    "subtitle": "{{count}} unseen submissions",
+    "forbidden": "You do not have permission to view feedback.",
+    "loadFailed": "Could not load feedback.",
+    "empty": "No feedback yet.",
+    "select": "Select a row to read the full submission.",
+    "noComment": "(No comment — media only)",
+    "columns": {
+      "user": "User",
+      "comment": "Comment",
+      "when": "When",
+      "media": "Media"
+    }
   }
 }

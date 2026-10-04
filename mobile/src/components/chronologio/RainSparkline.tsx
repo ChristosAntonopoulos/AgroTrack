@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { colors } from '../../theme/colors';
 
 type Props = {
   values: number[];
@@ -11,7 +12,7 @@ type Props = {
 const RainSparkline: React.FC<Props> = ({
   values,
   height = 40,
-  color = '#2D6A9F',
+  color = colors.rain,
 }) => {
   if (!values.length) return null;
   const max = Math.max(...values, 0.1);

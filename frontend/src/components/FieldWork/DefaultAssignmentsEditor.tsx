@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import OnboardingChoiceList from './OnboardingChoiceList';
 import type { FieldMembership } from '../../services/fieldPeopleService';
+import { capacitiesForMembership } from '../../services/fieldPeopleService';
 import type { DefaultAssignments } from '../../services/fieldWorkService';
 import {
   DEFAULT_ASSIGNMENT_CATEGORIES,
@@ -37,14 +38,11 @@ const DefaultAssignmentsEditor: React.FC<Props> = ({
 
   const collaborators = useMemo(
     () =>
-      people.filter(
-        (p) =>
-          p.status === 'active' &&
-          p.userId !== currentUserId &&
-          (p.capacities?.includes('work') ||
-            p.capacities?.includes('help') ||
-            p.capacities?.includes('own'))
-      ),
+      people.filter((p) => {
+        if (p.status !== 'active' || p.userId === currentUserId) return false;
+        const caps = capacitiesForMembership(p);
+        return caps.includes('work') || caps.includes('help') || caps.includes('own');
+      }),
     [people, currentUserId]
   );
 

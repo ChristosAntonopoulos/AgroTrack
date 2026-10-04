@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Oleachron",
+    "name": "The Olive Lot",
     "slug": "olive-lifecycle",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,30 +11,64 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#2E4A2E"
+      "backgroundColor": "#F4F0E6"
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.oleachron.app",
+      "associatedDomains": [
+        "applinks:app.oleachron.app"
+      ],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show field locations on the map and provide weather information.",
         "NSLocationAlwaysUsageDescription": "This app needs access to your location to show field locations on the map and provide weather information.",
-        "NSContactsUsageDescription": "Oleachron uses one contact you pick so you can save the pruner or mill in Οι άνθρωποί μου. We never import your whole phone book."
+        "NSContactsUsageDescription": "The Olive Lot uses one contact you pick so you can save the pruner or mill in Οι άνθρωποί μου. We never import your whole phone book.",
+        "NSPhotoLibraryUsageDescription": "The Olive Lot looks through your photos for shots taken on your fields so they can appear in Photo Hub and Chronologio. Nothing is uploaded until you confirm.",
+        "NSPhotoLibraryAddUsageDescription": "The Olive Lot may save photos you take for field records."
       }
     },
     "android": {
       "package": "com.oleachron.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#2E4A2E"
+        "backgroundColor": "#F4F0E6"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.oleachron.app",
+              "pathPrefix": "/invite"
+            },
+            {
+              "scheme": "https",
+              "host": "app.oleachron.app",
+              "pathPrefix": "/family-invite"
+            },
+            {
+              "scheme": "https",
+              "host": "app.oleachron.app",
+              "pathPrefix": "/partner-invite"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.READ_CONTACTS"
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_CONTACTS",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -52,29 +86,37 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Oleachron to use your location to show field locations and weather information."
+          "locationAlwaysAndWhenInUsePermission": "Allow The Olive Lot to use your location to show field locations and weather information."
         }
       ],
       [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#2E4A2E",
+          "color": "#1F2820",
           "sounds": []
         }
       ],
         [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Oleachron to access your photos for task evidence.",
-          "cameraPermission": "Allow Oleachron to use your camera for task evidence."
+          "photosPermission": "Allow The Olive Lot to access your photos for task evidence and field Photo Hub.",
+          "cameraPermission": "Allow The Olive Lot to use your camera for task evidence."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "The Olive Lot looks for photos taken on or near your fields so they can appear in Photo Hub and Chronologio by capture date.",
+          "savePhotosPermission": "Allow The Olive Lot to save photos you take for field records.",
+          "isAccessMediaLocationEnabled": true
         }
       ],
       "expo-document-picker",
       [
         "expo-contacts",
         {
-          "contactsPermission": "Oleachron uses one contact you pick so you can save the pruner or mill in Οι άνθρωποί μου. We never import your whole phone book."
+          "contactsPermission": "The Olive Lot uses one contact you pick so you can save the pruner or mill in Οι άνθρωποί μου. We never import your whole phone book."
         }
       ],
       "expo-localization",

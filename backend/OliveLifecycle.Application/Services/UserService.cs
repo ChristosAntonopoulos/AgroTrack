@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.DTOs.User;
 using OliveLifecycle.Application.Mappings;
+using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core.Exceptions;
 
@@ -68,14 +69,7 @@ public class UserService : IUserService
     {
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new NotFoundException("User not found.");
-        return new UserExperiencePreferencesDto
-        {
-            ExperienceMode = user.Preferences.ExperienceMode,
-            ExperienceModeChosen = user.Preferences.ExperienceModeChosen,
-            FontScale = user.Preferences.FontScale,
-            LargeControls = user.Preferences.LargeControls,
-            Language = user.Preferences.Language
-        };
+        return UserPreferenceMapper.ToDto(user.Preferences);
     }
 
     public async Task<UserExperiencePreferencesDto> UpdatePreferencesAsync(
@@ -112,6 +106,12 @@ public class UserService : IUserService
             && (dto.Language is "en" or "el"))
         {
             user.Preferences.Language = dto.Language;
+        }
+
+        if (dto.Notifications != null)
+        {
+            user.Preferences.Notifications ??= new NotificationPreferences();
+            UserPreferenceMapper.Apply(user.Preferences.Notifications, dto.Notifications);
         }
 
         await _userRepository.UpdateAsync(user, cancellationToken);

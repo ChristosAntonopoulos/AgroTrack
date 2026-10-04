@@ -4,7 +4,6 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/EmptyState';
@@ -49,7 +48,6 @@ const PartnerSearchScreen = () => {
 
   return (
     <ScreenLayout scroll padded>
-      <ScreenHeader title={t('title')} />
       {loading && <LoadingSpinner />}
       {!loading && data?.results.length === 0 && (
         <EmptyState

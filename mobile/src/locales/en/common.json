@@ -1,5 +1,5 @@
 {
-  "appName": "Oleachron",
+  "appName": "The Olive Lot",
   "tagline": "The story of every olive tree lives on",
   "loading": "Loading...",
   "save": "Save",
@@ -7,6 +7,7 @@
   "delete": "Delete",
   "edit": "Edit",
   "back": "Back",
+  "previous": "Previous",
   "next": "Next",
   "skip": "Skip",
   "done": "Done",
@@ -15,9 +16,13 @@
   "yes": "Yes",
   "no": "No",
   "logout": "Logout",
+  "familyCollaboratorBadge": "Collaborator of {{owner}}",
+  "email": "Email",
+  "or": "or",
   "language": "Language",
   "english": "English",
   "greek": "Ελληνικά",
+  "italian": "Italiano",
   "roles": {
     "FieldOwner": "Field Owner",
     "Producer": "Producer",
@@ -54,6 +59,34 @@
     "noTasks": "No tasks found",
     "noFields": "No fields found"
   },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Alerts, questions, and updates for your grove",
+    "empty": "You're all caught up",
+    "emptyHint": "New announcements and questionnaires will appear here.",
+    "tapToRespond": "Tap to respond",
+    "badge": {
+      "inbox": "Inbox"
+    }
+  },
+  "inApp": {
+    "announcement": "Announcement",
+    "questionnaire": "Questionnaire",
+    "poll": "Poll",
+    "submit": "Submit answer",
+    "later": "Remind me later",
+    "gotIt": "Got it",
+    "done": "Done",
+    "thanksTitle": "Thanks!",
+    "thanks": "Your response helps us support olive growers this season.",
+    "results": "Live results",
+    "answerRequired": "Please answer the required questions.",
+    "textPlaceholder": "Type your answer…",
+    "submitFailed": "Could not submit your answer."
+  },
+  "close": "Close",
+  "ok": "OK",
+  "familyCollaboratorBadge": "Collaborator of {{owner}}",
   "version": "Version",
   "or": "or",
   "mapZoomIn": "Zoom in",

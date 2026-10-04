@@ -1,23 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { usePreferences } from '../../context/PreferencesContext';
+import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
+import { useFamilyCollaboratorOwnerLabel } from '../../hooks/useFamilyMembershipModules';
 import { typography, spacing, radii, motion } from '../../theme';
 import { RootStackParamList } from '../../navigation/types';
-import { createElevation } from '../../theme/elevation';
+import { openHarvestCampaign } from '../../navigation/intents';
 import { getPartnerService } from '../../services/serviceFactory';
-import type { ExperienceMode } from '../../experience/types';
+import { inAppMessageService } from '../../services/inAppCampaignService';
+import { useInAppMessagesOptional } from '../../context/InAppMessageContext';
+import BrandLogo from '../ui/BrandLogo';
+import ScreenHeader from './ScreenHeader';
+import HeaderIconButton from './HeaderIconButton';
+import ScreenLayout from './ScreenLayout';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-type Props = {
-  onNavigate?: () => void;
-};
 
 interface MenuItem {
   id: string;
@@ -34,228 +37,178 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-/** Sectioned nav content for the left More overlay (web sidebar equivalent). */
-const MoreMenuPanel: React.FC<Props> = ({ onNavigate }) => {
-  const { user, isFieldOwner } = useAuth();
-  const { colors } = useTheme();
-  const { tapMin, fontScaleMultiplier, experienceMode, setExperienceMode, isFullPicture } =
-    usePreferences();
+/** More tab body — identity and grouped destinations. */
+const MoreMenuPanel: React.FC = () => {
+  const { user } = useAuth();
+  const { colors, isDark } = useTheme();
+  const { tapMin, fontScaleMultiplier } = usePreferences();
   const { t } = useTranslation(['settings', 'common', 'nav', 'fields', 'partners', 'chronologio']);
   const navigation = useNavigation<Nav>();
+  const harvest = useHarvestCampaignOptional();
+  const collaboratorOwnerLabel = useFamilyCollaboratorOwnerLabel();
+  const inApp = useInAppMessagesOptional();
   const [unreadAlerts, setUnreadAlerts] = useState(0);
-  const rowHeight = Math.max(tapMin, 56);
+  const rowHeight = Math.max(tapMin, 52);
   const role = user?.role || '';
   const canMoney = ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'].includes(role);
-  const canInsights = isFullPicture && (role === 'FieldOwner' || role === 'Administrator');
+  const collaboratorBadge = collaboratorOwnerLabel
+    ? t('common:familyCollaboratorBadge', { owner: collaboratorOwnerLabel })
+    : null;
 
-  useEffect(() => {
+  const loadAlerts = useCallback(() => {
     if (!user) return;
-    void getPartnerService()
-      .getNotifications()
-      .then(items => items.filter(n => !n.isRead).length)
+    void inAppMessageService
+      .getInbox()
+      .then((items) => items.filter((n) => !n.isRead).length)
       .then(setUnreadAlerts)
-      .catch(() => setUnreadAlerts(0));
+      .catch(() =>
+        getPartnerService()
+          .getNotifications()
+          .then((items) => items.filter((n) => !n.isRead).length)
+          .then(setUnreadAlerts)
+          .catch(() => setUnreadAlerts(0))
+      );
   }, [user]);
 
-  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+  useEffect(() => {
+    loadAlerts();
+  }, [loadAlerts, inApp?.refreshInboxSignal]);
 
-  const go = (fn: () => void) => {
-    onNavigate?.();
-    fn();
-  };
+  useFocusEffect(
+    useCallback(() => {
+      loadAlerts();
+    }, [loadAlerts])
+  );
+
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+  const initials = [user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?';
+
+  const workItems: MenuItem[] = [
+    {
+      id: 'partners',
+      icon: 'people-circle-outline',
+      label: t('nav:partners'),
+      onPress: () => navigation.navigate('Partners'),
+      showArrow: true,
+    },
+  ];
+  if (canMoney) {
+    workItems.push({
+      id: 'money',
+      icon: 'wallet-outline',
+      label: t('nav:money', { defaultValue: 'Costs' }),
+      onPress: () => navigation.navigate('Money'),
+      showArrow: true,
+    });
+    workItems.push({
+      id: 'my-oil',
+      icon: 'cube-outline',
+      label: t('nav:myOil', { defaultValue: 'Storage' }),
+      onPress: () => navigation.navigate('MyOil'),
+      showArrow: true,
+    });
+  }
+  workItems.push(
+    {
+      id: 'photos',
+      icon: 'images-outline',
+      label: t('nav:photos', { defaultValue: 'Photos' }),
+      onPress: () => navigation.navigate('Photos'),
+      showArrow: true,
+    },
+    {
+      id: 'harvest',
+      icon: 'basket-outline',
+      label: harvest?.isLive
+        ? `${t('fields:harvestCampaign.title', {
+            defaultValue: t('fields:thisHarvest.title'),
+          })} · ${t('fields:harvestCampaign.headerOpen', { defaultValue: 'Live' })}`
+        : t('fields:harvestCampaign.title', {
+            defaultValue: t('fields:thisHarvest.title'),
+          }),
+      onPress: () => openHarvestCampaign(navigation),
+      showArrow: true,
+    }
+  );
+
+  const accountItems: MenuItem[] = [
+    {
+      id: 'feedback',
+      icon: 'heart-outline',
+      label: t('nav:feedback', { defaultValue: 'Feedback' }),
+      onPress: () => navigation.navigate('Feedback'),
+      showArrow: true,
+    },
+    {
+      id: 'help',
+      icon: 'help-circle-outline',
+      label: t('nav:help', { defaultValue: 'Help' }),
+      onPress: () => navigation.navigate('Help'),
+      showArrow: true,
+    },
+    {
+      id: 'settings',
+      icon: 'settings-outline',
+      label: t('nav:settings'),
+      onPress: () => navigation.navigate('Settings'),
+      showArrow: true,
+    },
+  ];
 
   const sections: MenuSection[] = [
     {
       id: 'work',
       title: t('nav:sections.work'),
-      items: [
-        {
-          id: 'tasks',
-          icon: 'list-outline',
-          label: t('nav:tasks'),
-          onPress: () => go(() => navigation.navigate('Main', { screen: 'Tasks' })),
-          showArrow: true,
-        },
-        {
-          id: 'calendar',
-          icon: 'calendar-outline',
-          label: t('nav:calendar'),
-          onPress: () => go(() => navigation.navigate('Main', { screen: 'Calendar' })),
-          showArrow: true,
-        },
-        {
-          id: 'partners',
-          icon: 'people-circle-outline',
-          label: t('nav:partners'),
-          onPress: () => go(() => navigation.navigate('Partners')),
-          showArrow: true,
-        },
-        ...(canMoney
-          ? [
-              {
-                id: 'money',
-                icon: 'wallet-outline' as const,
-                label: t('nav:money', { defaultValue: 'Costs' }),
-                onPress: () => go(() => navigation.navigate('Money')),
-                showArrow: true,
-              },
-            ]
-          : []),
-        ...(isFieldOwner()
-          ? [
-              {
-                id: 'harvest',
-                icon: 'basket-outline' as const,
-                label: t('fields:thisHarvest.title'),
-                onPress: () => go(() => navigation.navigate('ThisHarvest')),
-                showArrow: true,
-              },
-              {
-                id: 'apologismos',
-                icon: 'book-outline' as const,
-                label: t('fields:apologismos.title'),
-                onPress: () => go(() => navigation.navigate('ThisHarvestReview')),
-                showArrow: true,
-              },
-            ]
-          : []),
-        ...(canInsights
-          ? [
-              {
-                id: 'reports',
-                icon: 'document-outline' as const,
-                label: t('nav:reports', { defaultValue: 'Reports' }),
-                onPress: () => go(() => navigation.navigate('Reports')),
-                showArrow: true,
-              },
-            ]
-          : []),
-      ],
+      items: workItems,
     },
     {
       id: 'account',
       title: t('nav:sections.account'),
-      items: [
-        ...(isFieldOwner()
-          ? [
-              {
-                id: 'myservices',
-                icon: 'briefcase-outline' as const,
-                label: t('partners:myServices'),
-                onPress: () => go(() => navigation.navigate('MyServices')),
-                showArrow: true,
-              },
-            ]
-          : []),
-        {
-          id: 'inbox',
-          icon: 'notifications-outline',
-          label: t('nav:inbox', { defaultValue: 'Inbox' }),
-          onPress: () => go(() => navigation.navigate('Notifications')),
-          badge: unreadAlerts || undefined,
-          showArrow: true,
-        },
-        {
-          id: 'settings',
-          icon: 'settings-outline',
-          label: t('nav:settings'),
-          onPress: () => go(() => navigation.navigate('Main', { screen: 'Settings' })),
-          showArrow: true,
-        },
-      ],
+      items: accountItems,
     },
-  ];
-
-  const modes: { id: ExperienceMode; label: string }[] = [
-    { id: 'everyday', label: t('settings:experience.everyday') },
-    { id: 'full', label: t('settings:experience.full') },
-  ];
+  ].filter((section) => section.items.length > 0);
 
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.backgroundSidebar || colors.surfaceMuted }}
-      contentContainerStyle={styles.content}
-      bounces={false}
-    >
-      {displayName ? (
-        <Text
-          style={[
-            styles.subtitle,
-            { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier },
-          ]}
-        >
-          {displayName}
-        </Text>
-      ) : null}
-
-      <View style={styles.section}>
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: colors.textTertiary, fontSize: 11 * fontScaleMultiplier },
-          ]}
-        >
-          {t('settings:experience.currentMode')}
-        </Text>
-        <View style={styles.modeRow}>
-          {modes.map(mode => {
-            const active = experienceMode === mode.id;
-            return (
-              <TouchableOpacity
-                key={mode.id}
-                onPress={() => setExperienceMode(mode.id)}
-                style={[
-                  styles.modeBtn,
-                  {
-                    minHeight: rowHeight * 0.85,
-                    backgroundColor: active ? colors.primaryLight : colors.surface,
-                    borderColor: active ? colors.oliveBorder : colors.borderLight,
-                  },
-                ]}
-                activeOpacity={motion.pressOpacity}
-              >
-                <Text
-                  style={{
-                    color: active ? colors.primary : colors.textPrimary,
-                    fontWeight: '700',
-                    fontSize: 14 * fontScaleMultiplier,
-                  }}
-                >
-                  {mode.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
+    <ScreenLayout scroll tabBarInset padded>
+      <ScreenHeader
+        title={displayName || t('nav:more')}
+        subtitle={collaboratorBadge || undefined}
+        action={
+          <HeaderIconButton
+            icon="notifications-outline"
+            accessibilityLabel={t('nav:inbox', { defaultValue: 'Inbox' })}
+            onPress={() => navigation.navigate('Notifications')}
+            badge={unreadAlerts || undefined}
+          />
+        }
+        context={
+          <View style={styles.identityRow}>
+            <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
+              <Text style={[styles.avatarText, { color: colors.primary }]}>{initials}</Text>
+            </View>
+            <BrandLogo variant="horizontal" tone={isDark ? 'on-dark' : 'on-light'} size={34} />
+          </View>
+        }
+      />
 
       {sections.map(section => (
         <View key={section.id} style={styles.section}>
           <Text
             style={[
               styles.sectionTitle,
-              { color: colors.textTertiary, fontSize: 11 * fontScaleMultiplier },
+              { color: colors.textTertiary, fontSize: 12 * fontScaleMultiplier },
             ]}
           >
             {section.title}
           </Text>
-          <View
-            style={[
-              styles.menu,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.borderLight,
-                ...createElevation(colors, 'sm'),
-              },
-            ]}
-          >
+          <View style={[styles.menu, { backgroundColor: colors.surface }]}>
             {section.items.map((item, index) => (
               <TouchableOpacity
                 key={item.id}
                 style={[
                   styles.menuItem,
                   {
-                    borderBottomWidth: index < section.items.length - 1 ? 1 : 0,
+                    borderBottomWidth: index < section.items.length - 1 ? StyleSheet.hairlineWidth : 0,
                     borderBottomColor: colors.borderLight,
                     minHeight: rowHeight,
                   },
@@ -264,9 +217,7 @@ const MoreMenuPanel: React.FC<Props> = ({ onNavigate }) => {
                 activeOpacity={motion.pressOpacity}
               >
                 <View style={styles.menuItemLeft}>
-                  <View style={[styles.iconWrapper, { backgroundColor: colors.primaryLight }]}>
-                    <Ionicons name={item.icon} size={22} color={colors.primary} />
-                  </View>
+                  <Ionicons name={item.icon} size={22} color={colors.primary} />
                   <Text
                     style={[
                       styles.menuLabel,
@@ -290,7 +241,7 @@ const MoreMenuPanel: React.FC<Props> = ({ onNavigate }) => {
                     </View>
                   ) : null}
                   {item.showArrow ? (
-                    <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+                    <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
                   ) : null}
                 </View>
               </TouchableOpacity>
@@ -298,46 +249,40 @@ const MoreMenuPanel: React.FC<Props> = ({ onNavigate }) => {
           </View>
         </View>
       ))}
-    </ScrollView>
+    </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: spacing.base,
-    paddingBottom: spacing.xl,
+  identityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
-  subtitle: {
-    ...typography.styles.body,
-    marginBottom: spacing.md,
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontWeight: '700',
+    fontSize: 14,
   },
   section: {
     marginBottom: spacing.lg,
   },
   sectionTitle: {
     ...typography.styles.caption,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    fontWeight: '600',
+    letterSpacing: 0.3,
     marginBottom: spacing.sm,
-    paddingHorizontal: spacing.xs,
-  },
-  modeRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  modeBtn: {
-    flex: 1,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 2,
   },
   menu: {
     borderRadius: radii.xl,
     overflow: 'hidden',
-    borderWidth: 1,
   },
   menuItem: {
     flexDirection: 'row',
@@ -352,16 +297,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     flex: 1,
   },
-  iconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   menuLabel: {
     ...typography.styles.body,
-    fontWeight: '600',
+    fontWeight: '500',
     flex: 1,
   },
   menuItemRight: {
@@ -370,9 +308,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   badge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xs,

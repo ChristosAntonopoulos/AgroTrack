@@ -1,11 +1,15 @@
-/** Shared motion spec. UI transitions stay in the 150–250ms range. */
+/** Shared motion — spatial continuity, not decoration. */
 export const motion = {
   durationMs: {
-    fast: 150,
+    fast: 140,
     ui: 200,
-    slow: 250,
+    standard: 200,
+    sheet: 300,
+    slow: 280,
   },
-  pressOpacity: 0.75,
+  pressOpacity: 0.88,
+  pressScale: 0.985,
+  fabPressScale: 0.96,
 } as const;
 
 export type Motion = typeof motion;

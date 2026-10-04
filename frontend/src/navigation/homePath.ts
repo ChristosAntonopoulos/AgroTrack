@@ -1,11 +1,19 @@
 export const CHRONOLOGIO_HOME = '/chronologio';
 export const CHRONOLOGIO_TODAY = '/chronologio?focus=today';
 
-/** Legacy morning-view URLs become Chronologio with Today in focus. */
+const pathnameOf = (path: string) => path.split('?')[0].replace(/^\//, '').replace(/\/$/, '');
+
+/** Legacy morning-view and home URLs become Chronologio. */
 export const migrateLegacyHomePath = (path?: string | null): string => {
   if (!path) return CHRONOLOGIO_HOME;
   const [pathname, search = ''] = path.split('?');
-  if (pathname !== '/today' && pathname !== 'today') {
+  const clean = pathnameOf(pathname);
+
+  if (clean === 'dashboard' || clean === 'notes') {
+    return search ? `${CHRONOLOGIO_HOME}?${search}` : CHRONOLOGIO_HOME;
+  }
+
+  if (clean !== 'today') {
     return path;
   }
 

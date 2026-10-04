@@ -1,4 +1,4 @@
-import { eventAccentToken, eventCardSpan, isFeaturedChronologioCard } from './eventCardLayout';
+import { eventAccentToken, eventCardSize, eventCardSpan, isFeaturedChronologioCard } from './eventCardLayout';
 import type { ChronologioEntry } from '../services/chronologioService';
 
 const entry = (partial: Partial<ChronologioEntry>): ChronologioEntry =>
@@ -35,5 +35,18 @@ describe('eventCardLayout', () => {
       )
     ).toBe(2);
     expect(isFeaturedChronologioCard(entry({ importance: 'critical' }))).toBe(true);
+    expect(
+      eventCardSpan(
+        entry({
+          category: 'task',
+          details: { task: { taskId: 't1', status: 'completed' } },
+          summary: 'x'.repeat(200),
+        })
+      )
+    ).toBe(1);
+    expect(eventCardSize(entry({ category: 'note' }))).toBe('compact');
+    expect(
+      eventCardSize(entry({ category: 'task', details: { task: { taskId: 't1', status: 'completed' } } }))
+    ).toBe('compact');
   });
 });

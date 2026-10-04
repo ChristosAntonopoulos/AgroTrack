@@ -1,5 +1,6 @@
 import type { FinancialCategory } from './display';
 import type { FinancialQuantityUnit } from './quantityCalculator';
+import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 
 export const FEATURED_EXPENSE_CATEGORIES: FinancialCategory[] = [
   'labor',
@@ -25,7 +26,7 @@ const UNIT_LABEL = {
     hour: 'ώρες',
     workday: 'μεροκάματα',
     piece: 'τεμάχια',
-    hectare: 'εκτάρια',
+    hectare: 'στρέμματα',
     tree: 'δέντρα',
     container: 'δοχεία',
     other: 'άλλο',
@@ -37,7 +38,7 @@ const UNIT_LABEL = {
     hour: 'hours',
     workday: 'workdays',
     piece: 'pieces',
-    hectare: 'hectares',
+    hectare: 'stremmata',
     tree: 'trees',
     container: 'containers',
     other: 'other',
@@ -51,7 +52,7 @@ export const UNIT_ABBREVIATION: Record<FinancialQuantityUnit, string> = {
   hour: 'ώρες',
   workday: 'ημέρες',
   piece: 'τεμ.',
-  hectare: 'ha',
+  hectare: 'στρ.',
   tree: 'δέντρα',
   container: 'δοχεία',
   other: '',
@@ -131,8 +132,8 @@ export function shiftIsoDate(isoDate: string, days: number): string {
 }
 
 export function yearFromIsoDate(isoDate: string): number {
-  const year = Number(isoDate.slice(0, 4));
-  return Number.isFinite(year) ? year : new Date().getFullYear();
+  // Καλλιεργητική χρονιά (1 Feb Y – 31 Jan Y+1), not calendar year.
+  return agriculturalYearFor(isoDate);
 }
 
 export function formatLongDate(isoDate: string, locale: string): string {

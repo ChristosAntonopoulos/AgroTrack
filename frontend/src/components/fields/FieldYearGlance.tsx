@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FieldYearSummary, YearFinancialSummary } from '../../services/financialSummaryService';
@@ -6,8 +6,13 @@ import {
   formatEuroPerLitre,
   formatLitres,
   formatOfficialAmount,
-  formatOfficialNet,
+  perAreaForDisplay,
 } from '../../finance/format';
+import MoneyTriadFacts from '../money/MoneyTriadFacts';
+import { moneyPath, myOilPath } from '../../navigation/intents';
+import { oilStockService } from '../../services/oilStockService';
+import { availableLitresForField } from '../../myOil/groupLotsByGrove';
+import { formatOilNumber } from '../../myOil/formatOilPack';
 
 type Props = {
   fieldId: string;
@@ -15,6 +20,9 @@ type Props = {
   costSummary: YearFinancialSummary | null;
   yearRollup: FieldYearSummary | null;
   plannedRemaining: number;
+  /** Daily harvest progress (e.g. sacks) that is not yet a finalized year result. */
+  harvestDaySacks?: number | null;
+  canViewMoney?: boolean;
 };
 
 const formatKg = (value: number | null | undefined, locale: string, unknown: string): string => {
@@ -28,8 +36,11 @@ const FieldYearGlance: React.FC<Props> = ({
   costSummary,
   yearRollup,
   plannedRemaining,
+  harvestDaySacks,
+  canViewMoney = true,
 }) => {
-  const { t, i18n } = useTranslation(['fields', 'money']);
+  const { t, i18n } = useTranslation(['fields', 'money', 'myOil']);
+  const [cellarLitres, setCellarLitres] = useState<number | null>(null);
   const currency = costSummary?.currency || yearRollup?.currency || 'EUR';
   const unknown = t('money:unknownAmount');
   const availability = costSummary?.dataAvailability || yearRollup?.dataAvailability;
@@ -42,9 +53,38 @@ const FieldYearGlance: React.FC<Props> = ({
   const oliveKg = yearRollup?.oliveKilograms ?? null;
   const oilLitres = yearRollup?.oliveOil?.producedLitres ?? null;
   const costPerHa = costSummary?.costPerHectare ?? null;
+  const costPerArea = perAreaForDisplay(costPerHa, i18n.language);
   const costPerLitre = yearRollup?.oliveOil?.productionCostPerLitre ?? null;
-  const showPerHa = hasPosted && costPerHa != null && !availability?.areaIsMissing;
+  const showPerHa = hasPosted && costPerArea != null && !availability?.areaIsMissing;
   const showPerLitre = hasPosted && costPerLitre != null && oilLitres != null;
+
+  useEffect(() => {
+    let cancelled = false;
+    void oilStockService
+      .getSummary()
+      .then((summary) => {
+        if (cancelled) return;
+        setCellarLitres(availableLitresForField(summary.lots || [], fieldId));
+      })
+      .catch(() => {
+        if (!cancelled) setCellarLitres(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fieldId]);
+
+  const harvestLabel = (() => {
+    if (oliveKg != null) return formatKg(oliveKg, i18n.language, unknown);
+    if (harvestDaySacks != null && harvestDaySacks > 0) {
+      return `${t('overview.yearGlance.harvestInProgress')} · ${t('overview.yearGlance.harvestSacksSoFar', {
+        count: harvestDaySacks,
+      })}`;
+    }
+    return t('overview.yearGlance.noHarvest', { year });
+  })();
+
+  const showCellarShare = cellarLitres != null && cellarLitres > 0.05;
 
   return (
     <section className="field-year-glance" aria-labelledby="field-year-glance-title">
@@ -62,58 +102,71 @@ const FieldYearGlance: React.FC<Props> = ({
         </div>
         <div>
           <dt>{t('overview.yearGlance.harvest')}</dt>
-          <dd>
-            {oliveKg == null
-              ? t('overview.yearGlance.noHarvest', { year })
-              : formatKg(oliveKg, i18n.language, unknown)}
-          </dd>
+          <dd>{harvestLabel}</dd>
         </div>
         <div>
           <dt>{t('overview.yearGlance.oil')}</dt>
           <dd>{formatLitres(oilLitres, i18n.language, unknown)}</dd>
         </div>
+        {showCellarShare ? (
+          <div>
+            <dt>{t('overview.yearGlance.inMyCellar')}</dt>
+            <dd>
+              {t('myOil:litres', {
+                amount: formatOilNumber(cellarLitres!, i18n.language),
+              })}
+            </dd>
+          </div>
+        ) : null}
       </dl>
 
-      {hasPosted ? (
-        <dl className="field-year-glance-money">
-          <div>
-            <dt>{t('overview.income')}</dt>
-            <dd>
-              {formatOfficialAmount(income, currency, i18n.language, unknown)}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('overview.expenses')}</dt>
-            <dd>
-              {formatOfficialAmount(expenses, currency, i18n.language, unknown)}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('overview.result')}</dt>
-            <dd>
-              {formatOfficialNet(net, currency, i18n.language, unknown)}
-            </dd>
-          </div>
-          {showPerHa ? (
-            <div>
-              <dt>{t('overview.yearGlance.perHectare')}</dt>
-              <dd>{formatOfficialAmount(costPerHa, currency, i18n.language, unknown)}</dd>
-            </div>
+      {canViewMoney && hasPosted ? (
+        <>
+          <MoneyTriadFacts
+            className="field-year-glance-money"
+            income={income}
+            expenses={expenses}
+            net={net}
+            currency={currency}
+            locale={i18n.language}
+            unknown={unknown}
+            incomeLabel={t('overview.income')}
+            expensesLabel={t('overview.expenses')}
+            resultLabel={t('overview.result')}
+          />
+          {showPerHa || showPerLitre ? (
+            <dl className="field-year-glance-money">
+              {showPerHa ? (
+                <div>
+                  <dt>{t('overview.yearGlance.perHectare')}</dt>
+                  <dd>{formatOfficialAmount(costPerArea, currency, i18n.language, unknown)}</dd>
+                </div>
+              ) : null}
+              {showPerLitre ? (
+                <div>
+                  <dt>{t('overview.yearGlance.perLitre')}</dt>
+                  <dd>{formatEuroPerLitre(costPerLitre, i18n.language, unknown)}</dd>
+                </div>
+              ) : null}
+            </dl>
           ) : null}
-          {showPerLitre ? (
-            <div>
-              <dt>{t('overview.yearGlance.perLitre')}</dt>
-              <dd>{formatEuroPerLitre(costPerLitre, i18n.language, unknown)}</dd>
-            </div>
-          ) : null}
-        </dl>
-      ) : (
+        </>
+      ) : canViewMoney ? (
         <p className="field-year-glance-empty">{t('overview.yearGlance.noMoney', { year })}</p>
-      )}
+      ) : null}
 
-      <Link className="fd-text-link" to={`/money?year=${year}&fieldId=${encodeURIComponent(fieldId)}`}>
-        {t('overview.seeFinance')}
-      </Link>
+      <div className="field-year-glance-links">
+        {canViewMoney ? (
+          <Link className="fd-text-link" to={moneyPath({ year, fieldId })}>
+            {t('overview.seeFinance')}
+          </Link>
+        ) : null}
+        {showCellarShare ? (
+          <Link className="fd-text-link" to={myOilPath({ field: fieldId })}>
+            {t('overview.yearGlance.seeInMyCellar')}
+          </Link>
+        ) : null}
+      </div>
     </section>
   );
 };

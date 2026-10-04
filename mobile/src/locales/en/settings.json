@@ -1,7 +1,7 @@
 {
   "title": "Settings",
-  "subtitle": "Make OLEACHRON work the way you like.",
-  "autosaveHint": "Changes save automatically",
+  "subtitle": "Make The Olive Lot work the way you like.",
+  "autosaveHint": "Saved automatically",
   "saved": "Saved",
   "profile": "Account",
   "preferences": "Preferences",
@@ -9,42 +9,70 @@
   "themes": {
     "system": "Automatic",
     "light": "Light",
-    "dark": "Dark"
+    "dark": "Dark",
+    "sun": "Sun"
   },
   "themeHints": {
-    "system": "Follows your device setting.",
-    "light": "Uses a light look.",
-    "dark": "Uses a dark look."
+    "system": "Uses your phone’s appearance setting",
+    "light": "Always light",
+    "dark": "Always dark",
+    "sun": "High-contrast white for outdoor glare"
   },
+  "brightField": "Bright field",
+  "brightFieldHint": "Switch to the white outdoor look when the sun is strong",
+  "brightFieldUnavailable": "This phone cannot read outdoor brightness",
   "language": "Language",
   "dateFormat": "Date format",
-  "startup": "When I open OLEACHRON",
+  "startup": "Open app on",
+  "startupHint": "This screen opens first",
   "startupOptions": {
-    "today": "Today",
-    "dashboard": "Dashboard",
     "fields": "Fields",
-    "chronologio": "Chronologio"
+    "chronologio": "History"
   },
   "sections": {
     "account": "Account",
     "appearance": "Appearance",
     "locale": "Language & region",
     "startup": "Startup",
+    "notifications": "Notifications",
+    "legal": "Legal",
+    "advanced": "Advanced",
     "technical": "Technical details"
+  },
+  "roles": {
+    "account": "Account",
+    "FieldOwner": "Owner account",
+    "Producer": "Producer account",
+    "Agronomist": "Advisor account",
+    "Administrator": "Admin account"
   },
   "myServices": "My services",
   "userId": "User ID",
   "appVersion": "App version",
   "logout": "Sign out",
   "logoutConfirm": "Are you sure you want to sign out?",
+  "saveError": "Could not save that change.",
+  "notifications": {
+    "accountHint": "Saved to your account. The same choices apply on every device where you sign in.",
+    "accountHintDemo": "Saved on this phone for the demo account.",
+    "prefs": {
+      "taskAssignment": "Task assignment",
+      "approval": "Approvals",
+      "harvest": "Harvest",
+      "financial": "Financial",
+      "satelliteWeather": "Satellite & weather",
+      "marketingSystem": "Marketing & system messages"
+    },
+    "prefsHints": {
+      "taskAssignment": "When someone assigns you field work.",
+      "approval": "When a task needs or receives approval.",
+      "harvest": "Harvest campaign and recording updates.",
+      "financial": "Money and cost-related notices.",
+      "satelliteWeather": "Field weather and satellite alerts.",
+      "marketingSystem": "Product announcements and system messages."
+    }
+  },
   "experience": {
-    "label": "Level of detail",
-    "everyday": "Simple",
-    "full": "Full",
-    "currentMode": "Level of detail",
-    "changeInSettings": "Change in Settings",
-    "everydayDesc": "Shows only the basics you need day to day.",
-    "fullDesc": "Shows more data, tools, and options.",
     "fontScale": "Text size",
     "fontScales": {
       "default": "Normal",
@@ -52,17 +80,12 @@
       "xl": "Extra large"
     },
     "largeControls": "Larger buttons",
-    "largeControlsDesc": "Bigger tap targets for easier use.",
-    "setupPhone": "Set up this phone for Simple",
-    "peekMoreAboutField": "More about this field",
-    "switchForDetails": "Switch to Full for details",
-    "onrampTitle": "Want more detail?",
-    "onrampBody": "You have opened field details a few times. Switch when you want maps and denser tools.",
-    "onrampSwitch": "Switch to Full",
-    "onrampDismiss": "Not now",
-    "chooserTitle": "How do you want to use Oleachron?",
-    "chooserSubtitle": "You can change this anytime in Settings.",
-    "chooserFooter": "This choice is saved on this device.",
+    "largeControlsDesc": "Makes buttons and controls easier to tap",
+    "easyUsePreset": "Easy use",
+    "easyUsePresetDesc": "Turns on large text and large controls together.",
+    "easyUseApply": "Apply Easy use",
+    "resetDefaults": "Reset to defaults",
+    "setupPhone": "Set up this phone",
     "comfortTitle": "Make it comfortable",
     "comfortSubtitle": "Choose how the app looks and feels. You can change this later in Settings.",
     "comfortSkip": "Skip for now"

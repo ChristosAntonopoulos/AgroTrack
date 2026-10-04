@@ -4,24 +4,22 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { getFieldService, getFieldWorkService, getPartnerService } from '../services/serviceFactory';
 import { fieldPeopleService, type FieldMembership } from '../services/fieldPeopleService';
-import { weatherService } from '../services/weatherService';
 import type { SavedContact } from '../services/partnerService';
 import type { Field } from '../services/fieldService';
 import type { TaskProposal } from '../services/fieldWorkService';
-import type { FieldWeather } from '../services/geospatialService';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { templateTitle } from '../data/fieldWorkCatalogueLabels';
-import { readStashedProposal, toDateInputValue } from '../utils/proposalPresentation';
-import { typeFromTemplate } from '../utils/taskFormTypes';
+import { readStashedProposal } from '../utils/proposalPresentation';
 import { buildTaskSearchParams } from '../utils/taskViewState';
 import {
   assigneeOptionKey,
   suggestAssigneeFromProfile,
 } from '../utils/fieldWorkLearning';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
+import BackLink from '../components/Common/BackLink';
 import PageContainer from '../components/Common/PageContainer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import TaskForm, { type TaskFormSubmitPayload } from '../components/Tasks/form/TaskForm';
+import TaskComposer, { type ComposerPayload } from '../components/Tasks/form/TaskComposer';
 import type { AssigneeOption } from '../components/Tasks/form/AssigneeSelector';
 import '../components/Tasks/form/TaskForm.css';
 
@@ -32,6 +30,7 @@ const TaskFormPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const fieldIdParam = searchParams.get('fieldId') || '';
   const proposalIdParam = searchParams.get('proposalId') || '';
+  const templateCodeParam = searchParams.get('templateCode') || '';
 
   const stashed = proposalIdParam ? readStashedProposal() : null;
   const proposal: TaskProposal | null =
@@ -41,7 +40,6 @@ const TaskFormPage: React.FC = () => {
   const [fields, setFields] = useState<Field[]>([]);
   const [people, setPeople] = useState<FieldMembership[]>([]);
   const [contacts, setContacts] = useState<SavedContact[]>([]);
-  const [weather, setWeather] = useState<FieldWeather | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,24 +72,21 @@ const TaskFormPage: React.FC = () => {
     if (!fieldId) {
       setPeople([]);
       setContacts([]);
-      setWeather(null);
       setSuggestedAssigneeKey(meKey);
       return;
     }
     let cancelled = false;
     (async () => {
-      const [memberships, saved, fieldWeather, workProfile] = await Promise.all([
+      const [memberships, saved, workProfile] = await Promise.all([
         Promise.resolve(fieldPeopleService.getPeople(fieldId)).catch(() => [] as FieldMembership[]),
         Promise.resolve(
           getPartnerService().getContacts({ fieldId, includeUnassigned: true })
         ).catch(() => [] as SavedContact[]),
-        Promise.resolve(weatherService.getFieldWeather(fieldId)).catch(() => null),
         Promise.resolve(getFieldWorkService().getWorkProfile?.(fieldId)).catch(() => null),
       ]);
       if (cancelled) return;
       setPeople(Array.isArray(memberships) ? memberships : []);
       setContacts(Array.isArray(saved) ? saved : []);
-      setWeather(fieldWeather);
       if (mode === 'proposal' && proposal?.templateCode) {
         const suggestion = suggestAssigneeFromProfile(
           workProfile,
@@ -108,15 +103,12 @@ const TaskFormPage: React.FC = () => {
     };
   }, [fieldId, mode, proposal?.templateCode, user?.userId]);
 
-  const capacityHint = (capacities: FieldMembership['capacities']): { group: AssigneeOption['group']; hint: string } => {
-    if (capacities.includes('work')) {
-      return { group: 'partner', hint: t('fieldWork.form.assigneeHintPartner') };
-    }
-    if (capacities.includes('help')) {
+  const capacityHint = (person: FieldMembership): { group: AssigneeOption['group']; hint: string } => {
+    if (person.role === 'Family' || person.accessLevel === 'help') {
       return { group: 'family', hint: t('fieldWork.form.assigneeHintFamily') };
     }
-    if (capacities.includes('advise')) {
-      return { group: 'partner', hint: t('fieldWork.form.assigneeHintAdvisor') };
+    if (person.role === 'Partner' || person.accessLevel === 'work') {
+      return { group: 'partner', hint: t('fieldWork.form.assigneeHintPartner') };
     }
     return { group: 'partner', hint: t('fieldWork.form.collaborator') };
   };
@@ -131,7 +123,8 @@ const TaskFormPage: React.FC = () => {
     ];
     people.forEach((person) => {
       if (person.userId && person.userId === user?.userId) return;
-      const meta = capacityHint(person.capacities || []);
+      if (person.role === 'Admin') return;
+      const meta = capacityHint(person);
       options.push({
         key: `user:${person.userId}`,
         label: person.displayName || person.email || t('fieldWork.form.collaborator'),
@@ -161,11 +154,13 @@ const TaskFormPage: React.FC = () => {
   const selectedField = fields.find((field) => field.id === fieldId);
   const initialTitle = proposal
     ? templateTitle(proposal.templateCode, i18n.language)
-    : '';
+    : templateCodeParam
+      ? templateTitle(templateCodeParam, i18n.language)
+      : '';
 
   const goToPlanned = (createdId: string, year: number, nextFieldId: string) => {
     const params = buildTaskSearchParams({
-      view: 'planned',
+      view: 'todo',
       year,
       defaultYear: year,
       fieldId: nextFieldId,
@@ -174,11 +169,13 @@ const TaskFormPage: React.FC = () => {
     navigate(`/tasks?${params.toString()}`);
   };
 
-  const handleSubmit = async (payload: TaskFormSubmitPayload) => {
+  const handleSubmit = async (payload: ComposerPayload) => {
     setSaving(true);
     setError(null);
     try {
       const fw = getFieldWorkService();
+      const primaryField = payload.fieldIds[0];
+      if (!primaryField) throw new Error(t('fieldWork.form.needField'));
       if (mode === 'proposal' && proposal) {
         const accepted = await fw.acceptProposal(proposal.id, {
           plannedStart: payload.plannedStart,
@@ -186,30 +183,39 @@ const TaskFormPage: React.FC = () => {
           assignedUserId: payload.assignedUserId,
           assignedCollaboratorId: payload.assignedCollaboratorId,
           notes: payload.notes,
-          resultYear: payload.resultYear,
         });
         const createdId = accepted.acceptedTaskId;
         if (!createdId) {
           throw new Error(t('fieldWork.form.failedSave'));
         }
-        goToPlanned(createdId, payload.resultYear, payload.fieldId);
+        goToPlanned(createdId, proposal.resultYear, primaryField);
         return;
       }
 
-      const created = await fw.createFieldTask({
-        fieldId: payload.fieldId,
-        title: payload.title,
-        templateCode: payload.templateCode,
-        plannedStart: payload.plannedStart,
-        plannedEnd: payload.plannedEnd,
-        preferredTimeWindow: payload.preferredTimeWindow,
-        assignedUserId: payload.assignedUserId,
-        assignedCollaboratorId: payload.assignedCollaboratorId,
-        notes: payload.notes,
-        estimatedCost: payload.estimatedCost,
-        resultYear: payload.resultYear,
-      });
-      goToPlanned(created.id, created.resultYear || payload.resultYear, payload.fieldId);
+      const workGroupId =
+        payload.fieldIds.length > 1
+          ? (globalThis.crypto?.randomUUID?.() ?? `group-${Date.now()}`)
+          : undefined;
+      let lastId = '';
+      let year = new Date().getFullYear();
+      for (const nextFieldId of payload.fieldIds) {
+        const created = await fw.createFieldTask({
+          fieldId: nextFieldId,
+          title: payload.title,
+          description: payload.description,
+          templateCode: payload.templateCode,
+          plannedStart: payload.plannedStart,
+          plannedEnd: payload.plannedEnd,
+          assignedUserId: payload.assignedUserId,
+          assignedCollaboratorId: payload.assignedCollaboratorId,
+          notes: payload.notes,
+          estimatedCost: payload.estimatedCost,
+          workGroupId,
+        });
+        lastId = created.id;
+        year = created.resultYear || year;
+      }
+      goToPlanned(lastId, year, primaryField);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fieldWork.form.failedSave'));
     } finally {
@@ -228,41 +234,52 @@ const TaskFormPage: React.FC = () => {
 
   const subtitle =
     mode === 'proposal'
-      ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ')
-      : t('fieldWork.form.manualSubtitle');
+      ? t('fieldWork.form.manualSubtitle')
+      : templateCodeParam
+        ? [initialTitle, selectedField?.name].filter(Boolean).join(' · ') ||
+          t('fieldWork.form.manualSubtitle')
+        : t('fieldWork.form.manualSubtitle');
+
+  const proposalSummary =
+    mode === 'proposal' && initialTitle
+      ? t('fieldWork.form.fromSuggestion', {
+          title: initialTitle,
+          field: selectedField?.name ? ` · ${selectedField.name}` : '',
+        })
+      : null;
 
   return (
     <PageContainer className="tasks-page-container">
       <Breadcrumbs />
       <div className="task-form-page">
         <header className="task-form-header">
+          <BackLink to="/tasks">{t('common:back')}</BackLink>
           <h1>
             {mode === 'proposal' ? t('fieldWork.form.scheduleTitle') : t('fieldWork.form.newTitle')}
           </h1>
-          <p className="task-form-subtitle">{subtitle}</p>
+          {proposalSummary ? (
+            <p className="task-form-proposal-summary">
+              <strong>{proposalSummary}</strong>
+            </p>
+          ) : (
+            <p className="task-form-subtitle">{subtitle}</p>
+          )}
         </header>
 
-        <TaskForm
-          key={`${mode}-${proposal?.id || 'manual'}-${suggestedAssigneeKey}`}
+        <TaskComposer
+          key={`${mode}-${proposal?.id || 'manual'}-${suggestedAssigneeKey}-${fieldId}-${templateCodeParam}`}
           mode={mode}
           fields={fields}
           proposal={proposal}
-          weather={weather}
           assigneeOptions={assigneeOptions}
-          initialTitle={initialTitle}
           initialFieldId={fieldId}
-          initialType={proposal ? typeFromTemplate(proposal.templateCode) : ''}
-          initialStart={proposal ? toDateInputValue(proposal.recommendedWindowStart) : ''}
-          initialEnd=""
           initialAssigneeKey={suggestedAssigneeKey}
+          initialTemplateCode={templateCodeParam}
           saving={saving}
           error={error}
           onFieldChange={setFieldId}
           onCancel={() => navigate('/tasks')}
-          onSubmit={(payload) => {
-            setFieldId(payload.fieldId);
-            void handleSubmit(payload);
-          }}
+          onSubmit={(payload) => void handleSubmit(payload)}
         />
       </div>
     </PageContainer>

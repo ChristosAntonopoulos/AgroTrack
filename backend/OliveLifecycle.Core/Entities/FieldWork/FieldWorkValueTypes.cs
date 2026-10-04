@@ -106,6 +106,14 @@ public class TaskQuantity
     public string Unit { get; set; } = string.Empty;
 }
 
+public class FieldTaskActivity
+{
+    public string Action { get; set; } = string.Empty;
+    public string ActorId { get; set; } = string.Empty;
+    public DateTime OccurredAt { get; set; }
+    public string? Comment { get; set; }
+}
+
 public class TaskAssignment
 {
     public string? ResponsibleUserId { get; set; }

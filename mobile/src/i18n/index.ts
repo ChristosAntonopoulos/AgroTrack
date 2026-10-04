@@ -1,6 +1,5 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import * as Localization from 'expo-localization';
 
 import enAuth from '../locales/en/auth.json';
 import enCommon from '../locales/en/common.json';
@@ -17,6 +16,12 @@ import enPartners from '../locales/en/partners.json';
 import enChronologio from '../locales/en/chronologio.json';
 import enCapture from '../locales/en/capture.json';
 import enMoney from '../locales/en/money.json';
+import enMyOil from '../locales/en/myOil.json';
+import enPhotos from '../locales/en/photos.json';
+import enFeedback from '../locales/en/feedback.json';
+import enHelp from '../locales/en/help.json';
+import enLegal from '../locales/en/legal.json';
+import enOnboarding from '../locales/en/onboarding.json';
 
 import elAuth from '../locales/el/auth.json';
 import elCommon from '../locales/el/common.json';
@@ -33,9 +38,21 @@ import elPartners from '../locales/el/partners.json';
 import elChronologio from '../locales/el/chronologio.json';
 import elCapture from '../locales/el/capture.json';
 import elMoney from '../locales/el/money.json';
+import elMyOil from '../locales/el/myOil.json';
+import elPhotos from '../locales/el/photos.json';
+import elFeedback from '../locales/el/feedback.json';
+import elHelp from '../locales/el/help.json';
+import elLegal from '../locales/el/legal.json';
+import elOnboarding from '../locales/el/onboarding.json';
 
-const deviceLocale = Localization.getLocales()[0]?.languageCode ?? 'en';
-const defaultLng = deviceLocale === 'el' ? 'el' : 'en';
+import itFields from '../locales/it/fields.json';
+import itOnboarding from '../locales/it/onboarding.json';
+import itPhotos from '../locales/it/photos.json';
+import itMyOil from '../locales/it/myOil.json';
+import itCapture from '../locales/it/capture.json';
+
+/** Greek is the product default for Oleachron. */
+const defaultLng = 'el';
 
 i18n.use(initReactI18next).init({
   compatibilityJSON: 'v4',
@@ -56,6 +73,12 @@ i18n.use(initReactI18next).init({
       chronologio: enChronologio,
       capture: enCapture,
       money: enMoney,
+      myOil: enMyOil,
+      photos: enPhotos,
+      feedback: enFeedback,
+      help: enHelp,
+      legal: enLegal,
+      onboarding: enOnboarding,
     },
     el: {
       auth: elAuth,
@@ -73,16 +96,33 @@ i18n.use(initReactI18next).init({
       chronologio: elChronologio,
       capture: elCapture,
       money: elMoney,
+      myOil: elMyOil,
+      photos: elPhotos,
+      feedback: elFeedback,
+      help: elHelp,
+      legal: elLegal,
+      onboarding: elOnboarding,
+    },
+    it: {
+      // Harvest campaign Italian from FE; other namespaces fall back to English/Greek.
+      fields: itFields,
+      onboarding: itOnboarding,
+      photos: itPhotos,
+      myOil: itMyOil,
+      capture: itCapture,
     },
   },
   lng: defaultLng,
-  fallbackLng: 'en',
+  fallbackLng: {
+    it: ['en', 'el'],
+    default: ['el'],
+  },
   defaultNS: 'common',
   interpolation: { escapeValue: false },
 });
 
 export default i18n;
 
-export const changeAppLanguage = async (lang: 'en' | 'el') => {
+export const changeAppLanguage = async (lang: 'en' | 'el' | 'it') => {
   await i18n.changeLanguage(lang);
 };

@@ -16,12 +16,12 @@ public static class FieldWorkDisplayLabels
 
     public static string ForTaskStatus(Enums.FieldTaskStatus status, string language = "el") => status switch
     {
-        Enums.FieldTaskStatus.Ready => IsEnglish(language) ? "Ready" : "Έτοιμη",
         Enums.FieldTaskStatus.InProgress => IsEnglish(language) ? "In progress" : "Σε εξέλιξη",
         Enums.FieldTaskStatus.Blocked => IsEnglish(language) ? "Blocked" : "Δεν μπορεί να γίνει",
         Enums.FieldTaskStatus.Completed => IsEnglish(language) ? "Completed" : "Ολοκληρώθηκε",
         Enums.FieldTaskStatus.Cancelled => IsEnglish(language) ? "Cancelled" : "Ακυρώθηκε",
-        _ => IsEnglish(language) ? "Planned" : "Προγραμματισμένη"
+        Enums.FieldTaskStatus.Skipped => IsEnglish(language) ? "Skipped" : "Παραλείφθηκε",
+        _ => IsEnglish(language) ? "To do" : "Να γίνει"
     };
 
     /// <summary>Visual status for proposals shown alongside tasks.</summary>
@@ -31,14 +31,14 @@ public static class FieldWorkDisplayLabels
     public static string ForProposalDecision(TaskProposalDecision decision, string language = "el") => decision switch
     {
         TaskProposalDecision.RemindLater => IsEnglish(language) ? "Remind me later" : "Θύμισέ μου αργότερα",
-        TaskProposalDecision.NotForThisField => IsEnglish(language) ? "Not for this field" : "Δεν αφορά αυτό το χωράφι",
+        TaskProposalDecision.NotForThisField => IsEnglish(language) ? "Not for this field" : "Δεν αφορά αυτόν τον ελαιώνα",
         TaskProposalDecision.DismissForYear => IsEnglish(language) ? "Not this year" : "Όχι φέτος",
         _ => IsEnglish(language) ? "Schedule it" : "Προγραμμάτισέ την"
     };
 
     public static string ForProposalSource(ProposalSourceType source, string language = "el") => source switch
     {
-        ProposalSourceType.FieldObservation => IsEnglish(language) ? "Field observation" : "Παρατήρηση χωραφιού",
+        ProposalSourceType.FieldObservation => IsEnglish(language) ? "Field observation" : "Παρατήρηση ελαιώνα",
         ProposalSourceType.WeatherRule => IsEnglish(language) ? "Weather rule" : "Κανόνας καιρού",
         ProposalSourceType.OfficialWarning => IsEnglish(language) ? "Official warning" : "Επίσημη προειδοποίηση",
         ProposalSourceType.Agronomist => IsEnglish(language) ? "Agronomist" : "Γεωπόνος",

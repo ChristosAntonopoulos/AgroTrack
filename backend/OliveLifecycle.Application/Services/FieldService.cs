@@ -19,9 +19,9 @@ namespace OliveLifecycle.Application.Services;
 public class FieldService : IFieldService
 {
     private readonly IFieldRepository _fieldRepository;
-    private readonly IFieldTaskRepository _fieldTasks;
     private readonly IUserRepository _userRepository;
     private readonly IFieldAccessService _fieldAccessService;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IActivityService _activityService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IFieldAreaCalculator _fieldAreaCalculator;
@@ -32,14 +32,13 @@ public class FieldService : IFieldService
     private readonly ILifecycleService _lifecycleService;
     private readonly ILifecycleRepository _lifecycleRepository;
     private readonly IGeospatialJobQueue _geospatialJobQueue;
-    private readonly IFamilyMemberRepository _familyMembers;
     private readonly ILogger<FieldService> _logger;
 
     public FieldService(
         IFieldRepository fieldRepository,
-        IFieldTaskRepository fieldTasks,
         IUserRepository userRepository,
         IFieldAccessService fieldAccessService,
+        IFieldAccessScopeService fieldAccessScope,
         IActivityService activityService,
         IDateTimeProvider dateTimeProvider,
         IFieldAreaCalculator fieldAreaCalculator,
@@ -50,13 +49,12 @@ public class FieldService : IFieldService
         ILifecycleService lifecycleService,
         ILifecycleRepository lifecycleRepository,
         IGeospatialJobQueue geospatialJobQueue,
-        IFamilyMemberRepository familyMembers,
         ILogger<FieldService> logger)
     {
         _fieldRepository = fieldRepository;
-        _fieldTasks = fieldTasks;
         _userRepository = userRepository;
         _fieldAccessService = fieldAccessService;
+        _fieldAccessScope = fieldAccessScope;
         _activityService = activityService;
         _dateTimeProvider = dateTimeProvider;
         _fieldAreaCalculator = fieldAreaCalculator;
@@ -67,7 +65,6 @@ public class FieldService : IFieldService
         _lifecycleService = lifecycleService;
         _lifecycleRepository = lifecycleRepository;
         _geospatialJobQueue = geospatialJobQueue;
-        _familyMembers = familyMembers;
         _logger = logger;
     }
 
@@ -148,31 +145,53 @@ public class FieldService : IFieldService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(createFieldDto.ProducerUserId) &&
-            !field.AssignedProducerIds.Contains(createFieldDto.ProducerUserId))
-        {
-            field.AssignedProducerIds.Add(createFieldDto.ProducerUserId);
-        }
+        FieldPeopleRules.AddOrReplaceSeat(
+            field,
+            FieldPersonRole.Admin,
+            ownerId,
+            FamilyModules.All,
+            FamilyAccessLevels.Work,
+            ownerId,
+            status: FamilyMemberStatuses.Active);
 
-        var ownerCapacities = createFieldDto.WorksThisFieldMyself
-            ? new List<string> { FieldCapacities.Own, FieldCapacities.Work }
-            : new List<string> { FieldCapacities.Own };
-        FieldMembershipSync.Upsert(field, ownerId, ownerCapacities, ownerId);
         if (!string.IsNullOrWhiteSpace(createFieldDto.ProducerUserId))
         {
-            FieldMembershipSync.Upsert(field, createFieldDto.ProducerUserId, [FieldCapacities.Work], ownerId);
+            try
+            {
+                FieldPeopleRules.AddOrReplaceSeat(
+                    field,
+                    FieldPersonRole.Partner,
+                    createFieldDto.ProducerUserId,
+                    FamilyModules.DefaultOnInvite,
+                    FamilyAccessLevels.Work,
+                    ownerId,
+                    status: FamilyMemberStatuses.Active);
+            }
+            catch (InvalidOperationException)
+            {
+                FieldPeopleRules.AddOrReplaceSeat(
+                    field,
+                    FieldPersonRole.Family,
+                    createFieldDto.ProducerUserId,
+                    FamilyModules.DefaultOnInvite,
+                    FamilyAccessLevels.Work,
+                    ownerId,
+                    status: FamilyMemberStatuses.Active);
+            }
         }
 
         var createdField = await _fieldRepository.CreateAsync(field, cancellationToken);
         if (createdField.Boundary != null)
         {
             await QueueFieldIntelligenceAsync(createdField.Id, cancellationToken);
+            await QueueFieldHistoryBackfillAsync(createdField.Id, cancellationToken);
         }
-        return FieldMapper.ToDto(createdField);
+        return ToDtoForUser(createdField, ownerId);
     }
 
     public async Task<FieldDto?> GetFieldByIdAsync(string id, string userId, string userRole, CancellationToken cancellationToken = default)
     {
+        // Any active seat may resolve grove identity (name/color). Feature data stays module-scoped.
         if (!await _fieldAccessService.CanUserAccessFieldAsync(id, userId, userRole, cancellationToken))
         {
             throw new ForbiddenException("You do not have access to this field.");
@@ -184,61 +203,36 @@ public class FieldService : IFieldService
             return null;
         }
 
-        var includeDocuments = await _fieldAccessService.CanUserAccessFieldDocumentsAsync(id, userId, userRole, cancellationToken);
-        return FieldMapper.ToDto(field, includeDocuments);
+        return ToDtoForUser(field, userId, userRole);
     }
 
     public async Task<IEnumerable<FieldDto>> GetFieldsByOwnerAsync(string ownerId, CancellationToken cancellationToken = default)
     {
         var fields = await _fieldRepository.GetByOwnerIdAsync(ownerId, cancellationToken);
-        return fields.Select(f => FieldMapper.ToDto(f));
+        return fields.Select(f => ToDtoForUser(f, ownerId));
     }
 
-    public async Task<IEnumerable<FieldDto>> GetFieldsForUserAsync(string userId, string userRole, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<FieldDto>> GetFieldsForUserAsync(
+        string userId,
+        string userRole,
+        string? module = null,
+        CancellationToken cancellationToken = default)
     {
-        var fields = new List<FieldEntity>();
-
-        if (userRole == Roles.Administrator)
+        string? requiredModule = null;
+        if (!string.IsNullOrWhiteSpace(module))
         {
-            fields.AddRange(await _fieldRepository.GetByOwnerIdAsync(userId, cancellationToken));
-        }
-
-        fields.AddRange(await _fieldRepository.GetByOwnerIdAsync(userId, cancellationToken));
-        fields.AddRange(await _fieldRepository.GetByAssignedProducerIdAsync(userId, cancellationToken));
-        fields.AddRange(await _fieldRepository.GetByMemberUserIdAsync(userId, cancellationToken));
-
-        if (userRole == Roles.Producer)
-        {
-            var tasks = await _fieldTasks.QueryAsync(
-                new FieldTaskQuery { AssignedUserId = userId },
-                cancellationToken);
-            var fieldIds = tasks.Select(t => t.FieldId).Distinct().ToList();
-            if (fieldIds.Count > 0)
+            var normalized = FamilyModules.Normalize(module);
+            if (!FamilyModules.IsKnown(normalized))
             {
-                fields.AddRange(await _fieldRepository.GetByIdsAsync(fieldIds, cancellationToken));
+                throw new ValidationException($"Unknown module '{module}'.");
             }
+
+            requiredModule = normalized;
         }
 
-        var familyAccesses = await _familyMembers.GetActiveByLinkedUserIdAllAsync(userId, cancellationToken);
-        foreach (var access in familyAccesses.Where(a =>
-                     a.Modules.Any(m => string.Equals(m, FamilyModules.Fields, StringComparison.OrdinalIgnoreCase))))
-        {
-            fields.AddRange(await _fieldRepository.GetByOwnerIdAsync(access.OwnerUserId, cancellationToken));
-        }
-
-        var includeDocuments = userRole == Roles.FieldOwner || userRole == Roles.Administrator;
-        return fields.DistinctBy(f => f.Id).Select(f =>
-        {
-            FieldMembershipSync.EnsureBackfilled(f);
-            var familyDocs = familyAccesses.Any(a =>
-                string.Equals(a.OwnerUserId, f.OwnerId, StringComparison.Ordinal)
-                && a.Modules.Any(m => string.Equals(m, FamilyModules.Documents, StringComparison.OrdinalIgnoreCase)));
-            return FieldMapper.ToDto(
-                f,
-                includeDocuments
-                || FieldMembershipSync.HasCapacity(f, userId, FieldCapacities.Own)
-                || familyDocs);
-        });
+        var fields = await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+            userId, userRole, requiredModule, cancellationToken);
+        return fields.Select(f => ToDtoForUser(f, userId, userRole));
     }
 
     public async Task<FieldDto> UpdateFieldAsync(string id, string userId, UpdateFieldDto updateFieldDto, CancellationToken cancellationToken = default)
@@ -246,7 +240,7 @@ public class FieldService : IFieldService
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
 
-        if (field.OwnerId != userId)
+        if (!await _fieldAccessService.CanUserModifyFieldAsync(id, userId, cancellationToken))
         {
             throw new ForbiddenException("You do not have permission to update this field.");
         }
@@ -254,8 +248,14 @@ public class FieldService : IFieldService
         ApplyUpdate(field, updateFieldDto);
         field.UpdatedAt = _dateTimeProvider.UtcNow;
 
+        var hadBoundaryInRequest = updateFieldDto.Boundary != null;
         var updatedField = await _fieldRepository.UpdateAsync(field, cancellationToken);
-        return FieldMapper.ToDto(updatedField);
+        if (hadBoundaryInRequest && updatedField.Boundary != null)
+        {
+            await QueueFieldIntelligenceAsync(updatedField.Id, cancellationToken);
+            await QueueFieldHistoryBackfillAsync(updatedField.Id, cancellationToken);
+        }
+        return ToDtoForUser(updatedField, userId);
     }
 
     public async Task<bool> DeleteFieldAsync(string id, string userId, CancellationToken cancellationToken = default)
@@ -266,87 +266,12 @@ public class FieldService : IFieldService
             return false;
         }
 
-        if (field.OwnerId != userId)
+        if (!await _fieldAccessService.CanUserModifyFieldAsync(id, userId, cancellationToken))
         {
             throw new ForbiddenException("You do not have permission to delete this field.");
         }
 
         return await _fieldRepository.DeleteAsync(id, cancellationToken);
-    }
-
-    public async Task AssignProducerAsync(string fieldId, string ownerId, string producerId, CancellationToken cancellationToken = default)
-    {
-        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
-            ?? throw new NotFoundException("Field not found.");
-
-        FieldMembershipSync.EnsureBackfilled(field);
-        if (!FieldMembershipSync.HasCapacity(field, ownerId, FieldCapacities.Own) && field.OwnerId != ownerId)
-        {
-            throw new ForbiddenException("You do not have permission to assign producers to this field.");
-        }
-
-        var producer = await _userRepository.GetByIdAsync(producerId, cancellationToken)
-            ?? throw new ValidationException("User is not a valid producer.");
-
-        FieldMembershipSync.Upsert(field, producerId, [FieldCapacities.Work], ownerId);
-        await _fieldRepository.UpdateAsync(field, cancellationToken);
-        await _activityService.RecordAsync(
-            fieldId,
-            "producer_assigned",
-            "Producer assigned to field",
-            ownerId,
-            metadata: new Dictionary<string, string> { ["producerId"] = producerId },
-            cancellationToken: cancellationToken);
-        _logger.LogInformation("Producer {ProducerId} assigned to field {FieldId}", producerId, fieldId);
-    }
-
-    public async Task UnassignProducerAsync(string fieldId, string ownerId, string producerId, CancellationToken cancellationToken = default)
-    {
-        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
-            ?? throw new NotFoundException("Field not found.");
-
-        FieldMembershipSync.EnsureBackfilled(field);
-        if (!FieldMembershipSync.HasCapacity(field, ownerId, FieldCapacities.Own) && field.OwnerId != ownerId)
-        {
-            throw new ForbiddenException("You do not have permission to unassign producers from this field.");
-        }
-
-        try
-        {
-            FieldMembershipSync.Remove(field, producerId);
-        }
-        catch (InvalidOperationException)
-        {
-            if (field.AssignedProducerIds.Remove(producerId))
-            {
-                await _fieldRepository.UpdateAsync(field, cancellationToken);
-            }
-
-            return;
-        }
-
-        await _fieldRepository.UpdateAsync(field, cancellationToken);
-        await _activityService.RecordAsync(
-            fieldId,
-            "producer_unassigned",
-            "Producer removed from field",
-            ownerId,
-            metadata: new Dictionary<string, string> { ["producerId"] = producerId },
-            cancellationToken: cancellationToken);
-        _logger.LogInformation("Producer {ProducerId} unassigned from field {FieldId}", producerId, fieldId);
-    }
-
-    public async Task<IEnumerable<string>> GetAssignedProducerIdsAsync(string fieldId, string userId, string userRole, CancellationToken cancellationToken = default)
-    {
-        if (!await _fieldAccessService.CanUserModifyFieldAsync(fieldId, userId, cancellationToken) && userRole != Roles.Administrator)
-        {
-            throw new ForbiddenException("You do not have permission to view producer assignments.");
-        }
-
-        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
-            ?? throw new NotFoundException("Field not found.");
-
-        return field.AssignedProducerIds;
     }
 
     public async Task<ImportGreekCadastreFieldResponse> ImportGreekCadastreAsync(
@@ -473,7 +398,7 @@ public class FieldService : IFieldService
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
 
-        if (field.OwnerId != userId)
+        if (!await _fieldAccessService.CanUserModifyFieldAsync(id, userId, cancellationToken))
         {
             throw new ForbiddenException("You do not have permission to update this field boundary.");
         }
@@ -501,7 +426,13 @@ public class FieldService : IFieldService
         field.UpdatedAt = _dateTimeProvider.UtcNow;
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
         await QueueFieldIntelligenceAsync(updated.Id, cancellationToken);
-        return FieldMapper.ToDto(updated);
+        // History (multi-year weather + Chronologio reviews + satellite archive) needs a
+        // boundary. Activate often runs first without one; start the pack here.
+        if (updated.Boundary != null)
+        {
+            await QueueFieldHistoryBackfillAsync(updated.Id, cancellationToken);
+        }
+        return ToDtoForUser(updated, userId);
     }
 
     public async Task<FieldAreaValidationResponse> ValidateAreaAsync(
@@ -510,7 +441,8 @@ public class FieldService : IFieldService
         string userRole,
         CancellationToken cancellationToken = default)
     {
-        if (!await _fieldAccessService.CanUserAccessFieldAsync(id, userId, userRole, cancellationToken))
+        if (!await _fieldAccessService.CanUserAccessFieldModuleAsync(
+                id, userId, userRole, FamilyModules.Fields, cancellationToken))
         {
             throw new ForbiddenException("You do not have access to this field.");
         }
@@ -539,12 +471,15 @@ public class FieldService : IFieldService
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
 
-        if (field.OwnerId != userId)
+        if (!await _fieldAccessService.CanUserModifyFieldAsync(id, userId, cancellationToken)
+            && userRole != Roles.Administrator)
         {
             throw new ForbiddenException("You do not have permission to activate this field.");
         }
 
-        if (!request.BoundaryConfirmed)
+        // Boundary is optional for activation (location/point is enough).
+        // When a polygon exists, the user must confirm it.
+        if (field.Boundary != null && !request.BoundaryConfirmed)
         {
             throw new ValidationException("Boundary confirmation is required before activation.");
         }
@@ -562,11 +497,6 @@ public class FieldService : IFieldService
         if (string.IsNullOrWhiteSpace(field.CropType))
         {
             throw new ValidationException("Crop type is required.");
-        }
-
-        if (field.Boundary == null)
-        {
-            throw new ValidationException("Boundary polygon is required before activation.");
         }
 
         field.Status = FieldStatus.Active;
@@ -587,11 +517,16 @@ public class FieldService : IFieldService
             suggestLifecyclePlan = true;
         }
 
-        await QueueFieldHistoryBackfillAsync(updated.Id, cancellationToken);
+        // Multi-year weather/satellite history needs coordinates from the boundary.
+        // If the grower activates first and draws later, UpdateBoundary queues this instead.
+        if (updated.Boundary != null)
+        {
+            await QueueFieldHistoryBackfillAsync(updated.Id, cancellationToken);
+        }
 
         return new ActivateFieldResponse
         {
-            Field = FieldMapper.ToDto(updated),
+            Field = ToDtoForUser(updated, userId, userRole),
             LifecycleInitialized = lifecycleInitialized,
             SuggestLifecyclePlan = suggestLifecyclePlan
         };
@@ -633,7 +568,7 @@ public class FieldService : IFieldService
         field.UpdatedAt = _dateTimeProvider.UtcNow;
 
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
-        return FieldMapper.ToDto(updated);
+        return ToDtoForUser(updated, userId, userRole);
     }
 
     private void ApplyBoundary(FieldEntity field, GeoJsonPolygon polygon)
@@ -647,6 +582,29 @@ public class FieldService : IFieldService
             Latitude = areaResult.CenterPoint.Coordinates[1],
             Longitude = areaResult.CenterPoint.Coordinates[0]
         };
+    }
+
+    private static FieldDto ToDtoForUser(FieldEntity field, string userId, string? userRole = null)
+    {
+        var capabilities = FieldCapabilitiesResolver.Resolve(field, userId, userRole);
+        var dto = FieldMapper.ToDto(field, includeDocuments: false);
+        dto.Capabilities = capabilities;
+
+        if (!capabilities.CanViewSensitiveIdentity)
+        {
+            dto.Latitude = null;
+            dto.Longitude = null;
+            dto.CenterPoint = null;
+            dto.AccessNotes = null;
+            dto.GreekCadastre = null;
+        }
+
+        if (!capabilities.CanViewBoundary)
+        {
+            dto.Boundary = null;
+        }
+
+        return dto;
     }
 
     private void ApplyUpdate(FieldEntity field, UpdateFieldDto updateFieldDto)
@@ -777,8 +735,8 @@ public class FieldService : IFieldService
     }
 
     /// <summary>
-    /// Starts the multi-year weather and satellite backfill only after activation
-    /// terms have been accepted and the field add is complete.
+    /// Starts the multi-year weather and satellite backfill once the field has a boundary
+    /// (on activation if already drawn, otherwise when the boundary is saved).
     /// </summary>
     private async Task QueueFieldHistoryBackfillAsync(string fieldId, CancellationToken cancellationToken)
     {
@@ -794,8 +752,8 @@ public class FieldService : IFieldService
 
     private static readonly string[] DefaultFieldColors =
     {
-        "#2F6B4F", "#3D6EA8", "#C47A1A", "#8B5E3C",
-        "#5B7C99", "#6B8F3A", "#A65D4E", "#5C6B8A"
+        "#E8C547", "#B54422", "#F0D48A", "#6F3D1E",
+        "#E08A1F", "#C45C48", "#C9A07A", "#8B5A32"
     };
 
     private static string? NormalizeFieldColor(string? color)

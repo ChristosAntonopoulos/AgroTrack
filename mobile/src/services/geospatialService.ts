@@ -41,6 +41,7 @@ export interface RainIntelligence {
   forecast12hMm: number;
   forecast24hMm: number;
   forecast48hMm: number;
+  forecast72hMm?: number;
 }
 
 export interface WindIntelligence {
@@ -49,6 +50,7 @@ export interface WindIntelligence {
   maxNext6hKmh: number;
   maxNext12hKmh: number;
   maxNext24hKmh: number;
+  maxNext72hKmh?: number;
   dominantDirection?: string;
 }
 
@@ -63,6 +65,15 @@ export interface FrostRisk {
   confidence: string;
 }
 
+export interface DailyForecast {
+  date: string;
+  minTemperatureC?: number | null;
+  maxTemperatureC?: number | null;
+  weatherCode: number;
+  rainMm: number;
+  maxWindKmh?: number | null;
+}
+
 export interface FieldWeather {
   fieldId: string;
   stale: boolean;
@@ -73,6 +84,8 @@ export interface FieldWeather {
   frost: FrostRisk;
   evapotranspiration: { todayMm: number; last7DaysMm: number };
   waterBalance: { rainMm: number; et0Mm: number; irrigationMm: number; balanceMm: number; label: string };
+  /** Today through the next six days, when the forecast window covers them. */
+  days?: DailyForecast[];
   metadata: DataSourceMetadata;
 }
 
@@ -310,8 +323,20 @@ const PROFILE_CACHE = 'geospatial_profile';
 const INTELLIGENCE_CACHE = 'geospatial_intelligence';
 const LAYERS_CACHE = 'geospatial_layers';
 const SATELLITE_DATES_CACHE = 'geospatial_satellite_dates';
+const SATELLITE_OBS_CACHE = 'geospatial_satellite_observation';
 const MAP_DATA_CACHE = 'geospatial_map_data';
 const WEATHER_HISTORY_CACHE = 'geospatial_weather_history';
+
+const withPublicUrls = (observation: FieldSatelliteObservation): FieldSatelliteObservation => ({
+  ...observation,
+  trueColorUrl: resolvePublicAssetUrl(observation.trueColorUrl),
+  ndviUrl: resolvePublicAssetUrl(observation.ndviUrl),
+  ndmiUrl: resolvePublicAssetUrl(observation.ndmiUrl),
+  ndreUrl: resolvePublicAssetUrl(observation.ndreUrl),
+  ndwiUrl: resolvePublicAssetUrl(observation.ndwiUrl),
+  saviUrl: resolvePublicAssetUrl(observation.saviUrl),
+  ndviChangeUrl: resolvePublicAssetUrl(observation.ndviChangeUrl),
+});
 
 const withPublicLayerUrls = (data: FieldMapData): FieldMapData => ({
   ...data,
@@ -393,9 +418,27 @@ export const geospatialService = {
   getSatelliteObservations: async (fieldId: string): Promise<FieldSatelliteObservation[]> => {
     try {
       const response = await api.get<FieldSatelliteObservation[]>(`/api/v1/fields/${fieldId}/satellite`);
-      return response.data;
+      return response.data.map(withPublicUrls);
     } catch {
       return [];
+    }
+  },
+
+  getSatelliteObservation: async (
+    fieldId: string,
+    observationId: string
+  ): Promise<FieldSatelliteObservation | null> => {
+    const cacheKey = `${fieldId}:${observationId}`;
+    try {
+      const response = await api.get<FieldSatelliteObservation>(
+        `/api/v1/fields/${fieldId}/satellite/${observationId}`
+      );
+      const mapped = withPublicUrls(response.data);
+      await EntityCache.setOne<FieldSatelliteObservation>(SATELLITE_OBS_CACHE, cacheKey, mapped);
+      return mapped;
+    } catch {
+      const cached = await EntityCache.getOne<FieldSatelliteObservation>(SATELLITE_OBS_CACHE, cacheKey);
+      return cached ? withPublicUrls(cached) : null;
     }
   },
 

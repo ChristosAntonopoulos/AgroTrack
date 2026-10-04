@@ -14,8 +14,10 @@ export const isHarvestTask = (task: FieldTask): boolean => {
   const haystack = `${typeKey} ${task.title} ${task.description ?? ''}`.toLowerCase();
   return (
     haystack.includes('harvest') ||
-    haystack.includes('τρύγος') ||
-    haystack.includes('τρυγος')
+    haystack.includes('τρύγ') ||
+    haystack.includes('τρυγ') ||
+    haystack.includes('ράβδ') ||
+    haystack.includes('ραβδ')
   );
 };
 
@@ -66,6 +68,33 @@ export const currentHarvestSeason = (now = new Date()): string => {
 
 export const formatKg = (kg: number): string =>
   new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(kg);
+
+/** Outdoor-safe mass label: never dumps a huge float into a narrow column. */
+export const formatCompactMassKg = (kg: number): string => {
+  if (!Number.isFinite(kg) || kg <= 0) return '—';
+  if (kg >= 1000) {
+    return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(kg / 1000)} t`;
+  }
+  return `${formatKg(kg)} kg`;
+};
+
+/** Prefer litres for oil on the day summary (kg ÷ 0.916). */
+export const formatOilLitresFromKg = (kg: number): string => {
+  if (!Number.isFinite(kg) || kg <= 0) return '—';
+  const litres = kg / 0.916;
+  if (litres >= 100) return `${Math.round(litres)} L`;
+  const rounded = Math.round(litres * 10) / 10;
+  return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(rounded)} L`;
+};
+
+/** Numeric litres only — pair with a separate unit label (λίτρα). */
+export const formatOilLitresAmountFromKg = (kg: number): string => {
+  if (!Number.isFinite(kg) || kg <= 0) return '—';
+  const litres = kg / 0.916;
+  if (litres >= 100) return String(Math.round(litres));
+  const rounded = Math.round(litres * 10) / 10;
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(rounded);
+};
 
 export type NextHarvestWork =
   | { kind: 'task'; task: FieldTask; phase: HarvestPhase; fieldId: string }

@@ -58,7 +58,8 @@ public static class FinancialCalculator
         string? filterFieldId = null,
         decimal? oilKilograms = null,
         HarvestOilProduction oilProduction = default,
-        string language = "el")
+        string language = "el",
+        IReadOnlyList<string>? incompleteFieldNames = null)
     {
         var fieldById = fields.ToDictionary(f => f.FieldId, StringComparer.Ordinal);
         var scoped = transactions
@@ -76,7 +77,16 @@ public static class FinancialCalculator
             ? RoundMoney(income.Value - expenses.Value)
             : null;
 
-        var includedArea = ResolveIncludedAreaHectares(filterFieldId, fieldById, posted);
+        var area = ResolveAreaScope(filterFieldId, fieldById, posted);
+        var areaPosted = area.IncludedFieldIds.Count == 0
+            ? []
+            : posted.Where(t => !string.IsNullOrEmpty(t.FieldId) && area.IncludedFieldIds.Contains(t.FieldId)).ToList();
+        var areaHasPosted = areaPosted.Count > 0;
+        decimal? areaIncome = areaHasPosted ? SumPosted(areaPosted, FinancialTransactionType.Income) : null;
+        decimal? areaExpenses = areaHasPosted ? SumPosted(areaPosted, FinancialTransactionType.Expense) : null;
+        decimal? areaNet = areaHasPosted && areaIncome.HasValue && areaExpenses.HasValue
+            ? RoundMoney(areaIncome.Value - areaExpenses.Value)
+            : null;
         var includesUnassigned = filterFieldId is null && posted.Any(t => string.IsNullOrEmpty(t.FieldId));
         var oliveOil = BuildOliveOilEconomics(posted, expenses, oilProduction, language);
 
@@ -104,9 +114,9 @@ public static class FinancialCalculator
                 : [],
             IncomeByCategory = BuildCategoryResults(posted, FinancialTransactionType.Income),
             ExpenseByCategory = BuildCategoryResults(posted, FinancialTransactionType.Expense),
-            CostPerHectare = PerHectare(expenses, includedArea),
-            IncomePerHectare = PerHectare(income, includedArea),
-            NetPerHectare = PerHectare(net, includedArea),
+            CostPerHectare = PerHectare(areaExpenses, area.Hectares),
+            IncomePerHectare = PerHectare(areaIncome, area.Hectares),
+            NetPerHectare = PerHectare(areaNet, area.Hectares),
             CostPerKilogramOfOil = CostPerKilogramOfOil(expenses, oilKilograms),
             OliveOil = oliveOil,
             DataAvailability = new FinancialDataAvailability
@@ -115,9 +125,16 @@ public static class FinancialCalculator
                 HasDraftRecords = drafts.Count > 0,
                 IncomeIsUnknown = !hasPosted,
                 ExpensesAreUnknown = !hasPosted,
-                AreaIsMissing = includedArea is null or <= 0,
+                AreaIsMissing = area.Hectares is null or <= 0,
                 OilQuantityIsMissing = oilKilograms is null or <= 0,
-                IncludesUnassigned = includesUnassigned
+                IncludesUnassigned = includesUnassigned,
+                MissingAreaFieldIds = area.MissingAreaFieldIds,
+                MissingAreaFieldNames = area.MissingAreaFieldNames,
+                IncompleteFieldNames = (incompleteFieldNames ?? [])
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct(StringComparer.CurrentCultureIgnoreCase)
+                    .ToList(),
+                PerAreaExcludesUnassigned = includesUnassigned && area.Hectares is > 0
             }
         };
     }
@@ -295,39 +312,58 @@ public static class FinancialCalculator
         return permittedFieldIds.Contains(transaction.FieldId);
     }
 
-    private static double? ResolveIncludedAreaHectares(
+    private readonly record struct AreaScope(
+        double? Hectares,
+        IReadOnlyList<string> IncludedFieldIds,
+        IReadOnlyList<string> MissingAreaFieldIds,
+        IReadOnlyList<string> MissingAreaFieldNames);
+
+    /// <summary>
+    /// Per-area rates use only fields that have a positive area. Fields with posted money
+    /// and no area stay in the totals and are named as excluded.
+    /// </summary>
+    private static AreaScope ResolveAreaScope(
         string? filterFieldId,
         IReadOnlyDictionary<string, FinancialFieldMetrics> fieldById,
         IReadOnlyCollection<FinancialTransaction> posted)
     {
-        if (!string.IsNullOrEmpty(filterFieldId))
+        var candidateIds = !string.IsNullOrEmpty(filterFieldId)
+            ? new List<string> { filterFieldId }
+            : posted
+                .Select(t => t.FieldId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct(StringComparer.Ordinal)
+                .Cast<string>()
+                .ToList();
+
+        if (candidateIds.Count == 0)
         {
-            return fieldById.TryGetValue(filterFieldId, out var field) ? field.AreaHectares : null;
+            return new AreaScope(null, [], [], []);
         }
 
-        var includedIds = posted
-            .Select(t => t.FieldId)
-            .Where(id => !string.IsNullOrEmpty(id))
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-
-        if (includedIds.Count == 0)
-        {
-            return null;
-        }
-
+        var included = new List<string>();
+        var missingIds = new List<string>();
+        var missingNames = new List<string>();
         double total = 0;
-        foreach (var id in includedIds)
+        foreach (var id in candidateIds)
         {
-            if (!fieldById.TryGetValue(id!, out var field) || field.AreaHectares is null or <= 0)
+            fieldById.TryGetValue(id, out var field);
+            if (field?.AreaHectares is null or <= 0)
             {
-                return null;
+                missingIds.Add(id);
+                missingNames.Add(string.IsNullOrWhiteSpace(field?.Name) ? id : field!.Name);
+                continue;
             }
 
+            included.Add(id);
             total += field.AreaHectares.Value;
         }
 
-        return total;
+        return new AreaScope(
+            included.Count == 0 ? null : total,
+            included,
+            missingIds,
+            missingNames);
     }
 
     private static IReadOnlyList<MonthlyFinancialResult> BuildMonthlyResults(

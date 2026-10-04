@@ -26,24 +26,108 @@ public class DataSeeder : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await SeedDemoUsersAsync(cancellationToken);
+        var seedDemo = string.Equals(
+            _configuration["DemoAccounts:Seed"],
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+        var reseedFarm = string.Equals(
+            _configuration["DemoAccounts:ReseedFarmData"],
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
+        // Catalogues are always idempotent (upsert by code/slug).
         await FieldWorkCatalogueSeeder.SeedAsync(_context, _logger, cancellationToken);
-        await SeedMinistryNotificationsAsync(cancellationToken);
         await ServiceCategorySeeder.SeedAsync(_context, _logger, cancellationToken);
+
+        if (!seedDemo)
+        {
+            return;
+        }
+
+        // Users are upserted every start so logins stay valid.
+        await SeedOwnerAndAdminAsync(cancellationToken);
+        await SeedPartnerAndFamilyAsync(cancellationToken);
+
+        var farmPresent = await DemoFieldsPresentAsync(cancellationToken);
+        if (farmPresent && !reseedFarm)
+        {
+            _logger.LogInformation(
+                "Demo farm already present ({Upper}, {Lower}) — skipping wipe/reseed. Set DemoAccounts:ReseedFarmData=true to rebuild.",
+                DemoFarmDataSeeder.FieldName,
+                DemoFarmDataSeeder.FieldNameLower);
+            return;
+        }
+
+        if (reseedFarm)
+        {
+            // Explicit rebuild: drop every collection, then seed fresh.
+            await WipeDatabaseAsync(cancellationToken);
+            await SeedOwnerAndAdminAsync(cancellationToken);
+            await SeedPartnerAndFamilyAsync(cancellationToken);
+            await FieldWorkCatalogueSeeder.SeedAsync(_context, _logger, cancellationToken);
+            await ServiceCategorySeeder.SeedAsync(_context, _logger, cancellationToken);
+        }
+
         await DemoFarmDataSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
-        await ChronologioDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
-        await PartnerDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
+        await SimpleFarmerStorySeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
+        await OwnerPartnerDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
+        await FamilyDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
+
+        _logger.LogInformation(
+            "Simple farmer demo seeded: {Upper} + {Lower} with owner + συνεργάτης + family.",
+            DemoFarmDataSeeder.FieldName,
+            DemoFarmDataSeeder.FieldNameLower);
+    }
+
+    private async Task<bool> DemoFieldsPresentAsync(CancellationToken cancellationToken)
+    {
+        var fields = _context.GetCollection<FieldDocument>("fields");
+        foreach (var id in DemoFarmDataSeeder.FieldIds)
+        {
+            var exists = await fields.Find(f => f.Id == id).AnyAsync(cancellationToken);
+            if (!exists) return false;
+        }
+
+        return true;
+    }
+
+    private async Task WipeDatabaseAsync(CancellationToken cancellationToken)
+    {
+        var databaseName = _context.Database.DatabaseNamespace.DatabaseName;
+        var names = await _context.Database.ListCollectionNamesAsync(cancellationToken: cancellationToken);
+        var dropped = 0;
+        await names.ForEachAsync(
+            async name =>
+            {
+                await _context.Database.DropCollectionAsync(name, cancellationToken);
+                dropped++;
+            },
+            cancellationToken);
+
+        _logger.LogInformation(
+            "Phase 0: wiped database {Database} — dropped {Count} collections (clean slate).",
+            databaseName,
+            dropped);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName)[] DemoUsers =
-    [
-        ("675555555555555555555501", "owner@olivefarm.com", "password123", Roles.FieldOwner, "Γιώργος", "Παπαδάκης"),
-        ("675555555555555555555502", "producer1@olivefarm.com", "password123", Roles.Producer, "Κώστας", "Μανούσακης"),
-    ];
+    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) OwnerUser =
+        ("675555555555555555555501", "owner@olivefarm.com", "password123", Roles.FieldOwner, "Γιώργος", "Παπαδάκης");
 
-    private async Task SeedDemoUsersAsync(CancellationToken cancellationToken)
+    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) PartnerUser =
+        ("675555555555555555555502", "producer1@olivefarm.com", "password123", Roles.Producer, "Κώστας", "Μανούσακης");
+
+    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) FamilyUser =
+        ("675555555555555555555503", "family@olivefarm.com", "password123", Roles.FieldOwner, "Ελένη", "Παπαδάκη");
+
+    /// <summary>
+    /// Private operator. Not shown on the demo login picker — type the email and password on the normal form.
+    /// </summary>
+    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) HiddenOperator =
+        ("675555555555555555555599", "admin@olivefarm.com", "admin123", Roles.Administrator, "Olea", "Admin");
+
+    private async Task SeedOwnerAndAdminAsync(CancellationToken cancellationToken)
     {
         if (!string.Equals(_configuration["DemoAccounts:Seed"], "true", StringComparison.OrdinalIgnoreCase))
         {
@@ -53,47 +137,82 @@ public class DataSeeder : IHostedService
         var collection = _context.GetCollection<UserDocument>("users");
         var now = DateTime.UtcNow;
 
-        foreach (var demo in DemoUsers)
+        await UpsertDemoUserAsync(collection, OwnerUser, now, operatorAccount: false, cancellationToken);
+        await UpsertDemoUserAsync(collection, HiddenOperator, now, operatorAccount: true, cancellationToken);
+    }
+
+    private async Task SeedPartnerAndFamilyAsync(CancellationToken cancellationToken)
+    {
+        if (!string.Equals(_configuration["DemoAccounts:Seed"], "true", StringComparison.OrdinalIgnoreCase))
         {
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(demo.Password);
-            var existing = await FindDemoUserAsync(collection, demo, cancellationToken);
+            return;
+        }
 
-            if (existing == null)
+        var collection = _context.GetCollection<UserDocument>("users");
+        var now = DateTime.UtcNow;
+
+        await UpsertDemoUserAsync(collection, PartnerUser, now, operatorAccount: false, cancellationToken);
+        await UpsertDemoUserAsync(collection, FamilyUser, now, operatorAccount: false, cancellationToken);
+    }
+
+    private async Task UpsertDemoUserAsync(
+        IMongoCollection<UserDocument> collection,
+        (string Id, string Email, string Password, string Role, string FirstName, string LastName) demo,
+        DateTime now,
+        bool operatorAccount,
+        CancellationToken cancellationToken)
+    {
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(demo.Password);
+        var existing = await FindDemoUserAsync(collection, demo, cancellationToken);
+
+        if (existing == null)
+        {
+            try
             {
-                try
-                {
-                    await collection.InsertOneAsync(
-                        new UserDocument
-                        {
-                            Id = demo.Id,
-                            Email = demo.Email,
-                            PasswordHash = passwordHash,
-                            Role = demo.Role,
-                            FirstName = demo.FirstName,
-                            LastName = demo.LastName,
-                            CreatedAt = now,
-                            UpdatedAt = now,
-                        },
-                        cancellationToken: cancellationToken);
+                await collection.InsertOneAsync(
+                    NewDemoUser(demo, passwordHash, now, operatorAccount),
+                    cancellationToken: cancellationToken);
 
-                    _logger.LogInformation("Seeded demo account {Email} ({Role}).", demo.Email, demo.Role);
-                }
-                catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
-                {
-                    // Document exists by _id but email lookup missed it (e.g. email changed) — sync in place.
-                    _logger.LogWarning(
-                        "Demo user {Email} insert conflict on id {Id}; syncing existing document.",
-                        demo.Email,
-                        demo.Id);
-                    await SyncDemoUserAsync(collection, demo, passwordHash, now, demo.Id, cancellationToken);
-                }
-
-                continue;
+                _logger.LogInformation("Seeded demo account {Email} ({Role}).", demo.Email, demo.Role);
+            }
+            catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+            {
+                _logger.LogWarning(
+                    "Demo user {Email} insert conflict on id {Id}; syncing existing document.",
+                    demo.Email,
+                    demo.Id);
+                await SyncDemoUserAsync(collection, demo, passwordHash, now, demo.Id, operatorAccount, cancellationToken);
             }
 
-            await SyncDemoUserAsync(collection, demo, passwordHash, now, existing.Id, cancellationToken);
+            return;
         }
+
+        await SyncDemoUserAsync(collection, demo, passwordHash, now, existing.Id, operatorAccount, cancellationToken);
     }
+
+    private static UserDocument NewDemoUser(
+        (string Id, string Email, string Password, string Role, string FirstName, string LastName) demo,
+        string passwordHash,
+        DateTime now,
+        bool operatorAccount) =>
+        new()
+        {
+            Id = demo.Id,
+            Email = demo.Email,
+            PasswordHash = passwordHash,
+            Role = demo.Role,
+            FirstName = demo.FirstName,
+            LastName = demo.LastName,
+            Preferences = operatorAccount
+                ? new UserExperiencePreferencesDocument
+                {
+                    ExperienceMode = "full",
+                    ExperienceModeChosen = true,
+                }
+                : new UserExperiencePreferencesDocument(),
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
 
     private static async Task<UserDocument?> FindDemoUserAsync(
         IMongoCollection<UserDocument> collection,
@@ -116,76 +235,29 @@ public class DataSeeder : IHostedService
         string passwordHash,
         DateTime now,
         string documentId,
+        bool operatorAccount,
         CancellationToken cancellationToken)
     {
+        var update = Builders<UserDocument>.Update
+            .Set(u => u.Email, demo.Email)
+            .Set(u => u.PasswordHash, passwordHash)
+            .Set(u => u.Role, demo.Role)
+            .Set(u => u.FirstName, demo.FirstName)
+            .Set(u => u.LastName, demo.LastName)
+            .Set(u => u.UpdatedAt, now);
+
+        if (operatorAccount)
+        {
+            update = update
+                .Set(u => u.Preferences.ExperienceMode, "full")
+                .Set(u => u.Preferences.ExperienceModeChosen, true);
+        }
+
         await collection.UpdateOneAsync(
             u => u.Id == documentId,
-            Builders<UserDocument>.Update
-                .Set(u => u.Email, demo.Email)
-                .Set(u => u.PasswordHash, passwordHash)
-                .Set(u => u.Role, demo.Role)
-                .Set(u => u.FirstName, demo.FirstName)
-                .Set(u => u.LastName, demo.LastName)
-                .Set(u => u.UpdatedAt, now),
+            update,
             cancellationToken: cancellationToken);
 
         _logger.LogInformation("Synced demo account {Email} ({Role}).", demo.Email, demo.Role);
-    }
-
-    private async Task SeedMinistryNotificationsAsync(CancellationToken cancellationToken)
-    {
-        var collection = _context.GetCollection<MinistryNotificationDocument>("ministry_notifications");
-        var count = await collection.CountDocumentsAsync(FilterDefinition<MinistryNotificationDocument>.Empty, cancellationToken: cancellationToken);
-        if (count > 0)
-        {
-            return;
-        }
-
-        var now = DateTime.UtcNow;
-        var notifications = new[]
-        {
-            new MinistryNotificationDocument
-            {
-                Title = "New Pesticide Regulations",
-                Message = "Updated regulations regarding pesticide usage. Complete certification by end of month.",
-                Type = "regulation",
-                Priority = "high",
-                PublishedAt = now.AddDays(-2),
-                ExpirationDate = now.AddDays(28),
-                Category = "Compliance",
-                TargetRoles = ["Producer", "ServiceProvider", "Agronomist"],
-                CreatedAt = now,
-                UpdatedAt = now
-            },
-            new MinistryNotificationDocument
-            {
-                Title = "Olive Oil Subsidy Program",
-                Message = "Applications for the olive oil production subsidy are now open.",
-                Type = "subsidy",
-                Priority = "high",
-                PublishedAt = now.AddDays(-5),
-                ExpirationDate = now.AddMonths(2),
-                Category = "Financial",
-                TargetRoles = ["FieldOwner"],
-                CreatedAt = now,
-                UpdatedAt = now
-            },
-            new MinistryNotificationDocument
-            {
-                Title = "Annual Field Registration Deadline",
-                Message = "All field owners must complete annual registration.",
-                Type = "deadline",
-                Priority = "high",
-                PublishedAt = now.AddDays(-1),
-                ExpirationDate = now.AddMonths(1),
-                Category = "Compliance",
-                TargetRoles = ["FieldOwner"],
-                CreatedAt = now,
-                UpdatedAt = now
-            }
-        };
-
-        await collection.InsertManyAsync(notifications, cancellationToken: cancellationToken);
-        _logger.LogInformation("Seeded {Count} ministry notifications.", notifications.Length);
     }
 }

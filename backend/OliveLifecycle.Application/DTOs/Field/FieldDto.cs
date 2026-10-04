@@ -19,7 +19,6 @@ public class FieldDto
     public bool IrrigationStatus { get; set; }
     public string CurrentLifecycleYear { get; set; } = "low";
     public string CurrentLifecycleStage { get; set; } = "dormancy";
-    public List<string> AssignedProducerIds { get; set; } = new();
     public List<FieldMembershipDto> Memberships { get; set; } = new();
     public List<AdvisorCommentDto> AdvisorComments { get; set; } = new();
     public DateTime CreatedAt { get; set; }
@@ -41,4 +40,5 @@ public class FieldDto
     public string? Color { get; set; }
     public GreekCadastreInfoDto? GreekCadastre { get; set; }
     public List<FieldDocumentAttachmentDto> Documents { get; set; } = new();
+    public FieldCapabilitiesDto Capabilities { get; set; } = new();
 }

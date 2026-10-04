@@ -1,32 +1,4 @@
-export type ExperienceMode = 'everyday' | 'full';
-
 export type FontScale = 'default' | 'large' | 'xl';
-
-export type ExperienceWidget =
-  | 'fieldIntelligence'
-  | 'satelliteLayers'
-  | 'mapLayerPanel'
-  | 'cadastreDetails'
-  | 'analyticsNav'
-  | 'reportsNav'
-  | 'dataSourcesNav'
-  | 'calendarMonthView'
-  | 'calendarWeekView'
-  | 'calendarFieldView'
-  | 'taskBoardView'
-  | 'dashboardStats'
-  | 'fieldMapDefault'
-  | 'todayAction'
-  | 'weatherAdvice'
-  | 'nextTasks'
-  | 'peopleStrip'
-  | 'alertsPlain'
-  | 'fieldCosts'
-  | 'advisorComments'
-  | 'peopleStats'
-  | 'myActions'
-  | 'myActionsDetail'
-  | 'recentNotes';
 
 export const FONT_SCALE_VALUES: Record<FontScale, number> = {
   default: 1,

@@ -1,137 +1,188 @@
 {
-  "brand": "Oleachron",
-  "alphaBadge": "Alpha",
+  "brand": "The Olive Lot",
   "header": {
-    "product": "Product",
     "howItWorks": "How it works",
-    "download": "Download",
-    "faq": "FAQ",
+    "chronologio": "History",
+    "features": "What you can do",
     "signIn": "Sign in",
-    "downloadAlpha": "Get Android"
+    "startFree": "Start free"
   },
   "hero": {
-    "title": "Your notebook. On your phone.",
-    "subtitle": "Fields, today’s work, harvest, and costs — in one place, in Greek or English.",
-    "ctaPrimary": "Create free account",
-    "ctaSecondary": "Get Android",
-    "ctaDemo": "Request a demo",
-    "trust": "For olive growers in Greece. Greek and English.",
-    "shotAlt": "Daybrief on the phone"
+    "eyebrow": "For your olive grove. For every year of it.",
+    "title": "Your olive grove’s story lives here.",
+    "sub": "Record what you do today and find it clearly whenever you need it: work, harvest, expenses, notes, photos, and whatever explains a year.",
+    "ctaPrimary": "Start free",
+    "ctaSecondary": "See how it works",
+    "trust": "Your first field is free · For your own or a family grove",
+    "today": "Today",
+    "todayText": "A note in the field",
+    "strip": ["Work", "Harvest", "Expenses", "Photos", "Map"]
   },
-  "shift": {
-    "title": "From paper to phone",
-    "text": "What you wrote in a notebook, in WhatsApp, or in your head — now stays in one place and is not forgotten.",
-    "paperTitle": "Notebook",
-    "paperText": "Fields and notes on paper that get lost.",
-    "chatTitle": "Messages",
-    "chatText": "Work disappears in calls and WhatsApp.",
-    "phoneTitle": "Phone",
-    "phoneText": "The same notes, shared with the owner."
+  "memory": {
+    "title": "What you know about your grove deserves to stay.",
+    "text": "A note on the phone, a conversation in the field, an old notebook — all of it is useful until you need to find it. The Olive Lot keeps it with the field and its year.",
+    "close": "What happened. When it happened. Why it matters.",
+    "photoAlt": "An old notebook and notes, with the grove in afternoon light"
   },
-  "notes": {
-    "title": "Five notes you keep",
-    "text": "Simple, like a notebook — no complicated menus.",
-    "fieldsTitle": "Fields",
-    "fieldsText": "Every grove with a name, size, and season.",
-    "fieldsAlt": "Fields list on the phone",
-    "todayTitle": "Daybrief",
-    "todayText": "What matters this morning, in plain language.",
-    "todayAlt": "Daybrief on the phone",
+  "chronologio": {
+    "title": "History is your grove’s memory.",
+    "text": "It doesn’t just keep records. It shows the thread: what happened, in which field, under what conditions, and what followed.",
+    "points": [
+      "Remember what you did last year",
+      "Find a record in seconds",
+      "Understand the year that passed"
+    ],
+    "months": ["Sep", "Oct", "Nov"],
+    "railLabel": "Months of the year"
+  },
+  "journal": {
+    "example": "Example",
+    "field": "Kato Alonia",
+    "month": "October 2025",
+    "dayEarly": "8 October",
+    "dayLate": "22 October",
+    "weatherTitle": "The day’s weather",
+    "weatherMeta": "17° · 12 mm rain",
+    "taskTitle": "Fruiting prune",
+    "taskMeta": "Completed",
+    "taskNextTitle": "Nets before harvest",
+    "taskNextMeta": "Friday · each year",
+    "noteTitle": "Fruit darkened on the south side",
+    "noteMeta": "Note and photo",
     "harvestTitle": "Harvest",
-    "harvestText": "Olive and oil kilos — without digging through paper.",
-    "harvestAlt": "Harvest summary",
-    "costsTitle": "Costs",
-    "costsText": "What you spent and received, per field.",
-    "costsAlt": "Costs on the web",
-    "historyTitle": "Chronologio",
-    "historyText": "The story of your grove — what happened, when, and where.",
-    "historyAlt": "Grove Chronologio"
+    "harvestMeta": "42 sacks · 860 kg · 148 L oil",
+    "expenseTitle": "Harvest labour",
+    "expenseMeta": "€320",
+    "sepTitle": "A check of the trees",
+    "sepMeta": "Completed · 12 September",
+    "sepDetail": "A quiet day in the field, before October opened.",
+    "novTitle": "Oil at the mill",
+    "novMeta": "148 L · 4 November",
+    "novDetail": "October’s oil stayed tied to the same field.",
+    "detailWeather": "12 mm of rain, the day the pruning was finished.",
+    "detailTask": "The task closed on 8 October. It stays with the field.",
+    "detailNote": "A note with a photo, before harvest began.",
+    "detailHarvest": "42 sacks, 860 kg of olives, 148 litres of oil.",
+    "detailExpense": "€320 of labour, tied to this field.",
+    "shotAlt": "October History for Kato Alonia: a task, a note, weather, a harvest and an expense"
   },
-  "audience": {
-    "title": "For owner and producer — together",
-    "ownerTitle": "Owner",
-    "ownerText": "See every grove without being there. Same picture as the producer.",
-    "ownerAlt": "Field on the web for the owner",
-    "producerTitle": "Producer",
-    "producerText": "Know what to do today. Write it down in thirty seconds from the field.",
-    "producerAlt": "Task on the phone"
+  "capabilities": {
+    "title": "From the field to the year’s reckoning.",
+    "bridge": "Not six tools. Everything becomes part of the grove’s story.",
+    "items": [
+      {
+        "key": "map",
+        "title": "Your groves on the map",
+        "outcome": "See each field as it is.",
+        "text": "Find its place, keep its boundaries, and always have the picture of the grove in front of you."
+      },
+      {
+        "key": "tasks",
+        "title": "Work that isn’t forgotten",
+        "outcome": "Organise what needs doing.",
+        "text": "Create tasks for each field, set a time and a repeat, and mark them as soon as they’re done."
+      },
+      {
+        "key": "capture",
+        "title": "A record in a few seconds",
+        "outcome": "Keep the moment before it fades.",
+        "text": "Write a note, add a photo, or log an expense the moment it happens."
+      },
+      {
+        "key": "harvest",
+        "title": "Your harvest, without scraps of paper",
+        "outcome": "Sacks, kilos, oil and expenses, on the same field.",
+        "text": "Add what comes off as you pick, and close the harvest with a clear result."
+      },
+      {
+        "key": "money",
+        "title": "Expenses and a picture of the year",
+        "outcome": "See what it cost and what it returned.",
+        "text": "Tie expenses and income to the right field, so your reckoning makes sense."
+      },
+      {
+        "key": "context",
+        "title": "Weather, vegetation and past seasons",
+        "outcome": "See your grove through the data as well.",
+        "text": "Conditions and the field’s picture, always beside what actually happened."
+      }
+    ]
+  },
+  "map": {
+    "title": "See your grove differently, without losing the real picture.",
+    "text": "Find your fields, keep their boundaries, and see how conditions change through the year. The map, the weather and the vegetation sit beside what actually happened in the grove.",
+    "marchLabel": "Vegetation · March 2026",
+    "juneLabel": "Vegetation · June 2026",
+    "marchFact": "In March the field’s picture was more uneven.",
+    "juneFact": "In June the field’s picture was more even.",
+    "compareLabel": "Compare two dates",
+    "march": "March 2026",
+    "june": "June 2026"
+  },
+  "harvest": {
+    "title": "The harvest goes in simply.",
+    "text": "In the field you write the sacks. At the mill, the kilos. Then the oil. Each day joins that field’s year on its own.",
+    "steps": [
+      { "label": "Sacks", "where": "In the field", "ask": "How many did you pick today?" },
+      { "label": "Kilos", "where": "At the mill", "ask": "What did the scale show?" },
+      { "label": "Oil", "where": "After weighing", "ask": "How much came out?" }
+    ],
+    "yearLabel": "The year, already added up",
+    "year": "42 sacks · 860 kg · 148 L oil",
+    "sacks": "Sacks",
+    "kilos": "Kilos",
+    "litres": "Litres of oil",
+    "expenses": "Expenses",
+    "sacksValue": "6",
+    "kilosValue": "128",
+    "litresValue": "—",
+    "expensesValue": "€40",
+    "add": "Add today’s record",
+    "soFar": "October so far · 42 sacks"
   },
   "steps": {
-    "title": "Start in three steps",
-    "step1Title": "Add your fields",
-    "step1Text": "Name, size, crop. Enough to begin.",
-    "step2Title": "Write this season’s work",
-    "step2Text": "Pruning, fertilizer, spray, harvest — what you used to put in the notebook.",
-    "step3Title": "Use it from the phone",
-    "step3Text": "See today’s list, mark work done, keep a note."
+    "title": "Start simply. Your grove builds its own story.",
+    "step1Title": "Add your grove",
+    "step1Text": "Find it on the map and keep its basic details.",
+    "step2Title": "Record what you do",
+    "step2Text": "A task, a note, an expense, or today’s harvest.",
+    "step3Title": "Watch the year take on meaning",
+    "step3Text": "History organises what happened, so you can find it again and use it."
   },
-  "alpha": {
-    "title": "Try it free",
-    "text": "During alpha, access is free for real field use. Web and Android.",
-    "cardTitle": "Oleachron Alpha",
-    "price": "Free during alpha",
-    "includes": [
-      "Web dashboard",
-      "Android app",
-      "Fields, tasks, harvest",
-      "Simple costs",
-      "Greek and English"
-    ],
-    "download": "Download APK",
-    "webCta": "Create free account",
-    "version": "Version",
-    "versionValue": "0.1.0-alpha",
-    "platform": "Platform",
-    "platformValue": "Android",
-    "status": "Status",
-    "statusValue": "Alpha testing",
-    "installGuide": "Installation guide",
-    "installTitle": "How to install the APK",
-    "installSteps": [
-      "Download the APK to your Android phone.",
-      "Open the downloaded file.",
-      "If Android asks, allow installation from this source.",
-      "Open Oleachron.",
-      "Create an account or sign in."
-    ],
-    "safety": "Install only from the official Oleachron page. This is an alpha — some features may change."
-  },
-  "faq": {
-    "title": "Frequently asked questions",
-    "q1": "Is it free?",
-    "a1": "Yes. During alpha it is free for people testing it in the field.",
-    "q2": "Is it only for olives?",
-    "a2": "Yes for now. We start with olives so the tool stays simple and useful.",
-    "q3": "Do I need a computer?",
-    "a3": "No. Field work happens on the phone. The web helps the owner see everything.",
-    "q4": "Is it available in Greek?",
-    "a4": "Yes. Greek and English — switch languages at the top.",
-    "q5": "Is the APK safe?",
-    "a5": "Download it only from this page. Do not install from unknown sources.",
-    "q6": "Can I get a demo?",
-    "a6": "Yes. Send a demo request or email us."
-  },
-  "demo": {
-    "title": "Request a demo",
-    "subtitle": "Tell us about your olive groves and we will get in touch.",
-    "name": "Your name",
-    "email": "Email",
-    "organization": "Farm or organization",
-    "message": "What would you like to see?",
-    "submit": "Send request",
-    "mailtoSubject": "Oleachron demo request"
+  "trust": {
+    "title": "Made for people who carry the grove in mind.",
+    "text": "For you, caring for your own or a family grove and wanting to keep what you learn each year. Simple in the field, clear when you come home.",
+    "labels": ["Designed for olive groves", "A record in a few seconds", "The first field is free"]
   },
   "cta": {
-    "title": "Keep your notes in one place",
-    "text": "Start free on the web or download the Android alpha.",
-    "primary": "Create free account",
-    "secondary": "Get Android"
+    "title": "Don’t let another year stay on scraps of paper.",
+    "text": "Start your grove on The Olive Lot and keep what matters, from today.",
+    "primary": "Start with your first field free"
+  },
+  "alpha": {
+    "androidTestTitle": "Android trial (advanced)",
+    "download": "Download the Android trial APK",
+    "downloadHint": "Optional install. Most people start on the web.",
+    "safetyWhy": "This build is signed and hosted only on The Olive Lot.com. Android will warn about an unknown source — that is normal before the Play Store.",
+    "version": "Version",
+    "versionValue": "0.1.0-alpha",
+    "released": "Date",
+    "releasedValue": "2026-09",
+    "installGuide": "Install guide",
+    "installTitle": "How to install the trial app",
+    "installSteps": [
+      "Download the file on your Android phone.",
+      "Open the file.",
+      "Allow installs from this source if asked.",
+      "Open The Olive Lot.",
+      "Create an account or sign in."
+    ],
+    "safety": "Install only from The Olive Lot.com."
   },
   "footer": {
-    "description": "Oleachron is the olive grove notebook on your phone — for owners and producers together.",
+    "description": "The digital archive of your olive grove.",
     "product": "Product",
     "contact": "Contact",
-    "contactEmail": "hello@oleachron.app",
     "privacy": "Privacy",
     "terms": "Terms",
     "version": "Alpha"

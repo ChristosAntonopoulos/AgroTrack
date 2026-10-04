@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChronologioPeriodSummary } from '../../services/chronologioService';
 import { agriculturalYearRangeLabel } from '../../chronologio/agriculturalYear';
+import { harvestHasResult } from '../../chronologio/monthPresentation';
 import {
   agriculturalYearState,
   nextSeasonStageIndex,
@@ -25,18 +26,28 @@ const ChronologioCurrentYearCard: React.FC<Props> = ({ summary, numberLocale, on
   const next = nextSeasonStageIndex(stage);
   const headline = yearHeadline(summary);
   const state = agriculturalYearState(summary.periodYear, summary);
-  const pill = state === 'harvesting' ? t('yearView.harvesting') : t('yearView.inProgress');
+  const harvesting = state === 'harvesting';
+  const pill = harvesting ? t('yearView.harvesting') : t('yearView.inProgress');
+  const awaitingMill =
+    harvesting && summary.harvestCount > 0 && !harvestHasResult(summary);
 
   return (
-    <button
-      type="button"
+    <article
       id={`chrono-year-${summary.periodYear}`}
       className="chrono-year-chapter is-live"
       onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       <header className="chrono-year-chapter-head">
         <div>
-          <p className="chrono-year-chapter-kicker">{t('yearView.liveYear')}</p>
+          <p className="chrono-year-chapter-kicker">{t('yearView.liveYearSoFar')}</p>
           <h2>{summary.periodYear}</h2>
           <p className="chrono-year-range">
             {agriculturalYearRangeLabel(summary.periodYear, i18n.language)}
@@ -45,22 +56,46 @@ const ChronologioCurrentYearCard: React.FC<Props> = ({ summary, numberLocale, on
         <span className="chrono-year-state-pill">{pill}</span>
       </header>
 
-      <ChronologioSeasonTrack currentIndex={stage} />
+      {/* Season track stays visual; copy must not contradict an active harvest. */}
+      <ChronologioSeasonTrack currentIndex={harvesting ? 3 : stage} />
 
       <p className="chrono-year-chapter-now">
-        {next !== stage
-          ? t('yearView.nowReading', {
-              stage: t(`yearView.stages.${SEASON_STAGES[stage]}`),
-              next: t(`yearView.stages.${SEASON_STAGES[next]}`),
+        {harvesting
+          ? t('yearView.harvestingNow', {
+              defaultValue: t('yearView.harvesting'),
             })
-          : t('yearView.nowStage', { stage: t(`yearView.stages.${SEASON_STAGES[stage]}`) })}
+          : next !== stage
+            ? t('yearView.nowReading', {
+                stage: t(`yearView.stages.${SEASON_STAGES[stage]}`),
+                next: t(`yearView.stages.${SEASON_STAGES[next]}`),
+              })
+            : t('yearView.nowStage', { stage: t(`yearView.stages.${SEASON_STAGES[stage]}`) })}
       </p>
+
+      {awaitingMill ? (
+        <p className="chrono-year-completeness">
+          {t('yearView.awaitingMillOil', {
+            count: summary.harvestCount,
+            defaultValue:
+              'Harvest days recorded · mill kilograms and oil still expected',
+          })}
+        </p>
+      ) : null}
 
       <ChronologioYearFacts facts={yearChapterFacts(summary, true)} numberLocale={numberLocale} />
 
       {headline ? <p className="chrono-year-headline">{headline}</p> : null}
-      <span className="chrono-year-chapter-hint">{t('yearView.openHint')}</span>
-    </button>
+      <button
+        type="button"
+        className="chrono-year-chapter-hint"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpen();
+        }}
+      >
+        {t('yearView.openHint')}
+      </button>
+    </article>
   );
 };
 

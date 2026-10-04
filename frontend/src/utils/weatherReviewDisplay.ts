@@ -137,6 +137,73 @@ const INSIGHT_KEYS: Record<string, string> = {
 export const insightLabel = (kind: string, t: TFunc): string =>
   t(INSIGHT_KEYS[kind] || 'chronologio:categoryLabel.weather');
 
+export type WaterGapTone = 'deficit' | 'surplus' | 'even';
+
+export type WaterGapCopy = {
+  tone: WaterGapTone;
+  value: string;
+  label: string;
+  story: string;
+};
+
+/** Plain reading of rain minus water the field needed (ET₀). Near-zero stays neutral. */
+export const waterGapCopy = (mm: number, locale: string, t: TFunc): WaterGapCopy => {
+  const abs = Math.abs(mm).toLocaleString(locale, { maximumFractionDigits: 0 });
+  const value = `${abs} mm`;
+  if (Math.abs(mm) < 5) {
+    return {
+      tone: 'even',
+      value,
+      label: t('chronologio:weatherReview.waterEven'),
+      story: t('chronologio:weatherReview.waterStoryEven'),
+    };
+  }
+  if (mm < 0) {
+    return {
+      tone: 'deficit',
+      value,
+      label: t('chronologio:weatherReview.waterMissing'),
+      story: t('chronologio:weatherReview.waterStoryDeficit'),
+    };
+  }
+  return {
+    tone: 'surplus',
+    value,
+    label: t('chronologio:weatherReview.waterExtra'),
+    story: t('chronologio:weatherReview.waterStorySurplus'),
+  };
+};
+
+/** One sentence so a sparse rain chart reads as a period, not a broken bar. */
+export const describeRainPattern = (
+  values: number[] | undefined,
+  t: TFunc,
+  period: 'month' | 'year' = 'month'
+): string | null => {
+  if (!values?.length) return null;
+  const total = values.reduce((sum, value) => sum + Math.max(0, value), 0);
+  const dryKey =
+    period === 'year' ? 'chronologio:weatherReview.rainChartYearDry' : 'chronologio:weatherReview.rainChartDry';
+  const fewKey =
+    period === 'year'
+      ? 'chronologio:weatherReview.rainChartYearFew'
+      : 'chronologio:weatherReview.rainChartFewDays';
+  const spreadKey =
+    period === 'year'
+      ? 'chronologio:weatherReview.rainChartYearSpread'
+      : 'chronologio:weatherReview.rainChartSpread';
+  if (total < 1) return t(dryKey);
+  const wet = values.filter((value) => value >= 0.2).length;
+  const top = [...values]
+    .sort((a, b) => b - a)
+    .slice(0, 2)
+    .reduce((sum, value) => sum + Math.max(0, value), 0);
+  if (wet > 0 && wet <= 3 && top / total >= 0.7) {
+    return t(fewKey, { count: wet });
+  }
+  return t(spreadKey);
+};
+
 const formatShortDay = (value?: string, locale?: string) => {
   if (!value) return null;
   const d = new Date(value);

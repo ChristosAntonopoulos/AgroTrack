@@ -1,17 +1,28 @@
-# Oleachron brand assets
+# The Olive Lot — brand assets
 
-Use **`brand/minimum/`** as the source of truth. Placement is defined in
-`brand/minimum/README-where-goes-what.txt`.
+**Source of truth for the current pack:** `frontend/src/assets/`  
+See `frontend/src/assets/README.md` for file-by-file placement.
 
-| File | Where it goes |
+| File | Use |
 |---|---|
-| `oleachron-logo-horizontal-light-transparent.png` | Website / app header on **light** backgrounds; PDFs |
-| `oleachron-logo-horizontal-dark-transparent.png` | Header / hero on **dark olive** backgrounds; splash |
-| `oleachron-app-icon-light.png` | App icon on light systems; landing APK tile |
-| `oleachron-app-icon-dark.png` | App store / home screen icon (preferred); Android adaptive |
-| `oleachron-favicon-mark.png` | Browser tab, bookmarks, compact mobile header |
-| `oleachron-brand-usage-guide.png` | Visual placement reference |
+| `web/logo-horizontal-ink.png` | Header / light UI |
+| `web/logo-horizontal-ivory.png` | Header / dark UI |
+| `web/logo-stacked-ink.png` | Auth, marketing, email (light) |
+| `web/logo-stacked-ivory.png` | Auth, marketing, email (dark) |
+| `mark/mark-ink.png` / `mark/mark-ivory.png` | Compact nav / reports |
+| `web/favicon*` + `icon-192/512` + `apple-touch-icon` | Browser / PWA |
+| `mobile/app-icon-ios-1024.png` | iOS / store icon |
+| `mobile/android-adaptive-*` | Android adaptive icon |
+| `mobile/splash-mark-ink.png` | Light splash |
 
-Login and register screens use a **stacked** layout: tree mark above the OLEACHRON wordmark (split from the horizontal lockup). Do not typeset the name in a system font next to the logo.
+## Colours
 
-Consumed copies live in `frontend/public/branding/` and `mobile/assets/`.
+- **Ink:** `#1F2820`
+- **Ivory:** `#F4F0E6`
+
+Consumed copies live in:
+
+- `frontend/public/branding/` (+ root favicons / PWA icons)
+- `mobile/assets/`
+
+Do not typeset “THE OLIVE LOT” in a system font next to the mark — use the horizontal or stacked lockup PNGs so the stencil wordmark stays correct.

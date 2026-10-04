@@ -64,4 +64,17 @@ describe('chronologioDetailKind', () => {
       })
     ).toBe('weatherPeriod');
   });
+
+  it('maps extreme weather events to the extreme panel', () => {
+    expect(
+      chronologioDetailKind({
+        ...base(),
+        category: 'weather',
+        eventType: 'weather.frost',
+        sourceType: 'WeatherExtremeEvent',
+        importance: 'critical',
+        details: { weather: { extremeKind: 'frost', temperatureMin: -1.3 } },
+      })
+    ).toBe('weatherExtreme');
+  });
 });

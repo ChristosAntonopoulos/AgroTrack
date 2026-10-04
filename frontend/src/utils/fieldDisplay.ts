@@ -24,6 +24,75 @@ export const isListedGrove = (field: Pick<Field, 'status' | 'name'>): boolean =>
   return !leftover;
 };
 
+/** Fields list: show active and recoverable drafts; hide archived and nameless leftovers. */
+export const isVisibleOnFieldsList = (field: Pick<Field, 'status' | 'name'>): boolean => {
+  if (field.status === 'Archived') return false;
+  const name = (field.name || '').trim();
+  if (!name) return false;
+  return true;
+};
+
+export const isOwnedField = (
+  field: Pick<Field, 'ownerId'>,
+  userId: string | undefined | null
+): boolean => Boolean(userId && field.ownerId === userId);
+
+/**
+ * Partners page scope: every named field this person owns, including short names and drafts,
+ * plus finished groves shared with them. Short names are real fields, not leftover pins.
+ */
+export const isPartnerScopeField = (
+  field: Pick<Field, 'status' | 'name' | 'ownerId'>,
+  userId: string | undefined | null
+): boolean => {
+  if (!isVisibleOnFieldsList(field)) return false;
+  if (isOwnedField(field, userId)) return true;
+  return isListedGrove(field);
+};
+
+/** Seat the signed-in person holds on a field. Admin is the person who manages it. */
+export type ViewerFieldRole = 'Admin' | 'Partner' | 'Family';
+
+const isViewerFieldRole = (value: string | undefined): value is ViewerFieldRole =>
+  value === 'Admin' || value === 'Partner' || value === 'Family';
+
+export const viewerFieldRole = (
+  field: Pick<Field, 'ownerId' | 'memberships'>,
+  userId: string | undefined | null
+): ViewerFieldRole | null => {
+  if (!userId) return null;
+  const membership = field.memberships?.find(
+    (member) =>
+      member.userId === userId && member.status !== 'removed' && member.status !== 'revoked'
+  );
+  if (membership && isViewerFieldRole(membership.role)) return membership.role;
+  if (field.ownerId === userId) return 'Admin';
+  return null;
+};
+
+export type FieldListCounts = {
+  active: number;
+  draft: number;
+  shared: number;
+  total: number;
+};
+
+export const countFieldListBuckets = (
+  fields: Array<Pick<Field, 'status' | 'name' | 'ownerId'>>,
+  userId: string | undefined | null
+): FieldListCounts => {
+  const visible = fields.filter(isVisibleOnFieldsList);
+  let active = 0;
+  let draft = 0;
+  let shared = 0;
+  for (const field of visible) {
+    if (isFieldSetupIncomplete(field.status)) draft += 1;
+    else active += 1;
+    if (!isOwnedField(field, userId)) shared += 1;
+  }
+  return { active, draft, shared, total: visible.length };
+};
+
 /** Route when tapping a field from the list or map. */
 export const getFieldOpenPath = (field: Pick<Field, 'id' | 'status'>): string =>
   isFieldSetupIncomplete(field.status) ? `/fields/${field.id}/edit` : `/fields/${field.id}`;
@@ -33,17 +102,10 @@ export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
   return Boolean(ring && ring.length >= 4);
 };
 
-/** Best wizard step when resuming an incomplete field. */
+/** Resume incomplete setup on the name screen — never force the map. */
 export const getFieldSetupResumeStep = (
-  field: Pick<Field, 'name' | 'status' | 'boundary'>
-): 'basics-edit' | 'boundary' | 'review' => {
-  const hasName = Boolean(field.name?.trim());
-  const hasBoundary = fieldHasBoundary(field);
-
-  if (!hasName) return 'basics-edit';
-  if (!hasBoundary || field.status === 'NeedsBoundaryConfirmation') return 'boundary';
-  return 'review';
-};
+  _field: Pick<Field, 'name' | 'status' | 'boundary'>
+): 'basics-edit' | 'boundary' | 'review' => 'basics-edit';
 
 const startOfLocalDay = (d: Date): Date =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate());

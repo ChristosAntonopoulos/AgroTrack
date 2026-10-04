@@ -2,6 +2,8 @@ using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.FieldWork;
 using OliveLifecycle.Application.Mappings;
+using OliveLifecycle.Core;
+using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -49,6 +51,28 @@ public interface IFieldTaskService
         string language = "el",
         CancellationToken cancellationToken = default);
 
+    Task<FieldTaskDto> UndoStartAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
+    Task<FieldTaskDto> PauseAsync(
+        string id,
+        PauseFieldTaskDto dto,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
+    Task<FieldTaskDto> ResumeAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
     Task<TaskExecutionDto> CompleteAsync(
         string id,
         CompleteFieldTaskDto dto,
@@ -86,6 +110,44 @@ public interface IFieldTaskService
         string userRole,
         string language = "el",
         CancellationToken cancellationToken = default);
+
+    Task<FieldTaskDto> SetChecklistItemAsync(
+        string id,
+        string key,
+        bool completed,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
+    Task<FieldTaskDto> BlockAsync(
+        string id,
+        string? reason,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
+    Task<FieldTaskDto> SkipAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
+    Task<FieldTaskDto> ResolveAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
+    Task<FieldTaskDto> ReopenAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
 }
 
 public class FieldTaskService : IFieldTaskService
@@ -94,26 +156,32 @@ public class FieldTaskService : IFieldTaskService
     private readonly ITaskExecutionRepository _executions;
     private readonly IFieldWorkTaskTemplateVersionRepository _versions;
     private readonly IFieldWorkAuthorizationService _auth;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IDateTimeProvider _clock;
     private readonly IFieldTaskWeatherEvaluationService _weatherEvaluation;
     private readonly ITaskProposalEngine _proposalEngine;
+    private readonly IUserNotificationService _notifications;
 
     public FieldTaskService(
         IFieldTaskRepository tasks,
         ITaskExecutionRepository executions,
         IFieldWorkTaskTemplateVersionRepository versions,
         IFieldWorkAuthorizationService auth,
+        IFieldAccessScopeService fieldAccessScope,
         IDateTimeProvider clock,
         IFieldTaskWeatherEvaluationService weatherEvaluation,
-        ITaskProposalEngine proposalEngine)
+        ITaskProposalEngine proposalEngine,
+        IUserNotificationService notifications)
     {
         _tasks = tasks;
         _executions = executions;
         _versions = versions;
         _auth = auth;
+        _fieldAccessScope = fieldAccessScope;
         _clock = clock;
         _weatherEvaluation = weatherEvaluation;
         _proposalEngine = proposalEngine;
+        _notifications = notifications;
     }
 
     public async Task<IReadOnlyList<FieldTaskDto>> ListAsync(
@@ -125,14 +193,25 @@ public class FieldTaskService : IFieldTaskService
         string language = "el",
         CancellationToken cancellationToken = default)
     {
+        IReadOnlyList<string>? scopedFieldIds = null;
         if (!string.IsNullOrWhiteSpace(fieldId))
         {
             await _auth.EnsureCanViewFieldWorkAsync(fieldId, userId, userRole, cancellationToken);
+        }
+        else
+        {
+            scopedFieldIds = await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+                userId, userRole, FamilyModules.Tasks, cancellationToken);
+            if (scopedFieldIds.Count == 0)
+            {
+                return Array.Empty<FieldTaskDto>();
+            }
         }
 
         var query = new FieldTaskQuery
         {
             FieldId = fieldId,
+            FieldIds = scopedFieldIds,
             ResultYear = resultYear,
             Status = FieldTaskStatusExtensions.FromApiString(status)
         };
@@ -203,13 +282,16 @@ public class FieldTaskService : IFieldTaskService
             Notes = dto.Notes,
             RelatedHarvestId = dto.RelatedHarvestId,
             WeatherSuitability = WeatherSuitability.Unknown,
+            WorkGroupId = string.IsNullOrWhiteSpace(dto.WorkGroupId) ? null : dto.WorkGroupId.Trim(),
             CreatedByUserId = userId,
             CreatedAt = now,
             UpdatedAt = now
         };
+        Record(task, "created", userId, now);
 
         var created = await _tasks.CreateAsync(task, cancellationToken);
         await TryEvaluateWeatherAsync(created, language, cancellationToken);
+        await NotifyAssignmentAsync(created, userId, cancellationToken);
         return FieldWorkMapper.ToDto(created, language);
     }
 
@@ -292,10 +374,101 @@ public class FieldTaskService : IFieldTaskService
         if (task.Status is FieldTaskStatus.Planned or FieldTaskStatus.Ready or FieldTaskStatus.Blocked)
         {
             task.Status = FieldTaskStatus.InProgress;
+            task.StartedAt ??= _clock.UtcNow;
+            task.IsPaused = false;
+            task.PauseReason = null;
+            task.PausedAt = null;
             task.UpdatedAt = _clock.UtcNow;
+            Record(task, "started", userId, task.UpdatedAt);
             task = await _tasks.UpdateAsync(task, cancellationToken);
         }
 
+        return FieldWorkMapper.ToDto(task, language);
+    }
+
+    public async Task<FieldTaskDto> UndoStartAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+
+        if (task.Status != FieldTaskStatus.InProgress)
+        {
+            throw new ValidationException("Only in-progress tasks can undo start.");
+        }
+
+        if (task.ChecklistSnapshot.Any(c => c.IsAnswered))
+        {
+            throw new ValidationException("Cannot undo start after checklist answers exist.");
+        }
+
+        task.Status = FieldTaskStatus.Planned;
+        task.StartedAt = null;
+        task.IsPaused = false;
+        task.PauseReason = null;
+        task.PausedAt = null;
+        task.UpdatedAt = _clock.UtcNow;
+        task = await _tasks.UpdateAsync(task, cancellationToken);
+        return FieldWorkMapper.ToDto(task, language);
+    }
+
+    public async Task<FieldTaskDto> PauseAsync(
+        string id,
+        PauseFieldTaskDto dto,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+        EnsureNotTerminal(task);
+
+        if (task.Status != FieldTaskStatus.InProgress)
+        {
+            throw new ValidationException("Only in-progress tasks can be paused.");
+        }
+
+        task.IsPaused = true;
+        task.PauseReason = string.IsNullOrWhiteSpace(dto.Reason) ? "other" : dto.Reason.Trim();
+        task.PausedAt = _clock.UtcNow;
+        if (dto.PlannedStart.HasValue)
+        {
+            task.PlannedStart = dto.PlannedStart;
+        }
+        if (dto.PlannedEnd.HasValue || dto.PlannedStart.HasValue)
+        {
+            task.PlannedEnd = dto.PlannedEnd ?? dto.PlannedStart;
+        }
+        task.UpdatedAt = _clock.UtcNow;
+        task = await _tasks.UpdateAsync(task, cancellationToken);
+        return FieldWorkMapper.ToDto(task, language);
+    }
+
+    public async Task<FieldTaskDto> ResumeAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+
+        if (task.Status != FieldTaskStatus.InProgress)
+        {
+            throw new ValidationException("Only in-progress tasks can be resumed.");
+        }
+
+        task.IsPaused = false;
+        task.PauseReason = null;
+        task.PausedAt = null;
+        task.UpdatedAt = _clock.UtcNow;
+        task = await _tasks.UpdateAsync(task, cancellationToken);
         return FieldWorkMapper.ToDto(task, language);
     }
 
@@ -320,6 +493,12 @@ public class FieldTaskService : IFieldTaskService
         var now = _clock.UtcNow;
 
         ApplyChecklistAnswers(task, dto.ChecklistAnswers);
+        var incompleteRequired = task.ChecklistSnapshot.Count(item =>
+            item.Requirement == ChecklistItemRequirement.RequiredBeforeCompletion && !item.IsAnswered);
+        if (incompleteRequired > 0 && !dto.AllowIncomplete)
+        {
+            throw new ValidationException($"{incompleteRequired} required checks are incomplete.");
+        }
 
         var execution = new TaskExecution
         {
@@ -383,6 +562,7 @@ public class FieldTaskService : IFieldTaskService
         task.LatestExecutionId = createdExecution.Id;
         task.ChecklistSnapshot = task.ChecklistSnapshot;
         task.UpdatedAt = now;
+        Record(task, "completed", userId, now, dto.Notes);
         task.Status = outcome switch
         {
             TaskExecutionOutcome.Completed => FieldTaskStatus.Completed,
@@ -477,6 +657,7 @@ public class FieldTaskService : IFieldTaskService
 
         task.Status = FieldTaskStatus.Cancelled;
         task.UpdatedAt = _clock.UtcNow;
+        Record(task, "cancelled", userId, task.UpdatedAt);
         var updated = await _tasks.UpdateAsync(task, cancellationToken);
         return FieldWorkMapper.ToDto(updated, language);
     }
@@ -506,6 +687,7 @@ public class FieldTaskService : IFieldTaskService
             dto.ResultYear ?? task.ResultYear,
             _clock.UtcNow);
         task.UpdatedAt = _clock.UtcNow;
+        Record(task, "rescheduled", userId, task.UpdatedAt);
 
         var updated = await _tasks.UpdateAsync(task, cancellationToken);
         await TryEvaluateWeatherAsync(updated, language, cancellationToken);
@@ -542,7 +724,153 @@ public class FieldTaskService : IFieldTaskService
         task.UpdatedAt = _clock.UtcNow;
 
         var updated = await _tasks.UpdateAsync(task, cancellationToken);
+        await NotifyAssignmentAsync(updated, userId, cancellationToken);
         return FieldWorkMapper.ToDto(updated, language);
+    }
+
+    public async Task<FieldTaskDto> SetChecklistItemAsync(
+        string id,
+        string key,
+        bool completed,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+        EnsureNotTerminal(task);
+
+        var item = task.ChecklistSnapshot.FirstOrDefault(c => c.Key == key)
+            ?? throw new ValidationException("Checklist item was not found.");
+
+        var now = _clock.UtcNow;
+        item.IsAnswered = completed;
+        item.BoolValue = completed;
+        if (!completed)
+        {
+            item.TextValue = null;
+            item.NumberValue = null;
+        }
+
+        task.UpdatedAt = now;
+        Record(task, completed ? "check_completed" : "check_cleared", userId, now, key);
+        var updated = await _tasks.UpdateAsync(task, cancellationToken);
+        return FieldWorkMapper.ToDto(updated, language);
+    }
+
+    public async Task<FieldTaskDto> BlockAsync(
+        string id,
+        string? reason,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+        EnsureNotTerminal(task);
+
+        var now = _clock.UtcNow;
+        task.Status = FieldTaskStatus.Blocked;
+        task.BlockedReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        task.IsPaused = false;
+        task.UpdatedAt = now;
+        Record(task, "blocked", userId, now, task.BlockedReason);
+        var updated = await _tasks.UpdateAsync(task, cancellationToken);
+        return FieldWorkMapper.ToDto(updated, language);
+    }
+
+    public async Task<FieldTaskDto> SkipAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+        EnsureNotTerminal(task);
+
+        var now = _clock.UtcNow;
+        task.Status = FieldTaskStatus.Skipped;
+        task.UpdatedAt = now;
+        Record(task, "skipped", userId, now);
+        var updated = await _tasks.UpdateAsync(task, cancellationToken);
+        return FieldWorkMapper.ToDto(updated, language);
+    }
+
+    public async Task<FieldTaskDto> ResolveAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+
+        if (task.Status != FieldTaskStatus.Blocked)
+        {
+            throw new ValidationException("Only blocked tasks can be resolved.");
+        }
+
+        var now = _clock.UtcNow;
+        task.Status = task.StartedAt.HasValue ? FieldTaskStatus.InProgress : FieldTaskStatus.Planned;
+        task.BlockedReason = null;
+        task.UpdatedAt = now;
+        Record(task, "resolved", userId, now);
+        var updated = await _tasks.UpdateAsync(task, cancellationToken);
+        return FieldWorkMapper.ToDto(updated, language);
+    }
+
+    public async Task<FieldTaskDto> ReopenAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanCreateOrEditTaskAsync(task.FieldId, userId, userRole, cancellationToken);
+
+        if (task.Status is not (FieldTaskStatus.Completed or FieldTaskStatus.Cancelled or FieldTaskStatus.Skipped))
+        {
+            throw new ValidationException("Only recorded work can be reopened.");
+        }
+
+        var now = _clock.UtcNow;
+        task.Status = FieldTaskStatus.Planned;
+        task.UpdatedAt = now;
+        Record(task, "reopened", userId, now);
+        var updated = await _tasks.UpdateAsync(task, cancellationToken);
+        return FieldWorkMapper.ToDto(updated, language);
+    }
+
+    private async Task NotifyAssignmentAsync(
+        FieldTask task,
+        string actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(task.AssignedUserId)
+            || string.Equals(task.AssignedUserId, actorUserId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var now = _clock.UtcNow;
+        await _notifications.NotifyAsync(new UserNotification
+        {
+            UserId = task.AssignedUserId,
+            Type = "task_assigned",
+            Title = task.Title,
+            Message = $"New field task assigned: {task.Title}",
+            RelatedEntityId = task.Id,
+            RelatedEntityType = "Task",
+            ActionUrl = $"/tasks/{task.Id}",
+            CreatedAt = now,
+            UpdatedAt = now
+        }, cancellationToken);
     }
 
     private async Task<FieldTask> RequireTaskAsync(string id, CancellationToken cancellationToken)
@@ -553,10 +881,22 @@ public class FieldTaskService : IFieldTaskService
 
     private static void EnsureNotTerminal(FieldTask task)
     {
-        if (task.Status is FieldTaskStatus.Completed or FieldTaskStatus.Cancelled)
+        if (task.Status is FieldTaskStatus.Completed or FieldTaskStatus.Cancelled or FieldTaskStatus.Skipped)
         {
             throw new ValidationException("This task can no longer be modified.");
         }
+    }
+
+    private static void Record(FieldTask task, string action, string actorId, DateTime occurredAt, string? comment = null)
+    {
+        task.Activity ??= [];
+        task.Activity.Add(new FieldTaskActivity
+        {
+            Action = action,
+            ActorId = actorId,
+            OccurredAt = occurredAt,
+            Comment = comment
+        });
     }
 
     private static void ApplyChecklistAnswers(FieldTask task, List<ChecklistAnswerDto>? answers)

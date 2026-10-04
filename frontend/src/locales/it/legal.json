@@ -1,0 +1,23 @@
+{
+  "disclaimer": "Testo provvisorio per l’alpha. La versione finale sarà verificata legalmente.",
+  "contact": "Contatto:",
+  "back": "Torna alla home",
+  "privacy": {
+    "title": "Informativa sulla privacy",
+    "points": [
+      "The Olive Lot memorizza il tuo account, i campi, le registrazioni e le foto che carichi.",
+      "Foto e dati del campo sono visibili solo a chi ha accesso a quel campo.",
+      "Non vendiamo i tuoi dati.",
+      "Puoi chiedere accesso o cancellazione a hello@The Olive Lot.com."
+    ]
+  },
+  "terms": {
+    "title": "Termini di utilizzo",
+    "points": [
+      "The Olive Lot è in alpha. Funzioni e limiti possono cambiare.",
+      "Sei responsabile di ciò che registri e di chi inviti sul campo.",
+      "Non condividere l’account. Se perdi l’accesso, contattaci.",
+      "L’uso del servizio implica l’accettazione di questi termini."
+    ]
+  }
+}

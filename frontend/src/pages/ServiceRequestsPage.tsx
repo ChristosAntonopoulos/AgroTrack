@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Card from '../components/Common/Card';
+import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
 import Badge from '../components/Common/Badge';
 import EmptyState from '../components/Common/EmptyState';
@@ -44,6 +45,7 @@ const ServiceRequestsPage: React.FC = () => {
     <PageContainer>
       <div className="partners-page">
         <Breadcrumbs />
+        <BackLink to="/partners">{t('common:back')}</BackLink>
         <h1>{t('partners:requests')}</h1>
         <SegmentedControl
           className="partners-tabs"

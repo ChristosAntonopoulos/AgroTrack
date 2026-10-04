@@ -33,7 +33,7 @@ public class ExceptionHandlingMiddleware
         var (statusCode, error) = exception switch
         {
             NotFoundException notFound => (HttpStatusCode.NotFound, new ApiError { Message = notFound.Message, Code = "not_found" }),
-            ForbiddenException forbidden => (HttpStatusCode.Forbidden, new ApiError { Message = forbidden.Message, Code = "forbidden" }),
+            ForbiddenException forbidden => (HttpStatusCode.Forbidden, new ApiError { Message = forbidden.Message, Code = forbidden.Code }),
             ConflictException conflict => (HttpStatusCode.Conflict, new ApiError { Message = conflict.Message, Code = "conflict" }),
             ValidationException validation => (HttpStatusCode.BadRequest, new ApiError
             {
@@ -54,11 +54,16 @@ public class ExceptionHandlingMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)statusCode;
 
-        var payload = JsonSerializer.Serialize(new ApiResponse<object>
-        {
-            Success = false,
-            Error = error
-        });
+        var payload = JsonSerializer.Serialize(
+            new ApiResponse<object>
+            {
+                Success = false,
+                Error = error
+            },
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
 
         await context.Response.WriteAsync(payload);
     }

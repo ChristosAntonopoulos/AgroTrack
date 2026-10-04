@@ -1,8 +1,13 @@
 import type { PathOptions } from 'leaflet';
 import { resolveFieldColor } from './fieldColors';
-import { getMapPalette, getCssToken } from '../styles/colorTokens';
+import { getMapPalette } from '../styles/colorTokens';
 
 export type MapLayerType = 'satellite' | 'street' | 'terrain';
+
+/** Hard stop for user zoom. Past native zoom, tiles are overscaled so the map stays visible. */
+export const MAP_MAX_ZOOM = 19;
+export const MAP_MAX_NATIVE_ZOOM = 18;
+export const MAP_MIN_ZOOM = 5;
 
 export const SATELLITE_TILE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -15,11 +20,20 @@ export const SATELLITE_LABELS_TILE =
 
 export const STREET_TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-export const TERRAIN_TILE =
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}';
+/**
+ * Ανάγλυφο: OSM for roads/context + Esri hillshade for relief.
+ * Pure topo/terrain caches look blank at grove zoom in rural Greece.
+ */
+export const TERRAIN_TILE = STREET_TILE;
 
-export const TERRAIN_LABELS_TILE =
-  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Reference_Overlay/MapServer/tile/{z}/{y}/{x}';
+export const TERRAIN_HILLSHADE_TILE =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}';
+
+/** Hillshade LODs thin out past ~15; overscale from here instead of blank tiles. */
+export const TERRAIN_MAX_NATIVE_ZOOM = 15;
+
+/** Keep field fit from punching past useful basemap detail on small groves. */
+export const MAP_FIT_MAX_ZOOM = 17;
 
 export type FieldPolygonMode = 'default' | 'hover' | 'selected' | 'outline' | 'warning';
 
@@ -31,44 +45,42 @@ export const fieldPolygonStyle = (
 ): PathOptions => {
   const map = getMapPalette();
   const fieldAccent = resolveFieldColor(color, fieldId);
-  const boundary = map.boundary || fieldAccent;
-  const olive = getCssToken('--olive-primary') || boundary;
 
   switch (mode) {
     case 'hover':
       return {
-        color: boundary,
-        weight: 3,
-        fillColor: olive,
-        fillOpacity: 0.1,
+        color: fieldAccent,
+        weight: 3.2,
+        fillColor: fieldAccent,
+        fillOpacity: 0.28,
       };
     case 'selected':
       return {
-        color: boundary,
-        weight: 3.5,
-        fillColor: olive,
-        fillOpacity: 0.18,
+        color: fieldAccent,
+        weight: 3.6,
+        fillColor: fieldAccent,
+        fillOpacity: 0.34,
       };
     case 'warning':
       return {
         color: map.warningOutline,
         weight: 3,
-        fillColor: olive,
-        fillOpacity: 0.08,
+        fillColor: fieldAccent,
+        fillOpacity: 0.1,
       };
     case 'outline':
       return {
-        color: boundary,
+        color: fieldAccent,
         weight: 3,
-        fillColor: olive,
+        fillColor: fieldAccent,
         fillOpacity: 0,
       };
     default:
       return {
-        color: fieldAccent || map.otherOutline,
-        weight: 2.5,
-        fillColor: fieldAccent || olive,
-        fillOpacity: 0.12,
+        color: fieldAccent,
+        weight: 2.6,
+        fillColor: fieldAccent,
+        fillOpacity: 0.22,
       };
   }
 };

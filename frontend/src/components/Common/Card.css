@@ -3,7 +3,7 @@
   color: var(--text-primary);
   border-radius: 16px;
   box-shadow: var(--shadow-card);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--card-edge, var(--border-default));
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
@@ -20,17 +20,14 @@
 
 .card-hover:hover {
   background: var(--surface-hover);
-  border-color: var(--border-default);
+  border-color: var(--border-strong);
   transform: translateY(-1px);
   box-shadow: var(--shadow-card-hover);
 }
 
 .card-featured {
-  background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-1) 68%);
-  border: 1px solid var(--olive-border);
-  box-shadow:
-    0 1px 3px rgba(10, 15, 9, 0.14),
-    0 12px 32px rgba(10, 15, 9, 0.10);
+  background: var(--surface-1);
+  border: 1px solid var(--card-edge, var(--border-default));
 }
 
 /* Card as Link */

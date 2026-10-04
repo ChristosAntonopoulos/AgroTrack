@@ -2,14 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { roleHomePath } from '../../navigation/navConfig';
+import { roleHomePath, AppRole } from '../../navigation/navConfig';
 import { User, LogOut, Menu, MoreVertical, Plus } from 'lucide-react';
+import HarvestHeaderButton from './HarvestHeaderButton';
 import BrandLogo from '../Common/BrandLogo';
 import NotificationBell from '../Notifications/NotificationBell';
-import ExperienceModeToggle from '../Experience/ExperienceModeToggle';
-import { resolvePageTitle, AppRole } from '../../navigation/navConfig';
 import { useTheme } from '../../context/ThemeContext';
 import { useCaptureOptional } from '../../context/CaptureContext';
+import { useFeedbackOptional } from '../../context/FeedbackContext';
+import { useActiveFieldCollaboratorLabel } from '../../hooks/useActiveFieldAccess';
+import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import './Header.css';
 import '../Capture/Capture.css';
 
@@ -21,24 +23,24 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const { t } = useTranslation('nav');
   const { t: tCommon } = useTranslation('common');
-  const { t: tSettings } = useTranslation('settings');
   const { t: tCapture } = useTranslation('capture');
   const { user, logout } = useAuth();
   const { resolvedTheme } = useTheme();
   const capture = useCaptureOptional();
+  const feedback = useFeedbackOptional();
+  const activation = useOwnerActivationOptional();
+  const hideChromeExtras = Boolean(activation?.locked);
+  const collaboratorOwnerLabel = useActiveFieldCollaboratorLabel();
   const logoTone = resolvedTheme === 'dark' ? 'on-dark' : 'on-light';
   const navigate = useNavigate();
   const location = useLocation();
   const role = (user?.role || '') as AppRole;
-  const pageTitle = resolvePageTitle(location.pathname, role, t);
-  const hidePageTitle =
-    location.pathname === '/tasks' ||
-    location.pathname === '/tasks/new' ||
-    location.pathname === '/chronologio';
-  const hideHeaderCapture = location.pathname === '/chronologio';
-  const hideAppModeToggle = /^\/fields\/(?!new(?:\/|$))[^/]+/.test(location.pathname);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
+
+  const collaboratorBadge = collaboratorOwnerLabel
+    ? tCommon('familyCollaboratorBadge', { owner: collaboratorOwnerLabel })
+    : null;
 
   const handleLogout = () => {
     logout();
@@ -80,31 +82,32 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
           <Menu />
         </button>
         ) : null}
-        <Link to={roleHomePath(role)} className="header-brand" aria-label={tCommon('home')}>
+        <Link
+          to={hideChromeExtras ? location.pathname : roleHomePath(role)}
+          className="header-brand"
+          data-guide-target="homeButton"
+          aria-label={tCommon('home')}
+          onClick={(e) => {
+            if (hideChromeExtras) e.preventDefault();
+          }}
+        >
           <BrandLogo
             className="header-logo-lockup"
             variant="horizontal"
             tone={logoTone}
-            size="xs"
+            size="md"
             alt={tCommon('appName')}
-          />
-          <BrandLogo
-            className="header-logo-mark"
-            variant="favicon"
-            size="sm"
-            alt=""
           />
         </Link>
       </div>
 
       <div className="header-main">
-        {hidePageTitle ? null : <h1 className="page-title">{pageTitle}</h1>}
-
         <div className="header-right">
-          {capture && !hideHeaderCapture ? (
+          {!hideChromeExtras ? <HarvestHeaderButton /> : null}
+          {capture && !hideChromeExtras ? (
             <button
               type="button"
-              className="capture-header-cta"
+              className="capture-header-cta u-hide-below-md"
               onClick={() => capture.openCapture()}
             >
               <Plus size={18} aria-hidden />
@@ -112,26 +115,23 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
             </button>
           ) : null}
 
-          {hideAppModeToggle ? null : (
-            <div className="header-desktop-controls u-hide-below-md">
-              <ExperienceModeToggle compact />
-            </div>
-          )}
-
-          <NotificationBell />
+          {!hideChromeExtras ? <NotificationBell /> : null}
 
           <div className="user-menu u-hide-below-md">
             <div className="user-info">
               <User className="user-icon" />
               <div className="user-details">
                 <span className="user-name">{displayName}</span>
-                {displayName !== user?.email ? (
+                {collaboratorBadge ? (
+                  <span className="user-role user-role-badge">{collaboratorBadge}</span>
+                ) : displayName !== user?.email ? (
                   <span className="user-role">{user?.email}</span>
                 ) : null}
               </div>
             </div>
             <button className="logout-button" onClick={handleLogout} aria-label={tCommon('logoutAria')}>
-              <LogOut />
+              <LogOut size={18} aria-hidden />
+              <span>{tCommon('logout')}</span>
             </button>
           </div>
 
@@ -148,19 +148,29 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
             </button>
             {overflowOpen && (
               <div className="header-overflow-menu" role="menu">
-                {hideAppModeToggle ? null : (
-                  <div className="header-overflow-section">
-                    <div className="header-overflow-label">{tSettings('experience.label')}</div>
-                    <ExperienceModeToggle compact />
-                  </div>
-                )}
                 <div className="header-overflow-user">
                   <User size={18} aria-hidden />
-                  <span className="header-overflow-user-name">{displayName}</span>
+                  <div className="header-overflow-user-meta">
+                    <span className="header-overflow-user-name">{displayName}</span>
+                    {collaboratorBadge ? (
+                      <span className="header-overflow-user-role">{collaboratorBadge}</span>
+                    ) : null}
+                  </div>
                 </div>
                 <button
                   type="button"
-                  className="header-overflow-logout"
+                  className="header-overflow-item"
+                  onClick={() => {
+                    setOverflowOpen(false);
+                    feedback?.openFeedback();
+                  }}
+                  role="menuitem"
+                >
+                  {t('items.feedback')}
+                </button>
+                <button
+                  type="button"
+                  className="header-overflow-item"
                   onClick={() => {
                     setOverflowOpen(false);
                     navigate('/settings');

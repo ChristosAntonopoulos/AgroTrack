@@ -28,10 +28,20 @@ import { formatFieldArea } from '../utils/fieldGeo';
 import MonthlyWeatherReportView from '../components/Reports/MonthlyWeatherReportView';
 import YearlyWeatherReportView from '../components/Reports/YearlyWeatherReportView';
 import YearOverviewReportView from '../components/Reports/YearOverviewReportView';
+import AgronomicDossierView from '../components/Reports/AgronomicDossierView';
+import FarmAccountStatementView from '../components/Reports/FarmAccountStatementView';
+import HarvestTraceabilityView from '../components/Reports/HarvestTraceabilityView';
+import GroveComparisonView from '../components/Reports/GroveComparisonView';
+import WorkRegisterView from '../components/Reports/WorkRegisterView';
 import {
   CloudRain,
   CloudSun,
   Leaf,
+  Sprout,
+  Landmark,
+  ShieldCheck,
+  Scale,
+  ClipboardList,
   Download,
   FileText,
   FileSpreadsheet,
@@ -52,21 +62,80 @@ const SEASON_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].map(St
 
 const REPORT_META: Record<ReportTypeId, { icon: React.ReactNode; descriptionKey: string; labelKey: string }> = {
   'weather-month': {
-    icon: <CloudRain size={22} />,
+    icon: <CloudRain size={18} />,
     descriptionKey: 'weatherMonthDesc',
     labelKey: 'weatherMonth',
   },
   'weather-year': {
-    icon: <CloudSun size={22} />,
+    icon: <CloudSun size={18} />,
     descriptionKey: 'weatherYearDesc',
     labelKey: 'weatherYear',
   },
   'year-overview': {
-    icon: <Leaf size={22} />,
+    icon: <Leaf size={18} />,
     descriptionKey: 'yearOverviewDesc',
     labelKey: 'yearOverview',
   },
+  agronomic: {
+    icon: <Sprout size={18} />,
+    descriptionKey: 'agronomicDesc',
+    labelKey: 'agronomic',
+  },
+  'farm-account': {
+    icon: <Landmark size={18} />,
+    descriptionKey: 'farmAccountDesc',
+    labelKey: 'farmAccount',
+  },
+  traceability: {
+    icon: <ShieldCheck size={18} />,
+    descriptionKey: 'traceabilityDesc',
+    labelKey: 'traceability',
+  },
+  comparison: {
+    icon: <Scale size={18} />,
+    descriptionKey: 'comparisonDesc',
+    labelKey: 'comparison',
+  },
+  'work-register': {
+    icon: <ClipboardList size={18} />,
+    descriptionKey: 'workRegisterDesc',
+    labelKey: 'workRegister',
+  },
 };
+
+const WORKING_REPORTS: ReportTypeId[] = ['weather-month', 'weather-year', 'year-overview'];
+const FORMAL_DOSSIERS: ReportTypeId[] = ['agronomic', 'farm-account', 'traceability', 'comparison', 'work-register'];
+
+/** Sample report rows use their own ids. In demo mode, show them against the groves on screen. */
+function presentRows<T extends { fieldId: string; fieldName?: string }>(
+  rows: T[],
+  selectedIds: string[],
+  groves: { id: string; name: string }[],
+): T[] {
+  const matched = filterByFields(rows, selectedIds);
+  if (!isMockMode() || matched.length > 0 || selectedIds.length === 0 || rows.length === 0) {
+    return matched;
+  }
+  const chosen = groves.filter((grove) => selectedIds.includes(grove.id));
+  if (chosen.length === 0) return matched;
+  return chosen.map((grove, index) => {
+    const next = {
+      ...rows[index % rows.length],
+      fieldId: grove.id,
+      fieldName: grove.name,
+    };
+    if ('location' in next) {
+      (next as { location: string }).location = '';
+    }
+    if ('issues' in next) {
+      (next as { issues: string[] }).issues = [];
+    }
+    if ('notes' in next) {
+      (next as { notes?: string }).notes = undefined;
+    }
+    return next;
+  });
+}
 
 const ReportsPage: React.FC = () => {
   const { t, i18n } = useTranslation('reports');
@@ -149,34 +218,38 @@ const ReportsPage: React.FC = () => {
   const sourceMonthly = isMockMode() ? { ...MOCK_MONTHLY_WEATHER, season, month } : apiMonthly;
   const sourceYearly = isMockMode() ? { ...MOCK_YEARLY_WEATHER, season } : apiYearly;
 
+  const groveNames = useMemo(
+    () => fields.map((field) => ({ id: field.id, name: field.name })),
+    [fields]
+  );
   const filteredSummaries = useMemo(
-    () => filterByFields(sourceSummaries, selectedFields),
-    [sourceSummaries, selectedFields]
+    () => presentRows(sourceSummaries, selectedFields, groveNames),
+    [sourceSummaries, selectedFields, groveNames]
   );
   const filteredHarvest = useMemo(
-    () => filterByFields(sourceHarvest, selectedFields),
-    [sourceHarvest, selectedFields]
+    () => presentRows(sourceHarvest, selectedFields, groveNames),
+    [sourceHarvest, selectedFields, groveNames]
   );
   const filteredMonthly = useMemo(
-    () => filterByFields(sourceMonthly?.fields ?? [], selectedFields),
-    [sourceMonthly, selectedFields]
+    () => presentRows(sourceMonthly?.fields ?? [], selectedFields, groveNames),
+    [sourceMonthly, selectedFields, groveNames]
   );
   const filteredYearly = useMemo(
-    () => filterByFields(sourceYearly?.fields ?? [], selectedFields),
-    [sourceYearly, selectedFields]
+    () => presentRows(sourceYearly?.fields ?? [], selectedFields, groveNames),
+    [sourceYearly, selectedFields, groveNames]
   );
 
   const filteredProfitLoss = useMemo(() => {
     if (isMockMode()) {
       const pl = { ...MOCK_PROFIT_LOSS };
-      pl.profitByField = filterByFields(MOCK_PROFIT_LOSS.profitByField, selectedFields);
+      pl.profitByField = presentRows(MOCK_PROFIT_LOSS.profitByField, selectedFields, groveNames);
       return pl;
     }
     if (!apiProfitLoss) return null;
     const pl = { ...apiProfitLoss };
     pl.profitByField = filterByFields(apiProfitLoss.profitByField, selectedFields);
     return pl;
-  }, [apiProfitLoss, selectedFields]);
+  }, [apiProfitLoss, selectedFields, groveNames]);
 
   const reportTitle = t(REPORT_META[reportType].labelKey);
   const filename = `${reportType}-${season}${reportType === 'weather-month' ? `-${String(month).padStart(2, '0')}` : ''}-${formatDate(new Date(), 'yyyy-MM-dd')}`;
@@ -192,121 +265,135 @@ const ReportsPage: React.FC = () => {
     }
   }, [filename]);
 
-  const exportCsv = useCallback(() => {
-    let headers: string[] = [];
-    let rows: (string | number)[][] = [];
-
+  const tabular = useCallback((): { headers: string[]; rows: (string | number)[][] } => {
     if (reportType === 'weather-month') {
-      headers = [
-        t('csv.field'),
-        t('csv.day'),
-        t('csv.minC'),
-        t('csv.maxC'),
-        t('csv.rainMm'),
-        t('csv.et0Mm'),
-      ];
-      rows = filteredMonthly.flatMap((field) =>
-        field.days.map((d) => [
-          field.fieldName,
-          d.day,
-          d.minTemperatureC ?? '',
-          d.maxTemperatureC ?? '',
-          d.rainTotalMm,
-          d.et0Mm ?? '',
-        ])
-      );
-    } else if (reportType === 'weather-year') {
-      headers = [
-        t('csv.field'),
-        t('csv.rainMm'),
-        t('csv.cost'),
-        t('csv.revenue'),
-        t('csv.profit'),
-        t('csv.tasksDone'),
-        t('csv.overdue'),
-      ];
-      rows = filteredYearly.map((f) => [
-        f.fieldName,
-        f.rainTotalMm,
-        f.totalCost,
-        f.revenue,
-        f.profit,
-        f.tasksCompleted,
-        f.tasksOverdue,
-      ]);
-    } else {
-      headers = [
-        t('csv.field'),
-        t('csv.areaStremmata'),
-        t('csv.olivesKg'),
-        t('csv.kgPerHa'),
-        t('csv.cost'),
-        t('csv.revenue'),
-        t('csv.profit'),
-        t('csv.tasksDone'),
-      ];
-      rows = filteredSummaries.map((f) => [
-        f.fieldName,
-        Math.round((f.areaHa || 0) * 10 * 100) / 100,
-        f.totalProductionKg,
-        f.yieldPerHa,
-        f.totalCost,
-        f.revenue,
-        f.profit,
-        f.tasksCompleted,
-      ]);
-    }
-
-    exportService.exportToCSV({ headers, rows, title: reportTitle }, filename);
-  }, [reportType, filteredMonthly, filteredYearly, filteredSummaries, reportTitle, filename, t]);
-
-  const exportExcel = useCallback(() => {
-    if (reportType === 'year-overview') {
-      const headers = [
-        t('csv.field'),
-        t('csv.areaStremmata'),
-        t('csv.olivesKg'),
-        t('csv.kgPerHa'),
-        t('csv.cost'),
-        t('csv.revenue'),
-        t('csv.profit'),
-        t('csv.tasksDone'),
-      ];
-      const rows = filteredSummaries.map((f) => [
-        f.fieldName,
-        Math.round((f.areaHa || 0) * 10 * 100) / 100,
-        f.totalProductionKg,
-        f.yieldPerHa,
-        f.totalCost,
-        f.revenue,
-        f.profit,
-        f.tasksCompleted,
-      ]);
-      exportService.exportToExcel({ headers, rows, title: reportTitle }, filename);
-      return;
+      return {
+        headers: [t('csv.field'), t('csv.day'), t('csv.minC'), t('csv.maxC'), t('csv.rainMm'), t('csv.et0Mm')],
+        rows: filteredMonthly.flatMap((field) =>
+          field.days.map((d) => [
+            field.fieldName,
+            d.day,
+            d.minTemperatureC ?? '',
+            d.maxTemperatureC ?? '',
+            d.rainTotalMm,
+            d.et0Mm ?? '',
+          ])
+        ),
+      };
     }
     if (reportType === 'weather-year') {
-      const headers = [
-        t('csv.field'),
-        t('csv.rainMm'),
-        t('csv.cost'),
-        t('csv.revenue'),
-        t('csv.profit'),
-        t('csv.tasksDone'),
-        t('csv.overdue'),
-      ];
-      const rows = filteredYearly.map((f) => [
-        f.fieldName, f.rainTotalMm, f.totalCost, f.revenue, f.profit, f.tasksCompleted, f.tasksOverdue,
-      ]);
-      exportService.exportToExcel({ headers, rows, title: reportTitle }, filename);
-      return;
+      return {
+        headers: [t('csv.field'), t('csv.rainMm'), t('csv.cost'), t('csv.revenue'), t('csv.profit'), t('csv.tasksDone'), t('csv.overdue')],
+        rows: filteredYearly.map((f) => [
+          f.fieldName, f.rainTotalMm, f.totalCost, f.revenue, f.profit, f.tasksCompleted, f.tasksOverdue,
+        ]),
+      };
     }
-    const headers = [t('csv.field'), t('csv.day'), t('csv.minC'), t('csv.maxC'), t('csv.rainMm'), t('csv.et0Mm')];
-    const rows = filteredMonthly.flatMap((field) =>
-      field.days.map((d) => [field.fieldName, d.day, d.minTemperatureC ?? '', d.maxTemperatureC ?? '', d.rainTotalMm, d.et0Mm ?? ''])
-    );
+    if (reportType === 'agronomic') {
+      return {
+        headers: [t('csv.field'), t('csv.areaStremmata'), t('csv.olivesKg'), t('csv.rainMm'), t('doc.frost'), t('doc.heat'), t('doc.ndvi'), t('csv.tasksDone')],
+        rows: filteredSummaries.map((field) => {
+          const weather = filteredYearly.find((item) => item.fieldId === field.fieldId);
+          return [
+            field.fieldName,
+            Math.round((field.areaHa || 0) * 10 * 100) / 100,
+            field.totalProductionKg,
+            weather?.rainTotalMm ?? '',
+            weather?.frostNights ?? '',
+            weather?.heatDays ?? '',
+            weather?.ndviMean ?? '',
+            field.tasksCompleted,
+          ];
+        }),
+      };
+    }
+    if (reportType === 'farm-account') {
+      return {
+        headers: [t('csv.field'), t('csv.cost'), t('csv.revenue'), t('csv.profit'), t('csv.margin')],
+        rows: (filteredProfitLoss?.profitByField ?? []).map((field) => {
+          const revenue = field.revenue ?? 0;
+          return [
+            field.fieldName,
+            field.cost ?? 0,
+            revenue,
+            field.profit,
+            revenue > 0 ? Math.round((field.profit / revenue) * 1000) / 10 : '',
+          ];
+        }),
+      };
+    }
+    if (reportType === 'traceability') {
+      return {
+        headers: [t('csv.field'), t('doc.harvestDate'), t('csv.method'), t('csv.olivesKg'), t('csv.oilKg'), t('csv.litres'), t('csv.yield'), t('csv.quality'), t('csv.mill')],
+        rows: filteredHarvest.map((lot) => [
+          lot.fieldName,
+          lot.harvestDate,
+          lot.harvestMethod ?? '',
+          lot.oliveKg,
+          lot.oilKg ?? '',
+          lot.oilLitres ?? '',
+          lot.oilYieldPercent ?? '',
+          lot.qualityGrade ?? '',
+          lot.millName ?? '',
+        ]),
+      };
+    }
+    if (reportType === 'comparison') {
+      return {
+        headers: [t('csv.field'), t('csv.kgPerHa'), t('csv.yield'), t('csv.cost'), t('brief.resultHa'), t('csv.margin'), t('doc.frost'), t('doc.heat')],
+        rows: filteredSummaries.map((field) => {
+          const weather = filteredYearly.find((item) => item.fieldId === field.fieldId);
+          const area = field.areaHa || 0;
+          const revenue = field.revenue || 0;
+          return [
+            field.fieldName,
+            field.yieldPerHa,
+            field.oilYieldPercent ?? '',
+            field.costPerHa,
+            area > 0 ? Math.round(field.profit / area) : field.profit,
+            revenue > 0 ? Math.round((field.profit / revenue) * 1000) / 10 : '',
+            weather?.frostNights ?? '',
+            weather?.heatDays ?? '',
+          ];
+        }),
+      };
+    }
+    if (reportType === 'work-register') {
+      return {
+        headers: [t('csv.field'), t('csv.tasksDone'), t('doc.pending'), t('csv.overdue'), t('csv.cost')],
+        rows: filteredSummaries.map((field) => [
+          field.fieldName,
+          field.tasksCompleted,
+          field.tasksPending,
+          field.tasksOverdue,
+          field.totalCost,
+        ]),
+      };
+    }
+    return {
+      headers: [t('csv.field'), t('csv.areaStremmata'), t('csv.olivesKg'), t('csv.kgPerHa'), t('csv.cost'), t('csv.revenue'), t('csv.profit'), t('csv.tasksDone')],
+      rows: filteredSummaries.map((f) => [
+        f.fieldName,
+        Math.round((f.areaHa || 0) * 10 * 100) / 100,
+        f.totalProductionKg,
+        f.yieldPerHa,
+        f.totalCost,
+        f.revenue,
+        f.profit,
+        f.tasksCompleted,
+      ]),
+    };
+  }, [reportType, filteredMonthly, filteredYearly, filteredSummaries, filteredHarvest, filteredProfitLoss, t]);
+
+  const exportCsv = useCallback(() => {
+    const { headers, rows } = tabular();
+    exportService.exportToCSV({ headers, rows, title: reportTitle }, filename);
+  }, [tabular, reportTitle, filename]);
+
+  const exportExcel = useCallback(() => {
+    const { headers, rows } = tabular();
     exportService.exportToExcel({ headers, rows, title: reportTitle }, filename);
-  }, [reportType, filteredSummaries, filteredYearly, filteredMonthly, reportTitle, filename, t]);
+  }, [tabular, reportTitle, filename]);
 
   const renderPreview = () => {
     if (selectedFields.length === 0) {
@@ -334,6 +421,56 @@ const ReportsPage: React.FC = () => {
         <YearlyWeatherReportView
           id={REPORT_PREVIEW_ID}
           data={filteredYearly}
+          season={season}
+        />
+      );
+    }
+    if (reportType === 'agronomic') {
+      return (
+        <AgronomicDossierView
+          id={REPORT_PREVIEW_ID}
+          summaries={filteredSummaries}
+          yearly={filteredYearly}
+          season={season}
+        />
+      );
+    }
+    if (reportType === 'farm-account') {
+      return (
+        <FarmAccountStatementView
+          id={REPORT_PREVIEW_ID}
+          summaries={filteredSummaries}
+          profitLoss={filteredProfitLoss}
+          season={season}
+        />
+      );
+    }
+    if (reportType === 'traceability') {
+      return (
+        <HarvestTraceabilityView
+          id={REPORT_PREVIEW_ID}
+          summaries={filteredSummaries}
+          harvest={filteredHarvest}
+          season={season}
+        />
+      );
+    }
+    if (reportType === 'comparison') {
+      return (
+        <GroveComparisonView
+          id={REPORT_PREVIEW_ID}
+          summaries={filteredSummaries}
+          yearly={filteredYearly}
+          season={season}
+        />
+      );
+    }
+    if (reportType === 'work-register') {
+      return (
+        <WorkRegisterView
+          id={REPORT_PREVIEW_ID}
+          summaries={filteredSummaries}
+          yearly={filteredYearly}
           season={season}
         />
       );
@@ -381,29 +518,37 @@ const ReportsPage: React.FC = () => {
         <div className="reports-layout">
           <aside className="reports-sidebar">
             <h2 className="reports-sidebar-title">{t('reportType')}</h2>
-            <div className="report-type-list">
-              {(Object.keys(REPORT_META) as ReportTypeId[]).map((type) => {
-                const meta = REPORT_META[type];
-                const isActive = reportType === type;
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    className={`report-type-card ${isActive ? 'active' : ''}`}
-                    onClick={() => setReportType(type)}
-                  >
-                    <div className="report-type-icon">{meta.icon}</div>
-                    <div className="report-type-text">
-                      <span className="report-type-name">{t(meta.labelKey)}</span>
-                      <span className="report-type-desc">{t(meta.descriptionKey)}</span>
-                    </div>
-                    {type === 'weather-month' && (
-                      <span className="report-type-default">{t('default')}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            {([
+              { label: t('opsGroup'), types: WORKING_REPORTS },
+              { label: t('dossierGroup'), types: FORMAL_DOSSIERS },
+            ] as const).map((group) => (
+              <div key={group.label} className="report-type-group">
+                <h3 className="reports-sidebar-title">{group.label}</h3>
+                <div className="report-type-list">
+                  {group.types.map((type) => {
+                    const meta = REPORT_META[type];
+                    const isActive = reportType === type;
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        className={`report-type-card ${isActive ? 'active' : ''}`}
+                        onClick={() => setReportType(type)}
+                      >
+                        <div className="report-type-icon">{meta.icon}</div>
+                        <div className="report-type-text">
+                          <span className="report-type-name">{t(meta.labelKey)}</span>
+                          <span className="report-type-desc">{t(meta.descriptionKey)}</span>
+                        </div>
+                        {type === 'weather-month' && (
+                          <span className="report-type-default">{t('default')}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
 
             <div className="reports-filters">
               <div className="filter-group">

@@ -9,6 +9,7 @@ import type {
   DismissalLearningChoice,
   DismissalLearningEvaluateResult,
   FieldPhenology,
+  FieldPhenologyObservation,
   FieldTask,
   FieldWorkLearningStatus,
   FieldWorkPlanPreview,
@@ -20,6 +21,7 @@ import type {
 import { demoStore } from '../demo/demoStore';
 import { athensCalendarYear } from '../../utils/athensDate';
 import { FIELD_WORK_TEMPLATE_META } from '../../data/fieldWorkCatalogueLabels';
+import { checksForTemplate } from '../../utils/taskFormTypes';
 import {
   DISMISSAL_PROMPT_THRESHOLD,
   isAnnualReviewDue,
@@ -89,72 +91,44 @@ let mockProposals: TaskProposal[] = [
     confidence: 'worth_checking',
     confidenceLabel: 'Χρειάζεται έλεγχο',
     reasonCodes: ['olive_fly_weekly_check'],
-    explanation: 'Ήρθε η εβδομαδιαία ημερομηνία ελέγχου παγίδων δάκου.',
-    greekExplanation: 'Ήρθε η εβδομαδιαία ημερομηνία ελέγχου παγίδων δάκου.',
+    explanation: 'Δεν έχει καταγραφεί έλεγχος δάκου τις τελευταίες εβδομάδες.',
+    greekExplanation: 'Δεν έχει καταγραφεί έλεγχος δάκου τις τελευταίες εβδομάδες.',
     recommendedWindowStart: nowIso(),
-    recommendedWindowEnd: new Date(Date.now() + 5 * 86400000).toISOString(),
+    recommendedWindowEnd: new Date(Date.now() + 4 * 86400000).toISOString(),
     status: 'active',
     statusLabel: 'Πρόταση',
   },
 ];
 
-const mockCheck = (
-  key: string,
-  answered: boolean,
-  sortOrder: number
-): FieldTask['checklist'][number] => ({
-  key,
-  label: key,
-  greekLabel: key,
-  englishLabel: key,
-  itemType: 'bool',
-  requirement: 'required',
-  isEssential: true,
-  sortOrder,
-  isAnswered: answered,
-  attachmentIds: [],
-  choices: [],
-});
+const checksFromTemplate = (code: string, answeredThrough = 0): FieldTask['checklist'] =>
+  checksForTemplate(code).map((item, index) => ({
+    key: item.key,
+    label: item.el,
+    greekLabel: item.el,
+    englishLabel: item.en,
+    itemType: 'bool',
+    requirement: 'required',
+    isEssential: true,
+    sortOrder: index + 1,
+    isAnswered: index < answeredThrough,
+    attachmentIds: [],
+    choices: [],
+  }));
+
+const year = athensCalendarYear(new Date());
 
 let mockTasks: FieldTask[] = [
   {
-    id: 'mock-task-planned',
+    id: 'mock-task-overdue',
     fieldId: '',
-    resultYear: athensCalendarYear(new Date()),
-    templateCode: 'T18',
-    title: 'Προκαταρκτική εκτίμηση συγκομιδής',
+    resultYear: year,
+    templateCode: 'T08',
+    title: 'Έλεγχος άρδευσης',
     status: 'planned',
-    statusLabel: 'Προγραμματισμένη',
-    plannedStart: `${athensCalendarYear(new Date())}-08-15`,
-    plannedEnd: `${athensCalendarYear(new Date())}-10-01`,
-    checklist: [mockCheck('a', false, 1), mockCheck('b', false, 2), mockCheck('c', false, 3)],
-    additionalParticipantUserIds: [],
-    assignmentResponse: 'pending',
-    weatherSuitability: 'unknown',
-    weatherSuitabilityLabel: 'Καλή ημέρα',
-    attachmentIds: [],
-    createdByUserId: 'mock-user',
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-  {
-    id: 'mock-task-active',
-    fieldId: '',
-    resultYear: athensCalendarYear(new Date()),
-    templateCode: 'T19',
-    title: 'Κράτηση συνεργείου και ελαιοτριβείου',
-    status: 'in_progress',
-    statusLabel: 'Σε εξέλιξη',
-    plannedStart: `${athensCalendarYear(new Date())}-09-01`,
-    plannedEnd: `${athensCalendarYear(new Date())}-09-20`,
-    startedAt: `${athensCalendarYear(new Date())}-09-01T08:00:00Z`,
-    checklist: [
-      mockCheck('a', true, 1),
-      mockCheck('b', true, 2),
-      mockCheck('c', true, 3),
-      mockCheck('d', false, 4),
-      mockCheck('e', false, 5),
-    ],
+    statusLabel: 'Να γίνει',
+    plannedStart: `${year}-09-01`,
+    plannedEnd: `${year}-09-05`,
+    checklist: checksFromTemplate('T08'),
     additionalParticipantUserIds: [],
     assignmentResponse: 'accepted',
     weatherSuitability: 'good',
@@ -164,14 +138,63 @@ let mockTasks: FieldTask[] = [
     createdAt: nowIso(),
     updatedAt: nowIso(),
   },
+  {
+    id: 'mock-task-active',
+    fieldId: '',
+    resultYear: year,
+    templateCode: 'T05',
+    title: 'Λίπανση',
+    status: 'in_progress',
+    statusLabel: 'Σε εξέλιξη',
+    plannedStart: `${year}-09-10`,
+    plannedEnd: `${year}-09-20`,
+    startedAt: `${year}-09-11T08:00:00Z`,
+    checklist: checksFromTemplate('T05', 1),
+    additionalParticipantUserIds: [],
+    assignmentResponse: 'accepted',
+    weatherSuitability: 'good',
+    weatherSuitabilityLabel: 'Καλή ημέρα',
+    attachmentIds: [],
+    createdByUserId: 'mock-user',
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  },
+  {
+    id: 'mock-task-done',
+    fieldId: '',
+    resultYear: year,
+    templateCode: 'T06',
+    title: 'Κλάδεμα',
+    status: 'completed',
+    statusLabel: 'Ολοκληρωμένη',
+    plannedStart: `${year}-03-10`,
+    plannedEnd: `${year}-03-12`,
+    checklist: checksFromTemplate('T06', 3),
+    additionalParticipantUserIds: [],
+    assignmentResponse: 'accepted',
+    weatherSuitability: 'good',
+    weatherSuitabilityLabel: 'Καλή ημέρα',
+    attachmentIds: [],
+    createdByUserId: 'mock-user',
+    createdAt: nowIso(),
+    updatedAt: `${year}-03-12T16:00:00Z`,
+  },
 ];
 
 const ensureFieldIds = (fieldId?: string) => {
   demoStore.ensureSeeded();
-  const resolved = fieldId || demoStore.getFields()[0]?.id || '';
+  const fields = demoStore.getFields();
+  const resolved = fieldId || fields[0]?.id || '';
+  const second = fields[1]?.id || resolved;
   if (!resolved) return;
-  mockProposals = mockProposals.map((p) => (p.fieldId ? p : { ...p, fieldId: resolved }));
-  mockTasks = mockTasks.map((task) => (task.fieldId ? task : { ...task, fieldId: resolved }));
+  mockProposals = mockProposals.map((p, index) => {
+    if (p.fieldId) return p;
+    return { ...p, fieldId: index === 0 ? resolved : second };
+  });
+  mockTasks = mockTasks.map((task, index) => {
+    if (task.fieldId) return task;
+    return { ...task, fieldId: index % 2 === 0 ? resolved : second };
+  });
 };
 
 const mergePractice = <T extends object>(
@@ -249,7 +272,7 @@ export const mockFieldWorkService = {
     if (!proposal) throw new Error('Proposal not found');
     proposal.status =
       decision === 'not_for_this_field' ? 'dismissed_for_field' : 'dismissed_for_year';
-    proposal.statusLabel = decision === 'not_for_this_field' ? 'Όχι για το χωράφι' : 'Όχι φέτος';
+    proposal.statusLabel = decision === 'not_for_this_field' ? 'Όχι για τον ελαιώνα' : 'Όχι φέτος';
     return proposal;
   },
 
@@ -278,7 +301,8 @@ export const mockFieldWorkService = {
       title: input.title,
       description: input.description,
       status: 'planned',
-      statusLabel: 'Προγραμματισμένη',
+      statusLabel: 'Να γίνει',
+      workGroupId: input.workGroupId,
       plannedStart: input.plannedStart,
       plannedEnd: input.plannedEnd,
       preferredTimeWindow: input.preferredTimeWindow,
@@ -286,7 +310,7 @@ export const mockFieldWorkService = {
       assignedCollaboratorId: input.assignedCollaboratorId,
       additionalParticipantUserIds: [],
       assignmentResponse: 'pending',
-      checklist: [],
+      checklist: checksFromTemplate(input.templateCode || ''),
       estimatedCost: input.estimatedCost,
       notes: input.notes,
       attachmentIds: [],
@@ -305,6 +329,61 @@ export const mockFieldWorkService = {
     const task = await mockFieldWorkService.getFieldTask(id);
     task.status = 'in_progress';
     task.statusLabel = 'Σε εξέλιξη';
+    task.startedAt = task.startedAt || nowIso();
+    task.isPaused = false;
+    task.pauseReason = undefined;
+    task.pausedAt = undefined;
+    task.updatedAt = nowIso();
+    return task;
+  },
+
+  undoStartFieldTask: async (id: string) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    if (task.checklist.some((item) => item.isAnswered)) {
+      throw new Error('Cannot undo start after checklist answers');
+    }
+    task.status = 'planned';
+    task.statusLabel = 'Προγραμματισμένη';
+    task.startedAt = undefined;
+    task.isPaused = false;
+    task.updatedAt = nowIso();
+    return task;
+  },
+
+  pauseFieldTask: async (
+    id: string,
+    body: { reason: string; plannedStart?: string; plannedEnd?: string }
+  ) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    task.isPaused = true;
+    task.pauseReason = body.reason;
+    task.pausedAt = nowIso();
+    if (body.plannedStart) task.plannedStart = body.plannedStart;
+    if (body.plannedEnd || body.plannedStart) {
+      task.plannedEnd = body.plannedEnd || body.plannedStart;
+    }
+    task.updatedAt = nowIso();
+    return task;
+  },
+
+  resumeFieldTask: async (id: string) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    task.isPaused = false;
+    task.pauseReason = undefined;
+    task.pausedAt = undefined;
+    task.updatedAt = nowIso();
+    return task;
+  },
+
+  rescheduleFieldTask: async (
+    id: string,
+    body: { plannedStart?: string; plannedEnd?: string }
+  ) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    if (body.plannedStart) task.plannedStart = body.plannedStart;
+    if (body.plannedEnd || body.plannedStart) {
+      task.plannedEnd = body.plannedEnd || body.plannedStart;
+    }
     task.updatedAt = nowIso();
     return task;
   },
@@ -372,6 +451,55 @@ export const mockFieldWorkService = {
     return task;
   },
 
+  updateFieldTask: async (id: string, body: { notes?: string; description?: string; title?: string }) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    if (body.notes !== undefined) task.notes = body.notes;
+    if (body.description !== undefined) task.description = body.description;
+    if (body.title !== undefined) task.title = body.title;
+    task.updatedAt = nowIso();
+    return task;
+  },
+
+  setChecklistItem: async (id: string, key: string, completed: boolean) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    const item = task.checklist.find((entry) => entry.key === key);
+    if (!item) throw new Error('Checklist item was not found');
+    item.isAnswered = completed;
+    item.boolValue = completed;
+    task.updatedAt = nowIso();
+    return task;
+  },
+
+  blockFieldTask: async (id: string, reason?: string) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    task.status = 'blocked';
+    task.statusLabel = 'Δεν μπορεί να γίνει';
+    task.blockedReason = reason;
+    return task;
+  },
+
+  skipFieldTask: async (id: string) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    task.status = 'skipped';
+    task.statusLabel = 'Παραλείφθηκε';
+    return task;
+  },
+
+  resolveFieldTask: async (id: string) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    task.status = task.startedAt ? 'in_progress' : 'planned';
+    task.statusLabel = task.startedAt ? 'Σε εξέλιξη' : 'Να γίνει';
+    task.blockedReason = undefined;
+    return task;
+  },
+
+  reopenFieldTask: async (id: string) => {
+    const task = await mockFieldWorkService.getFieldTask(id);
+    task.status = 'planned';
+    task.statusLabel = 'Να γίνει';
+    return task;
+  },
+
   assignFieldTask: async (
     id: string,
     body: { assignedUserId?: string; assignedCollaboratorId?: string }
@@ -392,13 +520,28 @@ export const mockFieldWorkService = {
     inWindowTemplateCodes: [],
   }),
 
-  getPhenology: async (fieldId: string): Promise<FieldPhenology> => ({
-    fieldId,
-    isKnown: false,
-    stageCode: 'unknown',
-    stageLabel: '',
-    message: 'Δεν γνωρίζουμε ακόμη το στάδιο του ελαιώνα.',
-  }),
+  getPhenology: async (fieldId: string): Promise<FieldPhenology> => {
+    const field = demoStore.getFields().find((f) => f.id === fieldId);
+    const stage = field?.currentLifecycleStage?.trim();
+    if (stage) {
+      return {
+        fieldId,
+        isKnown: true,
+        stageCode: stage,
+        stageLabel: '',
+        message: '',
+      };
+    }
+    return {
+      fieldId,
+      isKnown: false,
+      stageCode: 'unknown',
+      stageLabel: '',
+      message: 'Δεν γνωρίζουμε ακόμη το στάδιο του ελαιώνα.',
+    };
+  },
+
+  listPhenologyObservations: async (_fieldId: string): Promise<FieldPhenologyObservation[]> => [],
 
   getWorkProfile: async (fieldId: string): Promise<FieldWorkProfile | null> =>
     mockProfiles.get(fieldId) ?? null,
@@ -661,7 +804,7 @@ export const mockFieldWorkService = {
       templateCode: code,
       practiceCategory: practice,
       currentPreferenceMode: mode || 'unknown',
-      promptMessage: 'Δεν θέλεις να προτείνουμε αυτή την εργασία για το χωράφι;',
+      promptMessage: 'Δεν θέλεις να προτείνουμε αυτή την εργασία για τον ελαιώνα;',
     };
   },
 

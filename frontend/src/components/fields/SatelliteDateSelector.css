@@ -1,6 +1,23 @@
 .satellite-dates {
   display: grid;
-  gap: 0.4rem;
+  gap: 0.22rem;
+}
+
+.satellite-dates-year {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.satellite-dates-year-label {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.satellite-date-cloud {
+  font-size: 0.62rem;
+  color: var(--color-text-muted);
 }
 
 .satellite-dates--empty {
@@ -13,11 +30,30 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.68rem;
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: var(--color-text-primary);
+}
+
+.satellite-dates-compare {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.satellite-dates-compare.is-on {
+  background: color-mix(in srgb, var(--color-primary) 18%, var(--bg-elevated));
+  color: var(--color-primary-light);
+}
+
+.satellite-dates-compare:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .satellite-dates-mode {
@@ -30,11 +66,11 @@
 }
 
 .satellite-dates-mode button {
-  padding: 0.28rem 0.7rem;
+  padding: 0.18rem 0.55rem;
   border: none;
   background: transparent;
   color: var(--color-text-secondary);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 650;
   cursor: pointer;
 }
@@ -99,12 +135,10 @@
 .satellite-date {
   position: relative;
   flex: 0 0 auto;
-  display: grid;
-  gap: 0.08rem;
-  min-width: 3.6rem;
-  padding: 0.4rem 0.45rem 0.35rem;
+  min-width: 3.4rem;
+  padding: 0.28rem 0.4rem;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--bg-elevated);
   cursor: pointer;
   text-align: center;
@@ -137,15 +171,10 @@
   white-space: nowrap;
 }
 
-.satellite-date-ndvi {
-  font-size: 0.62rem;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
 .satellite-date--selected {
   border-color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 14%, var(--bg-elevated));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
 .satellite-date--compare {
@@ -160,7 +189,18 @@
 
 .satellite-dates-hint {
   margin: 0;
-  font-size: 0.7rem;
-  line-height: 1.35;
-  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.satellite-dates-more {
+  justify-self: start;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-primary-light);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
 }

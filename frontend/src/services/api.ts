@@ -1,7 +1,8 @@
 import axios, { InternalAxiosRequestConfig } from 'axios';
 import i18n from '../i18n';
 import { getApiBaseUrl, isAuthDisabled } from '../config/apiConfig';
-import { extractApiErrorMessage, translateApiError } from '../utils/translateApiError';
+import { isRealSessionToken } from './sessionToken';
+import { extractApiErrorMessage, extractApiErrorPayload, translateApiError } from '../utils/translateApiError';
 
 declare module 'axios' {
   interface AxiosRequestConfig {
@@ -31,13 +32,13 @@ const requestUrl = (config?: InternalAxiosRequestConfig) =>
   `${config?.baseURL || ''}${config?.url || ''}`;
 
 const isAuthEndpoint = (config?: InternalAxiosRequestConfig) =>
-  /\/api\/v1\/auth\/(login|register)(?:\?|$)/i.test(requestUrl(config));
+  /\/api\/v1\/auth\/(login|register|forgot-password|reset-password)(?:\?|$)/i.test(requestUrl(config));
 
 /** Saved contacts / inbox are optional; a missing or forbidden route is not a dead session. */
 const isOptionalUserGet = (config?: InternalAxiosRequestConfig) => {
   const method = (config?.method || 'get').toLowerCase();
   if (method !== 'get') return false;
-  return /\/api\/v1\/(?:me\/(?:contacts|notifications|service-requests|notes)|fields\/[^/]+\/people)(?:\/|\?|$)/i.test(
+  return /\/api\/v1\/(?:me\/(?:contacts|notifications|notes|inbox|in-app-messages)|fields\/[^/]+\/people)(?:\/|\?|$)/i.test(
     requestUrl(config)
   );
 };
@@ -52,9 +53,12 @@ const requestHadBearerToken = (config?: InternalAxiosRequestConfig) => {
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+    if (isRealSessionToken(token)) {
       handlingUnauthorized = false;
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (token) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
     config.headers['Accept-Language'] = i18n.language || 'el';
     return config;
@@ -86,17 +90,22 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       unauthorizedHandler?.();
     }
-    const message = extractApiErrorMessage(error.response?.data);
-    if (message && error.response?.data) {
+    const { message, code } = extractApiErrorPayload(error.response?.data);
+    if (message && error.response?.data && typeof error.response.data === 'object') {
       const translated = translateApiError(i18n.t.bind(i18n), message);
-      if (typeof error.response.data === 'object' && error.response.data !== null) {
-        const data = error.response.data as { message?: string; error?: { message?: string } };
-        if (data.error?.message) {
-          data.error.message = translated;
-        } else {
-          data.message = translated;
-        }
+      const data = error.response.data as Record<string, unknown>;
+      const nested = (data.error ?? data.Error) as Record<string, unknown> | undefined;
+      if (nested && typeof nested === 'object') {
+        if ('message' in nested) nested.message = translated;
+        if ('Message' in nested) nested.Message = translated;
+      } else if ('message' in data || 'Message' in data) {
+        if ('message' in data) data.message = translated;
+        if ('Message' in data) data.Message = translated;
+      } else {
+        data.message = translated;
       }
+      // Keep code available for callers that inspect the payload.
+      if (code && !data.code && !data.Code) data.code = code;
     }
     return Promise.reject(error);
   }

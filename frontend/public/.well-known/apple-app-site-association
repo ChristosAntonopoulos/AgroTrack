@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.oleachron.app",
+        "paths": [
+          "/invite/*",
+          "/family-invite/*",
+          "/partner-invite/*"
+        ]
+      }
+    ]
+  }
+}

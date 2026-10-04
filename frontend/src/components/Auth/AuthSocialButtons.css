@@ -1,0 +1,43 @@
+.auth-social {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.15rem;
+}
+
+.auth-social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 1rem;
+  border-radius: 13px;
+  border: 1px solid var(--login-input-border);
+  background: var(--login-input-bg);
+  color: var(--login-text);
+  font-size: 0.875rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.auth-social-btn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--login-link) 45%, var(--login-input-border));
+  background: color-mix(in srgb, var(--login-link) 8%, var(--login-input-bg));
+}
+
+.auth-social-btn.is-disabled,
+.auth-social-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auth-social-note {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--login-text-muted);
+  text-align: center;
+}

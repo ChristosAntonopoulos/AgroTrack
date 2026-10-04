@@ -1,0 +1,129 @@
+.theme-mode-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  background: color-mix(in srgb, var(--surface-2, #f2f3ec) 88%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.theme-mode-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  min-width: 34px;
+  min-height: 34px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary, #5c6558);
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.theme-mode-toggle-btn:hover {
+  color: var(--text-primary, #1a1e1a);
+  background: color-mix(in srgb, var(--surface-1, #fff) 70%, transparent);
+}
+
+.theme-mode-toggle-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--olive-primary, #5f7a4a) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.theme-mode-toggle-btn.is-active {
+  color: var(--olive-ink, #2f3d28);
+  background: var(--surface-1, #fffdf9);
+  box-shadow:
+    0 1px 2px rgba(20, 28, 16, 0.12),
+    0 0 0 1px color-mix(in srgb, var(--olive-primary, #5f7a4a) 18%, transparent);
+}
+
+.theme-mode-toggle-btn.is-active:hover {
+  color: var(--olive-ink, #2f3d28);
+  background: var(--surface-1, #fffdf9);
+}
+
+/* Auth login/register chrome (over photo / panel edge) */
+.theme-mode-toggle--auth {
+  border-color: color-mix(in srgb, #d4c4a0 28%, transparent);
+  background: color-mix(in srgb, #0f1a0a 28%, transparent);
+  box-shadow: none;
+  backdrop-filter: blur(8px);
+}
+
+.theme-mode-toggle--auth .theme-mode-toggle-btn {
+  color: rgba(247, 241, 228, 0.72);
+}
+
+.theme-mode-toggle--auth .theme-mode-toggle-btn:hover {
+  color: #f7f1e4;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.theme-mode-toggle--auth .theme-mode-toggle-btn.is-active {
+  color: #1a2214;
+  background: #f4ecda;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+}
+
+/* Landing hero (over dark imagery) */
+.theme-mode-toggle--landing {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(10, 16, 8, 0.28);
+  box-shadow: none;
+  backdrop-filter: blur(10px);
+}
+
+.theme-mode-toggle--landing .theme-mode-toggle-btn {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.theme-mode-toggle--landing .theme-mode-toggle-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.theme-mode-toggle--landing .theme-mode-toggle-btn.is-active {
+  color: #1a2214;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Landing scrolled (light bar) */
+.theme-mode-toggle--landing-scrolled {
+  border-color: var(--lp-border, rgba(0, 0, 0, 0.1));
+  background: color-mix(in srgb, var(--lp-surface, #f7f6f0) 90%, transparent);
+}
+
+.theme-mode-toggle--landing-scrolled .theme-mode-toggle-btn {
+  color: var(--lp-text-muted, #6b7266);
+}
+
+.theme-mode-toggle--landing-scrolled .theme-mode-toggle-btn:hover {
+  color: var(--lp-text, #1a1e1a);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.theme-mode-toggle--landing-scrolled .theme-mode-toggle-btn.is-active {
+  color: var(--lp-primary, #3d5a2e);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-mode-toggle-btn {
+    transition: none;
+  }
+}

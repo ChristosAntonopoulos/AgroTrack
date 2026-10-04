@@ -2,6 +2,7 @@ import api from './api';
 import { OfflineQueue } from '../utils/offlineQueue';
 import { EntityCache } from '../utils/entityCache';
 import { createTempFieldId, isDeviceOnline, isNetworkError } from '../utils/networkStatus';
+import type { FieldCapabilities } from './fieldPeopleService';
 
 const getCurrentUserId = () => {
   try {
@@ -99,6 +100,7 @@ export interface Field {
   color?: string;
   greekCadastre?: GreekCadastreInfo;
   documents?: FieldDocumentAttachment[];
+  capabilities?: FieldCapabilities;
 }
 
 export interface CreateFieldDto {
@@ -179,8 +181,14 @@ export interface ActivateFieldResponse {
 }
 
 export const fieldService = {
-  getFields: async (): Promise<Field[]> => {
+  /**
+   * @param module When set, returns only groves where the user has that Family module.
+   * When omitted, returns every grove with an active seat (identity list).
+   * Module-scoped lists do not replace the identity EntityCache.
+   */
+  getFields: async (module?: string): Promise<Field[]> => {
     const userId = getCurrentUserId();
+    const scoped = Boolean(module);
 
     if (!isDeviceOnline()) {
       if (userId) {
@@ -191,9 +199,27 @@ export const fieldService = {
     }
 
     try {
-      const response = await api.get<Field[]>('/api/v1/fields');
-      if (userId) EntityCache.setFields(userId, response.data);
-      return response.data;
+      const startedAt = Date.now();
+      const response = await api.get<Field[]>('/api/v1/fields', {
+        params: module ? { module } : undefined,
+      });
+      const incoming = response.data ?? [];
+
+      if (scoped) {
+        return incoming;
+      }
+
+      const cached = userId ? EntityCache.getFields(userId)?.data ?? [] : [];
+      const incomingIds = new Set(incoming.map((field) => field.id));
+      // A list request that started before create must not wipe the grove just saved.
+      const recentLocal = cached.filter((field) => {
+        if (incomingIds.has(field.id)) return false;
+        const updated = Date.parse(field.updatedAt || '');
+        return Number.isFinite(updated) && updated >= startedAt - 5000;
+      });
+      const merged = [...incoming, ...recentLocal];
+      if (userId) EntityCache.setFields(userId, merged);
+      return merged;
     } catch (err: unknown) {
       if (isNetworkError(err) && userId) {
         const cached = EntityCache.getFields(userId);

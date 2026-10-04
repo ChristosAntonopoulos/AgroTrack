@@ -100,6 +100,8 @@ const proposal = (overrides: Partial<TaskProposal> = {}): TaskProposal => ({
   ...overrides,
 });
 
+const clickNext = () => userEvent.click(screen.getByRole('button', { name: 'Επόμενο' }));
+
 const renderForm = (query = '') => {
   mockSearchState.initial = query;
   mockSearchState.current = new URLSearchParams(query);
@@ -120,7 +122,7 @@ describe('TaskFormPage Phase 4', () => {
     mockAcceptProposal.mockReset();
     mockGetFields.mockResolvedValue([
       field('field-1', 'Κτήμα Φιλιατρών'),
-      field('field-2', 'Κάτω χωράφι'),
+      field('field-2', 'Κάτω ελαιώνας'),
     ]);
     mockGetPeople.mockResolvedValue([]);
     mockGetContacts.mockResolvedValue([]);
@@ -137,16 +139,18 @@ describe('TaskFormPage Phase 4', () => {
     });
   });
 
-  it('shows only the four primary inputs on a manual form', async () => {
+  it('starts on the work step and keeps the other questions for later', async () => {
     renderForm();
 
     expect(await screen.findByRole('heading', { name: 'Νέα εργασία' })).toBeInTheDocument();
     expect(screen.getByText('Τι θέλεις να γίνει και πότε;')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Τι χρειάζεται να γίνει;' })).toBeInTheDocument();
     expect(screen.getByLabelText('Τι χρειάζεται να γίνει;')).toBeInTheDocument();
-    expect(screen.getByText('Σε ποιο χωράφι;')).toBeInTheDocument();
-    expect(screen.getByText('Πότε θέλεις να γίνει;')).toBeInTheDocument();
-    expect(screen.getByText('Ποιος θα το κάνει;')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Δημιουργία εργασίας' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Σε ποιον ελαιώνα;' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Πότε θέλεις να γίνει;' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Ποιος θα το κάνει;' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Επόμενο' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Δημιουργία εργασίας' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Εκτιμώμενο κόστος')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Χρονιά αποτελέσματος')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Πρότυπο/)).not.toBeInTheDocument();
@@ -159,7 +163,9 @@ describe('TaskFormPage Phase 4', () => {
       {
         userId: 'partner-1',
         displayName: 'Κώστας',
-        capacities: ['work'],
+        role: 'Partner',
+        modules: ['fields', 'tasks', 'photos', 'chronologio'],
+        accessLevel: 'work',
         status: 'Active',
         createdAt: '2026-01-01T00:00:00Z',
       },
@@ -178,6 +184,10 @@ describe('TaskFormPage Phase 4', () => {
     ]);
     renderForm('fieldId=field-1');
 
+    await userEvent.click(await screen.findByRole('button', { name: 'Κλάδεμα' }));
+    await clickNext();
+    await clickNext();
+
     expect(await screen.findByRole('radio', { name: 'Εγώ' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText(/Θα την κάνεις εσύ/)).toBeInTheDocument();
 
@@ -188,24 +198,28 @@ describe('TaskFormPage Phase 4', () => {
     expect(within(select).getByRole('option', { name: /Θείος Νίκος/ })).toBeInTheDocument();
   });
 
-  it('explains why the action is disabled until a date is chosen', async () => {
+  it('keeps save ready once the work and field are known, with today already chosen', async () => {
     renderForm();
     const title = await screen.findByLabelText('Τι χρειάζεται να γίνει;');
+    expect(screen.getByRole('button', { name: 'Επόμενο' })).toBeDisabled();
     await userEvent.type(title, 'Κλάδεμα των ξερών κλαδιών');
-
-    const reason = screen.getByText('Επίλεξε ημερομηνία ή «Δεν έχω αποφασίσει».');
-    expect(reason).toHaveAttribute('id', 'task-form-disabled-reason');
-    const submit = screen.getByRole('button', { name: 'Δημιουργία εργασίας' });
-    expect(submit).toBeDisabled();
-    expect(submit).toHaveAttribute('aria-describedby', 'task-form-disabled-reason');
     expect(screen.getByLabelText('Τι χρειάζεται να γίνει;')).toHaveAttribute('aria-invalid', 'false');
+
+    await clickNext();
+    await clickNext();
+    await clickNext();
+
+    expect(screen.getByRole('button', { name: 'Δημιουργία εργασίας' })).toBeEnabled();
   });
 
   it('creates a single-day task without an end date and returns to Planned', async () => {
     renderForm();
     await screen.findByLabelText('Τι χρειάζεται να γίνει;');
     await userEvent.type(screen.getByLabelText('Τι χρειάζεται να γίνει;'), 'Κλάδεμα των ξερών κλαδιών');
+    await clickNext();
+    await clickNext();
     await userEvent.click(screen.getByRole('button', { name: 'Σήμερα' }));
+    await clickNext();
     await userEvent.click(screen.getByRole('button', { name: 'Δημιουργία εργασίας' }));
 
     await waitFor(() => {
@@ -218,12 +232,12 @@ describe('TaskFormPage Phase 4', () => {
     expect(input.templateCode).toBeUndefined();
     expect(input.assignedUserId).toBe('owner-1');
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.stringMatching(/^\/tasks\?view=planned&year=\d{4}&field=field-1&created=created-1$/)
+      expect.stringMatching(/^\/tasks\?view=todo&fieldId=field-1&created=created-1$/)
     );
   });
 
   it('keeps proposal context and schedules via acceptProposal', async () => {
-    sessionStorage.setItem('oleachron.scheduleProposal.v1', JSON.stringify(proposal()));
+    sessionStorage.setItem('The Olive Lot.scheduleProposal.v1', JSON.stringify(proposal()));
     renderForm('proposalId=p-1&fieldId=field-1');
 
     expect(await screen.findByRole('heading', { name: 'Προγραμματισμός εργασίας' })).toBeInTheDocument();
@@ -235,24 +249,29 @@ describe('TaskFormPage Phase 4', () => {
     expect(screen.queryByText('Τι είδους εργασία είναι;')).not.toBeInTheDocument();
     expect(screen.queryByText(/T14/)).not.toBeInTheDocument();
 
+    await clickNext();
     await userEvent.click(screen.getByRole('button', { name: 'Προγραμματισμός' }));
     await waitFor(() => {
       expect(mockAcceptProposal).toHaveBeenCalledWith(
         'p-1',
         expect.objectContaining({
-          plannedStart: '2026-06-01T00:00:00.000Z',
+          plannedStart: expect.stringMatching(/^20\d{2}-\d{2}-\d{2}T/),
         })
       );
     });
+    const plannedStart = mockAcceptProposal.mock.calls[0][1].plannedStart as string;
+    expect(plannedStart < '2026-06-01').toBe(false);
     expect(mockCreateFieldTask).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/tasks?view=planned&year=2026&field=field-1&created=accepted-1'
+      '/tasks?view=todo&fieldId=field-1&created=accepted-1'
     );
   });
 
   it('shows a Greek date picker, not a numeric browser date', async () => {
     renderForm();
-    await screen.findByText('Πότε θέλεις να γίνει;');
+    await userEvent.click(await screen.findByRole('button', { name: 'Κλάδεμα' }));
+    await clickNext();
+    expect(screen.getByRole('heading', { name: 'Πότε θέλεις να γίνει;' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Επιλογή ημερομηνίας' }));
 
     const calendar = screen.getByRole('group', { name: 'Επιλογή ημερομηνίας' });
@@ -266,29 +285,21 @@ describe('TaskFormPage Phase 4', () => {
     expect(screen.queryByText(/\d{1,2}\/\d{1,2}\/\d{4}/)).not.toBeInTheDocument();
   });
 
-  it('derives result year and only offers an override when harvest years cross', async () => {
-    sessionStorage.setItem(
-      'oleachron.scheduleProposal.v1',
-      JSON.stringify(
-        proposal({
-          recommendedWindowStart: '2027-01-05',
-          recommendedWindowEnd: '2027-01-05',
-        })
-      )
-    );
-    renderForm('proposalId=p-1&fieldId=field-1');
-    await screen.findByRole('heading', { name: 'Προγραμματισμός εργασίας' });
-
-    expect(screen.queryByLabelText('Χρονιά αποτελέσματος')).not.toBeInTheDocument();
+  it('keeps result year off the quick form', async () => {
+    renderForm();
+    await userEvent.click(await screen.findByRole('button', { name: 'Κλάδεμα' }));
+    await clickNext();
+    await clickNext();
+    await screen.findByRole('button', { name: '+ Περισσότερες λεπτομέρειες' });
     await userEvent.click(screen.getByRole('button', { name: '+ Περισσότερες λεπτομέρειες' }));
-    const year = await screen.findByLabelText('Χρονιά αποτελέσματος');
-    expect(year).toHaveValue('2026');
-    expect(within(year).getByRole('option', { name: '2027' })).toBeInTheDocument();
-    expect(screen.getByText(/προηγούμενη συγκομιδή/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Χρονιά αποτελέσματος')).not.toBeInTheDocument();
   });
 
   it('keeps advanced details collapsed and shows a euro suffix on cost', async () => {
     renderForm();
+    await userEvent.click(await screen.findByRole('button', { name: 'Κλάδεμα' }));
+    await clickNext();
+    await clickNext();
     await screen.findByRole('button', { name: '+ Περισσότερες λεπτομέρειες' });
     expect(screen.queryByLabelText('Εκτιμώμενο κόστος')).not.toBeInTheDocument();
 
@@ -300,7 +311,7 @@ describe('TaskFormPage Phase 4', () => {
 
   it('exposes sticky mobile actions', async () => {
     renderForm();
-    const actions = await screen.findByRole('button', { name: 'Δημιουργία εργασίας' });
+    const actions = await screen.findByRole('button', { name: 'Επόμενο' });
     expect(actions.closest('.task-form-actions')).toBeInTheDocument();
   });
 
@@ -309,14 +320,25 @@ describe('TaskFormPage Phase 4', () => {
     renderForm();
     await screen.findByLabelText('Τι χρειάζεται να γίνει;');
     await userEvent.type(screen.getByLabelText('Τι χρειάζεται να γίνει;'), 'Κλάδεμα των ξερών κλαδιών');
+    await clickNext();
+    await clickNext();
     await userEvent.click(screen.getByRole('button', { name: 'Σήμερα' }));
+    await clickNext();
     await userEvent.click(screen.getByRole('button', { name: 'Δημιουργία εργασίας' }));
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveAttribute('id', 'task-form-error');
-    expect(screen.getByLabelText('Τι χρειάζεται να γίνει;')).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Δημιουργία εργασίας' })).toHaveAttribute(
       'aria-describedby',
       'task-form-error'
     );
+  });
+
+  it('opens capture work on the field step with the catalogue title', async () => {
+    renderForm('fieldId=field-1&templateCode=T15');
+
+    expect(await screen.findByRole('heading', { name: 'Σε ποιον ελαιώνα;' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Τι χρειάζεται να γίνει;' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Προγραμματισμός άρδευσης/)).toBeInTheDocument();
   });
 });

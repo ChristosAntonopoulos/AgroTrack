@@ -1,4 +1,5 @@
 using OliveLifecycle.Application.Abstractions.Persistence;
+using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Financial;
 using OliveLifecycle.Application.Mappings;
 using OliveLifecycle.Common.Constants;
@@ -16,6 +17,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 {
     private readonly IFinancialTransactionRepository _transactions;
     private readonly IFieldRepository _fields;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IFieldTaskRepository _fieldTasks;
     private readonly IHarvestRecordRepository _harvests;
     private readonly IFinancialAuthorizationService _authorization;
@@ -23,12 +25,14 @@ public class FinancialSummaryService : IFinancialSummaryService
     public FinancialSummaryService(
         IFinancialTransactionRepository transactions,
         IFieldRepository fields,
+        IFieldAccessScopeService fieldAccessScope,
         IFieldTaskRepository fieldTasks,
         IHarvestRecordRepository harvests,
         IFinancialAuthorizationService authorization)
     {
         _transactions = transactions;
         _fields = fields;
+        _fieldAccessScope = fieldAccessScope;
         _fieldTasks = fieldTasks;
         _harvests = harvests;
         _authorization = authorization;
@@ -62,8 +66,10 @@ public class FinancialSummaryService : IFinancialSummaryService
         var harvests = await LoadPostedHarvestsAsync(fieldIds, year, cancellationToken);
         var oilKg = SumOilKilograms(harvests);
         var oilProduction = ResolveOilProduction(harvests);
+        var incompleteNames = await IncompleteFieldNamesAsync(
+            fieldId, userId, userRole, ownerUserId, year, cancellationToken);
         var summary = FinancialCalculator.BuildYearSummary(
-            year, transactions, metrics, fieldId, oilKg, oilProduction, language);
+            year, transactions, metrics, fieldId, oilKg, oilProduction, language, incompleteNames);
         return FinancialTransactionMapper.ToDto(summary, language);
     }
 
@@ -123,6 +129,49 @@ public class FinancialSummaryService : IFinancialSummaryService
         return FinancialTransactionMapper.ToDto(summary, language);
     }
 
+    private async Task<IReadOnlyList<string>> IncompleteFieldNamesAsync(
+        string? fieldId,
+        string userId,
+        string userRole,
+        string ownerUserId,
+        int year,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(fieldId) || userRole == Roles.Administrator)
+        {
+            return [];
+        }
+
+        var drafts = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+                userId, userRole, FamilyModules.Money, cancellationToken))
+            .Where(field => field.Status == FieldStatus.Draft)
+            .ToList();
+        if (drafts.Count == 0)
+        {
+            return [];
+        }
+
+        var transactions = await _transactions.GetForYearAsync(
+            ownerUserId,
+            year,
+            drafts.Select(field => field.Id).ToList(),
+            fieldId: null,
+            includeUnassigned: false,
+            cancellationToken);
+        var used = transactions
+            .Where(transaction => transaction.Status != FinancialTransactionStatus.Void)
+            .Select(transaction => transaction.FieldId)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToHashSet(StringComparer.Ordinal);
+
+        return drafts
+            .Where(field => used.Contains(field.Id))
+            .Select(field => field.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
     private async Task<List<Field>> ResolveSummaryFieldsAsync(
         string? fieldId,
         string userId,
@@ -152,12 +201,13 @@ public class FinancialSummaryService : IFinancialSummaryService
             throw new ValidationException("A field filter is required for administrators.");
         }
 
-        var owned = (await _fields.GetByOwnerIdAsync(userId, cancellationToken))
+        var moneyFields = (await _fieldAccessScope.ResolveAccessibleFieldsAsync(
+                userId, userRole, FamilyModules.Money, cancellationToken))
             .Where(f => f.Status != FieldStatus.Draft)
             .ToList();
 
         var permitted = new List<Field>();
-        foreach (var field in owned)
+        foreach (var field in moneyFields)
         {
             var access = await _authorization.ResolveForFieldAsync(field.Id, userId, userRole, cancellationToken);
             if (access.Can(FinancialCapabilities.ViewSummary))
@@ -239,7 +289,7 @@ public class FinancialSummaryService : IFinancialSummaryService
     internal static int ResolveHarvestResultYear(HarvestRecord harvest) =>
         harvest.ResultYear > 0
             ? harvest.ResultYear
-            : AthensTime.CalendarYear(harvest.HarvestDate);
+            : AgriculturalYear.For(harvest.HarvestDate);
 
     private static FinancialFieldMetrics ToMetrics(Field field) =>
         new(field.Id, field.Name, field.ResolveAreaHectares());

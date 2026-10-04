@@ -4,6 +4,7 @@ using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Partners;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -132,10 +133,17 @@ public class SavedContactServiceTests
                 {
                     Id = "field-1",
                     OwnerId = "owner-1",
-                    Memberships =
+                    People =
                     [
-                        new FieldMembership { UserId = "owner-1", Status = "active" },
-                        new FieldMembership { UserId = "pruner-1", Status = "active" }
+                        FieldPeopleRules.CreateAdminSeat("owner-1"),
+                        new FieldPerson
+                        {
+                            UserId = "pruner-1",
+                            Role = FieldPersonRole.Partner,
+                            Modules = FamilyModules.DefaultOnInvite.ToList(),
+                            AccessLevel = FamilyAccessLevels.Work,
+                            Status = FamilyMemberStatuses.Active
+                        }
                     ]
                 }
             });
@@ -168,7 +176,17 @@ public class SavedContactServiceTests
                 {
                     Id = "field-1",
                     OwnerId = "owner-1",
-                    Memberships = [new FieldMembership { UserId = "pruner-1", Status = "active" }]
+                    People =
+                    [
+                        new FieldPerson
+                        {
+                            UserId = "pruner-1",
+                            Role = FieldPersonRole.Partner,
+                            Modules = FamilyModules.DefaultOnInvite.ToList(),
+                            AccessLevel = FamilyAccessLevels.Work,
+                            Status = FamilyMemberStatuses.Active
+                        }
+                    ]
                 }
             });
         _users.Setup(r => r.GetByIdAsync("pruner-1", It.IsAny<CancellationToken>()))

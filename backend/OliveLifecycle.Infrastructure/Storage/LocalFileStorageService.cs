@@ -11,7 +11,9 @@ public class LocalFileStorageService : IFileStorageService
     private readonly ILogger<LocalFileStorageService> _logger;
     private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".jpg", ".jpeg", ".png", ".webp", ".gif"
+        ".jpg", ".jpeg", ".png", ".webp", ".gif",
+        ".m4a", ".mp3", ".webm", ".wav", ".aac", ".ogg",
+        ".pdf", ".doc", ".docx", ".txt"
     };
 
     private static readonly HashSet<string> AllowedFieldDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -73,6 +75,48 @@ public class LocalFileStorageService : IFileStorageService
         return relativePath;
     }
 
+    public async Task<StoredPhotoResult> SavePhotoAsync(
+        Stream originalContent,
+        Stream thumbnailContent,
+        string fileName,
+        string contentType,
+        CancellationToken cancellationToken = default)
+    {
+        var extension = Path.GetExtension(fileName);
+        if (string.IsNullOrEmpty(extension) || !AllowedExtensions.Contains(extension))
+        {
+            throw new InvalidOperationException("File type is not allowed.");
+        }
+
+        var now = DateTime.UtcNow;
+        var folderRelative = Path.Combine("photos", now.ToString("yyyy"), now.ToString("MM"));
+        var folder = Path.Combine(_rootPath, folderRelative);
+        Directory.CreateDirectory(folder);
+
+        var id = Guid.NewGuid().ToString("N");
+        var originalName = $"{id}{extension}";
+        var thumbName = $"{id}_thumb.jpg";
+        var originalPath = Path.Combine(folder, originalName);
+        var thumbPath = Path.Combine(folder, thumbName);
+
+        await using (var fileStream = File.Create(originalPath))
+        {
+            await originalContent.CopyToAsync(fileStream, cancellationToken);
+        }
+
+        await using (var thumbStream = File.Create(thumbPath))
+        {
+            await thumbnailContent.CopyToAsync(thumbStream, cancellationToken);
+        }
+
+        var byteSize = new FileInfo(originalPath).Length;
+        var publicFolder = $"{_publicBasePath.TrimEnd('/')}/photos/{now:yyyy}/{now:MM}";
+        var url = $"{publicFolder}/{originalName}";
+        var thumbUrl = $"{publicFolder}/{thumbName}";
+        _logger.LogInformation("Stored photo at {Path} as {Url}", originalPath, url);
+        return new StoredPhotoResult(url, thumbUrl, byteSize);
+    }
+
     public Task DeleteAsync(string relativeUrl, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(relativeUrl))
@@ -80,13 +124,100 @@ public class LocalFileStorageService : IFileStorageService
             return Task.CompletedTask;
         }
 
-        var fileName = Path.GetFileName(relativeUrl);
-        var fullPath = Path.Combine(_rootPath, fileName);
+        var fullPath = ResolveSafeFullPath(relativeUrl);
+        if (fullPath == null)
+        {
+            return Task.CompletedTask;
+        }
+
         if (File.Exists(fullPath))
         {
             File.Delete(fullPath);
+            _logger.LogInformation("Deleted stored file {Path}", fullPath);
         }
 
         return Task.CompletedTask;
+    }
+
+    public Task<Stream?> OpenReadAsync(string relativeUrl, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(relativeUrl))
+        {
+            return Task.FromResult<Stream?>(null);
+        }
+
+        var fullPath = ResolveSafeFullPath(relativeUrl);
+        if (fullPath == null || !File.Exists(fullPath))
+        {
+            return Task.FromResult<Stream?>(null);
+        }
+
+        Stream stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Task.FromResult<Stream?>(stream);
+    }
+
+    private string? ResolveSafeFullPath(string relativeUrl)
+    {
+        var relativePath = NormalizeRelativePath(relativeUrl);
+        if (relativePath == null)
+        {
+            return null;
+        }
+
+        var fullPath = Path.GetFullPath(Path.Combine(_rootPath, relativePath));
+        var rootFull = Path.GetFullPath(_rootPath);
+        if (!fullPath.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Refused path outside storage root: {Url}", relativeUrl);
+            return null;
+        }
+
+        return fullPath;
+    }
+
+    private string? NormalizeRelativePath(string relativeUrl)
+    {
+        var path = relativeUrl.Trim();
+        if (Uri.TryCreate(path, UriKind.Absolute, out var absolute)
+            && absolute.IsAbsoluteUri
+            && !string.IsNullOrEmpty(absolute.Host))
+        {
+            path = Uri.UnescapeDataString(absolute.AbsolutePath);
+        }
+
+        // PublicBasePath may be "/uploads" or "https://api.example/uploads".
+        // Compare path segments only — the host is not part of the file path.
+        var marker = PublicBasePathMarker(_publicBasePath);
+        if (marker.Length > 0)
+        {
+            var idx = path.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0)
+            {
+                path = path[(idx + marker.Length)..];
+            }
+        }
+
+        path = path.TrimStart('/', '\\')
+            .Replace('/', Path.DirectorySeparatorChar)
+            .Replace('\\', Path.DirectorySeparatorChar);
+        return string.IsNullOrWhiteSpace(path) ? null : path;
+    }
+
+    internal static string PublicBasePathMarker(string? publicBasePath)
+    {
+        var value = string.IsNullOrWhiteSpace(publicBasePath) ? "/uploads" : publicBasePath.Trim();
+        if (Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            && uri.IsAbsoluteUri
+            && !string.IsNullOrEmpty(uri.Host))
+        {
+            value = uri.AbsolutePath;
+        }
+
+        if (!value.StartsWith('/'))
+        {
+            value = "/" + value;
+        }
+
+        return value.TrimEnd('/');
     }
 }

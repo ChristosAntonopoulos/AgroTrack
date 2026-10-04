@@ -6,9 +6,12 @@ import type { FieldTask } from '../../services/fieldWorkService';
 import type { ChronologioEntry } from '../../services/chronologioService';
 import type { FieldAttentionModel } from '../../utils/fieldOverviewAttention';
 import { getNextUpcomingTask } from '../../utils/fieldDisplay';
+import { resolveFieldStageLabel } from '../../utils/fieldStage';
+import { fieldStreamPath, taskPeekPath } from '../../navigation/intents';
 
 type Props = {
   phenology: FieldPhenology | null;
+  currentLifecycleStage?: string | null;
   tasks: FieldTask[];
   attention: FieldAttentionModel;
   latestEntry?: ChronologioEntry;
@@ -24,39 +27,78 @@ const StatusValue: React.FC<{ to?: string; children: React.ReactNode }> = ({ to,
   );
 };
 
-const FieldStatusStrip: React.FC<Props> = ({ phenology, tasks, attention, latestEntry, now }) => {
-  const { t } = useTranslation('fields');
+const FieldStatusStrip: React.FC<Props> = ({
+  phenology,
+  currentLifecycleStage,
+  tasks,
+  attention,
+  latestEntry,
+  now,
+}) => {
+  const { t } = useTranslation(['fields', 'common']);
   const nextTask = getNextUpcomingTask(tasks, now);
-  const attentionLabel =
-    attention.kind === 'none'
-      ? t('overview.statusStrip.noWarning')
-      : attention.title || t('overview.needsAttention');
+
+  // Same task must not appear as both Next and Attention with the same title.
+  const attentionIsSameAsNext =
+    Boolean(nextTask) &&
+    (attention.kind === 'nextTask' ||
+      (attention.taskId != null && nextTask != null && attention.taskId === nextTask.id));
+
+  let attentionLabel: string;
+  if (attention.kind === 'none') {
+    attentionLabel = t('overview.statusStrip.noWarning');
+  } else if (attention.kind === 'overdue' && attention.explanationParams?.days) {
+    attentionLabel = t('overview.statusStrip.overdueDays', {
+      days: attention.explanationParams.days,
+      title: attention.title,
+    });
+  } else if (attentionIsSameAsNext && attention.kind === 'nextTask') {
+    attentionLabel = t('overview.statusStrip.noWarning');
+  } else if (attentionIsSameAsNext && attention.kind !== 'nextTask') {
+    // Alert about the next task — explain why, not repeat the title alone.
+    attentionLabel =
+      attention.kind === 'weatherReschedule'
+        ? t('overview.statusStrip.weatherRisk', { title: attention.title })
+        : attention.title || t('overview.needsAttention');
+  } else {
+    attentionLabel = attention.title || t('overview.needsAttention');
+  }
+
+  const attentionTo =
+    attention.kind === 'none' || (attentionIsSameAsNext && attention.kind === 'nextTask')
+      ? undefined
+      : attention.primaryTo;
+
   const lastLabel = latestEntry?.title || t('overview.statusStrip.noRecording');
+  const stageLabel = resolveFieldStageLabel({
+    phenology,
+    currentLifecycleStage,
+    t,
+    unknownLabel: t('overview.statusStrip.unknownStage'),
+  });
 
   return (
     <section className="field-status-strip" aria-label={t('overview.statusStrip.aria')}>
       <div className="field-status-item">
         <p className="field-status-label">{t('overview.statusStrip.now')}</p>
-        <p className="field-status-value">
-          {phenology?.isKnown ? phenology.stageLabel : phenology?.message || t('overview.statusStrip.unknownStage')}
-        </p>
+        <p className="field-status-value">{stageLabel}</p>
       </div>
       <div className="field-status-item">
         <p className="field-status-label">{t('overview.nextTask')}</p>
-        <StatusValue to={nextTask ? `/tasks/${nextTask.id}` : undefined}>
+        <StatusValue to={nextTask ? taskPeekPath(nextTask.id) : undefined}>
           {nextTask?.title || t('overview.noNextTask')}
         </StatusValue>
       </div>
       <div className="field-status-item">
         <p className="field-status-label">{t('overview.statusStrip.attention')}</p>
-        <StatusValue to={attention.primaryTo}>{attentionLabel}</StatusValue>
+        <StatusValue to={attentionTo}>{attentionLabel}</StatusValue>
       </div>
       <div className="field-status-item">
         <p className="field-status-label">{t('overview.statusStrip.lastRecording')}</p>
         <StatusValue
           to={
             latestEntry
-              ? `/fields/${latestEntry.fieldId}?tab=chronologio&entry=${encodeURIComponent(latestEntry.id)}`
+              ? fieldStreamPath(latestEntry.fieldId, { entry: latestEntry.id })
               : undefined
           }
         >

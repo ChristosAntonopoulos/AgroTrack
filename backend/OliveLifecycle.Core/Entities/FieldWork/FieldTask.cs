@@ -37,5 +37,24 @@ public class FieldTask : BaseEntity
     public PlantProtectionProductLabel? ProductLabel { get; set; }
 
     public string? LatestExecutionId { get; set; }
+
+    /// <summary>When the farmer pressed Start. Not a separate status.</summary>
+    public DateTime? StartedAt { get; set; }
+
+    /// <summary>Soft pause while Status remains InProgress.</summary>
+    public bool IsPaused { get; set; }
+
+    public string? PauseReason { get; set; }
+    public DateTime? PausedAt { get; set; }
+
+    /// <summary>Groups tasks created together for multiple fields.</summary>
+    public string? WorkGroupId { get; set; }
+
+    /// <summary>Why the occurrence cannot be done. Not a planning status.</summary>
+    public string? BlockedReason { get; set; }
+
+    /// <summary>Audit of status changes. Reopening does not erase earlier events.</summary>
+    public List<FieldTaskActivity> Activity { get; set; } = [];
+
     public string CreatedByUserId { get; set; } = string.Empty;
 }

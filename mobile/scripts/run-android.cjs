@@ -111,6 +111,26 @@ if (!androidSdk) {
 console.log(`ANDROID_HOME=${androidSdk}`);
 ensureLocalProperties(androidSdk);
 
+function adbBin() {
+  const name = process.platform === 'win32' ? 'adb.exe' : 'adb';
+  return path.join(androidSdk, 'platform-tools', name);
+}
+
+function adbReverse() {
+  const adb = adbBin();
+  if (!fs.existsSync(adb)) return;
+  const devices = spawnSync(adb, ['devices'], { encoding: 'utf8' });
+  if (!devices.stdout || !/emulator-|device$/.test(devices.stdout)) {
+    console.log('adb: no device yet — Expo will retry after the emulator boots.');
+    return;
+  }
+  for (const port of ['8081', '8082', '8097', '5149']) {
+    spawnSync(adb, ['reverse', `tcp:${port}`, `tcp:${port}`], { stdio: 'inherit' });
+  }
+}
+
+adbReverse();
+
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 const result = spawnSync(npx, ['expo', 'run:android', ...process.argv.slice(2)], {
   stdio: 'inherit',
@@ -119,6 +139,8 @@ const result = spawnSync(npx, ['expo', 'run:android', ...process.argv.slice(2)],
     JAVA_HOME: javaHome,
     ANDROID_HOME: androidSdk,
     ANDROID_SDK_ROOT: androidSdk,
+    // Emulator cannot reach the LAN IP; bundle over adb reverse + loopback.
+    REACT_NATIVE_PACKAGER_HOSTNAME: process.env.REACT_NATIVE_PACKAGER_HOSTNAME || '127.0.0.1',
   },
   cwd: mobileDir,
   shell: process.platform === 'win32',

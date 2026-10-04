@@ -1,0 +1,28 @@
+.pending-invites-banner {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-primary, #52733f) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #52733f) 28%, transparent);
+}
+
+.pending-invites-banner__title {
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.pending-invites-banner__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.pending-invites-banner__list a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

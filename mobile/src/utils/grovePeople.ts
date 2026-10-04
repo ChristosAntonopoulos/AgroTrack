@@ -13,16 +13,37 @@ export type GrovePerson = {
   userId?: string;
   displayName: string;
   phone?: string;
+  email?: string;
   connections: GroveConnection[];
   serviceLabels: string[];
   listed: boolean;
   membership?: FieldMembership;
   savedContact?: SavedContact;
   unassigned?: boolean;
+  fieldIds?: string[];
 };
+
+type MembershipRow = FieldMembership & { fieldId?: string };
 
 const KEEP_CONTACT = new Set(['New', 'Viewed', 'Accepted', 'Closed']);
 const ORDER: GroveConnection[] = ['owner', 'works', 'advises', 'helps', 'sees', 'invited', 'partner', 'contact', 'app'];
+
+const union = (current: GroveConnection[], extra: GroveConnection[]) => {
+  extra.forEach((item) => {
+    if (!current.includes(item)) current.push(item);
+  });
+};
+
+const connectionsFromMembership = (member: FieldMembership): GroveConnection[] => {
+  const connections: GroveConnection[] = [];
+  if (member.status === 'invited' || member.status === 'pending') connections.push('invited');
+  if (member.role === 'Admin') connections.push('owner');
+  if (member.role === 'Partner') connections.push('works');
+  if (member.role === 'Family' && member.accessLevel === 'help') connections.push('helps');
+  if (member.role === 'Family' && member.accessLevel === 'view') connections.push('sees');
+  if (member.role === 'Family' && member.accessLevel === 'work') connections.push('helps');
+  return connections.length ? connections : ['works'];
+};
 
 const jobLabels = (contact: SavedContact, categories: ServiceCategory[], language: string) =>
   contact.serviceCategoryIds
@@ -31,7 +52,7 @@ const jobLabels = (contact: SavedContact, categories: ServiceCategory[], languag
     .map((c) => categoryName(c, language));
 
 export function mergeGrovePeople(
-  members: FieldMembership[],
+  members: MembershipRow[],
   outgoing: ServiceContactRequest[],
   savedContacts: SavedContact[],
   fieldId: string,
@@ -42,27 +63,32 @@ export function mergeGrovePeople(
 
   members.forEach((member) => {
     if (member.status === 'removed') return;
-    const connections: GroveConnection[] = [];
-    if (member.status === 'invited' || member.status === 'pending') connections.push('invited');
-    if (member.capacities.includes('own')) connections.push('owner');
-    if (member.capacities.includes('work')) connections.push('works');
-    if (member.capacities.includes('advise')) connections.push('advises');
-    if (member.capacities.includes('help')) connections.push('helps');
-    if (member.capacities.includes('view') && connections.length === 0) connections.push('sees');
+    const connections = connectionsFromMembership(member);
+    const existing = map.get(member.userId);
+    if (existing) {
+      union(existing.connections, connections);
+      if (member.fieldId && !existing.fieldIds?.includes(member.fieldId)) {
+        existing.fieldIds = [...(existing.fieldIds || []), member.fieldId];
+      }
+      existing.membership = existing.membership || member;
+      return;
+    }
     map.set(member.userId, {
       id: member.userId,
       userId: member.userId,
       displayName: member.displayName || member.email || member.userId,
-      connections: connections.length ? connections : ['works'],
+      connections,
       serviceLabels: [],
       listed: false,
       membership: member,
+      fieldIds: member.fieldId ? [member.fieldId] : [],
     });
   });
 
   outgoing.forEach((contact) => {
     if (!KEEP_CONTACT.has(contact.status)) return;
-    if (!contact.fieldId || contact.fieldId !== fieldId) return;
+    if (!contact.fieldId) return;
+    if (fieldId && contact.fieldId !== fieldId) return;
     const id = contact.providerUserId;
     if (!id) return;
     const label = contact.category ? categoryName(contact.category, language) : '';
@@ -91,6 +117,7 @@ export function mergeGrovePeople(
       if (!linked.connections.includes('app')) linked.connections.push('app');
       linked.savedContact = contact;
       linked.phone = contact.phone || linked.phone;
+      linked.email = contact.email || linked.email;
       labels.forEach((label) => {
         if (!linked.serviceLabels.includes(label)) linked.serviceLabels.push(label);
       });
@@ -105,6 +132,7 @@ export function mergeGrovePeople(
       userId: contact.linkedUserId,
       displayName: contact.displayName,
       phone: contact.phone,
+      email: contact.email,
       connections,
       serviceLabels: labels,
       listed: false,
@@ -118,4 +146,26 @@ export function mergeGrovePeople(
     const bi = Math.min(...b.connections.map((c) => ORDER.indexOf(c)));
     return ai - bi || a.displayName.localeCompare(b.displayName, language);
   });
+}
+
+export function fromSavedContacts(
+  savedContacts: SavedContact[],
+  language: string,
+  categories: ServiceCategory[] = []
+): GrovePerson[] {
+  return mergeGrovePeople([], [], savedContacts, '', language, categories);
+}
+
+export function linkedFieldIds(person: GrovePerson): string[] {
+  return [...new Set([...(person.fieldIds || []), ...(person.savedContact?.fieldIds || [])])];
+}
+
+export function occupiesAccessSeat(
+  person: GrovePerson,
+  accessUserIds: Set<string>,
+  accessEmails: Set<string>
+): boolean {
+  if (person.userId && accessUserIds.has(person.userId)) return true;
+  const email = (person.email || person.savedContact?.email || '').trim().toLowerCase();
+  return Boolean(email && accessEmails.has(email));
 }

@@ -4,6 +4,7 @@ using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Notes;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -67,7 +68,7 @@ public class NoteServiceTests
     [Fact]
     public async Task CreateAsync_RejectsFieldTheUserCannotAccess()
     {
-        _access.Setup(a => a.CanUserAccessFieldAsync("field-x", "owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
+        _access.Setup(a => a.CanUserAccessFieldModuleAsync("field-x", "owner-1", Roles.FieldOwner, FamilyModules.Chronologio, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         await Assert.ThrowsAsync<ForbiddenException>(() =>
@@ -83,7 +84,7 @@ public class NoteServiceTests
     [Fact]
     public async Task CreateAsync_PinsToAccessibleField()
     {
-        _access.Setup(a => a.CanUserAccessFieldAsync("field-1", "owner-1", Roles.FieldOwner, It.IsAny<CancellationToken>()))
+        _access.Setup(a => a.CanUserAccessFieldModuleAsync("field-1", "owner-1", Roles.FieldOwner, FamilyModules.Chronologio, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _notes.Setup(r => r.CreateAsync(It.IsAny<Note>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Note n, CancellationToken _) =>

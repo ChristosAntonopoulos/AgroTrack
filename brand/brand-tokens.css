@@ -1,14 +1,14 @@
 :root {
-  --oleachron-olive: #536B3F;
+  --oleachron-olive: #536D42;
   --oleachron-sage: #9AAA85;
   --oleachron-leaf: #71845B;
   --oleachron-deep-grove: #29382A;
   --oleachron-warm-stone: #D9D5C8;
-  --oleachron-limestone: #F4F3EC;
+  --oleachron-limestone: #F7F6F0;
   --oleachron-gold: #B09A63;
   /* Legacy aliases */
   --oleachron-deep-olive: #29382A;
-  --oleachron-cream: #F4F3EC;
+  --oleachron-cream: #F7F6F0;
   --oleachron-beige: #D9D5C8;
   --oleachron-heritage-gold: #B09A63;
 }

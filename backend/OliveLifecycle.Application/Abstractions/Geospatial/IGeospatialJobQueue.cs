@@ -6,8 +6,8 @@ public interface IGeospatialJobQueue
     Task EnqueueSatelliteProcessingAsync(string fieldId, string? catalogItemId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Pulls multi-year weather and monthly Sentinel-2 history after the grower
-    /// finishes adding the field and accepts the activation terms.
+    /// Pulls multi-year weather and monthly Sentinel-2 history once the field has a boundary
+    /// (queued on boundary save, or on activation when the boundary already exists).
     /// </summary>
     Task EnqueueFieldHistoryBackfillAsync(string fieldId, CancellationToken cancellationToken = default);
 

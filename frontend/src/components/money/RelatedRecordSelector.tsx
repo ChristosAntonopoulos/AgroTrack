@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FieldTask } from '../../services/fieldWorkService';
 import type { HarvestRecord } from '../../services/harvestService';
+import { uniqueRelatedHarvestLabels } from '../../finance/relatedHarvestLabel';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 
 type Props = {
   fieldId: string;
+  fieldName?: string;
   tasks: FieldTask[];
   harvests: HarvestRecord[];
   taskId: string;
@@ -16,6 +19,7 @@ type Props = {
 
 const RelatedRecordSelector: React.FC<Props> = ({
   fieldId,
+  fieldName,
   tasks,
   harvests,
   taskId,
@@ -24,7 +28,8 @@ const RelatedRecordSelector: React.FC<Props> = ({
   onHarvestChange,
   preselectedLabel,
 }) => {
-  const { t } = useTranslation('capture');
+  const { t, i18n } = useTranslation(['capture', 'money']);
+  const { dateFormat } = useLocaleFormatters();
   const [picking, setPicking] = useState<'task' | 'harvest' | null>(
     taskId || harvestId ? (taskId ? 'task' : 'harvest') : null
   );
@@ -33,6 +38,18 @@ const RelatedRecordSelector: React.FC<Props> = ({
     if (taskId) setPicking('task');
     else if (harvestId) setPicking('harvest');
   }, [taskId, harvestId]);
+
+  const harvestLabels = useMemo(
+    () =>
+      uniqueRelatedHarvestLabels(harvests, {
+        fieldName,
+        locale: i18n.language,
+        dateFormat,
+        statusLabel: (status) =>
+          status === 'voided' ? t('money:harvestStatusVoided') : t('money:harvestStatusPosted'),
+      }),
+    [harvests, fieldName, i18n.language, dateFormat, t]
+  );
 
   if (!fieldId) return null;
   const suggestion = tasks[0];
@@ -130,8 +147,7 @@ const RelatedRecordSelector: React.FC<Props> = ({
             <option value="">{t('money.none')}</option>
             {harvests.map((harvest) => (
               <option key={harvest.id} value={harvest.id}>
-                {harvest.harvestDate.slice(0, 10)}
-                {harvest.millName ? ` · ${harvest.millName}` : ''}
+                {harvestLabels.get(harvest.id) || harvest.harvestDate.slice(0, 10)}
               </option>
             ))}
           </select>

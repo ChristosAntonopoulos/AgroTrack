@@ -32,7 +32,7 @@ const PRIMARY_EL: Record<ChronologioPrimaryCategory, { singular: string; plural:
   money: { singular: 'Χρήματα', plural: 'Χρήματα' },
   harvest: { singular: 'Συγκομιδή', plural: 'Συγκομιδή' },
   weather: { singular: 'Καιρός', plural: 'Καιρός & προειδοποιήσεις' },
-  field_change: { singular: 'Αλλαγή χωραφιού', plural: 'Αλλαγές χωραφιού' },
+  field_change: { singular: 'Αλλαγή ελαιώνα', plural: 'Αλλαγές ελαιώνα' },
 };
 
 const PRIMARY_EN: Record<ChronologioPrimaryCategory, { singular: string; plural: string }> = {
@@ -41,14 +41,29 @@ const PRIMARY_EN: Record<ChronologioPrimaryCategory, { singular: string; plural:
   money: { singular: 'Money', plural: 'Money' },
   harvest: { singular: 'Harvest', plural: 'Harvest' },
   weather: { singular: 'Weather', plural: 'Weather & warnings' },
-  field_change: { singular: 'Field change', plural: 'Field changes' },
+  field_change: { singular: 'Grove change', plural: 'Grove changes' },
 };
 
-export const SIMPLE_PRIMARY_CATEGORIES: ChronologioPrimaryCategory[] = [
+/** Primary sticky rail (Όλα + these). Weather lives under "more filters". */
+export const PRIMARY_RAIL_CATEGORIES: ChronologioPrimaryCategory[] = [
   'work',
   'observation',
   'money',
   'harvest',
+];
+
+/** Secondary filters opened from "Περισσότερα φίλτρα". */
+export const MORE_FILTER_CATEGORIES = [
+  'weather',
+  'photo',
+  'field_change',
+  'collaborator',
+] as const;
+
+export type MoreFilterCategory = (typeof MORE_FILTER_CATEGORIES)[number];
+
+export const SIMPLE_PRIMARY_CATEGORIES: ChronologioPrimaryCategory[] = [
+  ...PRIMARY_RAIL_CATEGORIES,
   'weather',
 ];
 
@@ -56,6 +71,14 @@ export const FULL_PRIMARY_CATEGORIES: ChronologioPrimaryCategory[] = [
   ...SIMPLE_PRIMARY_CATEGORIES,
   'field_change',
 ];
+
+export const isMoreFilterCategory = (category: string): category is MoreFilterCategory =>
+  (MORE_FILTER_CATEGORIES as readonly string[]).includes(category);
+
+export const isPrimaryRailCategory = (
+  category: string
+): category is (typeof PRIMARY_RAIL_CATEGORIES)[number] =>
+  (PRIMARY_RAIL_CATEGORIES as readonly string[]).includes(category);
 
 export const toPrimaryCategory = (source?: string | null): ChronologioPrimaryCategory =>
   SOURCE_TO_PRIMARY[(source || '').trim().toLowerCase()] || 'work';

@@ -108,6 +108,8 @@ public class ChronologioHarvestDetailsDto
     public string? Mill { get; set; }
     public string? Quality { get; set; }
     public int Workers { get; set; }
+    public int SackCount { get; set; }
+    public bool HasOfficialWeight { get; set; }
     public string? HarvestMethod { get; set; }
 }
 
@@ -183,6 +185,13 @@ public class ChronologioWeatherDetailsDto
     public int? DaysWithRainData { get; set; }
     public bool IncludesForecast { get; set; }
     public bool CoverageSufficient { get; set; }
+
+    /// <summary>Extreme event kind: heatwave, frost, nearFrost, heavyRain, drought, coldSpell.</summary>
+    public string? ExtremeKind { get; set; }
+    public int? StreakDays { get; set; }
+    public bool IsStronger { get; set; }
+    public DateOnly? ExtremeStartDate { get; set; }
+    public DateOnly? ExtremeEndDate { get; set; }
 }
 
 public class ChronologioWeatherSceneDto

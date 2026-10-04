@@ -49,7 +49,7 @@ public static class ChronologioPrimaryCategoryExtensions
         "weather" or "weather_warning" or "intelligence"
             or "καιρός" or "καιρος" => ChronologioPrimaryCategory.Weather,
         "field_change" or "field-change" or "lifecycle" or "collaborator" or "activity"
-            or "αλλαγές χωραφιού" or "αλλαγες χωραφιου" => ChronologioPrimaryCategory.FieldChange,
+            or "αλλαγές χωραφιού" or "αλλαγες χωραφιου" or "αλλαγές ελαιώνα" or "αλλαγες ελαιωνα" or "αλλαγή ελαιώνα" => ChronologioPrimaryCategory.FieldChange,
         _ => null
     };
 }

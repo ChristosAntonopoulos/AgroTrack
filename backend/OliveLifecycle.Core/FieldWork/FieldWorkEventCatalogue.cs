@@ -29,7 +29,7 @@ public static class FieldWorkEventCatalogue
                 Check("photos", "Φωτογραφίες", "Photos", type: ChecklistItemType.Photo),
                 Check("area", "Πληγείσα έκταση", "Affected area", type: ChecklistItemType.Text, essential: false)
             ],
-            "Μετά από κίνδυνο παγετού, αξίζει έλεγχος του χωραφιού όταν είναι ασφαλές.",
+            "Μετά από κίνδυνο παγετού, αξίζει έλεγχος του ελαιώνα όταν είναι ασφαλές.",
             "After frost risk, inspect the field when it is safe.",
             "frost_event",
             ProposalConfidence.WorthChecking),
@@ -45,7 +45,7 @@ public static class FieldWorkEventCatalogue
                 Check("access", "Πρόσβαση", "Access road condition", essential: false),
                 Check("photos", "Φωτογραφίες", "Photos", type: ChecklistItemType.Photo)
             ],
-            "Υπάρχουν ενδείξεις ισχυρού καιρού — ελέγξτε το χωράφι όταν είναι ασφαλές.",
+            "Υπάρχουν ενδείξεις ισχυρού καιρού — ελέγξτε τον ελαιώνα όταν είναι ασφαλές.",
             "Severe-weather evidence suggests a field inspection when safe.",
             "storm_event",
             ProposalConfidence.WorthChecking),
@@ -128,7 +128,7 @@ public static class FieldWorkEventCatalogue
             [
                 Check("rain_amount", "Καταγεγραμμένη βροχή", "Recorded rain amount", type: ChecklistItemType.Number),
                 Check("timing", "Χρόνος μετά τη λίπανση", "Time after fertilisation", type: ChecklistItemType.Text),
-                Check("field_check", "Οπτικός έλεγχος χωραφιού", "Visual field check"),
+                Check("field_check", "Οπτικός έλεγχος ελαιώνα", "Visual field check"),
                 Check("agronomist", "Ερώτηση γεωπόνου", "Ask agronomist", essential: false),
                 Check("no_auto_repeat", "Όχι αυτόματη επανάληψη λίπανσης", "Do not automatically re-apply fertiliser", type: ChecklistItemType.Confirmation)
             ],
@@ -148,7 +148,7 @@ public static class FieldWorkEventCatalogue
                 Check("photos", "Φωτογραφίες", "Photos", type: ChecklistItemType.Photo),
                 Check("notes", "Σημειώσεις", "Notes", type: ChecklistItemType.Text, essential: false)
             ],
-            "Ελέγξτε αυτή την περιοχή του χωραφιού — η δορυφορική ένδειξη δείχνει απόκλιση, όχι διάγνωση.",
+            "Ελέγξτε αυτή την περιοχή του ελαιώνα — η δορυφορική ένδειξη δείχνει απόκλιση, όχι διάγνωση.",
             "Check this area of the field — satellite change is evidence to inspect, not a diagnosis.",
             "satellite_anomaly",
             ProposalConfidence.WorthChecking)

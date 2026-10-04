@@ -205,6 +205,19 @@ public static class FieldWorkPersistenceMapper
                 IsApprovedForCropAndTarget = d.ProductLabel.IsApprovedForCropAndTarget
             },
         LatestExecutionId = d.LatestExecutionId,
+        StartedAt = d.StartedAt,
+        IsPaused = d.IsPaused,
+        PauseReason = d.PauseReason,
+        PausedAt = d.PausedAt,
+        WorkGroupId = d.WorkGroupId,
+        BlockedReason = d.BlockedReason,
+        Activity = (d.Activity ?? []).Select(a => new FieldTaskActivity
+        {
+            Action = a.Action,
+            ActorId = a.ActorId,
+            OccurredAt = a.OccurredAt,
+            Comment = a.Comment
+        }).ToList(),
         CreatedByUserId = d.CreatedByUserId,
         CreatedAt = d.CreatedAt,
         UpdatedAt = d.UpdatedAt
@@ -253,6 +266,19 @@ public static class FieldWorkPersistenceMapper
                 IsApprovedForCropAndTarget = e.ProductLabel.IsApprovedForCropAndTarget
             },
         LatestExecutionId = e.LatestExecutionId,
+        StartedAt = e.StartedAt,
+        IsPaused = e.IsPaused,
+        PauseReason = e.PauseReason,
+        PausedAt = e.PausedAt,
+        WorkGroupId = e.WorkGroupId,
+        BlockedReason = e.BlockedReason,
+        Activity = (e.Activity ?? []).Select(a => new FieldTaskActivityDocument
+        {
+            Action = a.Action,
+            ActorId = a.ActorId,
+            OccurredAt = a.OccurredAt,
+            Comment = a.Comment
+        }).ToList(),
         CreatedByUserId = e.CreatedByUserId,
         CreatedAt = e.CreatedAt,
         UpdatedAt = e.UpdatedAt

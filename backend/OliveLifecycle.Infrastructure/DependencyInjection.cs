@@ -1,12 +1,17 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OliveLifecycle.Application.Abstractions.Imaging;
 using OliveLifecycle.Application.Abstractions.Persistence;
+using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Abstractions.Storage;
+using OliveLifecycle.Infrastructure.Email;
+using OliveLifecycle.Infrastructure.Imaging;
 using OliveLifecycle.Infrastructure.MongoDB;
 using OliveLifecycle.Infrastructure.Persistence;
 using OliveLifecycle.Infrastructure.Persistence.Repositories;
 using OliveLifecycle.Infrastructure.Geospatial;
 using OliveLifecycle.Infrastructure.FieldWork;
+using OliveLifecycle.Infrastructure.Push;
 using OliveLifecycle.Infrastructure.Storage;
 
 namespace OliveLifecycle.Infrastructure;
@@ -37,19 +42,31 @@ public static class DependencyInjection
         services.AddScoped<IFieldWorkProfileRepository, FieldWorkProfileRepository>();
         services.AddScoped<IMinistryNotificationRepository, MinistryNotificationRepository>();
         services.AddScoped<IHarvestRecordRepository, HarvestRecordRepository>();
+        services.AddScoped<IOilCellarRepository, OilCellarRepository>();
+        services.AddScoped<IOilLotRepository, OilLotRepository>();
+        services.AddScoped<IOilPressingRepository, OilPressingRepository>();
+        services.AddScoped<IOilCommitmentRepository, OilCommitmentRepository>();
+        services.AddScoped<IOilShareRequestRepository, OilShareRequestRepository>();
+        services.AddScoped<IStockMovementRepository, StockMovementRepository>();
         services.AddScoped<IFinancialTransactionRepository, FinancialTransactionRepository>();
         services.AddScoped<IServiceCategoryRepository, ServiceCategoryRepository>();
         services.AddScoped<IServiceProviderProfileRepository, ServiceProviderProfileRepository>();
         services.AddScoped<IServiceContactRequestRepository, ServiceContactRequestRepository>();
         services.AddScoped<IUserNotificationRepository, UserNotificationRepository>();
+        services.AddScoped<IDevicePushTokenRepository, DevicePushTokenRepository>();
         services.AddScoped<ISavedContactRepository, SavedContactRepository>();
         services.AddScoped<INoteRepository, NoteRepository>();
         services.AddScoped<IMediaAttachmentRepository, MediaAttachmentRepository>();
-        services.AddScoped<IFamilyCircleRepository, FamilyCircleRepository>();
-        services.AddScoped<IFamilyMemberRepository, FamilyMemberRepository>();
-        services.AddScoped<IFamilyInviteRepository, FamilyInviteRepository>();
+        services.AddScoped<IUserFeedbackRepository, UserFeedbackRepository>();
+        services.AddScoped<IInAppCampaignRepository, InAppCampaignRepository>();
+        services.AddScoped<ICampaignEngagementRepository, CampaignEngagementRepository>();
+        services.AddScoped<ICampaignAnswerRepository, CampaignAnswerRepository>();
         services.AddScoped<IFieldLifecycleSync, FieldLifecycleSync>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddScoped<IPhotoUploadSessionStore, FilePhotoUploadSessionStore>();
+        services.AddScoped<IImageMetadataService, ImageMetadataService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddHttpClient<IPushNotificationSender, ExpoPushNotificationSender>();
 
         services.AddGeospatial(configuration);
 

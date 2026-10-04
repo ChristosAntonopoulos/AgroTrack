@@ -1,5 +1,5 @@
 {
-  "appName": "Oleachron",
+  "appName": "The Olive Lot",
   "home": "Home",
   "loading": "Caricamento...",
   "refresh": "Aggiorna",
@@ -19,6 +19,7 @@
   "close": "Chiudi",
   "back": "Indietro",
   "next": "Avanti",
+  "continue": "Continua",
   "submit": "Invia",
   "actions": "Azioni",
   "status": "Stato",
@@ -37,10 +38,12 @@
   "nextTask": "Prossimo",
   "toggleMenu": "Apri/chiudi menu",
   "moreNav": "Altro",
+  "menuNav": "Menù",
   "moreMenu": "Altre opzioni",
   "mobileNav": "Navigazione principale",
   "logout": "Esci",
   "logoutAria": "Esci",
+  "familyCollaboratorBadge": "Collaboratore di {{owner}}",
   "roles": {
     "FieldOwner": "Proprietario dell’uliveto",
     "Producer": "Partner di campo",
@@ -75,9 +78,36 @@
   },
   "notifications": {
     "title": "Notifiche",
-    "empty": "Nessuna notifica",
+    "open": "Notifiche",
+    "openUnread": "Notifiche, {{count}} non lette",
+    "subtitle": "Assegnazioni, approvazioni e aggiornamenti per il tuo oliveto",
+    "loading": "Caricamento notifiche",
+    "empty": "Sei in pari",
+    "emptyHint": "Qui appariranno assegnazioni, approvazioni e altri aggiornamenti.",
+    "hiddenBySettings": "{{count}} notifica è nascosta dalle impostazioni.",
+    "reviewSettings": "Impostazioni notifiche",
     "markAllRead": "Segna tutte come lette",
-    "clearAll": "Cancella tutte"
+    "clearAll": "Cancella tutte",
+    "clearAllConfirm": "Rimuovere tutte le {{count}} notifiche da questo elenco? L'azione non può essere annullata.",
+    "tapToRespond": "Tocca per rispondere",
+    "badge": {
+      "update": "Aggiornamento",
+      "inbox": "Aggiornamento"
+    },
+    "types": {
+      "taskAssignment": "Assegnazione",
+      "approval": "Approvazione",
+      "harvest": "Raccolta",
+      "financial": "Denaro",
+      "satelliteWeather": "Meteo",
+      "marketingSystem": "Messaggio",
+      "other": "Aggiornamento"
+    }
+  },
+  "inApp": {
+    "announcement": "Annuncio",
+    "questionnaire": "Questionario",
+    "poll": "Sondaggio"
   },
   "retry": "Riprova",
   "language": "Lingua",

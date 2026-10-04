@@ -47,19 +47,19 @@
 
 .cadastre-info-card,
 .area-comparison-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  margin: 1rem 0;
-  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 1.05rem 1.15rem;
+  margin: 0;
+  background: var(--surface-1);
   color: var(--color-text-primary);
 }
 
 .cadastre-info-card h3,
 .area-comparison-card h3 {
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--color-text-primary);
 }
 
@@ -136,13 +136,83 @@
   color: var(--color-warning);
 }
 
+.field-boundary-step .field-form-panel-desc {
+  margin-bottom: 0.65rem;
+}
+
+.field-boundary-step.is-handoff .field-form-panel-desc,
+.field-boundary-step.is-handoff .boundary-steps-guide {
+  display: none;
+}
+
+.field-boundary-step.is-handoff .field-boundary-map {
+  height: min(380px, calc(100dvh - 42rem));
+  min-height: 240px;
+}
+
+.field-boundary-step.is-handoff.is-ready {
+  padding-bottom: 6.5rem;
+}
+
+.boundary-continue-dock {
+  position: fixed;
+  z-index: 40;
+  bottom: 16px;
+  left: calc(var(--sidebar-width) + (100vw - var(--sidebar-width)) / 2);
+  width: min(720px, calc(100vw - var(--sidebar-width) - 40px));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+  padding: 0.75rem 0.75rem 0.75rem 1.1rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  border: 1px solid color-mix(in srgb, #3d7a4a 36%, var(--border-subtle));
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(14px);
+}
+
+.boundary-continue-dock p {
+  margin: 0;
+  flex: 1 1 auto;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.boundary-continue-dock .btn {
+  flex: 0 0 auto;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .boundary-continue-dock {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    transform: none;
+    bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px);
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.85rem;
+  }
+
+  .boundary-continue-dock .btn {
+    width: 100%;
+  }
+}
+
 .field-boundary-map {
   border-radius: 16px;
   overflow: hidden;
-  margin: 0.75rem 0 1rem;
+  margin: 0.75rem 0 0.55rem;
   border: 1px solid var(--border-default);
   box-shadow: var(--shadow-card);
   position: relative;
+  z-index: 1;
+  height: min(62vh, 560px);
+  min-height: 340px;
 }
 
 .field-boundary-map.is-drawing {
@@ -151,15 +221,104 @@
 }
 
 .field-boundary-map .leaflet-container {
+  height: 100% !important;
+  width: 100%;
   background: var(--surface-2);
   font-family: inherit;
 }
 
+.boundary-map-overlays {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1100;
+  pointer-events: none;
+}
+
+.boundary-map-overlays .boundary-layer-toggle {
+  pointer-events: auto;
+  margin-bottom: 0;
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-card);
+}
+
+.boundary-map-overlays .boundary-layer-btn {
+  min-height: 32px;
+  padding: 0 0.7rem;
+  font-size: 0.82rem;
+}
+
+.boundary-map-actions {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 1200;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.55rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.boundary-map-actions .btn,
+.boundary-map-actions .boundary-primary-action,
+.boundary-map-actions .boundary-tool-btn {
+  width: auto;
+  flex: 0 1 auto;
+  min-height: 40px;
+  padding: 0 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 10px;
+}
+
+.boundary-map-actions .boundary-location-status {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.boundary-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-top: 0.9rem;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, #3d7a4a 12%, var(--surface-1, #fff));
+  border: 1px solid color-mix(in srgb, #3d7a4a 32%, var(--border-subtle, #ddd));
+}
+
+.boundary-result p {
+  margin: 0;
+  flex: 1 1 16rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.boundary-map-actions .boundary-done-note {
+  margin: 0;
+  flex: 1 1 auto;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .boundary-steps-guide {
-  display: grid;
-  gap: 0.45rem;
-  margin: 0 0 1rem;
-  padding: 0.85rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.85rem;
+  margin: 0 0 0.65rem;
+  padding: 0.5rem 0.75rem;
   list-style: none;
   counter-reset: boundary-step;
   background: var(--surface-2);
@@ -171,9 +330,9 @@
   counter-increment: boundary-step;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  min-height: 36px;
-  font-size: 1rem;
+  gap: 0.45rem;
+  min-height: 28px;
+  font-size: 0.85rem;
   font-weight: 550;
   color: var(--text-muted);
 }
@@ -183,12 +342,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   background: var(--surface-3);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -215,9 +374,9 @@
 .boundary-coach {
   display: flex;
   align-items: flex-start;
-  gap: 0.65rem;
-  margin: 0 0 1rem;
-  padding: 0.95rem 1rem;
+  gap: 0.55rem;
+  margin: 0 0 0.65rem;
+  padding: 0.7rem 0.85rem;
   border-radius: 14px;
   background: var(--olive-soft);
   border: 1px solid var(--olive-border);
@@ -226,16 +385,98 @@
 
 .boundary-coach p {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   font-weight: 650;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .boundary-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
+}
+
+.boundary-search-block {
+  position: relative;
+  z-index: 1300;
+  margin-bottom: 0.55rem;
+}
+
+.boundary-search-block--typeahead {
+  overflow: visible;
+}
+
+.boundary-toolbar--typeahead {
+  align-items: flex-start;
+}
+
+.boundary-typeahead {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.boundary-typeahead .location-search {
+  margin: 0;
+}
+
+.boundary-typeahead .location-search.is-embed .location-search-input-wrap {
+  margin-bottom: 0;
+}
+
+.boundary-search-block.has-suggestions {
+  z-index: 1400;
+}
+
+.boundary-place-suggestions {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0.4rem;
+  position: absolute;
+  z-index: 1400;
+  left: 0;
+  right: 0;
+  top: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-height: 15.5rem;
+  overflow-y: auto;
+  background: var(--surface-1);
+  border: 1px solid var(--olive-border);
+  border-radius: 14px;
+  box-shadow:
+    0 14px 32px color-mix(in srgb, #000 34%, transparent),
+    0 2px 8px color-mix(in srgb, #000 14%, transparent);
+}
+
+.boundary-place-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.8rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.boundary-place-option svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--olive-primary);
+}
+
+.boundary-place-option:hover,
+.boundary-place-option:focus-visible {
+  background: var(--olive-soft);
+  outline: none;
 }
 
 .boundary-search-input {
@@ -261,26 +502,6 @@
   gap: 0.4rem;
 }
 
-.boundary-primary-action {
-  min-height: 52px;
-  font-size: 1.05rem;
-}
-
-.boundary-action-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  align-items: center;
-  margin: 0.35rem 0 0.75rem;
-}
-
-.boundary-done-note {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
 .boundary-corner-count {
   margin: 0 0 0.75rem;
   font-size: 0.95rem;
@@ -291,7 +512,6 @@
 .boundary-layer-toggle {
   display: inline-flex;
   gap: 0;
-  margin-bottom: 0.75rem;
   padding: 4px;
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
@@ -351,24 +571,59 @@
   border-top-color: #1C1A14 !important;
 }
 
+.boundary-corner-pin {
+  background: transparent;
+  border: 0;
+}
+
+.boundary-corner-pin-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #F5C842;
+  border: 3px solid #1C1A14;
+  color: #1C1A14;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+  user-select: none;
+}
+
+.boundary-corner-pin.leaflet-drag-target .boundary-corner-pin-dot,
+.boundary-corner-pin:active .boundary-corner-pin-dot {
+  cursor: grabbing;
+  transform: scale(1.08);
+}
+
 .review-checkboxes {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  margin-top: 1.25rem;
+  gap: 0.7rem;
+  margin-top: 0.15rem;
 }
 
 .review-checkbox {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.8rem;
   align-items: flex-start;
-  padding: 0.9rem 1rem;
+  padding: 1rem 1.05rem;
   border: 1px solid var(--border-subtle);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--surface-1);
   font-size: 1rem;
   color: var(--text-primary);
   cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.review-checkbox.is-checked {
+  border-color: var(--olive-border);
+  background: var(--olive-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--olive-border) 35%, transparent);
 }
 
 .review-checkbox input {
@@ -382,8 +637,9 @@
 .review-checkbox span {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  line-height: 1.4;
+  gap: 0.28rem;
+  line-height: 1.45;
+  flex: 1;
 }
 
 .review-checkbox strong {
@@ -392,8 +648,15 @@
 
 .review-checkbox em {
   font-style: normal;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.review-checkbox-mark {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--olive-primary);
 }
 
 .field-form-hint {
@@ -403,7 +666,15 @@
 }
 
 @media (max-width: 640px) {
-  .boundary-action-bar .btn,
+  .field-boundary-map {
+    height: min(58vh, 480px);
+    min-height: 300px;
+  }
+
+  .boundary-steps-guide {
+    display: none;
+  }
+
   .boundary-toolbar .btn {
     flex: 1 1 100%;
   }
@@ -437,18 +708,77 @@
   color: var(--color-text-secondary) !important;
 }
 
+.area-comparison-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.area-comparison-diff {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.area-comparison-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.area-comparison-metric {
+  padding: 0.85rem 0.9rem;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+}
+
+.area-comparison-metric.is-empty {
+  opacity: 0.78;
+}
+
+.area-comparison-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.area-comparison-value {
+  margin: 0.35rem 0 0;
+  font-size: 1.28rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.area-comparison-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .area-comparison-card.severity-warning {
-  border-color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 55%, var(--border-default));
 }
 
 .area-comparison-card.severity-critical {
-  border-color: var(--color-error);
+  border-color: color-mix(in srgb, var(--color-error) 55%, var(--border-default));
 }
 
 .area-comparison-message,
 .area-comparison-warning {
-  margin: 0.75rem 0 0;
-  font-size: 0.875rem;
+  margin: 0.8rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
   color: var(--color-text-secondary);
 }
 
@@ -465,6 +795,12 @@
   color: var(--color-warning);
 }
 
+@media (max-width: 480px) {
+  .area-comparison-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
 .cadastre-warnings-list {
   color: var(--color-warning-dark);
   font-size: 0.9rem;
@@ -473,4 +809,257 @@
 
 [data-theme='dark'] .cadastre-warnings-list {
   color: var(--color-warning);
+}
+
+/* Full-screen boundary draw — map is the screen, steps sit on it, one action at the bottom. */
+.field-boundary-step.is-stage {
+  position: fixed;
+  z-index: calc(var(--z-sticky, 1020) - 1);
+  top: calc(var(--header-height, 56px) + var(--safe-top, 0px));
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-width, 0px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #141612;
+  display: flex;
+  min-height: 0;
+}
+
+.field-boundary-step.is-stage .field-boundary-map {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.boundary-stage-top {
+  position: absolute;
+  z-index: 1200;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.boundary-stage-top > * {
+  pointer-events: auto;
+}
+
+.boundary-stage-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-1, #fff) 94%, transparent);
+  color: var(--text-primary, #1e261c);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(12px);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.boundary-stage-back:focus-visible {
+  outline: 2px solid var(--olive-primary, #3d7a4a);
+  outline-offset: 2px;
+}
+
+.boundary-stage-top .grove-setup-level {
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 0;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-1, #fff) 92%, transparent);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.boundary-search-block.is-in-stage {
+  margin: 0;
+  width: 100%;
+  align-self: stretch;
+}
+
+.boundary-search-block.is-in-stage .boundary-toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: 100%;
+  gap: 8px;
+}
+
+.boundary-search-block.is-in-stage .boundary-typeahead {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+.boundary-search-block.is-in-stage .location-search,
+.boundary-search-block.is-in-stage .location-search-input-wrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.boundary-search-block.is-in-stage input[type='search'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  border-radius: 14px;
+  font-size: 1rem;
+  background: color-mix(in srgb, var(--surface-1, #fff) 94%, transparent);
+}
+
+.boundary-search-block.is-in-stage .boundary-locate-btn {
+  flex: 0 0 48px;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boundary-stage-sheet {
+  position: absolute;
+  z-index: 1200;
+  left: 50%;
+  right: auto;
+  width: min(28rem, calc(100% - 24px));
+  transform: translateX(-50%);
+  bottom: 12px;
+  padding: 14px 14px 12px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface-1, #fffdf8) 94%, transparent);
+  color: var(--text-primary, #1e261c);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(16px);
+}
+
+.boundary-stage-line {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.boundary-stage-sheet .boundary-location-status {
+  margin: 0 0 8px;
+}
+
+.boundary-stage-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.boundary-sheet-icon {
+  width: 52px;
+  min-height: 52px;
+  border-radius: 14px;
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.16));
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  color: var(--text-primary, #1e261c);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.boundary-sheet-primary {
+  flex: 1;
+  min-height: 52px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--olive-primary, #3d7a4a);
+  color: var(--on-olive, #fff);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 750;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.boundary-sheet-primary:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.field-boundary-step.is-stage .boundary-map-overlays {
+  top: auto;
+  right: 12px;
+  bottom: 8.5rem;
+}
+
+.field-boundary-step.is-stage .leaflet-top.leaflet-left {
+  top: 7.5rem;
+  left: 10px;
+}
+
+.field-boundary-step.is-stage .leaflet-bottom {
+  bottom: 8.25rem;
+}
+
+@media (min-width: 900px) {
+  .boundary-stage-top {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .boundary-search-block.is-in-stage {
+    flex: 1;
+    max-width: 28rem;
+  }
+}
+
+@media (max-width: 899px) {
+  .field-boundary-step.is-stage.has-back .leaflet-top.leaflet-left {
+    top: 11.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .field-boundary-step.is-stage {
+    left: 0;
+    bottom: calc(var(--bottom-nav-height, 56px) + var(--safe-bottom, 0px));
+  }
+
+  .boundary-stage-sheet {
+    left: 12px;
+    width: auto;
+    right: 12px;
+    transform: none;
+  }
+
+  .boundary-stage-top {
+    right: 10px;
+  }
+
+  .boundary-stage-top .grove-setup-level {
+    width: 100%;
+    justify-content: space-between;
+  }
 }

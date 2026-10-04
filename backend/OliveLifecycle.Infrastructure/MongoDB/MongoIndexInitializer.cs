@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using OliveLifecycle.Infrastructure.MongoDB;
 using OliveLifecycle.Infrastructure.Persistence.Documents;
@@ -28,14 +29,24 @@ public class MongoIndexInitializer : IHostedService
                 new CreateIndexModel<UserDocument>(
                     Builders<UserDocument>.IndexKeys.Ascending(u => u.Email),
                     new CreateIndexOptions { Unique = true }));
+            users.Indexes.CreateOne(
+                new CreateIndexModel<UserDocument>(
+                    Builders<UserDocument>.IndexKeys.Ascending(u => u.PasswordResetTokenHash),
+                    new CreateIndexOptions { Sparse = true, Name = "ix_users_passwordResetTokenHash" }));
 
             var fields = _context.GetCollection<FieldDocument>("fields");
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending(f => f.OwnerId)));
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
-                Builders<FieldDocument>.IndexKeys.Ascending(f => f.AssignedProducerIds)));
-            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending("memberships.userId")));
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys
+                    .Ascending("memberships.userId")
+                    .Ascending("memberships.status"),
+                new CreateIndexOptions { Name = "ix_fields_memberships_userId_status" }));
+            fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
+                Builders<FieldDocument>.IndexKeys.Ascending("memberships.role"),
+                new CreateIndexOptions { Name = "ix_fields_memberships_role", Sparse = true }));
 
             var invites = _context.GetCollection<FieldInviteDocument>("field_invites");
             invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
@@ -43,6 +54,15 @@ public class MongoIndexInitializer : IHostedService
                 new CreateIndexOptions { Unique = true }));
             invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
                 Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.FieldId)));
+            invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
+                Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.Code),
+                new CreateIndexOptions { Unique = true, Sparse = true, Name = "ix_field_invites_code" }));
+            invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
+                Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.TargetUserId).Ascending(i => i.Status),
+                new CreateIndexOptions { Sparse = true, Name = "ix_field_invites_targetUser_status" }));
+            invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
+                Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.Email).Ascending(i => i.Status),
+                new CreateIndexOptions { Sparse = true, Name = "ix_field_invites_email_status" }));
 
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(
                 Builders<FieldDocument>.IndexKeys.Ascending(f => f.Status)));
@@ -141,6 +161,14 @@ public class MongoIndexInitializer : IHostedService
             userNotifications.Indexes.CreateOne(new CreateIndexModel<UserNotificationDocument>(
                 Builders<UserNotificationDocument>.IndexKeys.Ascending(n => n.UserId).Descending(n => n.CreatedAt)));
 
+            var pushTokens = _context.GetCollection<DevicePushTokenDocument>("device_push_tokens");
+            pushTokens.Indexes.CreateOne(new CreateIndexModel<DevicePushTokenDocument>(
+                Builders<DevicePushTokenDocument>.IndexKeys.Ascending(t => t.ExpoPushToken),
+                new CreateIndexOptions { Unique = true, Name = "ix_device_push_tokens_token" }));
+            pushTokens.Indexes.CreateOne(new CreateIndexModel<DevicePushTokenDocument>(
+                Builders<DevicePushTokenDocument>.IndexKeys.Ascending(t => t.UserId),
+                new CreateIndexOptions { Name = "ix_device_push_tokens_userId" }));
+
             var savedContacts = _context.GetCollection<SavedContactDocument>("saved_contacts");
             savedContacts.Indexes.CreateOne(new CreateIndexModel<SavedContactDocument>(
                 Builders<SavedContactDocument>.IndexKeys.Ascending(c => c.OwnerUserId).Ascending(c => c.DisplayName)));
@@ -169,30 +197,18 @@ public class MongoIndexInitializer : IHostedService
                 Builders<MediaAttachmentDocument>.IndexKeys
                     .Ascending(m => m.FieldId)
                     .Descending(m => m.CreatedAt)));
-
-            var familyCircles = _context.GetCollection<FamilyCircleDocument>("family_circles");
-            familyCircles.Indexes.CreateOne(new CreateIndexModel<FamilyCircleDocument>(
-                Builders<FamilyCircleDocument>.IndexKeys.Ascending(c => c.OwnerUserId),
-                new CreateIndexOptions { Unique = true }));
-
-            var familyMembers = _context.GetCollection<FamilyMemberDocument>("family_members");
-            familyMembers.Indexes.CreateOne(new CreateIndexModel<FamilyMemberDocument>(
-                Builders<FamilyMemberDocument>.IndexKeys.Ascending(m => m.OwnerUserId).Ascending(m => m.Status)));
-            familyMembers.Indexes.CreateOne(new CreateIndexModel<FamilyMemberDocument>(
-                Builders<FamilyMemberDocument>.IndexKeys.Ascending(m => m.CircleId)));
-            familyMembers.Indexes.CreateOne(new CreateIndexModel<FamilyMemberDocument>(
-                Builders<FamilyMemberDocument>.IndexKeys.Ascending(m => m.LinkedUserId),
-                new CreateIndexOptions { Sparse = true }));
-
-            var familyInvites = _context.GetCollection<FamilyInviteDocument>("family_invites");
-            familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
-                Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.Token),
-                new CreateIndexOptions { Unique = true }));
-            familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
-                Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.Code),
-                new CreateIndexOptions { Unique = true, Sparse = true }));
-            familyInvites.Indexes.CreateOne(new CreateIndexModel<FamilyInviteDocument>(
-                Builders<FamilyInviteDocument>.IndexKeys.Ascending(i => i.CircleId).Ascending(i => i.Status)));
+            mediaAttachments.Indexes.CreateOne(new CreateIndexModel<MediaAttachmentDocument>(
+                Builders<MediaAttachmentDocument>.IndexKeys
+                    .Ascending(m => m.FieldId)
+                    .Descending(m => m.CapturedAt)));
+            mediaAttachments.Indexes.CreateOne(new CreateIndexModel<MediaAttachmentDocument>(
+                Builders<MediaAttachmentDocument>.IndexKeys
+                    .Ascending(m => m.ContentHash)
+                    .Ascending(m => m.FieldId)));
+            mediaAttachments.Indexes.CreateOne(new CreateIndexModel<MediaAttachmentDocument>(
+                Builders<MediaAttachmentDocument>.IndexKeys
+                    .Ascending(m => m.UploadedByUserId)
+                    .Ascending(m => m.FieldAssignment)));
 
             EnsureGeospatialIndexes();
 
@@ -242,6 +258,15 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(r => r.PeriodType)
                 .Ascending(r => r.Year)
                 .Ascending(r => r.Month),
+            new CreateIndexOptions { Unique = true }));
+
+        var weatherExtremes = _context.GetCollection<FieldWeatherExtremeEventDocument>("field_weather_extreme_events");
+        weatherExtremes.Indexes.CreateOne(new CreateIndexModel<FieldWeatherExtremeEventDocument>(
+            Builders<FieldWeatherExtremeEventDocument>.IndexKeys
+                .Ascending(e => e.FieldId)
+                .Descending(e => e.OccurredAt)));
+        weatherExtremes.Indexes.CreateOne(new CreateIndexModel<FieldWeatherExtremeEventDocument>(
+            Builders<FieldWeatherExtremeEventDocument>.IndexKeys.Ascending(e => e.DedupKey),
             new CreateIndexOptions { Unique = true }));
 
         var observations = _context.GetCollection<FieldSatelliteObservationDocument>("field_satellite_observations");
@@ -351,9 +376,18 @@ public class MongoIndexInitializer : IHostedService
             Builders<FieldTaskDocument>.IndexKeys
                 .Ascending(t => t.AssignedUserId)
                 .Ascending(t => t.Status)));
+        // Partial (not sparse): multiple missing/null proposalId values must be allowed;
+        // uniqueness only applies when proposalId is a real string. Drop legacy sparse unique if present.
+        try { fieldTasks.Indexes.DropOne("proposalId_1"); }
+        catch (MongoCommandException) { /* index may not exist */ }
         fieldTasks.Indexes.CreateOne(new CreateIndexModel<FieldTaskDocument>(
             Builders<FieldTaskDocument>.IndexKeys.Ascending(t => t.ProposalId),
-            new CreateIndexOptions { Unique = true, Sparse = true }));
+            new CreateIndexOptions<FieldTaskDocument>
+            {
+                Unique = true,
+                Name = "proposalId_1",
+                PartialFilterExpression = Builders<FieldTaskDocument>.Filter.Type(t => t.ProposalId, BsonType.String)
+            }));
         fieldTasks.Indexes.CreateOne(new CreateIndexModel<FieldTaskDocument>(
             Builders<FieldTaskDocument>.IndexKeys.Ascending(t => t.RelatedHarvestId),
             new CreateIndexOptions { Sparse = true }));
@@ -386,5 +420,150 @@ public class MongoIndexInitializer : IHostedService
             Builders<HarvestRecordDocument>.IndexKeys
                 .Ascending(h => h.FieldId)
                 .Ascending(h => h.ResultYear)));
+
+        var oilCellars = _context.GetCollection<OilCellarDocument>("oil_cellars");
+        oilCellars.Indexes.CreateOne(new CreateIndexModel<OilCellarDocument>(
+            Builders<OilCellarDocument>.IndexKeys.Ascending(c => c.OwnerPersonId),
+            new CreateIndexOptions { Unique = true, Name = "ix_oil_cellars_ownerPersonId" }));
+
+        var oilLots = _context.GetCollection<OilLotDocument>("oil_lots");
+        // Batch ids are unique per cellar now. The legacy owner+batch unique index would reject a
+        // pressing split across two cellars of the same person, so it is demoted to a plain index.
+        try { oilLots.Indexes.DropOne("ix_oil_lots_owner_batch"); }
+        catch (MongoCommandException) { /* index may not exist */ }
+        oilLots.Indexes.CreateOne(new CreateIndexModel<OilLotDocument>(
+            Builders<OilLotDocument>.IndexKeys
+                .Ascending(l => l.OwnerUserId)
+                .Ascending(l => l.BatchId),
+            new CreateIndexOptions { Name = "ix_oil_lots_owner_batch" }));
+        // Partial (not sparse): pre-cellar lots have no cellarId and must not collide with each other.
+        oilLots.Indexes.CreateOne(new CreateIndexModel<OilLotDocument>(
+            Builders<OilLotDocument>.IndexKeys
+                .Ascending(l => l.CellarId)
+                .Ascending(l => l.BatchId),
+            new CreateIndexOptions<OilLotDocument>
+            {
+                Unique = true,
+                Name = "ix_oil_lots_cellar_batch",
+                PartialFilterExpression = Builders<OilLotDocument>.Filter.Type(l => l.CellarId, BsonType.String)
+            }));
+        oilLots.Indexes.CreateOne(new CreateIndexModel<OilLotDocument>(
+            Builders<OilLotDocument>.IndexKeys
+                .Ascending(l => l.OwnerUserId)
+                .Ascending(l => l.ResultYear)
+                .Ascending(l => l.PressedOn),
+            new CreateIndexOptions { Name = "ix_oil_lots_owner_year_pressed" }));
+        oilLots.Indexes.CreateOne(new CreateIndexModel<OilLotDocument>(
+            Builders<OilLotDocument>.IndexKeys.Ascending(l => l.SourcePressingId),
+            new CreateIndexOptions { Sparse = true, Name = "ix_oil_lots_sourcePressingId" }));
+
+        var oilPressings = _context.GetCollection<OilPressingDocument>("oil_pressings");
+        oilPressings.Indexes.CreateOne(new CreateIndexModel<OilPressingDocument>(
+            Builders<OilPressingDocument>.IndexKeys
+                .Ascending(p => p.RecordedByUserId)
+                .Ascending(p => p.BatchId),
+            new CreateIndexOptions { Unique = true, Name = "ix_oil_pressings_recorder_batch" }));
+        oilPressings.Indexes.CreateOne(new CreateIndexModel<OilPressingDocument>(
+            Builders<OilPressingDocument>.IndexKeys
+                .Ascending(p => p.RecordedByUserId)
+                .Ascending(p => p.ResultYear)
+                .Descending(p => p.PressedOn),
+            new CreateIndexOptions { Name = "ix_oil_pressings_recorder_year_pressed" }));
+        // Grove admins pull the pressings still waiting for a cellar split.
+        oilPressings.Indexes.CreateOne(new CreateIndexModel<OilPressingDocument>(
+            Builders<OilPressingDocument>.IndexKeys
+                .Ascending(p => p.Status)
+                .Ascending(p => p.FieldIds)
+                .Descending(p => p.PressedOn),
+            new CreateIndexOptions { Name = "ix_oil_pressings_status_fields_pressed" }));
+
+        var oilCommitments = _context.GetCollection<OilCommitmentDocument>("oil_commitments");
+        oilCommitments.Indexes.CreateOne(new CreateIndexModel<OilCommitmentDocument>(
+            Builders<OilCommitmentDocument>.IndexKeys
+                .Ascending(c => c.OwnerUserId)
+                .Descending(c => c.CreatedAt),
+            new CreateIndexOptions { Name = "ix_oil_commitments_owner_created" }));
+        oilCommitments.Indexes.CreateOne(new CreateIndexModel<OilCommitmentDocument>(
+            Builders<OilCommitmentDocument>.IndexKeys
+                .Ascending(c => c.CellarId)
+                .Descending(c => c.CreatedAt),
+            new CreateIndexOptions { Sparse = true, Name = "ix_oil_commitments_cellar_created" }));
+
+        var oilShareRequests = _context.GetCollection<OilShareRequestDocument>("oil_share_requests");
+        oilShareRequests.Indexes.CreateOne(new CreateIndexModel<OilShareRequestDocument>(
+            Builders<OilShareRequestDocument>.IndexKeys
+                .Ascending(r => r.FromOwnerUserId)
+                .Ascending(r => r.Status)
+                .Descending(r => r.CreatedAt),
+            new CreateIndexOptions { Name = "ix_oil_share_requests_from_status" }));
+        oilShareRequests.Indexes.CreateOne(new CreateIndexModel<OilShareRequestDocument>(
+            Builders<OilShareRequestDocument>.IndexKeys
+                .Ascending(r => r.ToUserId)
+                .Ascending(r => r.Status)
+                .Descending(r => r.CreatedAt),
+            new CreateIndexOptions { Name = "ix_oil_share_requests_to_status" }));
+
+        var stockMovements = _context.GetCollection<StockMovementDocument>("stock_movements");
+        stockMovements.Indexes.CreateOne(new CreateIndexModel<StockMovementDocument>(
+            Builders<StockMovementDocument>.IndexKeys
+                .Ascending(m => m.OwnerUserId)
+                .Descending(m => m.OccurredOn),
+            new CreateIndexOptions { Name = "ix_stock_movements_owner_occurred" }));
+        stockMovements.Indexes.CreateOne(new CreateIndexModel<StockMovementDocument>(
+            Builders<StockMovementDocument>.IndexKeys
+                .Ascending(m => m.CellarId)
+                .Descending(m => m.OccurredOn),
+            new CreateIndexOptions { Sparse = true, Name = "ix_stock_movements_cellar_occurred" }));
+        // Both legs of a transfer share one id, so the pair can be read back together.
+        stockMovements.Indexes.CreateOne(new CreateIndexModel<StockMovementDocument>(
+            Builders<StockMovementDocument>.IndexKeys.Ascending(m => m.TransferId),
+            new CreateIndexOptions { Sparse = true, Name = "ix_stock_movements_transferId" }));
+        // An undo points back at what it undid, so a movement can be shown as already reversed.
+        stockMovements.Indexes.CreateOne(new CreateIndexModel<StockMovementDocument>(
+            Builders<StockMovementDocument>.IndexKeys.Ascending(m => m.ReversalOfMovementId),
+            new CreateIndexOptions { Sparse = true, Name = "ix_stock_movements_reversalOf" }));
+
+        var feedback = _context.GetCollection<UserFeedbackDocument>("user_feedback");
+        feedback.Indexes.CreateOne(new CreateIndexModel<UserFeedbackDocument>(
+            Builders<UserFeedbackDocument>.IndexKeys
+                .Ascending(f => f.UserId)
+                .Descending(f => f.CreatedAt),
+            new CreateIndexOptions { Name = "ix_user_feedback_userId_createdAt" }));
+        feedback.Indexes.CreateOne(new CreateIndexModel<UserFeedbackDocument>(
+            Builders<UserFeedbackDocument>.IndexKeys
+                .Ascending(f => f.SeenAt)
+                .Descending(f => f.CreatedAt),
+            new CreateIndexOptions { Name = "ix_user_feedback_seenAt_createdAt" }));
+
+        var campaigns = _context.GetCollection<InAppCampaignDocument>("in_app_campaigns");
+        campaigns.Indexes.CreateOne(new CreateIndexModel<InAppCampaignDocument>(
+            Builders<InAppCampaignDocument>.IndexKeys
+                .Ascending(c => c.Status)
+                .Ascending(c => c.StartsAt)
+                .Ascending(c => c.EndsAt),
+            new CreateIndexOptions { Name = "ix_in_app_campaigns_status_window" }));
+
+        var engagements = _context.GetCollection<CampaignEngagementDocument>("campaign_engagements");
+        engagements.Indexes.CreateOne(new CreateIndexModel<CampaignEngagementDocument>(
+            Builders<CampaignEngagementDocument>.IndexKeys
+                .Ascending(e => e.UserId)
+                .Ascending(e => e.CampaignId),
+            new CreateIndexOptions { Unique = true, Name = "ix_campaign_engagements_user_campaign" }));
+        engagements.Indexes.CreateOne(new CreateIndexModel<CampaignEngagementDocument>(
+            Builders<CampaignEngagementDocument>.IndexKeys.Ascending(e => e.CampaignId),
+            new CreateIndexOptions { Name = "ix_campaign_engagements_campaign" }));
+
+        var answers = _context.GetCollection<CampaignAnswerDocument>("campaign_answers");
+        answers.Indexes.CreateOne(new CreateIndexModel<CampaignAnswerDocument>(
+            Builders<CampaignAnswerDocument>.IndexKeys
+                .Ascending(a => a.UserId)
+                .Ascending(a => a.CampaignId)
+                .Ascending(a => a.QuestionId),
+            new CreateIndexOptions { Unique = true, Name = "ix_campaign_answers_user_campaign_question" }));
+        answers.Indexes.CreateOne(new CreateIndexModel<CampaignAnswerDocument>(
+            Builders<CampaignAnswerDocument>.IndexKeys
+                .Ascending(a => a.CampaignId)
+                .Descending(a => a.CreatedAt),
+            new CreateIndexOptions { Name = "ix_campaign_answers_campaign_createdAt" }));
     }
 }

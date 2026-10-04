@@ -10,6 +10,7 @@ import {
 import { formatOfficialAmount } from '../../finance/format';
 import { formatQuantityLine } from '../../finance/moneyUi';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import './Money.css';
 
 type Props = {
@@ -29,6 +30,7 @@ const iconFor = (category?: string) => {
 };
 
 const FinancialTransactionRow: React.FC<Props> = ({ item, locale, fieldNames, relatedLabel, onOpen }) => {
+  const { formatDate } = useLocaleFormatters();
   const Icon = iconFor(item.category);
   const category = item.category
     ? item.categoryLabel && !isRawFinancialValue(item.categoryLabel)
@@ -39,11 +41,7 @@ const FinancialTransactionRow: React.FC<Props> = ({ item, locale, fieldNames, re
     ? fieldNames[item.fieldId] || friendlyFieldLabel(item.fieldId)
     : unassignedFieldLabel(locale);
   const qty = formatQuantityLine(item.quantity, item.quantityUnit, item.unitPrice, locale);
-  const date = new Date(item.occurredOn).toLocaleDateString(locale, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  const date = formatDate(item.occurredOn);
   const sign = item.type === 'income' ? '+' : '−';
   const showStatus = item.status === 'draft' || item.status === 'void';
 

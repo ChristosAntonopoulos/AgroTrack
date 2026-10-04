@@ -2,6 +2,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { HarvestRecord } from '../../services/harvestService';
 import { formatLitres } from '../../finance/format';
+import { amountPlaceholderForLocale } from '../../finance/decimalEntry';
+import { uniqueRelatedHarvestLabels } from '../../finance/relatedHarvestLabel';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 
 type Props = {
   mode: 'litres' | 'total';
@@ -16,8 +19,11 @@ type Props = {
   harvests: HarvestRecord[];
   harvestId: string;
   onHarvestChange: (id: string) => void;
+  fieldName?: string;
   availableLitres?: number | null;
   exceedsAvailable: boolean;
+  /** When false, harvest link is omitted (shown under More details). */
+  showHarvestLink?: boolean;
 };
 
 const OliveOilSaleFields: React.FC<Props> = ({
@@ -33,46 +39,63 @@ const OliveOilSaleFields: React.FC<Props> = ({
   harvests,
   harvestId,
   onHarvestChange,
+  fieldName,
   availableLitres,
   exceedsAvailable,
+  showHarvestLink = true,
 }) => {
-  const { t, i18n } = useTranslation('capture');
+  const { t, i18n } = useTranslation(['capture', 'money']);
+  const { dateFormat } = useLocaleFormatters();
+  const harvestLabels = uniqueRelatedHarvestLabels(harvests, {
+    fieldName,
+    locale: i18n.language,
+    dateFormat,
+    statusLabel: (status) =>
+      status === 'voided' ? t('money:harvestStatusVoided') : t('money:harvestStatusPosted'),
+  });
 
   return (
-    <div>
-      <div className="money-form-label">{t('money.oliveOilTitle')}</div>
-      <div className="money-type-toggle" role="tablist">
-        <button type="button" role="tab" aria-selected={mode === 'litres'} onClick={() => onModeChange('litres')}>
-          {t('money.litresTimesPrice')}
-        </button>
-        <button type="button" role="tab" aria-selected={mode === 'total'} onClick={() => onModeChange('total')}>
-          {t('money.totalOnly')}
-        </button>
+    <div className="money-calc-card">
+      <div className="money-calc-card__head">
+        <span>{t('money.oliveOilTitle')}</span>
+        {mode === 'litres' ? (
+          <button type="button" className="money-quiet-link" onClick={() => onModeChange('total')}>
+            {t('money.totalOnly')}
+          </button>
+        ) : (
+          <button type="button" className="money-quiet-link" onClick={() => onModeChange('litres')}>
+            {t('money.litresTimesPrice')}
+          </button>
+        )}
       </div>
 
       {mode === 'litres' ? (
         <>
-          <label className="money-form-label">
-            {t('money.howManyLitres')}
-            <input
-              inputMode="decimal"
-              value={litres}
-              onChange={(e) => onLitresChange(e.target.value)}
-              aria-label={t('money.howManyLitres')}
-            />
-          </label>
-          <label className="money-form-label">
-            {t('money.pricePerLitre')}
-            <div className="money-amount-input">
+          <div className="money-qty-grid">
+            <label className="money-form-label">
+              {t('money.howManyLitres')}
               <input
                 inputMode="decimal"
-                value={unitPrice}
-                onChange={(e) => onUnitPriceChange(e.target.value)}
-                aria-label={t('money.pricePerLitre')}
+                value={litres}
+                onChange={(e) => onLitresChange(e.target.value)}
+                aria-label={t('money.howManyLitres')}
+                placeholder={amountPlaceholderForLocale(i18n.language)}
               />
-              <span>€/L</span>
-            </div>
-          </label>
+            </label>
+            <label className="money-form-label">
+              {t('money.pricePerLitre')}
+              <div className="money-amount-input">
+                <input
+                  inputMode="decimal"
+                  value={unitPrice}
+                  onChange={(e) => onUnitPriceChange(e.target.value)}
+                  aria-label={t('money.pricePerLitre')}
+                  placeholder={amountPlaceholderForLocale(i18n.language)}
+                />
+                <span>€/L</span>
+              </div>
+            </label>
+          </div>
           <div className="money-form-label">
             {t('money.totalAmount')}
             <div className="money-calc-value" aria-live="polite">
@@ -81,37 +104,39 @@ const OliveOilSaleFields: React.FC<Props> = ({
           </div>
         </>
       ) : (
-        <>
-          <label className="money-form-label">
-            {t('money.totalAmount')}
-            <div className="money-amount-input">
-              <input inputMode="decimal" value={amount} onChange={(e) => onAmountChange(e.target.value)} />
-              <span>€</span>
-            </div>
-          </label>
-          <button type="button" className="money-text-link" onClick={() => onModeChange('litres')}>
-            {t('money.addLitresAndPrice')}
-          </button>
-        </>
+        <label className="money-form-label">
+          {t('money.totalAmount')}
+          <div className="money-amount-input">
+            <input
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => onAmountChange(e.target.value)}
+              aria-label={t('money.totalAmount')}
+              placeholder={amountPlaceholderForLocale(i18n.language)}
+            />
+            <span>€</span>
+          </div>
+        </label>
       )}
 
-      <label className="money-form-label">
-        {t('money.fromWhichHarvest')}
-        <select
-          value={harvestId}
-          onChange={(e) => onHarvestChange(e.target.value)}
-          aria-label={t('money.relatedHarvest')}
-        >
-          <option value="">{t('money.noLink')}</option>
-          <option value="later">{t('money.linkLater')}</option>
-          {harvests.map((harvest) => (
-            <option key={harvest.id} value={harvest.id}>
-              {harvest.harvestDate.slice(0, 10)}
-              {harvest.millName ? ` · ${harvest.millName}` : ''}
-            </option>
-          ))}
-        </select>
-      </label>
+      {showHarvestLink ? (
+        <label className="money-form-label">
+          {t('money.fromWhichHarvest')}
+          <select
+            value={harvestId}
+            onChange={(e) => onHarvestChange(e.target.value)}
+            aria-label={t('money.relatedHarvest')}
+          >
+            <option value="">{t('money.noLink')}</option>
+            <option value="later">{t('money.linkLater')}</option>
+            {harvests.map((harvest) => (
+              <option key={harvest.id} value={harvest.id}>
+                {harvestLabels.get(harvest.id) || harvest.harvestDate.slice(0, 10)}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       {availableLitres != null ? (
         <p className="money-summary-note">
           {t('money.recordedAvailable', {

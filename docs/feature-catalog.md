@@ -1,38 +1,29 @@
 # AgroTrack Feature Catalog
 
-This document is an inventory of product features that exist in the AgroTrack / Olive Lifecycle codebase as of **2026-09-08**. It covers the website (`frontend/`) and the mobile app (`mobile/`), both experience modes (**Everyday** and **Full picture**), and every user role that changes what is shown. It does not evaluate quality, completeness, or UX. The in-app brand name is **Oleachron**.
+This document is an inventory of product features that exist in the AgroTrack / Olive Lifecycle codebase as of **2026-09-11**. It covers the website (`frontend/`) and the mobile app (`mobile/`), and every user role that changes what is shown. It does not evaluate quality, completeness, or UX. The in-app brand name is **Oleachron**.
 
 ## How to read this document
 
-- **Modes** are `everyday` and `full` (`ExperienceMode`). The UI labels them **Everyday** and **Full picture**.
+- **Experience modes (Everyday / Full) were retired on 2026-09-11.** The app uses a single UI (the former Full surface). Older “Modes: Everyday / Full” notes later in this catalog are historical and should be ignored.
 - **User types** are JWT roles plus field membership capacities and family-circle access. A page may be reachable by role in the nav, then further limited by field ownership, family modules, or capacity.
 - **Website** paths are React Router routes. **Mobile** names are React Navigation screen names (tabs and stacks). Deep-link paths use the `oleachron://` and `https://app.oleachron.app` prefixes.
 - **Information shown** lists data fields, sections, widgets, and actions that the code renders. Form inputs are listed for create/edit screens.
 - If a feature exists on only one platform, that is stated.
 
-## Modes
+## Modes (retired)
 
-The flag is **`ExperienceMode`**: `'everyday' | 'full'`.
+Everyday / Simple vs Full picture is **removed**. There is no chooser, header toggle, or widget catalog.
 
 | Fact | Detail |
 | --- | --- |
-| Type | `frontend/src/experience/types.ts`, `mobile/src/experience/types.ts` |
-| Persistence | Local preferences plus `PUT /api/v1/users/me/preferences` (`UserExperiencePreferencesDto.ExperienceMode`, default `"everyday"`) |
-| Chosen flag | `experienceModeChosen` — until the user picks a mode, MainLayout redirects to the chooser |
-| Role default (until chosen) | `Agronomist` and `Administrator` → `full`. `FieldOwner`, `Producer`, `ServiceProvider`, and unset → `everyday` (`defaultExperienceModeForRole`) |
-| Who can change it | Any signed-in user, from the header toggle (website), Settings, More (mobile), or the first-run chooser |
-| Home after switch | Everyday → `/today` (website) or Today tab (mobile). Full → `/dashboard` except `Producer`, who still homes to Today |
-| Everyday widgets (allow-list) | `fieldMapDefault`, `todayAction`, `weatherAdvice`, `nextTasks`, `peopleStrip`, `alertsPlain`, `fieldCosts`, `myActions`, `recentNotes` |
-| Full-only widgets | `fieldIntelligence`, `satelliteLayers`, `mapLayerPanel`, `cadastreDetails`, `analyticsNav`, `reportsNav`, `dataSourcesNav`, `calendarMonthView`, `calendarWeekView`, `calendarFieldView`, `taskBoardView`, `dashboardStats`, `advisorComments`, `peopleStats`, `myActionsDetail` |
-| Everyday website nav (primary) | `/today`, `/fields`, `/tasks`, `/money`, `/partners`, `/settings` |
-| Everyday website (More / Settings) | `/calendar`, `/ministry`, `/this-harvest`, `/notes` |
-| Everyday website blocked | `/dashboard` redirects to `/today`. `/analytics`, `/reports`, `/data-sources` redirect to `/today` |
-| Everyday mobile tabs | Today, Fields, Tasks, More. Dashboard and Calendar stay mounted but hidden; opened from More |
-| Full-picture onramp | After two Everyday “peek” opens of field intelligence, a banner offers switching to Full picture (`shouldShowFullPictureOnramp`) |
-| Comfort prefs stored with mode | `fontScale` (`default` / `large` / `xl`), `largeControls` |
-| Web storage key | `olive_lifecycle_preferences` in `localStorage` (also `everydayIntelligenceOpens`, `fullPictureOnrampDismissed`) |
-| Mobile storage keys | `@Oleachron_experience_mode`, `@Oleachron_experience_chosen`, `@Oleachron_font_scale`, `@Oleachron_large_controls`, plus theme/language/tutorial flags |
-| Web document attributes | `data-experience`, `data-font-scale`, `data-large-controls`; CSS `--font-scale`, `--tap-min`, `--ui-density` |
+| Current UI | Single surface (former Full): field map layer panel, money per-hectare, calendar view tabs, reports by role |
+| Comfort prefs | `fontScale` (`default` / `large` / `xl`), `largeControls` — Settings only |
+| Web storage key | `olive_lifecycle_preferences` in `localStorage` |
+| Mobile storage keys | `@Oleachron_font_scale`, `@Oleachron_large_controls`, plus theme/language/tutorial flags |
+| Web document attributes | `data-font-scale`, `data-large-controls`; CSS `--font-scale`, `--tap-min`, `--ui-density` |
+| Backend | `UserExperiencePreferences.ExperienceMode` may still exist in Mongo for older clients; new clients do not use it for UI |
+
+See [Experience-Modes.md](./wiki/07-Design-and-UX/Experience-Modes.md).
 
 ## User types
 
@@ -42,11 +33,11 @@ New public registrations are always **`FieldOwner`**. `Producer`, `ServiceProvid
 
 | Role | Code name | Typical home | Notes from code |
 | --- | --- | --- | --- |
-| Field owner | `FieldOwner` | Everyday: Today. Full: Dashboard | Can own fields, offer services, manage family, approve tasks, create fields |
-| Producer | `Producer` | Today in both modes | Task list filtered to assigned user; cannot create fields (`canCreate` is false when role is Producer) |
-| Agronomist | `Agronomist` | Default Full | Advise capacity; fields/tasks/partners/money/calendar/ministry/settings |
-| Administrator | `Administrator` | Default Full | Same insight pages as FieldOwner plus Data sources |
-| Service provider | `ServiceProvider` | Everyday default | Nav: Today, Partners, Calendar, Ministry, Settings. No Fields/Tasks/Money/This harvest/Analytics/Reports |
+| Field owner | `FieldOwner` | Chronologio | Can own fields, offer services, manage family, approve tasks, create fields |
+| Producer | `Producer` | Chronologio | Task list filtered to assigned user; cannot create fields (`canCreate` is false when role is Producer) |
+| Agronomist | `Agronomist` | Chronologio | Advise capacity; fields/tasks/partners/money/calendar/ministry/settings |
+| Administrator | `Administrator` | Chronologio | Same insight pages as FieldOwner plus Data sources |
+| Service provider | `ServiceProvider` | Chronologio | Nav: Partners, Calendar, Ministry, Settings. No Fields/Tasks/Money/This harvest/Analytics/Reports |
 
 There is no separate guest product role after login. Unauthenticated users see Landing, Login, Register, and invite-accept pages.
 
@@ -315,6 +306,29 @@ List and map of orchards/fields the user can access.
 
 ---
 
+## Feature: Photo Hub
+
+Dedicated gallery for field photos with EXIF-based placement.
+
+### Website
+
+- **Photo Hub** — `/photos`
+- Purpose: Bulk-upload images; server extracts GPS and capture time, suggests a field, and stores standalone photos. Users confirm ambiguous matches and may optionally link a photo to a task, observation (note), harvest, or phenology record. Linked photos are visually distinct from standalone ones. Bytes are served only via short-lived signed `/api/v1/photos/{id}/content` URLs (anonymous `/uploads/photos` is blocked). Delete soft-trashes for 30 days; collaborators may trash only their own uploads unless they are field admins.
+- Who: FieldOwner, Producer, Agronomist, Administrator. Family circle requires `fields` module. Field-level access is enforced on list, detail, content, link, unlink, and trash.
+- Modes: Not applicable (single UI).
+- Information shown: page header **Φωτογραφίες ελαιώνων** with one primary **Προσθήκη φωτογραφιών** CTA; drag/drop on pointer-fine devices (hidden native file chrome); sticky filters (Χωράφι / Σύνδεση / Αντιστοίχιση) with removable active chips and clear-all; dense gallery cards show capture date · field and link status (never filename as title); card tap opens fullscreen lightbox with details action; detail drawer shows assignment reason, exact linked-record card + open deep link, overflow trash. Empty filtered states name the active combination. Deep-links preserve `?photoId=` and filters. Chronologio collapses same-day standalone Photo Hub entries into one collage card; linked photos appear only as media on their record (no duplicate Photo event).
+- Inputs: multipart images (jpeg/png/webp/gif, 10 MB each); field confirm; optional link `ownerType` + `ownerId` (exactly one primary link — picking another moves it); optional `capturedAt` override. Same-field content-hash duplicates are skipped.
+- API: `POST /api/v1/photos/upload`, `GET /api/v1/photos`, `GET /api/v1/photos/{id}`, `GET /api/v1/photos/{id}/content?variant=&exp=&sig=`, `PATCH /api/v1/photos/{id}/field`, `PATCH /api/v1/photos/{id}`, `POST /api/v1/photos/{id}/link`, `POST /api/v1/photos/{id}/unlink`, `DELETE /api/v1/photos/{id}` (trash).
+
+### Mobile
+
+- **Photos** — root stack `Photos` (`fieldId?`, `photoId?`, `importNearby?`), opened from More (same roles as Money: FieldOwner, Producer, Agronomist, Administrator). Field ··· menu also offers **Import nearby photos** (opens hub with `importNearby`).
+- Purpose: Same hub-first ingest as web — pick from camera/library (online only), server EXIF placement, review ambiguous matches, optional link to task / note / harvest / phenology, permission-aware trash. Primary sheet offers **Λήψη φωτογραφίας** and **Επιλογή από συσκευή**; import-nearby remains secondary. Grid cards show date · field overlay; tap opens fullscreen pager, long-press opens details with linked-record identity and Athens-locale dates. Signed media URLs from API; Chronologio same-day photo stacks match web (standalone only — linked photos stay on their record).
+- Chronologio peek: `sourceType: Photo` opens Photo Hub with `photoId`.
+- Not a bottom tab (mirrors Money).
+
+---
+
 ## Feature: Field create and edit
 
 Wizard to add or edit a field, including cadastre and boundary.
@@ -442,32 +456,26 @@ Field tasks / proposals / year plan exist. Full work-profile CRUD and learning c
 
 ## Feature: Tasks
 
-List and board of work items.
+Farmer workflow for field work: see what needs attention, decide when, start, record the result, find it later.
 
 ### Website
 
-- **Tasks list** — `/tasks` (query `?focus=`, `?status=`)
-- Purpose: Filter, search, and open FieldTasks and proposals.
-- Who: Nav `FieldOwner`, `Producer`, `Agronomist`. Family needs module `tasks`. Producer API filter uses `assignedTo=userId`.
-- Modes: Everyday forces **list** (no board). Full can toggle list/board when `taskBoardView`.
-- Information shown:
-  - Title; subtitle producer vs default
-  - Owner: New task → `/tasks/new` (manual or from a proposal)
-  - Summary: active, overdue, due today
-  - Filters: search; focus pills; field; sort; status
-  - Proposal cards from FieldWork eligibility / engine
-  - Task rows with status, title, field, schedule
-  - Empty: no tasks (owner CTA) or no search results
-
-FieldTask-oriented records (proposals + field tasks). Legacy global `TaskItem` / olive template browse UX removed.
+- **Tasks** — `/tasks` (query `?view=now|upcoming|proposals|history`, optional `year`, `field`, `assignee`, `task`)
+- Purpose: Operational home for work. Default view is **Τώρα** (not proposals).
+- Who: Nav `FieldOwner`, `Producer`, `Agronomist`. Family needs module `tasks`.
+- Views:
+  - **Τώρα** — attention (with reason), in progress, today, this-week preview
+  - **Επόμενες** — tomorrow / this week / next week / later / undated; list default, optional calendar
+  - **Προτάσεις** — grouped by template + window; priority sections; schedule group sheet; three-way dismiss
+  - **Ιστορικό** — completed/cancelled with Chronologio banner
+- Agricultural stage strip (not a task status) links to Chronologio year view
+- Task detail opens as right drawer (desktop) / full sheet (mobile) via `?task=`; `/tasks/:id` remains for deep links
+- Primary next action always visible; overflow holds edit/copy/change status/cancel
+- No Kanban/board as primary view
 
 ### Mobile
 
-- **Tasks** — tab `Tasks` (`tasks`, optional `fieldId`, `filter`)
-- Purpose: Same list.
-- Who: Authenticated. Tab badge = overdue + `approvalStatus === 'pending'`.
-- Modes: Everyday compact cards, 3-line header, no search. Full: search, sort (`due` | `priority` | `field` | `recent`), density.
-- Information: chips `all` | `pending` | `in_progress` | `completed` plus `approval` for FieldOwner; `TaskCard` rows; empty; owner can open CreateTask.
+- **Tasks** — same farmer workflow as web: Τώρα / Επόμενες / Προτάσεις / Ιστορικό (default Τώρα), season strip, grouped proposals, start/pause/undo, completion wizard.
 
 ---
 
@@ -478,7 +486,7 @@ Create a FieldTask manually or schedule from a proposal.
 ### Website
 
 - **New task** — `/tasks/new` (query `fieldId`, `proposalId`)
-- Purpose: `TaskFormPage` schedules work from a proposal or as a manual task (type, dates, assignee suggestions from FieldWorkProfile).
+- Purpose: Short guided flow (what → where → when → who → review), not a single long form.
 - Who: Users who can create FieldTasks for the field.
 - Modes: Both.
 
@@ -490,30 +498,19 @@ Create a FieldTask manually or schedule from a proposal.
 
 ## Feature: Task detail
 
-Single task: status, assignment, evidence, partner CTA.
+Single task: status, next step, checklist, assignment, evidence.
 
 ### Website
 
-- **Task detail** — `/tasks/:id`
-- Purpose: View and progress one task.
-- Who: Users who can load the task. Edit/approve/assign: FieldOwner. Status change: FieldOwner or Producer assigned to the task (`canEdit`).
-- Modes: Both.
-- Information shown:
-  - Title, `status`, `approvalStatus`
-  - Description
-  - Field name (link), assigned user (`firstName`, `lastName`, `email`), scheduled start/end, actual start/end, `type`, `lifecycleYear`
-  - FieldOwner: Need help / Find partner → `/partners?fieldId=&taskId=&from=task&taskType=&start=&end=`
-  - Actions: Approve / Reject (prompt `approvalNote`) when completed + pending; Mark as in_progress / completed; assign or reassign producer select
-  - Evidence upload (`EvidenceUpload`, `kind: 'general'`)
-  - Edit button (FieldOwner) → `/tasks/:id/edit` (route not registered in `App.tsx`)
-  - Not-found / load-error states
+- **Task detail** — `/tasks/:id` and list drawer via `?task=`
+- Purpose: One persistent next-step action area (start / continue checks / record result). No duplicate sticky Complete over the checklist.
+- Who: Users who can load the task.
+- Completion — `/tasks/:id/complete` as a short sheet: checks → result → cost → confirm → Chronologio.
 
 ### Mobile
 
 - **TaskDetail** — stack `TaskDetail` (`taskId`)
-- Purpose: Same. Everyday hides `TaskStatusStepper` (`taskDetailStatusStepper`) and extra detail (`taskDetailMore`). Harvest-phase checklists (`prepare` / `daily` / `final`). `harvest-final` focus. `canOwn` / `canWork` / `canAdvise` for start/complete/approve.
-- Information: title, status, approval, field, assignee, schedule, type, lifecycle year, evidence form, partner/find-help when applicable. FieldOwner-only edit. Producer: add photo, add note, save. Owner: save, harvest extras, delete.
-
+- Purpose: Same farmer workflow as web (Τώρα default, completion wizard, pause/start).
 ---
 
 ## Feature: Calendar
@@ -572,47 +569,42 @@ Field-scoped expenses and income.
 
 ---
 
-## Feature: This harvest
+## Feature: This harvest / Harvest campaign
 
-Season rollup of olives, spend, and income across fields.
+Live harvest season cockpit (grove order, daily kg, pause/stop) plus season review.
 
 ### Website
 
-- **This harvest** — `/this-harvest`
-- Purpose: Current harvest season totals and per-field cards.
+- **Harvest campaign** — `/harvest` (primary). `/this-harvest` redirects here.
+- Client campaign state: `idle | active | paused | closed` in localStorage (`HarvestCampaignContext`).
+- Durable olives/oil: `POST /api/v1/harvest-records` and/or Capture.
 - Who: Nav `FieldOwner`, `Administrator`. Family needs module `harvest`.
-- Modes: Everyday allowed under More paths; Full in operations nav.
-- Information shown:
-  - Title; season year (`currentHarvestSeason`)
-  - Totals: olive kg, spent (`totalExpenses`), received (`totalIncome`), net (`netProfit`)
-  - Per-field cards: `fieldName` (link to field), olive kg, spent, received (if > 0)
-  - Empty title/hint when all zeros
-- Data: harvest records, profit/loss, field summaries for the season.
+- End-of-season review: `/this-harvest/review`.
 
 ### Mobile
 
-- **ThisHarvest** — stack `ThisHarvest` (`this-harvest`); More item when `isFieldOwner()`.
-- Purpose: Same season totals.
+- **HarvestCampaign** — stack `HarvestCampaign` (`harvest`); deep link `this-harvest` opens the same screen.
+- More / Dashboard entry when `isFieldOwner()`; live label when campaign is active/paused.
+- AsyncStorage campaign state mirrors web; Capture for durable create; Review remains `ThisHarvestReview`.
 
 ---
 
 ## Feature: Harvest recording
 
-Log a harvest event on a field (Full picture panel).
+Log a harvest event (Capture-first; campaign day log also posts records).
 
 ### Website
 
-- Not a standalone route. **FieldHarvestPanel** on Field detail when `isFullPicture`.
+- Create path: **Capture** drawer (`preferredType: 'harvest'`), not an embedded field panel.
 - Who: Create needs family module `harvest` plus `work` (or `canOwn`). Void: field owner or Administrator.
-- Modes: **Full only** on website field detail.
-- List: posted `HarvestRecord` — `harvestDate`, `oliveKg`, `oilKg`, `oilYieldPercent`, `workersUsed`, `harvestMethod`, `millName`, `qualityGrade`, `notes`, `status`
-- Create form: `harvestDate`, `oliveKg` (required), `oilKg`, `workers`, `method`, `millName`, `saleAmount`, `millCost`, `notes`
-- Actions: add (can auto-create financial entries from `saleAmount` income and `millCost` expense), void (also voids linked financial entries)
+- List fields: posted `HarvestRecord` — date, olive kg, oil kg/litres, workers, mill, notes, status.
+- Campaign “save today” also creates a harvest record then updates local day log.
 
 ### Mobile
 
-- `FieldHarvestCard` on Field detail in **Everyday** (compact) and Full. `focus: 'harvest' | 'harvest-final'` scrolls to it. Add: `canWork`. Void: `canOwn`.
-
+- Capture sheet harvest create; field detail `focus: 'harvest' | 'harvest-final'` opens Capture.
+- Thin `FieldHarvestCard` on field overview: season summary + Log harvest / open campaign (no third create form).
+- Void: `canOwn` from the thin card.
 ---
 
 ## Feature: Lifecycle
@@ -1055,7 +1047,8 @@ Not a standalone route on either platform.
 | `/partners` | yes | yes | yes | yes | yes |
 | `/money` | yes | yes | yes | yes | no |
 | `/calendar` | yes | yes | yes | yes | yes |
-| `/this-harvest` | yes | no | no | yes | no |
+| `/harvest` | yes | no | no | yes | no |
+| `/this-harvest` | yes (redirects to `/harvest`) | no | no | yes | no |
 | `/analytics` | yes | no | no | yes | no |
 | `/reports` | yes | no | no | yes | no |
 | `/ministry` | yes | yes | yes | yes | yes |
@@ -1113,7 +1106,7 @@ Everyday additionally hides Dashboard, Analytics, Reports, Data sources regardle
 | Task detail | `/tasks/:id` | TaskDetail | Both | Task access; owner approve/assign |
 | Calendar | `/calendar` | Calendar (hidden) | Web Everyday agenda; mobile Everyday agenda + month; Full week/field | All JWT roles; family `calendar` |
 | Money / costs | `/money` | Money | Both (compact vs detailed) | FieldOwner, Producer, Agronomist, Administrator; family `money` |
-| This harvest | `/this-harvest` | ThisHarvest | Both | FieldOwner, Administrator; family `harvest` |
+| This harvest / Harvest campaign | `/harvest` | HarvestCampaign (`this-harvest` alias) | Both | FieldOwner, Administrator; family `harvest` |
 | Harvest recording | Field detail panel (Full) | Field detail (Everyday compact + Full) | Web Full; mobile both | Create: harvest + work / `canOwn`; void: owner/Admin |
 | Lifecycle | Field detail / cards | Embedded (LifecycleScreen unused) | Both (manage in Full) | `canOwn` to change |
 | Partners / family / contacts | `/partners` | Partners | Both | All JWT roles; manage owner/admin |

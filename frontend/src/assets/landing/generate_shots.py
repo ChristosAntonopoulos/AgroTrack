@@ -162,7 +162,7 @@ def phone_field(lang: str):
     d.text((24, 116), year, fill=MUTED, font=font(13))
 
     round_rect(d, (20, 150, w - 20, 280), 14, OLIVE_SOFT)
-    map_label = "Χάρτης χωραφιού" if lang == "el" else "Field map"
+    map_label = "Χάρτης ελαιώνα" if lang == "el" else "Field map"
     tw = d.textlength(map_label, font=font(14))
     d.text(((w - tw) / 2, 200), map_label, fill=MUTED, font=font(14))
 
@@ -244,7 +244,7 @@ def phone_harvest(lang: str):
     d.text((36, 412), net_l, fill=MUTED, font=font(13))
     d.text((36, 438), net_v, fill=PRIMARY, font=font(22, True))
 
-    fields_t = "Ανά χωράφι" if lang == "el" else "By field"
+    fields_t = "Ανά ελαιώνα" if lang == "el" else "By field"
     d.text((24, 510), fields_t, fill=MUTED, font=font(12))
     rows = (
         [("Κάτω Αλώνια", "1.800 κιλά"), ("Πλάγια", "1.100 κιλά"), ("Ρέμα", "1.350 κιλά")]
@@ -371,7 +371,7 @@ def web_field(lang: str):
 
     note_t = "Σημείωση" if lang == "el" else "Note"
     note = (
-        "Το χωράφι φαίνεται καθαρά — ιδιοκτήτης και παραγωγός στην ίδια σελίδα."
+        "Ο ελαιώνας φαίνεται καθαρά — ιδιοκτήτης και παραγωγός στην ίδια σελίδα."
         if lang == "el"
         else "The grove is clear — owner and producer on the same page."
     )

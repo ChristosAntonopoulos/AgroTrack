@@ -52,9 +52,7 @@ const FieldPreviewHero: React.FC<FieldPreviewHeroProps> = ({
   }, [showWeather, loadWeather]);
 
   const measuredAreaSqm = formatFieldAreaSqm(field);
-  const showAreaCard =
-    showAreaComparison &&
-    (field.greekCadastre?.officialAreaSqm != null || measuredAreaSqm != null);
+  const showAreaCard = showAreaComparison && measuredAreaSqm != null;
 
   return (
     <View style={styles.wrap}>
@@ -80,14 +78,13 @@ const FieldPreviewHero: React.FC<FieldPreviewHeroProps> = ({
               high={weather?.high}
               low={weather?.low}
               namespace="fields"
+              primaryFieldId={field.id}
+              fieldName={field.name}
+              fields={[{ id: field.id, name: field.name, color: field.color }]}
             />
           ) : null}
           {showAreaCard ? (
-            <AreaComparisonCard
-              officialAreaSqm={field.greekCadastre?.officialAreaSqm}
-              measuredAreaSqm={measuredAreaSqm}
-              differencePercent={field.greekCadastre?.areaDifferencePercent}
-            />
+            <AreaComparisonCard measuredAreaSqm={measuredAreaSqm} />
           ) : null}
         </View>
       ) : null}

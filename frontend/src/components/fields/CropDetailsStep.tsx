@@ -1,104 +1,68 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CreateFieldDto } from '../../services/fieldService';
+import VarietySelect from './VarietySelect';
 
 const VARIETY_OPTIONS = ['Koroneiki', 'Kalamon', 'Megaritiki', 'Manaki', 'Unknown', 'Other'];
-const IRRIGATION_OPTIONS = ['Rainfed', 'Drip irrigation', 'Sprinkler', 'Mixed', 'Unknown'];
-const SLOPE_OPTIONS = ['Flat', 'Slight slope', 'Moderate slope', 'Steep', 'Unknown'];
-const SOIL_OPTIONS = ['Clay Loam', 'Sandy Loam', 'Loam', 'Rocky', 'Calcareous', 'Unknown', 'Other'];
 
 interface Props {
   formData: CreateFieldDto;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  /** When true, omit the outer panel heading (nested in edit form). */
+  nested?: boolean;
 }
 
-const CropDetailsStep: React.FC<Props> = ({ formData, onChange }) => {
+const CropDetailsStep: React.FC<Props> = ({ formData, onChange, nested = false }) => {
   const { t } = useTranslation('fields');
 
-  return (
-    <div className="field-form-panel">
-      <h2>{t('addField.steps.crop')}</h2>
-      <p className="field-form-panel-desc">{t('addField.cropDesc')}</p>
+  const varietyOptions = VARIETY_OPTIONS.map((v) => ({
+    value: v,
+    label: t(`addField.varietyOptions.${v}`, { defaultValue: v }),
+  }));
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="treeCount">{t('addField.treeCount')}</label>
+  const body = (
+    <>
+      {!nested ? (
+        <>
+          <h2>{t('createGrove.levels.details')}</h2>
+          <p className="field-form-panel-desc">{t('createGrove.details.subtitle')}</p>
+        </>
+      ) : null}
+
+      <div className="crop-details-row">
+        <div className="form-group crop-details-field">
+          <label htmlFor="variety">{t('addField.oliveVariety')}</label>
+          <VarietySelect
+            id="variety"
+            name="variety"
+            value={formData.variety || ''}
+            options={varietyOptions}
+            placeholder={t('addField.selectOption', { defaultValue: 'Select…' })}
+            onChange={(e) =>
+              onChange({
+                target: { name: e.target.name, value: e.target.value },
+              } as React.ChangeEvent<HTMLSelectElement>)
+            }
+          />
+        </div>
+        <div className="form-group crop-details-field">
+          <label htmlFor="treeCount">{t('createGrove.details.treeCountLabel')}</label>
           <input
             type="number"
             id="treeCount"
             name="treeCount"
             min="0"
+            inputMode="numeric"
             value={formData.treeCount ?? ''}
             onChange={onChange}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="variety">{t('addField.oliveVariety')}</label>
-          <select id="variety" name="variety" value={formData.variety || ''} onChange={onChange}>
-            <option value="">{t('addField.selectOption', { defaultValue: 'Select…' })}</option>
-            {VARIETY_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
-
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="irrigationType">{t('addField.irrigationType')}</label>
-          <select
-            id="irrigationType"
-            name="irrigationType"
-            value={formData.irrigationType || ''}
-            onChange={onChange}
-          >
-            <option value="">{t('addField.selectOption', { defaultValue: 'Select…' })}</option>
-            {IRRIGATION_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group">
-          <label htmlFor="soilType">{t('addField.soilType')}</label>
-          <select id="soilType" name="soilType" value={formData.soilType || ''} onChange={onChange}>
-            <option value="">{t('addField.selectOption', { defaultValue: 'Select…' })}</option>
-            {SOIL_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="slope">{t('addField.slope')}</label>
-        <select id="slope" name="slope" value={formData.slope || ''} onChange={onChange}>
-          <option value="">{t('form.selectOption')}</option>
-          {SLOPE_OPTIONS.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="accessNotes">{t('addField.accessNotes')}</label>
-        <textarea
-          id="accessNotes"
-          name="accessNotes"
-          rows={3}
-          value={formData.accessNotes || ''}
-          onChange={onChange}
-        />
-      </div>
-    </div>
+    </>
   );
+
+  if (nested) return <div className="crop-details-nested">{body}</div>;
+  return <div className="field-form-panel">{body}</div>;
 };
 
 export default CropDetailsStep;

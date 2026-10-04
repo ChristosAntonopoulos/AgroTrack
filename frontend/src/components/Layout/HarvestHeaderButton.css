@@ -1,0 +1,59 @@
+.harvest-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.3rem 0.85rem 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--harvest-gold, #9A6B32) 55%, var(--color-border));
+  background: var(--surface-1, var(--bg-card));
+  color: var(--harvest-ink, var(--color-text-primary));
+  text-decoration: none;
+  font-weight: 750;
+  font-size: 0.88rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.harvest-header-btn:hover {
+  background: var(--harvest-gold-soft, var(--olive-soft));
+}
+
+.harvest-header-btn.is-live {
+  background: var(--harvest-gold, #9A6B32);
+  border-color: transparent;
+  color: #fffaf0;
+}
+
+.harvest-header-btn.is-live:hover {
+  filter: brightness(1.05);
+}
+
+.harvest-header-btn.is-current:not(.is-live) {
+  box-shadow: inset 0 0 0 1px var(--harvest-gold, #9A6B32);
+}
+
+.harvest-header-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
+}
+
+.harvest-header-meta {
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+  .harvest-header-meta {
+    display: none;
+  }
+
+  .harvest-header-btn {
+    padding: 0.35rem 0.75rem;
+  }
+}

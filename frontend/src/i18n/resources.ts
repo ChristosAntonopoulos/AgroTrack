@@ -14,11 +14,16 @@ import enReports from '../locales/en/reports.json';
 import enMinistry from '../locales/en/ministry.json';
 import enToday from '../locales/en/today.json';
 import enLanding from '../locales/en/landing.json';
+import enLegal from '../locales/en/legal.json';
 import enAdmin from '../locales/en/admin.json';
 import enPartners from '../locales/en/partners.json';
 import enChronologio from '../locales/en/chronologio.json';
 import enCapture from '../locales/en/capture.json';
 import enMoney from '../locales/en/money.json';
+import enMyOil from '../locales/en/myOil.json';
+import enFeedback from '../locales/en/feedback.json';
+import enPhotos from '../locales/en/photos.json';
+import enOnboarding from '../locales/en/onboarding.json';
 
 import elCommon from '../locales/el/common.json';
 import elNav from '../locales/el/nav.json';
@@ -34,11 +39,16 @@ import elReports from '../locales/el/reports.json';
 import elMinistry from '../locales/el/ministry.json';
 import elToday from '../locales/el/today.json';
 import elLanding from '../locales/el/landing.json';
+import elLegal from '../locales/el/legal.json';
 import elAdmin from '../locales/el/admin.json';
 import elPartners from '../locales/el/partners.json';
 import elChronologio from '../locales/el/chronologio.json';
 import elCapture from '../locales/el/capture.json';
 import elMoney from '../locales/el/money.json';
+import elMyOil from '../locales/el/myOil.json';
+import elFeedback from '../locales/el/feedback.json';
+import elPhotos from '../locales/el/photos.json';
+import elOnboarding from '../locales/el/onboarding.json';
 
 import itCommon from '../locales/it/common.json';
 import itNav from '../locales/it/nav.json';
@@ -54,9 +64,14 @@ import itReports from '../locales/it/reports.json';
 import itMinistry from '../locales/it/ministry.json';
 import itToday from '../locales/it/today.json';
 import itPartners from '../locales/it/partners.json';
+import itLegal from '../locales/it/legal.json';
 import itChronologio from '../locales/it/chronologio.json';
 import itCapture from '../locales/it/capture.json';
 import itMoney from '../locales/it/money.json';
+import itMyOil from '../locales/it/myOil.json';
+import itFeedback from '../locales/it/feedback.json';
+import itPhotos from '../locales/it/photos.json';
+import itOnboarding from '../locales/it/onboarding.json';
 
 const bundle = (
   common: object,
@@ -124,6 +139,11 @@ export const resources: Record<
       enCapture
     ),
     money: enMoney,
+    myOil: enMyOil,
+    feedback: enFeedback,
+    photos: enPhotos,
+    onboarding: enOnboarding,
+    legal: enLegal,
   },
   el: {
     ...bundle(
@@ -147,6 +167,11 @@ export const resources: Record<
       elCapture
     ),
     money: elMoney,
+    myOil: elMyOil,
+    feedback: elFeedback,
+    photos: elPhotos,
+    onboarding: elOnboarding,
+    legal: elLegal,
   },
   it: {
     ...bundle(
@@ -170,5 +195,10 @@ export const resources: Record<
       itCapture
     ),
     money: itMoney,
+    myOil: itMyOil,
+    feedback: itFeedback,
+    photos: itPhotos,
+    onboarding: itOnboarding,
+    legal: itLegal,
   },
 };

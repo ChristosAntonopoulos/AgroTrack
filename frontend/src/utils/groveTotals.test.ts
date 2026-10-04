@@ -1,4 +1,11 @@
-import { oilYieldPercent, ratioOrNull, summarizeChronologioEntries } from './groveTotals';
+import {
+  formatGroveLitres,
+  formatGroveMassKg,
+  formatGroveMassKgLabel,
+  oilYieldPercent,
+  ratioOrNull,
+  summarizeChronologioEntries,
+} from './groveTotals';
 import type { ChronologioEntry } from '../services/chronologioService';
 
 const entry = (partial: Partial<ChronologioEntry> & { category: ChronologioEntry['category'] }): ChronologioEntry =>
@@ -65,5 +72,20 @@ describe('oil yield', () => {
     expect(oilYieldPercent(100, Number.NaN)).toBeNull();
     expect(ratioOrNull(10, 0)).toBeNull();
     expect(ratioOrNull(Number.POSITIVE_INFINITY, 5)).toBeNull();
+  });
+});
+
+describe('grove mass display', () => {
+  it('shows one decimal unless the kg value is an exact integer', () => {
+    expect(formatGroveMassKg(825, 'en')).toBe('825');
+    expect(formatGroveMassKg(825.4, 'en')).toBe('825.4');
+    expect(formatGroveMassKg(825.44, 'en')).toBe('825.4');
+    expect(formatGroveMassKgLabel(412.7, 'en')).toBe('412.7 kg');
+  });
+
+  it('labels litres separately and never treats oilKg as litres', () => {
+    expect(formatGroveLitres(900, 'en', '—')).toBe('900 L');
+    expect(formatGroveLitres(12.5, 'en', '—')).toBe('12.5 L');
+    expect(formatGroveLitres(null, 'en', '—')).toBe('—');
   });
 });

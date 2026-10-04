@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Text, TextInput, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
-import ScreenHeader from '../components/layout/ScreenHeader';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme } from '../context/ThemeContext';
@@ -112,7 +111,6 @@ const ServiceProfileScreen = () => {
   if (!profile) {
     return (
       <ScreenLayout padded>
-        <ScreenHeader title={t('myServices')} />
         <Text style={{ color: colors.textSecondary, marginBottom: spacing.md }}>{t('offer')}</Text>
         <Button
           title={t('enable')}
@@ -130,7 +128,6 @@ const ServiceProfileScreen = () => {
 
   return (
     <ScreenLayout scroll padded>
-      <ScreenHeader title={t('myServices')} />
       <Text style={{ color: colors.textSecondary, marginBottom: spacing.md }}>
         {t('wizardStep', { step })}
       </Text>
@@ -181,7 +178,7 @@ const ServiceProfileScreen = () => {
               void locationService.getCurrentLocation().then((pos) => {
                 setLatitude(pos.latitude);
                 setLongitude(pos.longitude);
-              });
+              }).catch(() => {});
             }}
           />
           {latitude != null && longitude != null ? (
@@ -211,6 +208,11 @@ const ServiceProfileScreen = () => {
               />
             ))}
           </View>
+        </>
+      )}
+
+      {step === 4 && (
+        <>
           <View style={styles.row}>
             {['Available', 'Limited', 'Unavailable'].map((value) => (
               <Button
@@ -296,7 +298,7 @@ const ServiceProfileScreen = () => {
         </>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <>
           <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 18 }}>{displayName}</Text>
           <Text style={{ color: colors.textSecondary, marginVertical: spacing.sm }}>{shortDescription}</Text>
@@ -311,7 +313,7 @@ const ServiceProfileScreen = () => {
       {step > 1 ? (
         <Button title={t('back')} variant="outline" onPress={() => setStep((s) => s - 1)} />
       ) : null}
-      {step < 4 ? (
+      {step < 5 ? (
         <Button title={t('next')} onPress={() => setStep((s) => s + 1)} />
       ) : null}
       <Button

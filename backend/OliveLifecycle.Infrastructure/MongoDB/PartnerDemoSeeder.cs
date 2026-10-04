@@ -248,5 +248,43 @@ public static class PartnerDemoSeeder
             },
             new ReplaceOptions { IsUpsert = true },
             cancellationToken);
+
+        await notifications.ReplaceOneAsync(
+            n => n.Id == "67c801b30000000000000004",
+            new UserNotificationDocument
+            {
+                Id = "67c801b30000000000000004",
+                UserId = DemoFarmDataSeeder.OwnerId,
+                Type = "task_assigned",
+                Title = "Ανάθεση: έλεγχος αρδευτικού",
+                Message = "Ο Κώστας έχει τον έλεγχο αρδευτικού στο χωράφι.",
+                RelatedEntityId = "675555555555555555556001",
+                RelatedEntityType = "Task",
+                ActionUrl = "/tasks/675555555555555555556001",
+                IsRead = true,
+                CreatedAt = new DateTime(2026, 9, 4, 8, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 4, 8, 0, 0, DateTimeKind.Utc)
+            },
+            new ReplaceOptions { IsUpsert = true },
+            cancellationToken);
+
+        await notifications.ReplaceOneAsync(
+            n => n.Id == "67c801b30000000000000005",
+            new UserNotificationDocument
+            {
+                Id = "67c801b30000000000000005",
+                UserId = DemoFarmDataSeeder.ProducerId,
+                Type = "task_approved",
+                Title = "Εγκρίθηκε εργασία",
+                Message = "Ο Γιώργος ενέκρινε τον ολοκληρωμένο ψεκασμό.",
+                RelatedEntityId = "675555555555555555556005",
+                RelatedEntityType = "Task",
+                ActionUrl = "/tasks/675555555555555555556005",
+                IsRead = true,
+                CreatedAt = new DateTime(2026, 9, 7, 18, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2026, 9, 7, 18, 0, 0, DateTimeKind.Utc)
+            },
+            new ReplaceOptions { IsUpsert = true },
+            cancellationToken);
     }
 }

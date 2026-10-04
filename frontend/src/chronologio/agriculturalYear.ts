@@ -24,13 +24,18 @@ export const agriculturalYearMonths = (resultYear: number): { year: number; mont
   return months;
 };
 
+/** Olive campaign span, e.g. agricultural year 2025 → "2025/26". */
+export const agriculturalYearSlashLabel = (resultYear: number): string =>
+  `${resultYear}/${String(resultYear + 1).slice(-2)}`;
+
 export const agriculturalYearTitle = (resultYear: number, language = 'el'): string =>
   language.toLowerCase().startsWith('en')
     ? `Agricultural year ${resultYear}`
     : `Καλλιεργητική χρονιά ${resultYear}`;
 
 export const agriculturalYearRangeLabel = (resultYear: number, language = 'el'): string => {
-  const locale = language.toLowerCase().startsWith('en') ? 'en-GB' : 'el-GR';
+  const lang = language.toLowerCase();
+  const locale = lang.startsWith('en') ? 'en-GB' : lang.startsWith('it') ? 'it-IT' : 'el-GR';
   const from = new Date(resultYear, AGRICULTURAL_YEAR_START_MONTH - 1, 1);
   const to = new Date(resultYear + 1, 0, 31);
   const fmt = (d: Date) =>

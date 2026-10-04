@@ -1,6 +1,7 @@
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Notes;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -160,9 +161,10 @@ public class NoteService : INoteService
             return null;
         }
 
-        if (!await _fieldAccess.CanUserAccessFieldAsync(trimmed, userId, userRole, cancellationToken))
+        if (!await _fieldAccess.CanUserAccessFieldModuleAsync(
+                trimmed, userId, userRole, FamilyModules.Chronologio, cancellationToken))
         {
-            throw new ForbiddenException("You can only pin notes to fields you can access.");
+            throw new ForbiddenException("You can only pin notes to fields you can access in Chronologio.");
         }
 
         return trimmed;

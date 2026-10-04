@@ -7,8 +7,9 @@ import { toBoolean } from '../../utils/booleanConverter';
 export interface FormFieldProps extends InputProps {}
 
 const FormField: React.FC<FormFieldProps> = (props) => {
+  const { containerStyle, ...rest } = props;
   const sanitizedProps: InputProps = {
-    ...props,
+    ...rest,
     editable: props.editable !== undefined ? toBoolean(props.editable) : props.editable,
     autoCorrect: props.autoCorrect !== undefined ? toBoolean(props.autoCorrect) : props.autoCorrect,
     secureTextEntry:
@@ -17,8 +18,8 @@ const FormField: React.FC<FormFieldProps> = (props) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Input {...sanitizedProps} />
+    <View style={[styles.container, containerStyle]}>
+      <Input {...sanitizedProps} containerStyle={{ marginBottom: 0 }} />
     </View>
   );
 };

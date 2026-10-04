@@ -1,4 +1,6 @@
+using OliveLifecycle.Application.Services.Fields;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Exceptions;
 using OliveLifecycle.Core.Time;
 using OliveLifecycle.Core.Units;
 using OliveLifecycle.Core.ValueObjects;
@@ -47,6 +49,51 @@ public class FieldAreaTests
             GreekCadastre = new GreekCadastreInfo { OfficialAreaSqm = 3041.76 }
         };
         Assert.Equal(3041.76, field.ResolveAreaSqm());
+    }
+}
+
+public class FieldAreaCalculatorTests
+{
+    private readonly FieldAreaCalculator _calculator = new();
+
+    private static GeoJsonPolygon ClosedRing(params (double lon, double lat)[] points)
+    {
+        var ring = points.Select(p => new List<double> { p.lon, p.lat }).ToList();
+        ring.Add(new List<double> { points[0].lon, points[0].lat });
+        return new GeoJsonPolygon
+        {
+            Type = "Polygon",
+            Coordinates = new List<List<List<double>>> { ring }
+        };
+    }
+
+    [Fact]
+    public void Rejects_AreaAboveMaxStremmata()
+    {
+        // Roughly half of Greece — far above 2,000 stremma
+        var huge = ClosedRing(
+            (19.5, 34.8),
+            (28.5, 34.8),
+            (28.5, 41.8),
+            (19.5, 41.8));
+        var ex = Assert.Throws<ValidationException>(() => _calculator.ValidatePolygon(huge));
+        Assert.True(
+            ex.Message.Contains("maximum", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("span", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Accepts_TypicalOliveGrove()
+    {
+        // ~3.2 stremma near Messinia
+        var grove = ClosedRing(
+            (22.0, 37.0),
+            (22.001, 37.0),
+            (22.001, 37.001),
+            (22.0, 37.001));
+        var result = _calculator.Calculate(grove);
+        Assert.True(result.AreaSqm > FieldAreaCalculator.MinAreaSqm);
+        Assert.True(result.AreaSqm < FieldAreaCalculator.MaxAreaSqm);
     }
 }
 

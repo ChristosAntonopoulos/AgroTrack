@@ -26,6 +26,7 @@ Dependency rule: **Application does not reference Infrastructure.** Infrastructu
 | `BaseApiController` | Thin controllers with `UserContext` |
 | `IFieldLifecycleSync` | Mongo transaction wrapper for Field + Lifecycle updates |
 | `IFileStorageService` | Local disk storage (MVP); swap for blob provider later |
+| Photo Hub | `POST /api/v1/photos/upload` extracts EXIF (GPS + DateTimeOriginal), matches field boundaries via `GeoMath`, stores under `uploads/photos/{yyyy}/{mm}/` with thumbnails |
 | FluentValidation | `Application/Validators/` + auto-validation in API |
 
 ## Configuration
@@ -48,7 +49,8 @@ Error responses use `{ "success": false, "error": { "message", "code" } }`.
 | Feature | Endpoints |
 |---------|-----------|
 | Task approval | `POST /api/v1/tasks/{id}/approve`, `POST /api/v1/tasks/{id}/reject` |
-| Evidence upload | `POST /api/v1/files/upload` → `{ url }` |
+| Evidence upload | `POST /api/v1/files/upload` → `{ url }` (legacy Capture attach-by-URL) |
+| Photo Hub | `POST /api/v1/photos/upload`, `GET /api/v1/photos`, link/unlink/field confirm |
 | Task templates | `GET /api/v1/task-templates` |
 | Ministry notifications | `GET /api/v1/ministry/notifications`, `POST .../read`, `POST .../read-all` |
 | Reports | `GET /api/v1/reports/field-summaries`, `harvest-records`, `profit-loss` |

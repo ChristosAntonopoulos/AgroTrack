@@ -1,6 +1,7 @@
 using NetTopologySuite.Geometries;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Core.Exceptions;
+using OliveLifecycle.Core.Units;
 using OliveLifecycle.Core.ValueObjects;
 
 namespace OliveLifecycle.Application.Services.Fields;
@@ -8,6 +9,16 @@ namespace OliveLifecycle.Application.Services.Fields;
 public class FieldAreaCalculator : IFieldAreaCalculator
 {
     private const double EarthRadiusMeters = 6378137.0;
+
+    /// <summary>Reject accidental tiny clicks (≈0.05 stremma).</summary>
+    public const double MinAreaSqm = 50d;
+
+    /// <summary>Hard max for a single olive grove (2,000 stremma).</summary>
+    public static readonly double MaxAreaSqm = 2_000d * FieldArea.SquareMetresPerStremma;
+
+    /// <summary>Reject polygons whose vertices span more than 50 km.</summary>
+    public const double MaxVertexSpanMeters = 50_000d;
+
     private readonly GeometryFactory _geometryFactory = new(new PrecisionModel(), 4326);
 
     public FieldAreaResult Calculate(GeoJsonPolygon boundary)
@@ -53,10 +64,22 @@ public class FieldAreaCalculator : IFieldAreaCalculator
             throw new ValidationException("Boundary polygon must not self-intersect.");
         }
 
-        var areaSqm = CalculateGeodesicAreaSqm(ring);
-        if (areaSqm <= 1)
+        var openCount = ring.Count - 1;
+        if (MaxPairwiseHaversineMeters(ring, openCount) > MaxVertexSpanMeters)
         {
-            throw new ValidationException("Boundary area must be greater than 1 m².");
+            throw new ValidationException("Boundary vertices span too great a distance for a single field.");
+        }
+
+        var areaSqm = CalculateGeodesicAreaSqm(ring);
+        if (areaSqm < MinAreaSqm)
+        {
+            throw new ValidationException($"Boundary area must be at least {MinAreaSqm} m².");
+        }
+
+        if (areaSqm > MaxAreaSqm)
+        {
+            throw new ValidationException(
+                $"Boundary area exceeds the maximum of {FieldArea.StremmataFromSqm(MaxAreaSqm):0} stremmata for a single field.");
         }
     }
 
@@ -66,6 +89,33 @@ public class FieldAreaCalculator : IFieldAreaCalculator
         var last = ring[^1];
         return Math.Abs(first[0] - last[0]) < 1e-9 && Math.Abs(first[1] - last[1]) < 1e-9;
     }
+
+    private static double MaxPairwiseHaversineMeters(List<List<double>> ring, int openCount)
+    {
+        double max = 0;
+        for (var i = 0; i < openCount; i++)
+        {
+            for (var j = i + 1; j < openCount; j++)
+            {
+                var d = HaversineMeters(ring[i][1], ring[i][0], ring[j][1], ring[j][0]);
+                if (d > max) max = d;
+            }
+        }
+
+        return max;
+    }
+
+    private static double HaversineMeters(double lat1, double lon1, double lat2, double lon2)
+    {
+        var dLat = ToRad(lat2 - lat1);
+        var dLon = ToRad(lon2 - lon1);
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
+            + Math.Cos(ToRad(lat1)) * Math.Cos(ToRad(lat2))
+              * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        return 2 * EarthRadiusMeters * Math.Asin(Math.Min(1, Math.Sqrt(a)));
+    }
+
+    private static double ToRad(double degrees) => degrees * Math.PI / 180.0;
 
     private static double CalculateGeodesicAreaSqm(List<List<double>> ring)
     {

@@ -10,10 +10,9 @@ export type AddFieldMethod = 'draw' | 'later' | 'cadastre' | 'kaek';
 interface Props {
   method: AddFieldMethod | null;
   onSelect: (method: AddFieldMethod) => void;
-  everyday?: boolean;
 }
 
-const AddFieldMethodStep: React.FC<Props> = ({ method, onSelect, everyday = false }) => {
+const AddFieldMethodStep: React.FC<Props> = ({ method, onSelect }) => {
   const { colors } = useTheme();
   const { t } = useTranslation('fields');
 
@@ -22,47 +21,26 @@ const AddFieldMethodStep: React.FC<Props> = ({ method, onSelect, everyday = fals
     icon: React.ComponentProps<typeof Ionicons>['name'];
     title: string;
     desc: string;
-    enabled: boolean;
-  }[] = everyday
-    ? [
-        {
-          id: 'draw',
-          icon: 'map-outline',
-          title: t('addField.methods.draw.title'),
-          desc: t('addField.methods.draw.desc'),
-          enabled: true,
-        },
-        {
-          id: 'later',
-          icon: 'time-outline',
-          title: t('addField.methods.later.title'),
-          desc: t('addField.methods.later.desc'),
-          enabled: true,
-        },
-      ]
-    : [
-        {
-          id: 'draw',
-          icon: 'map-outline',
-          title: t('addField.methods.draw.title'),
-          desc: t('addField.methods.draw.desc'),
-          enabled: true,
-        },
-        {
-          id: 'cadastre',
-          icon: 'document-text-outline',
-          title: t('addField.methods.cadastre.title'),
-          desc: t('addField.methods.cadastre.desc'),
-          enabled: true,
-        },
-        {
-          id: 'kaek',
-          icon: 'barcode-outline',
-          title: t('addField.methods.kaek.title'),
-          desc: t('addField.methods.kaek.desc'),
-          enabled: true,
-        },
-      ];
+  }[] = [
+    {
+      id: 'draw',
+      icon: 'map-outline',
+      title: t('addField.methods.draw.title'),
+      desc: t('addField.methods.draw.desc'),
+    },
+    {
+      id: 'cadastre',
+      icon: 'document-text-outline',
+      title: t('addField.methods.cadastre.title'),
+      desc: t('addField.methods.cadastre.desc'),
+    },
+    {
+      id: 'kaek',
+      icon: 'barcode-outline',
+      title: t('addField.methods.kaek.title'),
+      desc: t('addField.methods.kaek.desc'),
+    },
+  ];
 
   return (
     <View style={styles.wrap}>
@@ -76,14 +54,12 @@ const AddFieldMethodStep: React.FC<Props> = ({ method, onSelect, everyday = fals
           return (
             <Pressable
               key={card.id}
-              disabled={!card.enabled}
-              onPress={() => card.enabled && onSelect(card.id)}
+              onPress={() => onSelect(card.id)}
               style={[
                 styles.card,
                 {
                   backgroundColor: active ? colors.primary + '14' : colors.surfaceElevated,
                   borderColor: active ? colors.primary : colors.borderLight,
-                  opacity: card.enabled ? 1 : 0.55,
                 },
               ]}
             >

@@ -4,6 +4,7 @@ using OliveLifecycle.Application.DTOs.Activity;
 using OliveLifecycle.Application.DTOs.Dashboard;
 using OliveLifecycle.Application.Mappings;
 using OliveLifecycle.Common.Constants;
+using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Enums;
@@ -38,7 +39,7 @@ public class MeDashboardService : IMeDashboardService
     private readonly IActivityRepository _activities;
     private readonly IFieldTaskRepository _fieldTasks;
     private readonly ITaskExecutionRepository _executions;
-    private readonly IFieldRepository _fields;
+    private readonly IFieldAccessScopeService _fieldAccessScope;
     private readonly IFinancialTransactionRepository _financialTransactions;
     private readonly IServiceContactRequestRepository _contactRequests;
     private readonly IDateTimeProvider _clock;
@@ -47,7 +48,7 @@ public class MeDashboardService : IMeDashboardService
         IActivityRepository activities,
         IFieldTaskRepository fieldTasks,
         ITaskExecutionRepository executions,
-        IFieldRepository fields,
+        IFieldAccessScopeService fieldAccessScope,
         IFinancialTransactionRepository financialTransactions,
         IServiceContactRequestRepository contactRequests,
         IDateTimeProvider clock)
@@ -55,7 +56,7 @@ public class MeDashboardService : IMeDashboardService
         _activities = activities;
         _fieldTasks = fieldTasks;
         _executions = executions;
-        _fields = fields;
+        _fieldAccessScope = fieldAccessScope;
         _financialTransactions = financialTransactions;
         _contactRequests = contactRequests;
         _clock = clock;
@@ -83,12 +84,16 @@ public class MeDashboardService : IMeDashboardService
             cancellationToken)).ToList();
 
         var contacts = await _contactRequests.GetByRequesterUserIdAsync(userId, cancellationToken);
-        var fields = (await GetAccessibleFieldsAsync(userId, userRole, cancellationToken)).ToList();
-        var fieldIds = fields.Select(f => f.Id).ToList();
+        var taskFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Tasks, cancellationToken)).ToList();
+        var moneyFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Money, cancellationToken)).ToList();
+        var chronoFieldIds = (await _fieldAccessScope.ResolveAccessibleFieldIdsAsync(
+            userId, userRole, FamilyModules.Chronologio, cancellationToken)).ToList();
 
-        var expenses = fieldIds.Count == 0
+        var expenses = moneyFieldIds.Count == 0
             ? new List<FinancialTransaction>()
-            : (await _financialTransactions.GetPostedByFieldIdsAsync(fieldIds, cancellationToken))
+            : (await _financialTransactions.GetPostedByFieldIdsAsync(moneyFieldIds, cancellationToken))
                 .Where(e =>
                     e.CreatedByUserId == userId &&
                     e.Type == FinancialTransactionType.Expense)
@@ -99,15 +104,15 @@ public class MeDashboardService : IMeDashboardService
         var series = BuildSeries(myActivities, contacts, from, to);
         var topAction = ResolveTopAction(myActivities, contacts, expenses, now.AddDays(-14), now);
 
-        var fieldTasks = fieldIds.Count == 0
+        var fieldTasks = taskFieldIds.Count == 0
             ? new List<FieldTask>()
             : (await _fieldTasks.QueryAsync(
-                new FieldTaskQuery { FieldIds = fieldIds },
+                new FieldTaskQuery { FieldIds = taskFieldIds },
                 cancellationToken)).ToList();
 
-        var activeExecutionTaskIds = fieldIds.Count == 0
+        var activeExecutionTaskIds = taskFieldIds.Count == 0
             ? new HashSet<string>(StringComparer.Ordinal)
-            : (await _executions.GetByFieldIdsAsync(fieldIds, cancellationToken))
+            : (await _executions.GetByFieldIdsAsync(taskFieldIds, cancellationToken))
                 .Where(e => e.IsActive)
                 .Select(e => e.TaskId)
                 .ToHashSet(StringComparer.Ordinal);
@@ -121,9 +126,9 @@ public class MeDashboardService : IMeDashboardService
             .ToList();
 
         IReadOnlyList<ActivityDto> recent = recentMine;
-        if (OwnerRoles.Contains(userRole) && fieldIds.Count > 0)
+        if (OwnerRoles.Contains(userRole) && chronoFieldIds.Count > 0)
         {
-            var team = (await _activities.GetByFieldIdsAsync(fieldIds, from, to, limit: 20, cancellationToken))
+            var team = (await _activities.GetByFieldIdsAsync(chronoFieldIds, from, to, limit: 20, cancellationToken))
                 .Where(a => a.ActorUserId != userId)
                 .Take(10)
                 .Select(ActivityMapper.ToDto)
@@ -278,24 +283,6 @@ public class MeDashboardService : IMeDashboardService
 
     public static bool IsCompleted(FieldTask task, IReadOnlySet<string> activeExecutionTaskIds) =>
         task.Status == FieldTaskStatus.Completed || activeExecutionTaskIds.Contains(task.Id);
-
-    private async Task<IEnumerable<Field>> GetAccessibleFieldsAsync(
-        string userId,
-        string userRole,
-        CancellationToken cancellationToken)
-    {
-        if (OwnerRoles.Contains(userRole))
-        {
-            return await _fields.GetByOwnerIdAsync(userId, cancellationToken);
-        }
-
-        if (userRole == Roles.Producer)
-        {
-            return await _fields.GetByAssignedProducerIdAsync(userId, cancellationToken);
-        }
-
-        return await _fields.GetByMemberUserIdAsync(userId, cancellationToken);
-    }
 
     private static bool HasMeta(Activity activity, string key, string expected)
     {

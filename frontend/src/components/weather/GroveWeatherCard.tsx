@@ -12,15 +12,23 @@ import {
 import type { FieldWeather } from '../../services/geospatialService';
 import type { WeatherData } from '../../services/weatherService';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import { resolveFieldColor } from '../../utils/fieldColors';
 import { presentGroveWeather, type GroveWeatherMood } from '../../weather/presentGroveWeather';
+import GroveWeekForecast from './GroveWeekForecast';
 import './GroveWeatherCard.css';
 
 type Props = {
   fieldWeather?: FieldWeather | null;
   snapshot?: WeatherData | null;
   fieldName?: string | null;
+  fieldId?: string | null;
+  fieldColor?: string | null;
+  /** Area or selection note shown in place of a single field name. */
+  scopeNote?: string;
   onOpen?: () => void;
   embedded?: boolean;
+  /** Journal header: temperature and the week, without the long reading. */
+  compact?: boolean;
 };
 
 const iconFor = (mood: GroveWeatherMood, condition: string) => {
@@ -33,24 +41,39 @@ const iconFor = (mood: GroveWeatherMood, condition: string) => {
   return <Cloud size={28} strokeWidth={1.75} />;
 };
 
-const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, onOpen, embedded }) => {
-  const { t, i18n } = useTranslation('chronologio');
+const GroveWeatherCard: React.FC<Props> = ({
+  fieldWeather,
+  snapshot,
+  fieldName,
+  fieldId,
+  fieldColor,
+  scopeNote,
+  onOpen,
+  embedded,
+  compact,
+}) => {
+  const { t } = useTranslation('chronologio');
   const view = presentGroveWeather({ field: fieldWeather, snapshot });
   const range =
     view.low != null && view.high != null ? `${view.low}–${view.high}°` : null;
-  const updated =
-    view.updatedAt && !Number.isNaN(view.updatedAt.getTime())
-      ? view.updatedAt.toLocaleTimeString(i18n.language, {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        })
-      : null;
+  const fieldLabel = fieldName ? friendlyFieldLabel(fieldName) : null;
 
-  const className = `grove-weather grove-weather--${view.mood}${onOpen ? ' is-button' : ''}${embedded ? ' is-embedded' : ''}`;
+  const className = `grove-weather grove-weather--${view.mood}${onOpen ? ' is-button' : ''}${embedded ? ' is-embedded' : ''}${compact ? ' is-compact' : ''}`;
+  const condition =
+    view.mood === 'missing'
+      ? null
+      : [t(`weatherCard.condition.${view.conditionKey}`), range].filter(Boolean).join(' · ');
   const inner = (
     <>
       <div className="grove-weather-sky" aria-hidden />
+      {compact && view.mood !== 'missing' ? (
+        <div className="grove-weather-now">
+          <p className="grove-weather-temp">{view.temperature != null ? `${view.temperature}°` : '—'}</p>
+          {condition ? <p className="grove-weather-condition">{condition}</p> : null}
+          <span className="grove-weather-icon">{iconFor(view.mood, view.conditionKey)}</span>
+        </div>
+      ) : null}
+      {compact ? null : (
       <header className="grove-weather-head">
         <div>
           {embedded ? null : <p className="grove-weather-kicker">{t('weatherCard.label')}</p>}
@@ -61,7 +84,7 @@ const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, 
               <p className="grove-weather-temp">
                 {view.temperature != null ? `${view.temperature}°` : '—'}
               </p>
-              {view.feelsLike != null ? (
+              {!compact && view.feelsLike != null ? (
                 <p className="grove-weather-feels">
                   {t('weatherCard.feelsLike', { temp: view.feelsLike })}
                 </p>
@@ -73,14 +96,11 @@ const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, 
           <span className="grove-weather-icon">{iconFor(view.mood, view.conditionKey)}</span>
         ) : null}
       </header>
+      )}
 
-      {view.mood !== 'missing' ? (
-        <p className="grove-weather-condition">
-          {[t(`weatherCard.condition.${view.conditionKey}`), range].filter(Boolean).join(' · ')}
-        </p>
-      ) : null}
+      {!compact && condition ? <p className="grove-weather-condition">{condition}</p> : null}
 
-      {view.facts.length > 0 ? (
+      {!compact && view.facts.length > 0 ? (
         <ul className="grove-weather-facts">
           {view.facts.map((fact) => (
             <li key={fact.id} className={fact.harsh ? 'is-harsh' : undefined}>
@@ -90,37 +110,45 @@ const GroveWeatherCard: React.FC<Props> = ({ fieldWeather, snapshot, fieldName, 
         </ul>
       ) : null}
 
-      {view.mood !== 'missing' ? (
+      {!compact && view.mood !== 'missing' ? (
         <p className="grove-weather-reading">{t(`weatherCard.${view.readingKey}`)}</p>
       ) : null}
 
-      {fieldName || updated ? (
-        <p className="grove-weather-meta">
-          {[
-            fieldName ? friendlyFieldLabel(fieldName) : null,
-            updated
-              ? view.stale
-                ? t('weatherCard.stale')
-                : t('weatherCard.updated', { time: updated })
-              : null,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
+      {!embedded && view.mood !== 'missing' ? (
+        <GroveWeekForecast fieldWeather={fieldWeather} variant={compact ? 'strip' : 'compact'} futureOnly={compact} />
+      ) : null}
+
+      {!compact && scopeNote ? <p className="grove-weather-meta">{scopeNote}</p> : null}
+      {!compact && !scopeNote && fieldLabel ? (
+        <p className="grove-weather-field">
+          <span
+            className="grove-weather-field-dot"
+            style={{ background: resolveFieldColor(fieldColor, fieldId || fieldName) }}
+            aria-hidden
+          />
+          <span>{fieldLabel}</span>
         </p>
       ) : null}
     </>
   );
 
-  if (onOpen) {
-    return (
-      <button type="button" className={className} onClick={onOpen} aria-label={t('weatherCard.label')}>
-        {inner}
-      </button>
-    );
-  }
-
   return (
-    <article className={className} aria-label={t('weatherCard.label')}>
+    <article
+      className={className}
+      aria-label={t('weatherCard.label')}
+      onClick={onOpen}
+      onKeyDown={
+        onOpen
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onOpen();
+              }
+            }
+          : undefined
+      }
+      tabIndex={onOpen ? 0 : undefined}
+    >
       {inner}
     </article>
   );

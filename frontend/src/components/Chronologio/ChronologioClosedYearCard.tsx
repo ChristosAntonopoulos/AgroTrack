@@ -4,15 +4,16 @@ import type { ChronologioPeriodSummary } from '../../services/chronologioService
 import { agriculturalYearRangeLabel } from '../../chronologio/agriculturalYear';
 import { isRealChronologioMediaUrl } from '../../chronologio/mediaGuard';
 import { harvestHasResult } from '../../chronologio/monthPresentation';
+import { yearFixedMetrics } from '../../chronologio/summaryFacts';
+import { formatGroveMassKg } from '../../utils/groveTotals';
 import {
   harvestYearCopyKey,
-  yearChapterFacts,
   yearComparison,
+  yearComparisonCopyKey,
   yearHeadline,
   type AgriculturalYearState,
 } from '../../chronologio/yearPresentation';
 import ChronologioThumbnail from './ChronologioThumbnail';
-import ChronologioYearFacts from './ChronologioYearFacts';
 
 type Props = {
   summary: ChronologioPeriodSummary;
@@ -40,13 +41,25 @@ const ChronologioClosedYearCard: React.FC<Props> = ({
       : state === 'upcoming'
         ? t('yearView.upcoming')
         : t('yearView.closed');
+  const metrics = yearFixedMetrics(summary, numberLocale, t).filter((metric) => metric.value !== '—');
+  const yieldPct =
+    summary.oilYieldPercent != null && summary.oilYieldPercent > 0
+      ? formatGroveMassKg(summary.oilYieldPercent, numberLocale)
+      : null;
 
   return (
-    <button
+    <article
       id={`chrono-year-${summary.periodYear}`}
-      type="button"
       className={`chrono-year-chapter is-closed${hero ? ' has-photo' : ''}`}
       onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+      role="button"
+      tabIndex={0}
       aria-label={t('living.seeYear', { year: summary.periodYear })}
     >
       <div className="chrono-year-chapter-body">
@@ -64,8 +77,9 @@ const ChronologioClosedYearCard: React.FC<Props> = ({
         {harvestKey === 'result' && harvestHasResult(summary) ? (
           <p className="chrono-year-oil-hero">
             {summary.oilKg > 0
-              ? `${summary.oilKg.toLocaleString(numberLocale, { maximumFractionDigits: 1 })} ${t('oilUnit')}`
-              : `${Math.round(summary.oliveKg).toLocaleString(numberLocale)} ${t('olivesUnit')}`}
+              ? `${formatGroveMassKg(summary.oilKg, numberLocale)} ${t('oilUnit')}`
+              : `${formatGroveMassKg(summary.oliveKg, numberLocale)} ${t('olivesUnit')}`}
+            {yieldPct ? ` · ${t('yearView.yieldFact', { pct: yieldPct })}` : null}
           </p>
         ) : (
           <p className="chrono-year-harvest-copy">
@@ -73,22 +87,42 @@ const ChronologioClosedYearCard: React.FC<Props> = ({
           </p>
         )}
 
+        {metrics.length > 0 ? (
+          <ul className="chrono-year-chapter-facts">
+            {metrics.map((metric) => (
+              <li key={metric.label}>
+                {metric.label}: {metric.value}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="chrono-year-limited">{t('living.limitedRecords')}</p>
+        )}
+
         {comparison ? (
           <p className="chrono-year-comparison">
-            {t(`yearView.compare.${comparison.kind}${comparison.percent >= 0 ? 'Up' : 'Down'}`, {
-              pct: Math.abs(comparison.percent),
+            {t(yearComparisonCopyKey(comparison), {
+              context: comparison.scope === 'ytd' ? 'ytd' : undefined,
+              pct: Math.abs(comparison.percent).toLocaleString(numberLocale),
               year: comparison.previousYear,
             })}
           </p>
         ) : null}
 
-        <ChronologioYearFacts facts={yearChapterFacts(summary)} numberLocale={numberLocale} />
-
         {headline ? <p className="chrono-year-headline">{headline}</p> : null}
-        <span className="chrono-year-chapter-hint">{t('yearView.openHint')}</span>
+        <button
+          type="button"
+          className="chrono-year-chapter-hint"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen();
+          }}
+        >
+          {t('yearView.openHint')}
+        </button>
       </div>
       {hero ? <ChronologioThumbnail src={hero} className="chrono-closed-year-photo" /> : null}
-    </button>
+    </article>
   );
 };
 

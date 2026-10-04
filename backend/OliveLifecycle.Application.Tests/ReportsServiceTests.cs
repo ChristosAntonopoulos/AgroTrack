@@ -13,7 +13,7 @@ namespace OliveLifecycle.Application.Tests;
 
 public class ReportsServiceTests
 {
-    private readonly Mock<IFieldRepository> _fields = new();
+    private readonly Mock<IFieldAccessScopeService> _fieldAccessScope = new();
     private readonly Mock<IFieldTaskRepository> _fieldTasks = new();
     private readonly Mock<ITaskExecutionRepository> _executions = new();
     private readonly Mock<IHarvestRecordRepository> _harvests = new();
@@ -40,8 +40,14 @@ public class ReportsServiceTests
                 It.IsAny<DateTime?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<FieldWeatherPeriodReview>());
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Field>());
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldIdsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
         _service = new ReportsService(
-            _fields.Object,
+            _fieldAccessScope.Object,
             _fieldTasks.Object,
             _executions.Object,
             _harvests.Object,
@@ -63,8 +69,12 @@ public class ReportsServiceTests
             TreeCount = 100,
             LocationText = "Φιλιατρόν"
         };
-        _fields.Setup(r => r.GetByOwnerIdAsync("owner-1", It.IsAny<CancellationToken>()))
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([field]);
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldIdsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(["f1"]);
         _harvests.Setup(r => r.GetByFieldIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([
                 new HarvestRecord
@@ -102,14 +112,14 @@ public class ReportsServiceTests
         var result = (await _service.GetFieldSummariesAsync("owner-1", Roles.FieldOwner, season: "2024")).Single();
 
         Assert.Equal(3.19, result.AreaHa);
-        Assert.Equal(22720, result.TotalProductionKg);
-        Assert.Equal(7122, result.YieldPerHa);
+        Assert.Equal(22720.4, result.TotalProductionKg);
+        Assert.Equal(7122.4, result.YieldPerHa);
         Assert.Equal(227.2, result.YieldPerTree);
         Assert.Equal(2844.49m, result.TotalCost);
         Assert.Equal(891.69m, result.CostPerHa);
         Assert.Equal(1200.2m, result.Revenue);
         Assert.Equal(-1644.29m, result.Profit);
-        Assert.Equal(4100, result.OilProducedKg);
+        Assert.Equal(4100.2, result.OilProducedKg);
         Assert.Equal("Φιλιατρόν", result.Location);
         Assert.Equal("2024-11-02", result.LastHarvestDate);
     }
@@ -118,8 +128,12 @@ public class ReportsServiceTests
     public async Task GetMonthlyWeatherAsync_BuildsAnalyticalMonth()
     {
         var field = new Field { Id = "f1", OwnerId = "owner-1", Name = "Grove", Area = 3.1914 };
-        _fields.Setup(r => r.GetByOwnerIdAsync("owner-1", It.IsAny<CancellationToken>()))
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([field]);
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldIdsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(["f1"]);
 
         var days = new List<FieldDailyWeatherSnapshot>();
         for (var d = 1; d <= 31; d++)
@@ -165,8 +179,12 @@ public class ReportsServiceTests
     public async Task GetYearlyWeatherAsync_FocusesOnEconomicsAndTasks()
     {
         var field = new Field { Id = "f1", OwnerId = "owner-1", Name = "Grove", Area = 2 };
-        _fields.Setup(r => r.GetByOwnerIdAsync("owner-1", It.IsAny<CancellationToken>()))
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([field]);
+        _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldIdsAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(["f1"]);
 
         var snapshots = Enumerable.Range(1, 28).Select(d => new FieldDailyWeatherSnapshot
         {
@@ -240,6 +258,8 @@ public class ReportsServiceTests
         var row = Assert.Single(report.Fields);
 
         Assert.Equal(56, row.RainTotalMm);
+        Assert.Equal(28, row.Et0TotalMm);
+        Assert.Equal(28, row.WaterBalanceMm);
         Assert.Equal(3, row.WettestMonth);
         Assert.Equal(500m, row.TotalCost);
         Assert.Equal(200m, row.Revenue);

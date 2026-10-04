@@ -214,6 +214,10 @@ public class FinancialDataAvailabilityDto
     public bool AreaIsMissing { get; set; }
     public bool OilQuantityIsMissing { get; set; }
     public bool IncludesUnassigned { get; set; }
+    public List<string> MissingAreaFieldIds { get; set; } = [];
+    public List<string> MissingAreaFieldNames { get; set; } = [];
+    public List<string> IncompleteFieldNames { get; set; } = [];
+    public bool PerAreaExcludesUnassigned { get; set; }
 }
 
 public class OliveOilEconomicsDto

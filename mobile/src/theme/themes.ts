@@ -2,15 +2,15 @@ import { colors as lightColors } from './colors';
 
 export type AppColors = typeof lightColors;
 
-/** Dark theme — warm green-charcoal from frontend theme.css `[data-theme='dark']` */
+/** Olive grove at night — warm green-charcoal, never pure black. Source: theme.css dark. */
 export const darkColors: AppColors = {
   ...lightColors,
 
   olive: '#71845B',
   sage: '#9AAA85',
   leaf: '#71845B',
-  deepGrove: '#141714',
-  warmStone: '#D9D5C8',
+  deepGrove: '#29382A',
+  warmStone: 'rgba(235, 239, 230, 0.22)',
   limestone: '#141714',
   accentGold: '#B09A63',
   charcoal: '#F3F4EF',
@@ -23,24 +23,24 @@ export const darkColors: AppColors = {
   onOlive: '#FFFFFF',
 
   secondary: '#879086',
-  secondaryDark: '#9DA699',
-  secondaryLight: '#C5CBBF',
+  secondaryDark: '#A2A99D',
+  secondaryLight: '#6B7469',
 
   success: '#62916D',
   successLight: 'rgba(98, 145, 109, 0.22)',
-  successDark: '#72AD85',
+  successDark: '#4f7a58',
 
   warning: '#C8924E',
   warningLight: 'rgba(200, 146, 78, 0.22)',
-  warningDark: '#D2A064',
+  warningDark: '#a8783a',
 
   error: '#C96656',
   errorLight: 'rgba(201, 102, 86, 0.22)',
-  errorDark: '#D77A68',
+  errorDark: '#a85548',
 
   info: '#5F95A8',
   infoLight: 'rgba(95, 149, 168, 0.22)',
-  infoDark: '#70A9BA',
+  infoDark: '#4a7a8a',
 
   neutral: '#879086',
   neutralLight: 'rgba(135, 144, 134, 0.22)',
@@ -48,15 +48,15 @@ export const darkColors: AppColors = {
   white: '#202520',
   black: '#000000',
 
-  gray50: '#202520',
-  gray100: '#272D27',
-  gray200: '#2E352E',
-  gray300: '#343C34',
-  gray400: '#717A70',
-  gray500: '#9DA699',
-  gray600: '#C5CBBF',
-  gray700: '#D9D5C8',
-  gray800: '#EBEFE6',
+  gray50: '#1A1E1A',
+  gray100: '#202520',
+  gray200: '#272D27',
+  gray300: '#2E352E',
+  gray400: '#9DA699',
+  gray500: '#C5CBBF',
+  gray600: '#D9D5C8',
+  gray700: '#EBEFE6',
+  gray800: '#F3F4EF',
   gray900: '#F3F4EF',
 
   background: '#141714',
@@ -74,7 +74,7 @@ export const darkColors: AppColors = {
   textSecondary: '#C5CBBF',
   textTertiary: '#9DA699',
   textDisabled: '#717A70',
-  textInverse: '#FFFFFF',
+  textInverse: '#141714',
 
   headerBackground: '#202320',
   headerForeground: '#F3F4EF',
@@ -82,10 +82,10 @@ export const darkColors: AppColors = {
   headerAccent: '#71845B',
   headerBorder: 'rgba(235, 239, 230, 0.14)',
   tabBarBackground: '#202320',
-  tabBarForeground: '#A9BE91',
-  tabBarForegroundInactive: '#9DA699',
+  tabBarForeground: '#71845B',
+  tabBarForegroundInactive: '#C5CBBF',
   tabBarBorder: 'rgba(235, 239, 230, 0.14)',
-  tabBarActivePill: 'rgba(113, 132, 91, 0.22)',
+  tabBarActivePill: 'rgba(113, 132, 91, 0.18)',
 
   border: 'rgba(235, 239, 230, 0.14)',
   borderLight: 'rgba(235, 239, 230, 0.09)',
@@ -97,13 +97,15 @@ export const darkColors: AppColors = {
   backdrop: 'rgba(7, 10, 7, 0.68)',
 
   shadow: 'rgba(10, 15, 9, 0.28)',
-  shadowDark: 'rgba(5, 8, 5, 0.40)',
+  shadowDark: 'rgba(5, 8, 5, 0.50)',
 
-  lifecycleLow: '#9AAA85',
+  timeline: 'rgba(139, 160, 112, 0.42)',
+
+  lifecycleLow: '#8DA776',
   lifecycleHigh: '#B09A63',
-  taskPending: '#C8924E',
+  taskPending: '#B09A63',
   taskInProgress: '#70A9BA',
-  taskCompleted: '#72AD85',
+  taskCompleted: '#8DA776',
 
   eventWork: '#8DA776',
   eventWorkSoft: 'rgba(141, 167, 118, 0.18)',
@@ -121,6 +123,8 @@ export const darkColors: AppColors = {
   eventWarningSoft: 'rgba(215, 122, 104, 0.20)',
   eventFieldChange: '#929E9F',
   eventFieldChangeSoft: 'rgba(146, 158, 159, 0.19)',
+  eventLifecycle: '#B0AA6E',
+  eventLifecycleSoft: 'rgba(176, 170, 110, 0.18)',
 
   weatherBlue: '#70A9BA',
   rain: '#588EA5',
@@ -137,15 +141,77 @@ export const darkColors: AppColors = {
 
   domainTask: '#3A6EA5',
 
-  experienceEveryday: '#56B4E9',
-  experienceFull: '#E69F00',
-
   bannerErrorBg: 'rgba(201, 102, 86, 0.22)',
-  bannerErrorBorder: '#D77A68',
+  bannerErrorBorder: '#C96656',
   bannerWarningBg: 'rgba(200, 146, 78, 0.22)',
-  bannerWarningBorder: '#D2A064',
+  bannerWarningBorder: '#C8924E',
+};
+
+/**
+ * High-contrast field white for strong sun — pure white surfaces, near-black ink,
+ * solid borders. Use when the grower chooses Sun or ambient lux is high.
+ */
+export const sunColors: AppColors = {
+  ...lightColors,
+
+  olive: '#3A4420',
+  leaf: '#3A4420',
+  deepGrove: '#2A3318',
+  warmStone: '#C5C0B2',
+  limestone: '#FFFFFF',
+  charcoal: '#141510',
+
+  primary: '#3A4420',
+  primaryDark: '#2A3318',
+  primaryActive: '#2A3318',
+  primaryLight: '#DCE3C8',
+  oliveBorder: '#B8B3A5',
+
+  secondary: '#4A4C45',
+  secondaryDark: '#363832',
+  secondaryLight: '#65675D',
+
+  gray50: '#FFFFFF',
+  gray100: '#F0F0EC',
+  gray200: '#D8D4C8',
+  gray300: '#B8B3A5',
+
+  background: '#FFFFFF',
+  backgroundLight: '#FFFFFF',
+  backgroundSidebar: '#F0F0EC',
+  surface: '#FFFFFF',
+  surfaceElevated: '#FFFFFF',
+  surfaceMuted: '#F0F0EC',
+  surface3: '#E8E6DE',
+  surfaceHover: '#F5F5F0',
+  surfaceSelected: '#E8ECD9',
+
+  textPrimary: '#141510',
+  textSecondary: '#4A4C45',
+  textTertiary: '#65675D',
+  textDisabled: '#9A9C92',
+
+  headerBackground: '#FFFFFF',
+  headerForeground: '#141510',
+  headerForegroundMuted: '#4A4C45',
+  headerAccent: '#3A4420',
+  headerBorder: '#B8B3A5',
+  tabBarBackground: '#FFFFFF',
+  tabBarForeground: '#3A4420',
+  tabBarForegroundInactive: '#4A4C45',
+  tabBarBorder: '#B8B3A5',
+  tabBarActivePill: '#DCE3C8',
+
+  border: '#B8B3A5',
+  borderLight: '#D0CCC0',
+  borderDark: '#9A9588',
+
+  link: '#2A3318',
+  linkHover: '#3A4420',
+  focusRing: '#3A4420',
 };
 
 export { lightColors };
 
-export type ThemeMode = 'system' | 'light' | 'dark';
+export type ThemeMode = 'system' | 'light' | 'dark' | 'sun';
+
