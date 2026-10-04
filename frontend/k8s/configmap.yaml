@@ -4,5 +4,5 @@ metadata:
   name: olive-lifecycle-frontend-config
   namespace: oleachron-frontend
 data:
-  REACT_APP_API_URL: "https://api.oleachron.conceptatlas.eu"
+  REACT_APP_API_URL: "https://api.theolivelot.com"
   REACT_APP_SHOW_DEMO_LOGIN: "true"

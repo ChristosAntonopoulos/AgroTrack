@@ -55,9 +55,9 @@ variables:
   - name: frontendNodePort
     value: '31848'
   - name: backendApiUrl
-    value: 'https://api.oleachron.conceptatlas.eu'
+    value: 'https://api.theolivelot.com'
   - name: frontendBaseUrl
-    value: 'https://oleachron.conceptatlas.eu'
+    value: 'https://theolivelot.com'
   - name: kubernetesNodeIp
     value: '185.193.66.50'
   - name: frontendImageName

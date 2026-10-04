@@ -37,5 +37,7 @@ caddy validate --config "$MAIN_FILE"
 systemctl reload caddy || systemctl restart caddy
 
 echo "Installed ${SITE_NAME}.caddy"
-echo "  https://oleachron.conceptatlas.eu"
-echo "  https://api.oleachron.conceptatlas.eu"
+echo "  https://theolivelot.com"
+echo "  https://api.theolivelot.com"
+echo "  https://theolivelot.gr"
+echo "  https://api.theolivelot.gr"

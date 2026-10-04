@@ -1,13 +1,14 @@
-# Oleachron — host Caddy site (NodePorts on this VPS).
+# TheOliveLot — host Caddy site (NodePorts on this VPS).
 # Install: sudo bash deploy/caddy/install.sh
+# Live server may use a monolithic /etc/caddy/Caddyfile; keep this in sync.
 
-oleachron.conceptatlas.eu {
+theolivelot.com, www.theolivelot.com, theolivelot.gr, www.theolivelot.gr {
 	handle /uploads* {
 		reverse_proxy 127.0.0.1:31847
 	}
 	reverse_proxy 127.0.0.1:31848
 }
 
-api.oleachron.conceptatlas.eu {
+api.theolivelot.com, api.theolivelot.gr {
 	reverse_proxy 127.0.0.1:31847
 }
