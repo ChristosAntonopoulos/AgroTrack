@@ -9,7 +9,7 @@ import FieldColorMark from '../../components/fields/FieldColorMark';
 import { equalFieldShares, fieldIdsFromShares, millFieldShares } from '../allocation';
 import { millsNeedingOil } from '../chain';
 import { HarvestCarryPicker } from '../components/HarvestCarryPicker';
-import { HarvestNumberStepper } from '../components/HarvestNumberStepper';
+import { OilTinSplit } from '../components/OilTinSplit';
 import { HarvestFormPager, HarvestQuickChips } from '../components/HarvestFormPager';
 import {
   formatHarvestOilAmountLabel,
@@ -70,7 +70,7 @@ export const HarvestOilSheet: React.FC<
   }
 > = ({ campaign, fields, locale, prefillMillIds, initial, flow, onSave, onClose }) => {
   const { t } = useTranslation(['fields', 'common']);
-  const { colors, tapMin } = useTheme();
+  const { colors } = useTheme();
   const { user } = useAuth();
   const editing = Boolean(initial);
   const uncovered = useMemo(() => millsNeedingOil(campaign), [campaign]);
@@ -141,7 +141,6 @@ export const HarvestOilSheet: React.FC<
   const packedCounts = storageMode === 'tins' ? tinCounts : {};
   const tinLitres = tinLitresOf(packedCounts);
   const farmerLitres = millBase?.farmerAmount ?? 0;
-  const bulkLitres = Math.max(0, round1(farmerLitres - tinLitres));
   const tinOver = storageMode === 'tins' && tinLitres > farmerLitres + 0.05;
   const millOver = Boolean(millBase?.millOver);
   const tinCount = OIL_TIN_SIZES.reduce((sum, size) => sum + (packedCounts[size] || 0), 0);
@@ -342,8 +341,6 @@ export const HarvestOilSheet: React.FC<
       : t('fields:harvestCampaign.carry.pickFruit');
   const fieldLabel = inferredLabels.join(' + ');
 
-  const tinShare = farmerLitres > 0 ? Math.min(100, (tinLitres / farmerLitres) * 100) : 0;
-
   return (
     <HarvestFormPager
       current={pageIndex}
@@ -521,129 +518,14 @@ export const HarvestOilSheet: React.FC<
       ) : null}
 
       {step === 'pack' ? (
-        <>
-          <View style={styles.barBlock}>
-            <View style={[styles.barTrack, { backgroundColor: colors.surfaceMuted }]}>
-              {tinShare > 0 ? (
-                <View
-                  style={[
-                    styles.barFill,
-                    {
-                      width: `${tinOver ? 100 : tinShare}%`,
-                      backgroundColor: tinOver ? colors.error : colors.primary,
-                    },
-                  ]}
-                />
-              ) : null}
-            </View>
-            <View style={styles.barLegend}>
-              <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 13 }}>
-                {t('fields:harvestCampaign.oil.part.bulk')}{' '}
-                {formatHarvestOilAmountLabel(storageMode === 'tins' ? bulkLitres : farmerLitres, 'litres', locale)}
-              </Text>
-              {storageMode === 'tins' && tinLitres > 0 ? (
-                <Text style={{ color: colors.textSecondary, fontWeight: '700', fontSize: 13 }}>
-                  {t('fields:harvestCampaign.oil.storedTins')}{' '}
-                  {formatHarvestOilAmountLabel(round1(tinLitres), 'litres', locale)}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-          <View style={styles.pair}>
-            {(
-              [
-                ['all', t('fields:harvestCampaign.oil.part.bulk')],
-                ['tins', t('fields:harvestCampaign.oil.storedTins')],
-              ] as const
-            ).map(([mode, label]) => {
-              const on = storageMode === mode;
-              return (
-                <Pressable
-                  key={mode}
-                  onPress={() => setStorageMode(mode)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: on }}
-                  style={[
-                    styles.choice,
-                    {
-                      backgroundColor: on ? colors.primary : colors.surfaceElevated,
-                      borderColor: on ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Text style={{ color: on ? colors.onOlive : colors.textPrimary, fontWeight: '800' }}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          {storageMode === 'tins' ? (
-            <View style={styles.tinBlock}>
-              <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 14 }}>
-                {t('fields:harvestCampaign.oil.tinTypeTitle')}
-              </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                {t('fields:harvestCampaign.oil.tapTinAdd')}
-              </Text>
-              <View style={styles.tinChips}>
-                {OIL_TIN_SIZES.map((size) => {
-                  const count = tinCounts[size] || 0;
-                  const on = count > 0;
-                  return (
-                    <Pressable
-                      key={size}
-                      onPress={() => setTinCount(size, count + 1)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`+1 ${size} L`}
-                      style={[
-                        styles.tinChip,
-                        {
-                          minHeight: Math.max(48, tapMin * 0.95),
-                          backgroundColor: on ? colors.primary : colors.surfaceElevated,
-                          borderColor: on ? colors.primaryDark : colors.border,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={{
-                          color: on ? colors.onOlive : colors.textPrimary,
-                          fontWeight: '800',
-                          fontSize: 16,
-                        }}
-                      >
-                        {size} L
-                      </Text>
-                      {on ? (
-                        <Text style={{ color: colors.onOlive, fontWeight: '700', fontSize: 12 }}>
-                          ×{count}
-                        </Text>
-                      ) : null}
-                    </Pressable>
-                  );
-                })}
-              </View>
-              {tinCount > 0 ? (
-                <View style={styles.tinRows}>
-                  {OIL_TIN_SIZES.filter((size) => (tinCounts[size] || 0) > 0).map((size) => (
-                    <HarvestNumberStepper
-                      key={size}
-                      label={`${size} L`}
-                      value={tinCounts[size] || 0}
-                      onChange={(next) => setTinCount(size, Math.round(next))}
-                      min={0}
-                      suffix={t('fields:harvestCampaign.oil.tinSuffix')}
-                    />
-                  ))}
-                </View>
-              ) : (
-                <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' }}>
-                  {t('fields:harvestCampaign.oil.tinCountHint')}
-                </Text>
-              )}
-            </View>
-          ) : null}
-        </>
+        <OilTinSplit
+          totalLitres={farmerLitres}
+          mode={storageMode}
+          onModeChange={setStorageMode}
+          counts={tinCounts}
+          onChangeCount={setTinCount}
+          locale={locale}
+        />
       ) : null}
 
       {step === 'cellar' ? (
@@ -709,7 +591,6 @@ const AmountField: React.FC<{
 };
 
 const styles = StyleSheet.create({
-  pair: { flexDirection: 'row', gap: 10 },
   amount: { gap: 4 },
   amountLabel: { fontSize: 12, fontWeight: '700' },
   amountRow: {
@@ -750,32 +631,6 @@ const styles = StyleSheet.create({
   },
   fruitColors: { flexDirection: 'row', alignItems: 'center' },
   fruitCopy: { flex: 1, gap: 2 },
-  barBlock: { gap: 6 },
-  barTrack: { height: 14, borderRadius: 99, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 99 },
-  barLegend: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  choice: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: radii.lg,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tinBlock: { gap: 10 },
-  tinChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tinChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: radii.lg,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    minWidth: '30%',
-    flexGrow: 1,
-  },
-  tinRows: { gap: 12 },
   cellars: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cellarChip: {
     minHeight: 40,

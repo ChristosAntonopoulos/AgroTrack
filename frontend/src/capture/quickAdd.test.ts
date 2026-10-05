@@ -1,5 +1,5 @@
 import { buildCaptureMenu } from './menu';
-import { buildQuickAddMoves, resolveQuickAddContext } from './quickAdd';
+import { buildQuickAddMoves, catalogSectionOrder, resolveQuickAddContext } from './quickAdd';
 import { resolveCaptureFieldId } from './fieldContext';
 import type { CapturePermissions } from './types';
 
@@ -23,6 +23,23 @@ const groups = (live: boolean) =>
     canUseWarehouse: true,
     openSacks: live ? 3 : 0,
   });
+
+describe('catalogSectionOrder', () => {
+  it('leads with harvest in picking months and trails it the rest of the year', () => {
+    expect(catalogSectionOrder(new Date(2026, 9, 5))).toEqual([
+      'day',
+      'grove',
+      'money',
+      'warehouse',
+    ]);
+    expect(catalogSectionOrder(new Date(2026, 5, 1))).toEqual([
+      'grove',
+      'money',
+      'warehouse',
+      'day',
+    ]);
+  });
+});
 
 describe('resolveQuickAddContext', () => {
   it('maps routes to contexts', () => {
@@ -68,7 +85,7 @@ describe('buildQuickAddMoves', () => {
       pathname: '/my-oil',
       groups: groups(false),
     });
-    expect(moves.map((m) => m.id)).toEqual(['give', 'sell', 'hold', 'fill']);
+    expect(moves.map((m) => m.id)).toEqual(['add', 'give', 'sell', 'hold']);
   });
 
   it('keeps two context-fixed slots before recent', () => {
@@ -86,6 +103,14 @@ describe('buildQuickAddMoves', () => {
       groups: groups(false),
     });
     expect(moves.map((m) => m.id)).toEqual(['expense', 'income', 'oil_sale', 'payment']);
+    expect(moves.find((move) => move.id === 'expense')).toMatchObject({
+      surface: 'capture',
+      type: 'expense',
+    });
+    expect(moves.find((move) => move.id === 'income')).toMatchObject({
+      surface: 'capture',
+      type: 'income',
+    });
   });
 
   it('uses tasks and photos presets', () => {

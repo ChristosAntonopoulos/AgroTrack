@@ -192,6 +192,11 @@
   background: var(--harvest-gold-deep, var(--olive-hover, #9a7a3a));
 }
 
+.hc-stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .hc-stepper-value {
   display: flex;
   align-items: center;
@@ -1233,6 +1238,71 @@ button.hc-path-node:focus-visible {
 .hc-oil-tins {
   display: grid;
   gap: 0.5rem;
+}
+
+.hc-oil-tin-split {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.hc-oil-tin-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.hc-oil-tin-legend span:last-child {
+  color: var(--color-text-secondary);
+  text-align: right;
+}
+
+.hc-oil-tin-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hc-oil-tin-chip {
+  flex: 1 1 30%;
+  min-height: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  padding: 0.45rem 0.7rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--surface-1, var(--bg-card));
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.hc-oil-tin-chip.is-on {
+  border-color: var(--olive-primary);
+  background: var(--olive-primary);
+  color: var(--on-olive, #fff);
+}
+
+.hc-oil-tin-chip small {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.hc-oil-tin-rows {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.hc-oil-tin-over {
+  margin: 0;
+  color: var(--status-danger, #c45c4a);
+  font-weight: 700;
 }
 
 @media (min-width: 420px) {

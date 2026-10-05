@@ -75,14 +75,21 @@
   color: #7a5b00;
 }
 
-.field-card-badge--mine {
+.field-card-badge--mine,
+.field-card-badge--admin {
   background: color-mix(in srgb, #3d7a4a 18%, white);
   color: #245734;
 }
 
-.field-card-badge--shared {
-  background: color-mix(in srgb, #6b7280 16%, white);
-  color: #374151;
+.field-card-badge--shared,
+.field-card-badge--partner {
+  background: color-mix(in srgb, #3b628c 16%, white);
+  color: #1e3a5f;
+}
+
+.field-card-badge--family {
+  background: color-mix(in srgb, #b47830 18%, white);
+  color: #7a4a12;
 }
 
 .field-card-v2--draft {

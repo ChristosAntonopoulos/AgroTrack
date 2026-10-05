@@ -304,6 +304,11 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
   const focusedItem = mappableFields.find((item) => item.field.id === selectedFieldId) || null;
 
   const selectField = (fieldId: string) => {
+    // First click focuses the grove; a second click on the same one opens it.
+    if (fieldId === selectedFieldId && onFieldPress) {
+      onFieldPress(fieldId);
+      return;
+    }
     onFieldSelect?.(fieldId);
   };
 

@@ -1,5 +1,6 @@
 import type { CaptureMenuGroup, CaptureMove } from './menu';
 import type { CaptureSourcePage } from './types';
+import { isOliveHarvestSeason } from '../utils/harvestSeason';
 import { sourcePageFromRoute } from './openContext';
 
 export type QuickAddContext =
@@ -44,7 +45,7 @@ export const resolveQuickAddContext = (input: {
 /** Preferred move ids for each context (first available wins). */
 export const QUICK_PRESETS: Record<QuickAddContext, readonly string[]> = {
   harvest: ['sacks', 'mill', 'oil', 'expense'],
-  warehouse: ['give', 'sell', 'hold', 'fill'],
+  warehouse: ['add', 'give', 'sell', 'hold'],
   grove: ['work', 'observation', 'expense', 'photo'],
   money: ['expense', 'income', 'oil_sale', 'payment'],
   tasks: ['work', 'observation', 'expense', 'photo'],
@@ -102,3 +103,11 @@ export const buildQuickAddMoves = (input: {
 
 /** Catalog section order for the full list (no horizontal tabs). */
 export const CATALOG_SECTION_ORDER = ['day', 'grove', 'money', 'warehouse'] as const;
+
+export type CatalogSectionId = (typeof CATALOG_SECTION_ORDER)[number];
+
+/** Harvest leads during picking months. The rest of the year it follows the other records. */
+export const catalogSectionOrder = (now = new Date()): CatalogSectionId[] => {
+  const rest: CatalogSectionId[] = ['grove', 'money', 'warehouse'];
+  return isOliveHarvestSeason(now) ? ['day', ...rest] : [...rest, 'day'];
+};

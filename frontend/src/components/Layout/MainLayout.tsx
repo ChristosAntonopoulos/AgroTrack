@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
@@ -76,7 +76,7 @@ const MainLayoutChrome: React.FC = () => {
           <div className="app-canvas" aria-hidden="true" />
           <OfflineBanner />
           <PhotoUploadRunner />
-          <Outlet />
+          <ActivationGate />
         </main>
       </div>
       {moreOpen && isMobile && !hideAppNav ? <MoreMenuPanel onNavigate={closeMore} /> : null}
@@ -84,7 +84,6 @@ const MainLayoutChrome: React.FC = () => {
         <MobileBottomNav onMoreClick={toggleMore} moreOpen={moreOpen} />
       ) : null}
       {!hideAppNav ? <CaptureFab obscured={moreOpen} /> : null}
-      <ActivationGate />
       <OwnerActivationHost />
       <NavCoach />
     </div>

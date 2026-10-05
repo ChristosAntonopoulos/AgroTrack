@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { roleHomePath, type AppRole } from '../../navigation/navConfig';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
@@ -15,38 +15,39 @@ export const isActivationAllowedPath = (pathname: string, _search = ''): boolean
   return false;
 };
 
-/** Redirect locked FieldOwners away from non-setup routes. */
+const activationRedirectTarget = (
+  activation: NonNullable<ReturnType<typeof useOwnerActivationOptional>>,
+  role: string | undefined
+): string => {
+  const step =
+    activation.activeStep || (activation.completion.createGrove ? 'drawBoundary' : 'createGrove');
+  if (step === 'createGrove') {
+    return roleHomePath((role || '') as AppRole);
+  }
+  return stepPath(step, activation.primaryField?.id ?? null);
+};
+
+/**
+ * When hard-locked, replace forbidden routes before their page mounts.
+ * Keeps URL and visible screen in sync (avoids SPA “menu moved, content stuck”).
+ */
 const ActivationGate: React.FC = () => {
   const activation = useOwnerActivationOptional();
   const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!activation?.locked) return;
-
-    if (isActivationAllowedPath(location.pathname, location.search)) return;
-
-    const step =
-      activation.activeStep || (activation.completion.createGrove ? 'drawBoundary' : 'createGrove');
-    if (step === 'createGrove') {
-      navigate(roleHomePath((user?.role || '') as AppRole), { replace: true });
-      return;
+  if (
+    activation?.locked &&
+    !isActivationAllowedPath(location.pathname, location.search)
+  ) {
+    const target = activationRedirectTarget(activation, user?.role);
+    const here = `${location.pathname}${location.search}`;
+    if (target !== here && !( !target.includes('?') && target === location.pathname)) {
+      return <Navigate to={target} replace />;
     }
-    const target = stepPath(step, activation.primaryField?.id ?? null);
-    navigate(target, { replace: true });
-  }, [
-    activation?.locked,
-    activation?.activeStep,
-    activation?.completion.createGrove,
-    activation?.primaryField?.id,
-    location.pathname,
-    location.search,
-    navigate,
-    user?.role,
-  ]);
+  }
 
-  return null;
+  return <Outlet key={location.pathname} />;
 };
 
 export default ActivationGate;

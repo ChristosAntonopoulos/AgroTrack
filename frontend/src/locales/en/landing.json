@@ -2,162 +2,169 @@
   "brand": "The Olive Lot",
   "header": {
     "howItWorks": "How it works",
-    "chronologio": "History",
-    "features": "What you can do",
+    "keeps": "What it keeps",
+    "forWhom": "Who it’s for",
+    "pricing": "Pricing",
     "signIn": "Sign in",
     "startFree": "Start free"
   },
   "hero": {
-    "eyebrow": "For your olive grove. For every year of it.",
-    "title": "Your olive grove’s story lives here.",
-    "sub": "Record what you do today and find it clearly whenever you need it: work, harvest, expenses, notes, photos, and whatever explains a year.",
-    "ctaPrimary": "Start free",
-    "ctaSecondary": "See how it works",
-    "trust": "Your first field is free · For your own or a family grove",
-    "today": "Today",
-    "todayText": "A note in the field",
-    "strip": ["Work", "Harvest", "Expenses", "Photos", "Map"]
+    "eyebrow": "",
+    "title": "You know what happened. What you paid. What you got. What you have left.",
+    "titleLine": "",
+    "sub": "Work, costs, harvest and oil — all on the right grove, every year.",
+    "ctaPrimary": "Add your first grove",
+    "ctaSecondary": "See how it works ↓",
+    "trust": "1 grove free · On phone and computer · Ready in a few minutes",
+    "field": "Kato Alonia",
+    "year": "2026",
+    "status": "Last record · Spraying · 2 days ago",
+    "workLabel": "Work",
+    "workValue": "12",
+    "costLabel": "Costs",
+    "costValue": "€860",
+    "harvestLabel": "Harvest",
+    "harvestValue": "2,480 kg",
+    "oilLabel": "Oil",
+    "oilValue": "148 L"
   },
-  "memory": {
-    "title": "What you know about your grove deserves to stay.",
-    "text": "A note on the phone, a conversation in the field, an old notebook — all of it is useful until you need to find it. The Olive Lot keeps it with the field and its year.",
-    "close": "What happened. When it happened. Why it matters.",
-    "photoAlt": "An old notebook and notes, with the grove in afternoon light"
+  "problem": {
+    "title": "Notebooks. Scraps of paper. Photos.\nAnd things you simply remember.",
+    "asks": ["When did you spray?", "What did you pay?", "What did you get?", "How much oil was left?"],
+    "now": "Now you find it all on the right grove.",
+    "photoAlt": "Notebooks, scraps of paper and photos from the grove"
+  },
+  "questions": {
+    "title": "Four questions.",
+    "titleLine": "One answer.",
+    "close": "You don’t have to remember them. The Olive Lot keeps them for you.",
+    "cards": [
+      { "id": "work", "ask": "What happened?", "answer": "Spraying · Pruning · Fertilising", "detail": "12 records" },
+      { "id": "cost", "ask": "What did I pay?", "answer": "€860", "detail": "Materials + labour" },
+      { "id": "yield", "ask": "What did I get?", "answer": "2,480 kg", "detail": "42 sacks" },
+      { "id": "stock", "ask": "What do I have now?", "answer": "8 tins", "detail": "+ 12 L bulk" }
+    ]
+  },
+  "flow": {
+    "title": "From the work in the field to the oil you keep at home.",
+    "titleLine": "From the field to the tin.",
+    "line": "One continuous record. You don’t write the same thing twice.",
+    "steps": [
+      { "id": "work", "label": "Work" },
+      { "id": "cost", "label": "Cost" },
+      { "id": "harvest", "label": "Harvest" },
+      { "id": "mill", "label": "Mill" },
+      { "id": "oil", "label": "Oil" },
+      { "id": "store", "label": "Store" }
+    ]
   },
   "chronologio": {
-    "title": "History is your grove’s memory.",
-    "text": "It doesn’t just keep records. It shows the thread: what happened, in which field, under what conditions, and what followed.",
-    "points": [
-      "Remember what you did last year",
-      "Find a record in seconds",
-      "Understand the year that passed"
-    ],
-    "months": ["Sep", "Oct", "Nov"],
-    "railLabel": "Months of the year"
-  },
-  "journal": {
-    "example": "Example",
+    "title": "Each year helps you understand the next.",
+    "text": "When you pruned. When you sprayed. What you paid. What you got. As the years pass, The Olive Lot becomes the memory of your grove.",
+    "railLabel": "Years of the grove",
     "field": "Kato Alonia",
-    "month": "October 2025",
-    "dayEarly": "8 October",
-    "dayLate": "22 October",
-    "weatherTitle": "The day’s weather",
-    "weatherMeta": "17° · 12 mm rain",
-    "taskTitle": "Fruiting prune",
-    "taskMeta": "Completed",
-    "taskNextTitle": "Nets before harvest",
-    "taskNextMeta": "Friday · each year",
-    "noteTitle": "Fruit darkened on the south side",
-    "noteMeta": "Note and photo",
-    "harvestTitle": "Harvest",
-    "harvestMeta": "42 sacks · 860 kg · 148 L oil",
-    "expenseTitle": "Harvest labour",
-    "expenseMeta": "€320",
-    "sepTitle": "A check of the trees",
-    "sepMeta": "Completed · 12 September",
-    "sepDetail": "A quiet day in the field, before October opened.",
-    "novTitle": "Oil at the mill",
-    "novMeta": "148 L · 4 November",
-    "novDetail": "October’s oil stayed tied to the same field.",
-    "detailWeather": "12 mm of rain, the day the pruning was finished.",
-    "detailTask": "The task closed on 8 October. It stays with the field.",
-    "detailNote": "A note with a photo, before harvest began.",
-    "detailHarvest": "42 sacks, 860 kg of olives, 148 litres of oil.",
-    "detailExpense": "€320 of labour, tied to this field.",
-    "shotAlt": "October History for Kato Alonia: a task, a note, weather, a harvest and an expense"
-  },
-  "capabilities": {
-    "title": "From the field to the year’s reckoning.",
-    "bridge": "Not six tools. Everything becomes part of the grove’s story.",
-    "items": [
-      {
-        "key": "map",
-        "title": "Your groves on the map",
-        "outcome": "See each field as it is.",
-        "text": "Find its place, keep its boundaries, and always have the picture of the grove in front of you."
-      },
-      {
-        "key": "tasks",
-        "title": "Work that isn’t forgotten",
-        "outcome": "Organise what needs doing.",
-        "text": "Create tasks for each field, set a time and a repeat, and mark them as soon as they’re done."
-      },
-      {
-        "key": "capture",
-        "title": "A record in a few seconds",
-        "outcome": "Keep the moment before it fades.",
-        "text": "Write a note, add a photo, or log an expense the moment it happens."
-      },
-      {
-        "key": "harvest",
-        "title": "Your harvest, without scraps of paper",
-        "outcome": "Sacks, kilos, oil and expenses, on the same field.",
-        "text": "Add what comes off as you pick, and close the harvest with a clear result."
-      },
-      {
-        "key": "money",
-        "title": "Expenses and a picture of the year",
-        "outcome": "See what it cost and what it returned.",
-        "text": "Tie expenses and income to the right field, so your reckoning makes sense."
-      },
-      {
-        "key": "context",
-        "title": "Weather, vegetation and past seasons",
-        "outcome": "See your grove through the data as well.",
-        "text": "Conditions and the field’s picture, always beside what actually happened."
-      }
+    "highlightTitle": "Fruiting prune",
+    "highlightWhen": "February 2025",
+    "years": [
+      { "id": "2024", "label": "2024", "yield": "1,920 kg" },
+      { "id": "2025", "label": "2025", "yield": "2,480 kg" },
+      { "id": "2026", "label": "2026", "yield": "in progress" }
     ]
   },
   "map": {
-    "title": "See your grove differently, without losing the real picture.",
-    "text": "Find your fields, keep their boundaries, and see how conditions change through the year. The map, the weather and the vegetation sit beside what actually happened in the grove.",
-    "marchLabel": "Vegetation · March 2026",
-    "juneLabel": "Vegetation · June 2026",
-    "marchFact": "In March the field’s picture was more uneven.",
-    "juneFact": "In June the field’s picture was more even.",
+    "title": "Every record knows where it belongs.",
+    "sub": "Your fields don’t get mixed up.",
+    "ownsLead": "Each grove keeps its own:",
+    "knows": ["work · costs · harvest · photos · history"],
+    "field": "Kato Alonia",
+    "marchLabel": "March 2026",
+    "juneLabel": "June 2026",
+    "marchFact": "In March the grove’s picture was more uneven.",
+    "juneFact": "In June the grove’s picture had filled in.",
     "compareLabel": "Compare two dates",
-    "march": "March 2026",
-    "june": "June 2026"
+    "march": "March",
+    "june": "June"
   },
   "harvest": {
-    "title": "The harvest goes in simply.",
-    "text": "In the field you write the sacks. At the mill, the kilos. Then the oil. Each day joins that field’s year on its own.",
-    "steps": [
-      { "label": "Sacks", "where": "In the field", "ask": "How many did you pick today?" },
-      { "label": "Kilos", "where": "At the mill", "ask": "What did the scale show?" },
-      { "label": "Oil", "where": "After weighing", "ask": "How much came out?" }
-    ],
-    "yearLabel": "The year, already added up",
-    "year": "42 sacks · 860 kg · 148 L oil",
-    "sacks": "Sacks",
-    "kilos": "Kilos",
-    "litres": "Litres of oil",
-    "expenses": "Expenses",
-    "sacksValue": "6",
-    "kilosValue": "128",
-    "litresValue": "—",
-    "expensesValue": "€40",
-    "add": "Add today’s record",
-    "soFar": "October so far · 42 sacks"
+    "title": "When harvest comes, you don’t hunt for scraps of paper.",
+    "stages": [
+      {
+        "id": "field",
+        "label": "",
+        "focus": "860 kg",
+        "lines": ["42 sacks · 6 people · €40 costs"]
+      },
+      {
+        "id": "mill",
+        "label": "",
+        "focus": "148 L",
+        "lines": ["from 860 kg olives"]
+      },
+      {
+        "id": "store",
+        "label": "",
+        "focus": "8 × 17 L",
+        "lines": ["+ 12 L bulk"]
+      }
+    ]
+  },
+  "oil": {
+    "title": "You know what you kept, what you gave, and what you have left.",
+    "titleLine": "",
+    "total": "148 L in all",
+    "available": "Available",
+    "held": "Held",
+    "given": "Given",
+    "actions": "Sell · Give · Keep · Adjust",
+    "text": "Tins and bulk oil, what you kept, gifts and sales — without a second notebook.",
+    "lot": "17 L",
+    "batch": "LOT 2025"
+  },
+  "years": {
+    "title": "Each year helps you understand the next.",
+    "text": "When you pruned. When you sprayed. What you paid. What you got.",
+    "marks": [
+      { "year": "2016", "label": "First record" },
+      { "year": "2020", "label": "New trees" },
+      { "year": "2023", "label": "A big harvest" },
+      { "year": "2026", "label": "This year" },
+      { "year": "…", "label": "And it continues" }
+    ]
+  },
+  "family": {
+    "title": "A grove is rarely one person’s work.",
+    "sub": "Family, partners and an agronomist can record where they should — without losing control.",
+    "field": "Kato Alonia",
+    "people": [
+      { "name": "Kostas", "did": "Added a €40 cost" },
+      { "name": "Maria", "did": "Recorded a harvest" },
+      { "name": "Giannis · Agronomist", "did": "Added an observation" }
+    ]
   },
   "steps": {
-    "title": "Start simply. Your grove builds its own story.",
+    "title": "You’re ready in a few minutes.",
     "step1Title": "Add your grove",
-    "step1Text": "Find it on the map and keep its basic details.",
-    "step2Title": "Record what you do",
-    "step2Text": "A task, a note, an expense, or today’s harvest.",
-    "step3Title": "Watch the year take on meaning",
-    "step3Text": "History organises what happened, so you can find it again and use it."
+    "step1Text": "Find it on the map and draw its boundary once.",
+    "step2Title": "Write what happens",
+    "step2Text": "Work, costs, harvest and oil.",
+    "step3Title": "Next year, you don’t go looking",
+    "step3Text": "What you record stays on the grove and builds its history."
   },
-  "trust": {
-    "title": "Made for people who carry the grove in mind.",
-    "text": "For you, caring for your own or a family grove and wanting to keep what you learn each year. Simple in the field, clear when you come home.",
-    "labels": ["Designed for olive groves", "A record in a few seconds", "The first field is free"]
+  "pricing": {
+    "title": "Pricing"
+  },
+  "killer": {
+    "line1": "Don’t go looking next year",
+    "line2": "for what happened this year."
+  },
+  "proof": {
+    "title": "Built with people who have olive trees.",
+    "quotes": []
   },
   "cta": {
-    "title": "Don’t let another year stay on scraps of paper.",
-    "text": "Start your grove on The Olive Lot and keep what matters, from today.",
-    "primary": "Start with your first field free"
+    "text": "Start with your first grove free.",
+    "primary": "Start free",
+    "note": "On phone and computer · Ready in a few minutes"
   },
   "alpha": {
     "androidTestTitle": "Android trial (advanced)",
@@ -180,7 +187,7 @@
     "safety": "Install only from The Olive Lot.com."
   },
   "footer": {
-    "description": "The digital archive of your olive grove.",
+    "description": "From the field to the tin.",
     "product": "Product",
     "contact": "Contact",
     "privacy": "Privacy",

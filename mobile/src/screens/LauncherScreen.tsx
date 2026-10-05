@@ -118,7 +118,7 @@ const LauncherScreen: React.FC = () => {
       helper: t('launcher.helpers.chronologio'),
       status: '',
       statusKind: 'none',
-      onPress: () => navigation.navigate('Main', { screen: 'ChronologioTab' }),
+      onPress: () => navigation.navigate('Chronologio'),
     });
     push({
       id: 'fields',

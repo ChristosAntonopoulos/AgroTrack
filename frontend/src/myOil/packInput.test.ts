@@ -1,5 +1,5 @@
 import { formatOilPack } from './formatOilPack';
-import { clampPackInput, emptyOilPackInput, packLitresOf } from './packInput';
+import { clampPackInput, emptyOilPackInput, packFromSplit, packLitresOf } from './packInput';
 
 describe('myOil pack helpers', () => {
   it('formats tins and bulk', () => {
@@ -28,5 +28,21 @@ describe('myOil pack helpers', () => {
 
   it('starts empty', () => {
     expect(emptyOilPackInput()).toEqual({ tin16: 0, tin17: 0, bulkLitres: 0 });
+  });
+
+  it('keeps a whole amount as bulk until it is split', () => {
+    expect(packFromSplit(100, 'all', { 16: 2 })).toEqual({
+      tin16: 0,
+      tin17: 0,
+      bulkLitres: 100,
+    });
+  });
+
+  it('stores 16 and 17 as tins and leaves the rest loose', () => {
+    expect(packFromSplit(100, 'tins', { 5: 2, 16: 1, 17: 2 })).toEqual({
+      tin16: 1,
+      tin17: 2,
+      bulkLitres: 50,
+    });
   });
 });

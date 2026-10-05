@@ -13,9 +13,12 @@ type Props = {
   groups: GroveOilGroup[];
   fieldNames: Record<string, string>;
   focusFieldId?: string | null;
+  /** One shelf, when a summary row was tapped. Omit to show the full list. */
+  focusKey?: string | null;
   onClose: () => void;
   onFill: () => void;
   onFillGrove: (group: GroveOilGroup) => void;
+  onEdit: (group: GroveOilGroup) => void;
 };
 
 /** Shelves as their own page: one grove at a time, fill from the plus. */
@@ -24,14 +27,18 @@ export function OilShelvesSheet({
   groups,
   fieldNames,
   focusFieldId,
+  focusKey,
   onClose,
   onFill,
   onFillGrove,
+  onEdit,
 }: Props) {
   const { t } = useTranslation('myOil');
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
   const insets = useSafeAreaInsets();
+  const shown = focusKey ? groups.filter((group) => group.key === focusKey) : groups;
+  const list = shown.length > 0 ? shown : groups;
 
   return (
     <Modal visible={open} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
@@ -66,10 +73,11 @@ export function OilShelvesSheet({
           }}
         >
           <OilByGroveSection
-            groups={groups}
+            groups={list}
             fieldNames={fieldNames}
             focusFieldId={focusFieldId}
             onFillGrove={onFillGrove}
+            onEdit={onEdit}
           />
         </ScrollView>
       </View>

@@ -811,10 +811,11 @@
   color: var(--color-warning);
 }
 
-/* Full-screen boundary draw — map is the screen, steps sit on it, one action at the bottom. */
+/* Full-screen boundary draw — map is the screen, steps sit on it, one action at the bottom.
+   Must sit above sidebar (--z-fixed) so the stage is not covered by shell chrome. */
 .field-boundary-step.is-stage {
   position: fixed;
-  z-index: calc(var(--z-sticky, 1020) - 1);
+  z-index: var(--z-modal, 1050);
   top: calc(var(--header-height, 56px) + var(--safe-top, 0px));
   right: 0;
   bottom: 0;

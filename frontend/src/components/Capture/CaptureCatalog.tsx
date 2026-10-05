@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import {
   Bookmark,
   Camera,
   CheckSquare,
   Cylinder,
   Droplets,
+  Plus,
   FileText,
   HandCoins,
   Mic,
@@ -23,12 +23,12 @@ import {
   type CaptureMenuGroup,
   type CaptureMove,
 } from '../../capture/menu';
-import { CATALOG_SECTION_ORDER } from '../../capture/quickAdd';
-import { harvestPath } from '../../navigation/intents';
+import { catalogSectionOrder, type CatalogSectionId } from '../../capture/quickAdd';
 import type { Field } from '../../services/fieldService';
 import CaptureContextChips from './CaptureContextChips';
 
 const warehouseTitleKey = {
+  add: 'add',
   give: 'give',
   sell: 'sell',
   hold: 'hold',
@@ -45,12 +45,13 @@ const SECTION_KEY: Record<string, string> = {
 
 type Props = {
   groups: CaptureMenuGroup[];
-  isHarvestLive: boolean;
   harvestHint?: Partial<Record<HarvestCaptureKind, string>>;
   fields: Field[];
   fieldId: string;
   occurredAtLocal: string;
   recentIds?: readonly string[];
+  /** On Χρήματα, expense/income ids belong to money, not the harvest day. */
+  preferMoneyMoves?: boolean;
   onFieldChange: (id: string) => void;
   onOccurredAtChange: (localDateTime: string) => void;
   onPick: (move: CaptureMove) => void;
@@ -58,12 +59,12 @@ type Props = {
 
 const CaptureCatalog: React.FC<Props> = ({
   groups,
-  isHarvestLive,
   harvestHint,
   fields,
   fieldId,
   occurredAtLocal,
   recentIds = [],
+  preferMoneyMoves = false,
   onFieldChange,
   onOccurredAtChange,
   onPick,
@@ -75,11 +76,18 @@ const CaptureCatalog: React.FC<Props> = ({
     const map = new Map<string, CaptureMove>();
     for (const group of groups) {
       for (const move of group.moves) {
-        if (!map.has(move.id)) map.set(move.id, move);
+        const existing = map.get(move.id);
+        if (!existing) {
+          map.set(move.id, move);
+          continue;
+        }
+        if (preferMoneyMoves && existing.surface === 'harvest' && move.surface === 'capture') {
+          map.set(move.id, move);
+        }
       }
     }
     return map;
-  }, [groups]);
+  }, [groups, preferMoneyMoves]);
 
   const recentMoves = useMemo(() => {
     const picked: CaptureMove[] = [];
@@ -143,6 +151,7 @@ const CaptureCatalog: React.FC<Props> = ({
       return <Icon size={18} strokeWidth={2.25} />;
     }
     if (move.surface === 'warehouse') {
+      if (move.action === 'add') return <Plus size={18} strokeWidth={2.25} />;
       if (move.action === 'give') return <Droplets size={18} strokeWidth={2.25} />;
       if (move.action === 'sell') return <HandCoins size={18} strokeWidth={2.25} />;
       if (move.action === 'hold') return <Bookmark size={18} strokeWidth={2.25} />;
@@ -219,26 +228,11 @@ const CaptureCatalog: React.FC<Props> = ({
         </section>
       ) : null}
 
-      {CATALOG_SECTION_ORDER.map((sectionId) => {
+      {(preferMoneyMoves
+        ? (['money', ...catalogSectionOrder().filter((id) => id !== 'money')] as CatalogSectionId[])
+        : catalogSectionOrder()
+      ).map((sectionId) => {
         const group = byId.get(sectionId) || { id: sectionId, moves: [] as CaptureMove[] };
-
-        if (sectionId === 'day') {
-          return (
-            <section key={sectionId} className="capture-catalog-section">
-              <h3 className="capture-catalog-section-title">{t(`capture:${SECTION_KEY[sectionId]}`)}</h3>
-              {isHarvestLive && group.moves.length > 0 ? (
-                <div className="capture-catalog-grid">{group.moves.map((m) => tile(m))}</div>
-              ) : (
-                <div className="capture-tab-empty">
-                  <p>{t('capture:dayEmpty')}</p>
-                  <Link className="capture-tab-cta" to={harvestPath()}>
-                    {t('capture:openHarvest')}
-                  </Link>
-                </div>
-              )}
-            </section>
-          );
-        }
 
         if (group.moves.length === 0) return null;
 

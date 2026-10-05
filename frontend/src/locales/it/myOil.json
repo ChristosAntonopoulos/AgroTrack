@@ -9,7 +9,13 @@
   },
   "byGrove": {
     "title": "Scaffali",
-    "hint": "Olio per campo di origine",
+    "hint": "Olio per campo. Tocca uno scaffale per cambiarlo.",
+    "edit": "Modifica",
+    "editTitle": "Modifica questo scaffale",
+    "editHint": "Cambia lo sfuso e le latte che stanno qui.",
+    "editSave": "Salva",
+    "editReserved": "Parte di questo olio è già prenotata. Lasciala almeno così.",
+    "batch": "Partita {{batch}}",
     "shared": "Condiviso · {{names}}",
     "unassigned": "Senza campo",
     "noneFree": "Niente libero",
@@ -38,7 +44,9 @@
     "onHandLabel": "In magazzino",
     "freeOfTotal": "{{amount}} L liberi",
     "available": "Libero",
-    "holds": "In riserva"
+    "holds": "In riserva",
+    "cycle": "Come sta l'olio: sfuso, latte da 16 L, latte da 17 L, libero e prenotato",
+    "tinCount": "{{count}} · {{litres}} L"
   },
   "warehouse": {
     "pack16": "16 L",
@@ -46,6 +54,7 @@
     "packBulk": "Sfuso"
   },
   "actions": {
+    "add": "Aggiungi olio",
     "give": "Dai",
     "sell": "Vendi",
     "hold": "Riserva",
@@ -171,7 +180,17 @@
       "admin": "Admin",
       "family": "Famiglia"
     },
-    "what": "Quanto?",
+    "inside": "Nell'app",
+    "insideHint": "Persone dell'oliveto",
+    "insideEmpty": "Nessun altro ha un account.",
+    "outside": "Fuori dall'app",
+    "outsideHint": "Scrivi un nome o sceglilo dal telefono",
+    "outsidePlaceholder": "Nome",
+    "savedContact": "Salvato nei tuoi contatti",
+    "yourContacts": "I tuoi contatti",
+    "what": "Quantità",
+    "tin16": "16 L",
+    "tin17": "17 L",
     "tinName": "Latta",
     "unitLitres": "L",
     "bulk": "Sfuso",
@@ -232,9 +251,18 @@
     "tin17": "Latte da 17L",
     "bulk": "Sfuso (L)"
   },
+  "add": {
+    "title": "Aggiungi olio",
+    "subtitle": "Quello che è già in magazzino. Senza campo, frantoio o raccolta.",
+    "hint": "Prima tutto l'olio. Nel passo dopo lo dividi in latte.",
+    "total": "{{amount}} L in magazzino",
+    "note": "Nota (facoltativa)",
+    "notePlaceholder": "es. olio dell'anno scorso",
+    "save": "Metti in magazzino"
+  },
   "empty": "Non c'è ancora olio nella tua cantina.",
-  "emptyHint": "Quando l'olio entra nella tua cantina dalla raccolta, lo vedi qui.",
-  "emptyCta": "Registra olio",
+  "emptyHint": "Aggiungi quello che è già qui. Non serve la raccolta né un campo.",
+  "emptyCta": "Aggiungi olio",
   "loading": "Caricamento…",
   "error": "Impossibile caricare l'olio. Riprova.",
   "seeMyOil": "Vedi il magazzino",

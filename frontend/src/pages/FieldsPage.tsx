@@ -328,7 +328,6 @@ const FieldsPage: React.FC = () => {
             ) : null}
 
             {fields.filter(isVisibleOnFieldsList).length === 0 ? (
-              activation?.primaryField && !fieldHasBoundary(activation.primaryField) ? null : (
               <EmptyState
                 icon={<Layers size={40} />}
                 title={t('fields:emptyTitle')}
@@ -347,7 +346,6 @@ const FieldsPage: React.FC = () => {
                   ) : undefined
                 }
               />
-              )
             ) : (
               <>
                 <div className="fields-toolbar">

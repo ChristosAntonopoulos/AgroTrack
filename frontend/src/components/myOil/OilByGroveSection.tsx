@@ -1,38 +1,27 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Cylinder } from 'lucide-react';
-import { formatOilNumber, formatOilPack } from '../../myOil/formatOilPack';
-import {
-  groveGroupLabel,
-  type GroveOilGroup,
-} from '../../myOil/groupLotsByGrove';
+import { Cylinder, Droplets, Package, Pencil, Trees } from 'lucide-react';
+import { formatOilNumber } from '../../myOil/formatOilPack';
+import { groveGroupLabel, type GroveOilGroup } from '../../myOil/groupLotsByGrove';
 import type { OilLot } from '../../services/oilStockService';
-
-type PackLabels = {
-  tin: (count: number, size: number) => string;
-  bulk: (amount: number) => string;
-  litres: (amount: number) => string;
-};
 
 type Props = {
   groups: GroveOilGroup[];
   fieldNames: Record<string, string>;
-  packLabels: PackLabels;
-  /** When set, highlight / scroll this grove. */
   focusFieldId?: string | null;
-  onSelectGrove?: (group: GroveOilGroup) => void;
+  onEdit: (group: GroveOilGroup) => void;
   onFillLot?: (lot: OilLot) => void;
 };
 
 export function OilByGroveSection({
   groups,
   fieldNames,
-  packLabels,
   focusFieldId,
-  onSelectGrove,
+  onEdit,
   onFillLot,
 }: Props) {
   const { t, i18n } = useTranslation('myOil');
+  const locale = i18n.language;
   if (groups.length === 0) return null;
 
   return (
@@ -50,35 +39,69 @@ export function OilByGroveSection({
           const focused =
             !!focusFieldId &&
             (group.primaryFieldId === focusFieldId || group.fieldIds.includes(focusFieldId));
-          const free = group.available.litres;
           const fillLot =
             focused && onFillLot
               ? group.lots.find((lot) => lot.available.bulkLitres > 0.05) || null
               : null;
+          const onHand = group.onHand;
+          const rows = [
+            {
+              key: 'bulk',
+              icon: <Droplets size={14} strokeWidth={1.75} aria-hidden />,
+              label: t('warehouse.packBulk'),
+              value: `${formatOilNumber(onHand.bulkLitres, locale)} L`,
+            },
+            {
+              key: '16',
+              icon: <Cylinder size={14} strokeWidth={1.75} aria-hidden />,
+              label: t('warehouse.pack16'),
+              value: t('hero.tinCount', {
+                count: onHand.tin16,
+                litres: formatOilNumber(onHand.tin16 * 16, locale),
+              }),
+            },
+            {
+              key: '17',
+              icon: <Package size={14} strokeWidth={1.75} aria-hidden />,
+              label: t('warehouse.pack17'),
+              value: t('hero.tinCount', {
+                count: onHand.tin17,
+                litres: formatOilNumber(onHand.tin17 * 17, locale),
+              }),
+            },
+          ];
           return (
             <li key={group.key} className="my-oil-shelf">
-              <button
-                type="button"
-                className={`my-oil-grove-card${focused ? ' is-focus' : ''}`}
-                onClick={() => onSelectGrove?.(group)}
-              >
-                <span className="my-oil-grove-card__icon" aria-hidden>
-                  <Cylinder size={18} strokeWidth={1.75} />
-                </span>
-                <span className="my-oil-grove-card__body">
-                  <strong className="my-oil-grove-card__pack">
-                    {free > 0.05
-                      ? formatOilPack(group.available, packLabels)
-                      : t('byGrove.noneFree')}
-                  </strong>
-                  <em className="my-oil-grove-card__where">{label}</em>
-                  {free > 0.05 ? (
+              <article className={`my-oil-grove-card${focused ? ' is-focus' : ''}`}>
+                <div className="my-oil-grove-card__top">
+                  <span className="my-oil-grove-card__icon" aria-hidden>
+                    <Trees size={18} strokeWidth={1.75} />
+                  </span>
+                  <span className="my-oil-grove-card__body">
+                    <strong className="my-oil-grove-card__pack">{label}</strong>
                     <span className="my-oil-grove-card__meta">
-                      {t('litres', { amount: formatOilNumber(free, i18n.language) })}
+                      {t('litres', { amount: formatOilNumber(onHand.litres, locale) })}
                     </span>
-                  ) : null}
-                </span>
-              </button>
+                  </span>
+                  <button
+                    type="button"
+                    className="my-oil-grove-card__edit"
+                    onClick={() => onEdit(group)}
+                  >
+                    <Pencil size={13} strokeWidth={1.8} aria-hidden />
+                    {t('byGrove.edit')}
+                  </button>
+                </div>
+                <ul className="my-oil-shelf-mix">
+                  {rows.map((row) => (
+                    <li key={row.key}>
+                      {row.icon}
+                      <span>{row.label}</span>
+                      <strong>{row.value}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </article>
               {fillLot ? (
                 <button
                   type="button"

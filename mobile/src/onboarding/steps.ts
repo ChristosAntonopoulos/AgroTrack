@@ -25,16 +25,66 @@ export type OwnerActivationPersisted = {
   firstObservationDoneAt: string | null;
   /**
    * Soft navigation lesson after the grove exists.
-   * linger = free map look-around, history = pulse Ιστορικό.
+   * linger = free map look-around, home = pulse launcher mark, history = pulse Ιστορικό.
    */
   navCoachPhase: NavCoachPhase | null;
 };
 
 export type NavCoachPhase = 'linger' | 'home' | 'history';
 
-export const GUIDE_TARGETS = ['fieldsCard', 'createField', 'homeButton', 'historyCard'] as const;
+export const GUIDE_TARGETS = [
+  'fieldsCard',
+  'createField',
+  'homeButton',
+  'historyCard',
+  'addButton',
+  'observationType',
+  'saveObservation',
+] as const;
 
 export type GuideTargetId = (typeof GUIDE_TARGETS)[number];
+
+/**
+ * Controls the focus ring can frame while a grove is being created.
+ * Nav cards plus the name, search, map, and save actions.
+ */
+export const FORM_COACH_TARGETS = [
+  'createGrove',
+  'locatePlace',
+  'drawBoundary',
+  'saveBoundary',
+] as const;
+
+export type FormCoachTargetId = (typeof FORM_COACH_TARGETS)[number];
+
+export type CoachTargetId = GuideTargetId | FormCoachTargetId;
+
+/**
+ * One path from the first tap through the first note.
+ * The number on each focus card is this order.
+ */
+export const ONBOARDING_JOURNEY = [
+  'fieldsCard',
+  'createField',
+  'createGrove',
+  'locatePlace',
+  'drawBoundary',
+  'saveBoundary',
+  'groveReady',
+  'historyCard',
+  'addButton',
+  'observationType',
+  'saveObservation',
+] as const;
+
+export type OnboardingJourneyId = (typeof ONBOARDING_JOURNEY)[number];
+
+export const ONBOARDING_JOURNEY_TOTAL = ONBOARDING_JOURNEY.length;
+
+export const onboardingStepNumber = (id: OnboardingJourneyId): number =>
+  ONBOARDING_JOURNEY.indexOf(id) + 1;
+
+export type BoundaryCoachPhase = 'locate' | 'draw' | 'save';
 
 export const emptyPersisted = (): OwnerActivationPersisted => ({
   skippedSteps: [],
@@ -56,4 +106,7 @@ export const ONBOARDING_TARGETS = {
   boundarySave: 'boundary-save',
   spatialPanel: 'spatial-loading',
   firstObservation: 'first-observation',
+  addButton: 'add-button',
+  observationType: 'observation-type',
+  saveObservation: 'save-observation',
 } as const;

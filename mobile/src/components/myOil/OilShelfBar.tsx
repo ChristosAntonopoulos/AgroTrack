@@ -13,8 +13,8 @@ export function OilShelfBar({ segments, colors, track }: Props) {
   return (
     <View
       style={{
-        height: 8,
-        borderRadius: 4,
+        height: 4,
+        borderRadius: 1,
         overflow: 'hidden',
         flexDirection: 'row',
         backgroundColor: track,

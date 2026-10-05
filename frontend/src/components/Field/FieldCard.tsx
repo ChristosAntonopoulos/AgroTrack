@@ -59,8 +59,13 @@ const FieldCard: React.FC<FieldCardProps> = ({
       : t('fields:card.todayTasks', { count: stats.todayTaskCount });
 
   const handleActivate = () => {
-    if (onSelect) onSelect(field.id);
-    else open();
+    // Map split: first click focuses the grove on the map, second opens it.
+    if (onSelect) {
+      if (selected) open();
+      else onSelect(field.id);
+      return;
+    }
+    open();
   };
 
   return (
@@ -84,7 +89,15 @@ const FieldCard: React.FC<FieldCardProps> = ({
         <div className="field-card-v2-badges">
           {incomplete ? <span className="field-card-badge field-card-badge--draft">{t('fields:card.draftBadge')}</span> : null}
           {currentUserId ? (
-            <span className={`field-card-badge${mine ? ' field-card-badge--mine' : ' field-card-badge--shared'}`}>
+            <span
+              className={`field-card-badge field-card-badge--${
+                role === 'Admin' || mine
+                  ? 'admin'
+                  : role === 'Family'
+                    ? 'family'
+                    : 'partner'
+              }`}
+            >
               {role
                 ? t(`fields:card.role.${role}`)
                 : t('fields:card.sharedBadge')}

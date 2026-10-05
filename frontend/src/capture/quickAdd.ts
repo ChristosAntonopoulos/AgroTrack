@@ -1,5 +1,6 @@
 import type { CaptureMenuGroup, CaptureMove } from './menu';
 import type { CaptureSourcePage } from './types';
+import { isOliveHarvestSeason } from '../utils/harvestSeason';
 
 export type QuickAddContext =
   | 'harvest'
@@ -40,7 +41,7 @@ export const resolveQuickAddContext = (input: {
 /** Preferred move ids for each context (first available wins). */
 export const QUICK_PRESETS: Record<QuickAddContext, readonly string[]> = {
   harvest: ['sacks', 'mill', 'oil', 'expense'],
-  warehouse: ['give', 'sell', 'hold', 'fill'],
+  warehouse: ['add', 'give', 'sell', 'hold'],
   grove: ['work', 'observation', 'expense', 'photo'],
   money: ['expense', 'income', 'oil_sale', 'payment'],
   tasks: ['work', 'observation', 'expense', 'photo'],
@@ -69,10 +70,17 @@ export const buildQuickAddMoves = (input: {
     sourcePage: input.sourcePage,
   });
   const available = flattenMoves(input.groups);
-  // First occurrence wins (harvest expense before money expense).
+  // Harvest and money both use expense/income ids. On Χρήματα the money record wins.
   const byId = new Map<string, CaptureMove>();
   for (const move of available) {
-    if (!byId.has(move.id)) byId.set(move.id, move);
+    const existing = byId.get(move.id);
+    if (!existing) {
+      byId.set(move.id, move);
+      continue;
+    }
+    if (ctx === 'money' && existing.surface === 'harvest' && move.surface === 'capture') {
+      byId.set(move.id, move);
+    }
   }
 
   let presets = [...QUICK_PRESETS[ctx]];
@@ -105,3 +113,11 @@ export const buildQuickAddMoves = (input: {
 
 /** Catalog section order for the full list (no horizontal tabs). */
 export const CATALOG_SECTION_ORDER = ['day', 'grove', 'money', 'warehouse'] as const;
+
+export type CatalogSectionId = (typeof CATALOG_SECTION_ORDER)[number];
+
+/** Harvest leads during picking months. The rest of the year it follows the other records. */
+export const catalogSectionOrder = (now = new Date()): CatalogSectionId[] => {
+  const rest: CatalogSectionId[] = ['grove', 'money', 'warehouse'];
+  return isOliveHarvestSeason(now) ? ['day', ...rest] : [...rest, 'day'];
+};

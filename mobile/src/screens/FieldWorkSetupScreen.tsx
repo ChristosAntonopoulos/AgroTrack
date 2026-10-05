@@ -376,8 +376,11 @@ const FieldWorkSetupScreen = () => {
         if (!cancelled) {
           allowLeaveRef.current = true;
           navigation.reset({
-            index: 0,
-            routes: [{ name: 'Main', params: { screen: 'ChronologioTab' } }],
+            index: 1,
+            routes: [
+              { name: 'Main', params: { screen: 'Launcher' } },
+              { name: 'Chronologio' },
+            ],
           });
         }
       } catch (err: unknown) {

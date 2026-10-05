@@ -9,6 +9,9 @@ export const OLIVE_OIL_KG_PER_LITRE = 0.916;
 
 export type HarvestOilUnit = 'kg' | 'litres';
 
+/** Tin sizes the harvest oil form offers. Only 16 and 17 have their own cellar bin. */
+export const OIL_TIN_SIZES = [1, 5, 10, 16, 17] as const;
+
 export const convertOliveOilLitresToKg = (litres: number): number => {
   if (!Number.isFinite(litres) || litres < 0) return 0;
   return litres * OLIVE_OIL_KG_PER_LITRE;

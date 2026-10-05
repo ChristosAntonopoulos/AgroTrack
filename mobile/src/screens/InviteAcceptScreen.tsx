@@ -176,7 +176,7 @@ const InviteAcceptScreen = () => {
       navigation.navigate('Chronologio', { fieldId: invite.fieldId });
       return;
     }
-    navigation.navigate('Main', { screen: 'ChronologioTab' });
+    navigation.navigate('Chronologio');
   };
 
   const loginOnFrame = () => goAuth('Login');
@@ -253,7 +253,7 @@ const InviteAcceptScreen = () => {
                 loading={accepting}
                 onPress={() => void accept()}
               />
-              <Button title={t('fields:people.declineInvite')} variant="ghost" onPress={() => navigation.navigate('Main', { screen: 'ChronologioTab' })} />
+              <Button title={t('fields:people.declineInvite')} variant="ghost" onPress={() => navigation.navigate('Chronologio')} />
             </>
           ) : invite.inviteeHasAccount ? (
             <>

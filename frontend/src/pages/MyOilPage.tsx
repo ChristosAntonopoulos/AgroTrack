@@ -13,6 +13,7 @@ import { OilStockPageHeader } from '../components/myOil/OilStockChrome';
 import { OilPendingSection } from '../components/myOil/OilOverviewSections';
 import { OilPendingPressings } from '../components/myOil/OilPendingPressings';
 import { OilByGroveSection } from '../components/myOil/OilByGroveSection';
+import { EditShelfSheet } from '../components/myOil/EditShelfSheet';
 import { OilShareRequestsSection } from '../components/myOil/OilShareRequestsSection';
 import { OilAttentionBlock } from '../components/myOil/OilAttentionBlock';
 import { CommitmentsTab } from '../components/myOil/CommitmentsTab';
@@ -24,6 +25,7 @@ import {
   type GiveOilSaveInput,
 } from '../components/myOil/GiveOilSheet';
 import { FillTinsDrawer } from '../components/myOil/FillTinsDrawer';
+import { AddOilSheet } from '../components/myOil/AddOilSheet';
 import { useAuth } from '../context/AuthContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
@@ -53,12 +55,13 @@ import {
   stockCountDeltas,
   type PackDelta,
 } from '../myOil/stockCount';
-import { groupLotsByGrove } from '../myOil/groupLotsByGrove';
+import { groupLotsByGrove, type GroveOilGroup } from '../myOil/groupLotsByGrove';
 import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import { clampPackInput, emptyOilPackInput, packLitresOf, type OilPackInput } from '../myOil/packInput';
+import { directStorageLot } from '../myOil/directLot';
 import { fieldLabelMap } from '../utils/fieldLabels';
 import { useDrawerPresence } from '../hooks/useDrawerPresence';
-import { harvestPath, moneyPath } from '../navigation/intents';
+import { moneyPath } from '../navigation/intents';
 import { isWarehouseAction } from '../capture/menu';
 import { useRegisterCapturePage } from '../context/CapturePageContext';
 import './MyOilPage.css';
@@ -88,15 +91,19 @@ const MyOilPage: React.FC = () => {
   const [giveWho, setGiveWho] = useState<'someone' | 'home' | 'unnamed'>('someone');
   const [giveIntent, setGiveIntent] = useState<GiveOilIntent>('hold');
   const [platformPeople, setPlatformPeople] = useState<OilCellarCandidate[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
   const [showFill, setShowFill] = useState(false);
   const [fillLot, setFillLot] = useState<OilLot | null>(null);
   const [showCount, setShowCount] = useState(false);
+  const [editGroup, setEditGroup] = useState<GroveOilGroup | null>(null);
   const [partialFor, setPartialFor] = useState<OilCommitment | null>(null);
   const [partialPack, setPartialPack] = useState<OilPackInput>(emptyOilPackInput());
   const [busy, setBusy] = useState(false);
+  const addDrawer = useDrawerPresence(showAdd || null);
   const giveDrawer = useDrawerPresence(showGive || null);
   const fillDrawer = useDrawerPresence(showFill || null);
   const countDrawer = useDrawerPresence(showCount || null);
+  const editDrawer = useDrawerPresence(editGroup);
   const partialDrawer = useDrawerPresence(partialFor);
 
   const seasonStart = agriculturalYearFor(new Date());
@@ -147,7 +154,9 @@ const MyOilPage: React.FC = () => {
     if (loading) return;
     const action = searchParams.get('do');
     if (!isWarehouseAction(action)) return;
-    if (action === 'fill') {
+    if (action === 'add') {
+      setShowAdd(true);
+    } else if (action === 'fill') {
       setFillLot(null);
       setShowFill(true);
     } else if (action === 'count') {
@@ -367,7 +376,7 @@ const MyOilPage: React.FC = () => {
             title={t('empty')}
             description={t('emptyHint')}
             action={
-              <Button variant="primary" as={Link} to={harvestPath()}>
+              <Button variant="primary" onClick={() => setShowAdd(true)}>
                 {t('emptyCta')}
               </Button>
             }
@@ -376,10 +385,17 @@ const MyOilPage: React.FC = () => {
           <>
             {tab === 'stock' ? (
               <>
+                {!hasStock ? (
+                  <Button variant="primary" onClick={() => setShowAdd(true)} disabled={busy}>
+                    {t('actions.add')}
+                  </Button>
+                ) : null}
+
                 {hasStock ? (
                   <OilStockHero
                     summary={summary!}
                     busy={busy}
+                    onAdd={() => setShowAdd(true)}
                     onGive={() => openGive('give')}
                     onSell={() => openGive('sell')}
                     onHold={() => openGive('hold')}
@@ -439,13 +455,8 @@ const MyOilPage: React.FC = () => {
                 <OilByGroveSection
                   groups={groveGroups}
                   fieldNames={fieldNames}
-                  packLabels={packLabels}
                   focusFieldId={focusFieldId}
-                  onSelectGrove={(group) => {
-                    if (group.primaryFieldId) {
-                      setSearchParams({ field: group.primaryFieldId }, { replace: true });
-                    }
-                  }}
+                  onEdit={setEditGroup}
                   onFillLot={(lot) => {
                     setFillLot(lot);
                     setShowFill(true);
@@ -453,7 +464,6 @@ const MyOilPage: React.FC = () => {
                 />
 
                 <nav className="my-oil-quick-links" aria-label={t('quickLinks.aria')}>
-                  <Link to={harvestPath()}>{t('quickLinks.harvest')}</Link>
                   <Link to={moneyPath()}>{t('quickLinks.money')}</Link>
                 </nav>
               </>
@@ -488,6 +498,20 @@ const MyOilPage: React.FC = () => {
         )}
       </div>
 
+      {addDrawer.mounted ? (
+        <AddOilSheet
+          open={addDrawer.open}
+          busy={busy}
+          onClose={() => setShowAdd(false)}
+          onSave={async (pack, notes) => {
+            await run(async () => {
+              await oilStockService.upsertLot(directStorageLot(pack, notes));
+              setShowAdd(false);
+            });
+          }}
+        />
+      ) : null}
+
       {giveDrawer.mounted ? (
         <GiveOilSheet
           open={giveDrawer.open}
@@ -517,6 +541,24 @@ const MyOilPage: React.FC = () => {
               await oilStockService.repack(lotId, add16, add17);
               setShowFill(false);
               setFillLot(null);
+            });
+          }}
+        />
+      ) : null}
+
+      {editDrawer.mounted ? (
+        <EditShelfSheet
+          open={editDrawer.open}
+          group={editGroup}
+          fieldNames={fieldNames}
+          busy={busy}
+          onClose={() => setEditGroup(null)}
+          onSave={async (changes) => {
+            await run(async () => {
+              for (const change of changes) {
+                await oilStockService.patchPacking(change.id, change.packing);
+              }
+              setEditGroup(null);
             });
           }}
         />

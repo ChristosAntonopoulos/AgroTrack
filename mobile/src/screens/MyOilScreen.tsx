@@ -1,5 +1,6 @@
 /**
- * Mobile Αποθήκη — how much is here, four actions, shelves, then where the oil went.
+ * Mobile storage — stock figures, shelves, holds, and movements.
+ * The stock tab is data. Sell, give, hold, and fill live on the dock +.
  */
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
@@ -11,10 +12,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { useRoute, useNavigation, type RouteProp } from '@react-navigation/native';
+import { useIsFocused, useRoute, useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { ThemeScope, useTheme } from '../context/ThemeContext';
+import { useCaptureOptional } from '../context/CaptureContext';
+import { useContentBottomInset } from '../navigation/useContentBottomInset';
+import { useDock } from '../navigation/DockContext';
 import { CAPTURE_SAVED_EVENT } from '../capture/types';
 import { useRegisterCapturePage } from '../context/CapturePageContext';
 import ScreenLayout from '../components/layout/ScreenLayout';
@@ -27,6 +31,8 @@ import {
   CommitmentsTab,
   MovementsTab,
   GiveOilSheet,
+  AddOilSheet,
+  EditShelfSheet,
   FillTinsSheet,
   AdjustSheet,
   DeliverPartialSheet,
@@ -36,6 +42,8 @@ import {
   type GiveOilSaveInput,
 } from '../components/myOil';
 import { OilShareRequestsSection } from '../components/myOil/OilShareRequestsSection';
+import { OilQuickAddSheet } from '../components/myOil/OilQuickAddSheet';
+import { storageScreenColors } from '../components/myOil/storagePalette';
 import {
   oilStockService,
   type OilCommitment,
@@ -54,7 +62,7 @@ import {
   planFieldFill,
   poolHasOil,
 } from '../myOil/fieldPools';
-import { groupLotsByGrove } from '../myOil/groupLotsByGrove';
+import { groupLotsByGrove, type GroveOilGroup } from '../myOil/groupLotsByGrove';
 import {
   holdState,
   needsNowCommitments,
@@ -68,25 +76,43 @@ import {
   type PackDelta,
 } from '../myOil/stockCount';
 import { emptyOilPackInput, type OilPackInput } from '../myOil/packInput';
+import { directStorageLot } from '../myOil/directLot';
 import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import { getFieldService } from '../services/serviceFactory';
 import { fieldLabelMap } from '../utils/fieldLabels';
-import { openHarvestCampaign } from '../navigation/intents';
 import type { RootStackParamList } from '../navigation/types';
 
 const MyOilScreen = () => {
   const { t, i18n } = useTranslation(['myOil', 'common']);
   const { user } = useAuth();
-  const { colors, tapMin } = useTheme();
-  const styles = createMyOilStyles(colors, tapMin);
+  const { colors, tapMin, isDark } = useTheme();
+  const screenColors = useMemo(
+    () => (isDark ? storageScreenColors(colors) : colors),
+    [colors, isDark]
+  );
+  const styles = createMyOilStyles(screenColors, tapMin);
+  const capture = useCaptureOptional();
+  const { setAdd } = useDock();
+  const contentInset = useContentBottomInset();
+  const [quickOpen, setQuickOpen] = useState(false);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'MyOil'>>();
+  const focused = useIsFocused();
   const focusFieldId = (route.params?.field || '').trim() || null;
 
   useRegisterCapturePage({
     sourcePage: 'warehouse',
     fieldId: focusFieldId || undefined,
   });
+
+  useEffect(() => {
+    if (!focused) {
+      setAdd(null);
+      return;
+    }
+    setAdd({ hideHome: false, onAdd: () => setQuickOpen(true) });
+    return () => setAdd(null);
+  }, [setAdd, focused]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -100,6 +126,8 @@ const MyOilScreen = () => {
   const [showGive, setShowGive] = useState(false);
   const [giveWho, setGiveWho] = useState<'someone' | 'home' | 'unnamed'>('someone');
   const [giveIntent, setGiveIntent] = useState<GiveOilIntent>('hold');
+  const [showAdd, setShowAdd] = useState(false);
+  const [editGroup, setEditGroup] = useState<GroveOilGroup | null>(null);
   const [showFill, setShowFill] = useState(false);
   const [fillPoolKey, setFillPoolKey] = useState<string | null>(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -107,6 +135,7 @@ const MyOilScreen = () => {
   const [adjustKind] = useState('home_use');
   const [showCount, setShowCount] = useState(false);
   const [showShelves, setShowShelves] = useState(false);
+  const [shelfKey, setShelfKey] = useState<string | null>(null);
   const [partialFor, setPartialFor] = useState<OilCommitment | null>(null);
   const [partialPack, setPartialPack] = useState<OilPackInput>(emptyOilPackInput());
   const [busy, setBusy] = useState(false);
@@ -118,23 +147,21 @@ const MyOilScreen = () => {
     navigation.setOptions({
       title: t('title'),
       headerRight: () => (
-        <View
+        <Text
           style={{
-            marginRight: 12,
-            paddingHorizontal: 10,
-            paddingVertical: 4,
-            borderRadius: 999,
-            backgroundColor: colors.primaryLight,
-            maxWidth: 160,
+            marginRight: 4,
+            color: screenColors.textSecondary,
+            fontSize: 13,
+            fontWeight: '600',
+            fontVariant: ['tabular-nums'],
           }}
+          numberOfLines={1}
         >
-          <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }} numberOfLines={1}>
-            {t('seasonLabel', { season: seasonLabel })}
-          </Text>
-        </View>
+          {seasonLabel}
+        </Text>
       ),
     });
-  }, [navigation, t, seasonLabel, colors.primary, colors.primaryLight]);
+  }, [navigation, t, seasonLabel, screenColors.textSecondary]);
 
   const packLabels = useMemo(
     () => ({
@@ -232,7 +259,9 @@ const MyOilScreen = () => {
     if (loading) return;
     const action = route.params?.do;
     if (!action) return;
-    if (action === 'fill') {
+    if (action === 'add') {
+      setShowAdd(true);
+    } else if (action === 'fill') {
       setFillPoolKey(null);
       setShowFill(true);
     } else if (action === 'count') {
@@ -319,6 +348,10 @@ const MyOilScreen = () => {
 
   const waitingAll = summary?.openCommitments || [];
   const needsNow = needsNowCommitments(waitingAll);
+  // Badge is open reservations only. Shares, pressings, and oil waiting for pickup stay out of it.
+  const activeHolds = waitingAll.filter(
+    (c) => holdState(c) === 'active' && c.derivedStatus !== 'pending_delivery'
+  ).length;
 
   const hasStock =
     !!summary &&
@@ -328,18 +361,24 @@ const MyOilScreen = () => {
       waitingAll.length > 0);
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScreenLayout scroll tabBarInset padded>
+    <ThemeScope colors={screenColors}>
+    <View style={{ flex: 1, backgroundColor: screenColors.background }}>
+      <ScreenLayout
+        scroll
+        tabBarInset
+        padded
+        plain={isDark}
+        canvasOpacity={isDark ? 0 : 1}
+        contentContainerStyle={{ paddingBottom: Math.max(contentInset, 160) }}
+      >
         <OilStockTabs
           active={tab}
           onChange={setTab}
-          counts={{
-            holds: waitingAll.length + shareInbox.length + pendingPressings.length,
-          }}
+          counts={{ holds: activeHolds }}
         />
 
         {loading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={screenColors.primary} style={{ marginTop: 40 }} />
         ) : error ? (
           <View style={styles.center}>
             <Text style={styles.emptyTitle}>{t('error')}</Text>
@@ -360,8 +399,8 @@ const MyOilScreen = () => {
             <Text style={styles.emptyTitle}>{t('empty')}</Text>
             <Text style={styles.emptyBody}>{t('emptyHint')}</Text>
             <Pressable
-              onPress={() => openHarvestCampaign(navigation)}
-              style={[styles.btnPrimary, { marginTop: 16, alignSelf: 'stretch' }]}
+              onPress={() => setShowAdd(true)}
+              style={[styles.btnPrimary, { marginTop: 16, alignSelf: 'stretch', flexGrow: 0, flex: 0 }]}
             >
               <Text style={styles.btnPrimaryText}>{t('emptyCta')}</Text>
             </Pressable>
@@ -372,35 +411,42 @@ const MyOilScreen = () => {
               <>
                 {shareInbox.length + pendingPressings.length > 0 ? (
                   <Pressable onPress={() => setTab('holds')} style={styles.nudge}>
-                    <Ionicons name="alert-circle-outline" size={18} color={colors.accentGold} />
+                    <Ionicons name="alert-circle-outline" size={18} color={screenColors.accentGold} />
                     <Text style={styles.nudgeText}>
                       {t('attention.doorDetail', {
                         count: shareInbox.length + pendingPressings.length,
                       })}
                     </Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                    <Ionicons name="chevron-forward" size={16} color={screenColors.textTertiary} />
+                  </Pressable>
+                ) : null}
+                {!hasStock ? (
+                  <Pressable
+                    onPress={() => setShowAdd(true)}
+                    disabled={busy}
+                    style={[styles.btnPrimary, { flexGrow: 0, flex: 0 }]}
+                  >
+                    <Text style={styles.btnPrimaryText}>{t('actions.add')}</Text>
                   </Pressable>
                 ) : null}
                 {hasStock ? (
                   <OilStockHero
                     summary={summary!}
                     history={[...waitingAll, ...closedCommitments]}
-                    busy={busy}
-                    onGive={() => openGive('give')}
-                    onSell={() => openGive('sell')}
-                    onHold={() => openGive('hold')}
-                    onFill={() => {
-                      setFillPoolKey(null);
-                      setShowFill(true);
-                    }}
                   />
                 ) : null}
                 <OilShelfPreview
                   groups={groveGroups}
                   fieldNames={fieldNames}
                   packLabels={packLabels}
-                  onOpen={() => setShowShelves(true)}
-                  onOpenShelf={() => setShowShelves(true)}
+                  onOpen={() => {
+                    setShelfKey(null);
+                    setShowShelves(true);
+                  }}
+                  onOpenShelf={(group) => {
+                    setShelfKey(group.key);
+                    setShowShelves(true);
+                  }}
                 />
               </>
             ) : null}
@@ -458,14 +504,20 @@ const MyOilScreen = () => {
         groups={groveGroups}
         fieldNames={fieldNames}
         focusFieldId={focusFieldId}
+        focusKey={shelfKey}
         onClose={() => {
           setShowShelves(false);
+          setShelfKey(null);
           if (focusFieldId) navigation.setParams({ field: undefined });
         }}
         onFill={() => {
           setFillPoolKey(null);
           setShowFill(true);
           setShowShelves(false);
+        }}
+        onEdit={(group) => {
+          setShowShelves(false);
+          setEditGroup(group);
         }}
         onFillGrove={(group) => {
           const pool = fieldPools.find(
@@ -478,6 +530,34 @@ const MyOilScreen = () => {
             setShowFill(true);
             setShowShelves(false);
           }
+        }}
+      />
+
+      <EditShelfSheet
+        open={!!editGroup}
+        group={editGroup}
+        fieldNames={fieldNames}
+        busy={busy}
+        onClose={() => setEditGroup(null)}
+        onSave={async (changes) => {
+          await run(async () => {
+            for (const change of changes) {
+              await oilStockService.patchPacking(change.id, change.packing);
+            }
+            setEditGroup(null);
+          });
+        }}
+      />
+
+      <AddOilSheet
+        open={showAdd}
+        busy={busy}
+        onClose={() => setShowAdd(false)}
+        onSave={async (pack, notes) => {
+          await run(async () => {
+            await oilStockService.upsertLot(directStorageLot(pack, notes));
+            setShowAdd(false);
+          });
         }}
       />
 
@@ -573,7 +653,34 @@ const MyOilScreen = () => {
           });
         }}
       />
+
+      <OilQuickAddSheet
+        open={quickOpen}
+        onClose={() => setQuickOpen(false)}
+        onSell={() => {
+          setQuickOpen(false);
+          openGive('sell');
+        }}
+        onGive={() => {
+          setQuickOpen(false);
+          openGive('give');
+        }}
+        onHold={() => {
+          setQuickOpen(false);
+          openGive('hold');
+        }}
+        onFill={() => {
+          setQuickOpen(false);
+          setFillPoolKey(null);
+          setShowFill(true);
+        }}
+        onAllRecords={() => {
+          setQuickOpen(false);
+          capture?.openCapture();
+        }}
+      />
     </View>
+    </ThemeScope>
   );
 };
 

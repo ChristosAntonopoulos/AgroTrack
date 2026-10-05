@@ -23,13 +23,17 @@ import {
   LANDING_NAV,
 } from '../config/landingConfig';
 import {
-  CapabilityGrid,
   ChronologioCentre,
-  HarvestCapture,
-  HeroStage,
+  FamilyStage,
+  FarmerProof,
+  FourQuestions,
+  GroveDashboard,
+  HarvestJourney,
   MapStage,
-  ProofStrip,
-  TrustLabels,
+  MemoryYears,
+  OilStore,
+  OilTinCluster,
+  YearFlow,
 } from './landing/LandingStages';
 import './LandingPage.css';
 import './landing/LandingStory.css';
@@ -195,8 +199,11 @@ const LandingPage: React.FC = () => {
         <section className="lp-hero" aria-labelledby="hero-title">
           <div className="landing-container lp-hero-grid">
             <div className="lp-hero-copy">
-              <p className="lp-eyebrow">{t('hero.eyebrow')}</p>
-              <h1 id="hero-title">{t('hero.title')}</h1>
+              {t('hero.eyebrow') ? <p className="lp-eyebrow">{t('hero.eyebrow')}</p> : null}
+              <h1 id="hero-title">
+                {t('hero.title')}
+                {t('hero.titleLine') ? <span className="lp-hero-line">{t('hero.titleLine')}</span> : null}
+              </h1>
               <p className="lp-lead lp-measure">{t('hero.sub')}</p>
               <div className="lp-ctas">
                 <Link to="/register" className="landing-btn landing-btn--primary landing-btn--lg">
@@ -213,87 +220,113 @@ const LandingPage: React.FC = () => {
               <p className="lp-reassurance">{t('hero.trust')}</p>
             </div>
             <div className="lp-hero-visual">
-              <div className="lp-hero-photo" aria-hidden />
-              <figure>
-                <HeroStage />
-                <figcaption className="lp-sr">{t('journal.shotAlt')}</figcaption>
-              </figure>
-              <p className="lp-today">
-                <span>{t('hero.today')}</span>
-                <strong>{t('hero.todayText')}</strong>
-              </p>
+              <GroveDashboard />
             </div>
-          </div>
-          <div className="landing-container">
-            <ProofStrip />
           </div>
         </section>
 
-        <section className="lp-editorial" aria-labelledby="memory-title">
-          <div className="lp-editorial-photo" role="img" aria-label={t('memory.photoAlt')} />
+        <section className="lp-editorial" aria-labelledby="problem-title">
+          <div className="lp-editorial-photo" role="img" aria-label={t('problem.photoAlt')} />
           <div className="lp-editorial-copy">
-            <h2 id="memory-title">{t('memory.title')}</h2>
-            <p>{t('memory.text')}</p>
-            <p className="lp-close-line">{t('memory.close')}</p>
+            <h2 id="problem-title" className="lp-preline">
+              {t('problem.title')}
+            </h2>
+            <ul className="lp-problem-asks">
+              {lines('problem.asks').map((ask) => (
+                <li key={ask}>{ask}</li>
+              ))}
+            </ul>
+            <p className="lp-problem-now">{t('problem.now')}</p>
+          </div>
+        </section>
+
+        <section id="keeps" className="lp-section lp-section--ivory" aria-labelledby="keeps-title">
+          <div className="landing-container">
+            <div className="lp-section-copy">
+              <h2 id="keeps-title">
+                {t('questions.title')}
+                <span className="lp-hero-line">{t('questions.titleLine')}</span>
+              </h2>
+            </div>
+            <FourQuestions />
+            <p className="lp-bridge lp-bridge--lead">{t('questions.close')}</p>
+          </div>
+        </section>
+
+        <section className="lp-section lp-section--flow" aria-labelledby="flow-title">
+          <div className="landing-container">
+            <div className="lp-section-copy">
+              <h2 id="flow-title">
+                {t('flow.title')}
+                {t('flow.titleLine') ? <span className="lp-hero-line">{t('flow.titleLine')}</span> : null}
+              </h2>
+            </div>
+            <YearFlow />
+            <p className="lp-flow-line">{t('flow.line')}</p>
+          </div>
+        </section>
+
+        <section className="lp-section lp-section--harvest" aria-labelledby="harvest-title">
+          <div className="landing-container">
+            <div className="lp-section-copy">
+              <h2 id="harvest-title">{t('harvest.title')}</h2>
+            </div>
+            <HarvestJourney />
+          </div>
+        </section>
+
+        <section className="lp-section lp-section--oil" aria-labelledby="oil-title">
+          <div className="landing-container">
+            <div className="lp-oil-compose">
+              <OilTinCluster />
+              <div className="lp-oil-overlay">
+                <div className="lp-section-copy lp-section-copy--left lp-measure">
+                  <h2 id="oil-title">
+                    {t('oil.title')}
+                    {t('oil.titleLine') ? <span className="lp-hero-line">{t('oil.titleLine')}</span> : null}
+                  </h2>
+                  <p>{t('oil.text')}</p>
+                </div>
+                <OilStore />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-section lp-section--field" aria-labelledby="map-title">
+          <div className="landing-container lp-split">
+            <div className="lp-section-copy lp-section-copy--left lp-measure">
+              <h2 id="map-title">{t('map.title')}</h2>
+              <p className="lp-map-lead">{t('map.sub')}</p>
+              <p className="lp-map-owns">{t('map.ownsLead')}</p>
+              <ul className="lp-knows lp-knows--inline">
+                {lines('map.knows').map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+            <MapStage />
           </div>
         </section>
 
         <section id="chronologio" className="lp-chrono" aria-labelledby="chrono-title">
           <div className="landing-container">
             <ChronologioCentre />
+            <MemoryYears />
           </div>
         </section>
 
-        <section id="capabilities" className="lp-section lp-section--ivory" aria-labelledby="cap-title">
+        <section id="for-whom" className="lp-section lp-section--family" aria-labelledby="family-title">
           <div className="landing-container">
             <div className="lp-section-copy">
-              <h2 id="cap-title">{t('capabilities.title')}</h2>
+              <h2 id="family-title">{t('family.title')}</h2>
+              <p className="lp-family-sub">{t('family.sub')}</p>
             </div>
-            <CapabilityGrid />
+            <FamilyStage />
           </div>
         </section>
 
-        <section className="lp-section" aria-labelledby="map-title">
-          <div className="landing-container lp-split">
-            <div className="lp-section-copy lp-section-copy--left lp-measure">
-              <h2 id="map-title">{t('map.title')}</h2>
-              <p>{t('map.text')}</p>
-            </div>
-            <MapStage />
-          </div>
-        </section>
-
-        <section className="lp-section lp-section--harvest" aria-labelledby="harvest-title">
-          <div className="landing-container lp-split">
-            <div className="lp-section-copy lp-section-copy--left">
-              <h2 id="harvest-title">{t('harvest.title')}</h2>
-              <p>{t('harvest.text')}</p>
-              <ol className="lp-harvest-steps">
-                {(
-                  t('harvest.steps', { returnObjects: true }) as { label: string; where: string; ask: string }[]
-                )
-                  .filter((step) => step && step.label)
-                  .map((step, index) => (
-                    <li key={step.label}>
-                      <span>{index + 1}</span>
-                      <div>
-                        <h3>
-                          {step.label}
-                          <em>{step.where}</em>
-                        </h3>
-                        <p>{step.ask}</p>
-                      </div>
-                    </li>
-                  ))}
-              </ol>
-              <p className="lp-harvest-year">
-                <span>{t('harvest.yearLabel')}</span>
-                {t('harvest.year')}
-              </p>
-            </div>
-            <HarvestCapture />
-          </div>
-        </section>
+        <FarmerProof />
 
         <section id="how-it-works" className="lp-section lp-section--stone" aria-labelledby="steps-title">
           <div className="landing-container">
@@ -302,7 +335,7 @@ const LandingPage: React.FC = () => {
             </div>
             <ol className="lp-steps">
               {[1, 2, 3].map((n) => (
-                <li key={n}>
+                <li key={n} className={n === 3 ? 'lp-steps__payoff' : undefined}>
                   <span>{n}</span>
                   <h3>{t(`steps.step${n}Title`)}</h3>
                   <p>{t(`steps.step${n}Text`)}</p>
@@ -312,21 +345,17 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="lp-trust" aria-labelledby="trust-title">
-          <div className="landing-container lp-measure">
-            <h2 id="trust-title">{t('trust.title')}</h2>
-            <p>{t('trust.text')}</p>
-            <TrustLabels />
-          </div>
-        </section>
-
-        <section className="lp-close" aria-labelledby="close-title">
+        <section id="pricing" className="lp-killer" aria-labelledby="killer-title">
           <div className="landing-container">
-            <h2 id="close-title">{t('cta.title')}</h2>
-            <p>{t('cta.text')}</p>
-            <Link to="/register" className="landing-btn landing-btn--light landing-btn--lg">
+            <h2 id="killer-title">
+              {t('killer.line1')}
+              <span className="lp-hero-line">{t('killer.line2')}</span>
+            </h2>
+            <p className="lp-killer-offer">{t('cta.text')}</p>
+            <Link to="/register" className="landing-btn landing-btn--primary landing-btn--lg">
               {t('cta.primary')}
             </Link>
+            <p className="lp-killer-note">{t('cta.note')}</p>
           </div>
         </section>
       </main>

@@ -14,6 +14,7 @@ import { FOOTER_LIFT, getDockMetrics } from './dockMetrics';
 import type { RootStackParamList } from './types';
 import type { FocusedRoute } from './dockRoute';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
+import GuideTarget from '../components/onboarding/GuideTarget';
 
 type Props = {
   route: FocusedRoute;
@@ -56,53 +57,57 @@ const AppDock: React.FC<Props> = ({ route }) => {
     <View pointerEvents="box-none" style={[styles.host, { bottom: metrics.bottomInset + FOOTER_LIFT }]}>
       <View style={styles.pair}>
         {showMenu ? (
+          <GuideTarget id="homeButton">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('launcher.home')}
+              onPress={() => navigation.navigate('Main', { screen: 'Launcher' })}
+              style={({ pressed }) => [{ opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] }]}
+            >
+              <View
+                style={[
+                  styles.menuPlate,
+                  {
+                    width: size,
+                    height: size,
+                    backgroundColor: isDark ? colors.surfaceElevated : IVORY,
+                    borderColor: isDark ? 'rgba(244, 240, 230, 0.35)' : 'rgba(31, 40, 32, 0.18)',
+                  },
+                ]}
+              >
+                <BrandLogo variant="mark" tone={isDark ? 'on-dark' : 'on-light'} size={Math.round(size * 0.7)} />
+              </View>
+            </Pressable>
+          </GuideTarget>
+        ) : null}
+        <GuideTarget id="addButton">
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t('launcher.home')}
-            onPress={() => navigation.navigate('Main', { screen: 'Launcher' })}
-            style={({ pressed }) => [{ opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] }]}
+            accessibilityLabel={t('log', { defaultValue: 'Add' })}
+            onPress={() => {
+              if (dockAdd?.onAdd) dockAdd.onAdd();
+              else capture?.openCapture();
+            }}
+            style={({ pressed }) => [
+              { opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? motion.fabPressScale : 1 }] },
+            ]}
           >
             <View
               style={[
-                styles.menuPlate,
+                styles.addPlate,
                 {
                   width: size,
                   height: size,
-                  backgroundColor: isDark ? colors.surfaceElevated : IVORY,
-                  borderColor: isDark ? 'rgba(244, 240, 230, 0.35)' : 'rgba(31, 40, 32, 0.18)',
+                  backgroundColor: colors.primary,
+                  borderColor: isDark ? 'rgba(244, 240, 230, 0.22)' : 'rgba(31, 40, 32, 0.28)',
+                  shadowColor: INK,
                 },
               ]}
             >
-              <BrandLogo variant="mark" tone={isDark ? 'on-dark' : 'on-light'} size={Math.round(size * 0.7)} />
+              <Ionicons name="add" size={30} color={IVORY} />
             </View>
           </Pressable>
-        ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('log', { defaultValue: 'Add' })}
-          onPress={() => {
-            if (dockAdd?.onAdd) dockAdd.onAdd();
-            else capture?.openCapture();
-          }}
-          style={({ pressed }) => [
-            { opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? motion.fabPressScale : 1 }] },
-          ]}
-        >
-          <View
-            style={[
-              styles.addPlate,
-              {
-                width: size,
-                height: size,
-                backgroundColor: colors.primary,
-                borderColor: isDark ? 'rgba(244, 240, 230, 0.22)' : 'rgba(31, 40, 32, 0.28)',
-                shadowColor: INK,
-              },
-            ]}
-          >
-            <Ionicons name="add" size={30} color={IVORY} />
-          </View>
-        </Pressable>
+        </GuideTarget>
       </View>
     </View>
   );

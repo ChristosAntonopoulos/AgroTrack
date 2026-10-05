@@ -35,6 +35,21 @@ export const ownerHasAnyBoundary = (
   userId: string | undefined | null
 ): boolean => fields.some((f) => isOwnedNamed(f, userId) && fieldHasBoundary(f));
 
+/**
+ * Seeded / imported Active groves with a real place + size — treat as past first-run
+ * even if the client list briefly omits the polygon (demo seed, API shape drift).
+ */
+export const ownerHasEstablishedFarm = (
+  fields: Field[],
+  userId: string | undefined | null
+): boolean =>
+  fields.some((f) => {
+    if (!isOwnedNamed(f, userId) || f.status !== 'Active') return false;
+    if (fieldHasBoundary(f)) return true;
+    const area = f.appMeasuredAreaSqm || f.area || 0;
+    return area > 0 && f.latitude != null && f.longitude != null;
+  });
+
 /** Pick the grove we guide on: prefer one needing boundary, else first live, else first named. */
 export const pickActivationField = (
   fields: Field[],
@@ -43,8 +58,11 @@ export const pickActivationField = (
   const owned = fields.filter((f) => isOwnedNamed(f, userId));
   if (owned.length === 0) return null;
 
-  const needsBoundary = owned.find((f) => !fieldHasBoundary(f));
-  if (needsBoundary) return needsBoundary;
+  // Prefer guiding a grove that still needs όρια — but never when the farm is already live.
+  if (!ownerHasEstablishedFarm(fields, userId)) {
+    const needsBoundary = owned.find((f) => !fieldHasBoundary(f));
+    if (needsBoundary) return needsBoundary;
+  }
 
   const active = owned.find((f) => f.status === 'Active');
   if (active) return active;
@@ -62,12 +80,14 @@ export const evaluateStepCompletion = (
     knownBoundaryFieldId?: string | null;
     /** Draft grove just saved on the name step, before the fields list has refetched. */
     knownGroveFieldId?: string | null;
+    userId?: string | null;
   }
 ): Record<OwnerActivationStepId, boolean> => {
   const hasGrove =
     Boolean(opts?.knownGroveFieldId) ||
     fields.some((f) => f.status !== 'Archived' && Boolean(f.name?.trim()));
   const hasBoundary =
+    ownerHasAnyBoundary(fields, opts?.userId) ||
     Boolean(primary && fieldHasBoundary(primary)) ||
     Boolean(
       opts?.knownBoundaryFieldId &&
@@ -114,5 +134,7 @@ export const shouldRunOwnerActivation = (
     const owns = fields.some((f) => !f.ownerId || f.ownerId === userId);
     if (!owns) return false;
   }
+  // Demo / returning owners with a live farm must not see first-run chrome.
+  if (ownerHasEstablishedFarm(fields, userId)) return false;
   return true;
 };

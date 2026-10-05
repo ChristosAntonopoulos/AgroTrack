@@ -39,6 +39,7 @@
   "openHarvest": "Apri questa raccolta",
   "tabLocked": "Qui non puoi registrare questo.",
   "warehouseHint": {
+    "add": "Olio già in magazzino",
     "give": "Olio a qualcuno",
     "sell": "Vendita dal magazzino",
     "hold": "Mettilo da parte",

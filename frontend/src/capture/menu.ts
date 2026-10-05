@@ -1,7 +1,7 @@
 import type { CapturePermissions, CaptureTab, CaptureType } from './types';
 import type { HarvestCaptureKind } from '../harvestCampaign/types';
 
-export type WarehouseAction = 'give' | 'sell' | 'hold' | 'fill' | 'count';
+export type WarehouseAction = 'add' | 'give' | 'sell' | 'hold' | 'fill' | 'count';
 
 export type CaptureMove =
   | { id: string; surface: 'capture'; type: CaptureType; featured?: boolean }
@@ -27,13 +27,18 @@ const HARVEST_KINDS: HarvestCaptureKind[] = [
 export const PRODUCTION_KINDS: HarvestCaptureKind[] = ['sacks', 'mill', 'oil'];
 const DAY_EXTRA: HarvestCaptureKind[] = ['people', 'expense', 'income', 'note'];
 
-const WAREHOUSE: WarehouseAction[] = ['give', 'sell', 'hold', 'fill', 'count'];
+const WAREHOUSE: WarehouseAction[] = ['add', 'give', 'sell', 'hold', 'fill', 'count'];
 
 export const isHarvestCaptureKind = (value: string | null | undefined): value is HarvestCaptureKind =>
   !!value && (HARVEST_KINDS as string[]).includes(value);
 
 export const isWarehouseAction = (value: string | null | undefined): value is WarehouseAction =>
-  value === 'give' || value === 'sell' || value === 'hold' || value === 'fill' || value === 'count';
+  value === 'add' ||
+  value === 'give' ||
+  value === 'sell' ||
+  value === 'hold' ||
+  value === 'fill' ||
+  value === 'count';
 
 /** Next production step while a harvest is open. Sacks waiting beat a fresh start. */
 export const suggestHarvestKind = (
@@ -55,8 +60,7 @@ const captureMove = (type: CaptureType): CaptureMove => ({
 });
 
 /**
- * Fixed four tabs. Season only changes what sits inside Ημέρα.
- * Empty tabs stay in the strip; callers show a locked hint when moves are empty.
+ * Harvest records are always available. A live campaign only marks the next step.
  */
 export const buildCaptureMenu = (input: {
   permissions: CapturePermissions;
@@ -69,25 +73,21 @@ export const buildCaptureMenu = (input: {
   const { permissions, canUseWarehouse, isHarvestLive } = input;
 
   const dayMoves: CaptureMove[] = [];
-  if (isHarvestLive) {
-    const suggested = suggestHarvestKind(
-      input.harvestKinds,
-      input.openSacks ?? 0,
-      input.openMillKg ?? 0
-    );
-    for (const kind of PRODUCTION_KINDS) {
-      if (!input.harvestKinds.includes(kind)) continue;
-      dayMoves.push({
-        id: kind,
-        surface: 'harvest',
-        kind,
-        featured: kind === suggested,
-      });
-    }
-    for (const kind of DAY_EXTRA) {
-      if (!input.harvestKinds.includes(kind)) continue;
-      dayMoves.push({ id: kind, surface: 'harvest', kind });
-    }
+  const suggested = isHarvestLive
+    ? suggestHarvestKind(input.harvestKinds, input.openSacks ?? 0, input.openMillKg ?? 0)
+    : null;
+  for (const kind of PRODUCTION_KINDS) {
+    if (!input.harvestKinds.includes(kind)) continue;
+    dayMoves.push({
+      id: kind,
+      surface: 'harvest',
+      kind,
+      featured: kind === suggested,
+    });
+  }
+  for (const kind of DAY_EXTRA) {
+    if (!input.harvestKinds.includes(kind)) continue;
+    dayMoves.push({ id: kind, surface: 'harvest', kind });
   }
 
   const grove: CaptureMove[] = [];

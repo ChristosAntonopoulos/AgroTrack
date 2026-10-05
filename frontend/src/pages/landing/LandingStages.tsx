@@ -1,368 +1,147 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Camera, Check, CloudSun, Plus, Wallet, Wheat } from 'lucide-react';
+import { Check, Cog, Droplets, Package, Sprout, Trees, Wallet, Wheat } from 'lucide-react';
 import grovePhoto from '../../assets/landing/hero-grove.jpg';
+import oilCellar from '../../assets/landing/oil-cellar.jpg';
+import familyGrove from '../../assets/landing/family-grove.jpg';
+import journeyBanner from '../../assets/landing/journey-banner.jpg';
 
-type MonthId = 'sep' | 'oct' | 'nov';
-type Kind = 'weather' | 'task' | 'note' | 'harvest' | 'expense';
-
-type TimelineEntry = {
+type YearPack = {
   id: string;
-  month: MonthId;
-  kind: Kind;
-  day: string;
-  title: string;
-  meta: string;
-  detail: string;
-  photo?: boolean;
+  label: string;
+  yield: string;
 };
 
-type Capability = { key: string; title: string; outcome: string; text: string };
-
-const asStrings = (value: unknown): string[] =>
-  Array.isArray(value) ? (value as string[]) : [];
-
-const asCapabilities = (value: unknown): Capability[] =>
-  Array.isArray(value) ? (value as Capability[]) : [];
-
-const useReducedMotion = () => {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const apply = () => setReduced(media.matches);
-    apply();
-    media.addEventListener('change', apply);
-    return () => media.removeEventListener('change', apply);
-  }, []);
-  return reduced;
+type QuestionCard = {
+  id: string;
+  ask: string;
+  answer: string;
+  detail?: string;
 };
 
-export const HeroStage: React.FC = () => {
+type FlowStep = { id: string; label: string };
+type HarvestStage = { id: string; label: string; focus?: string; lines: string[] };
+type YearMark = { year: string; label: string };
+type Person = { name: string; did: string };
+type ProofQuote = { quote: string; name: string; detail: string };
+
+const asList = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+
+const FLOW_ICON: Record<string, React.ReactNode> = {
+  work: <Check size={32} strokeWidth={2.2} />,
+  cost: <Wallet size={32} strokeWidth={1.75} />,
+  harvest: <Wheat size={32} strokeWidth={1.75} />,
+  mill: <Cog size={32} strokeWidth={1.75} />,
+  oil: <Droplets size={32} strokeWidth={1.75} />,
+  store: <Package size={32} strokeWidth={1.75} />,
+  grove: <Trees size={32} strokeWidth={1.75} />,
+  tins: <Package size={32} strokeWidth={1.75} />,
+};
+
+export const GroveDashboard: React.FC = () => {
   const { t } = useTranslation('landing');
-  const rows: { id: Kind; photo?: boolean }[] = [
-    { id: 'weather' },
-    { id: 'task' },
-    { id: 'note', photo: true },
-    { id: 'harvest' },
-    { id: 'expense' },
-  ];
+  const stats = [
+    ['work', t('hero.workLabel'), t('hero.workValue')],
+    ['cost', t('hero.costLabel'), t('hero.costValue')],
+    ['harvest', t('hero.harvestLabel'), t('hero.harvestValue')],
+    ['oil', t('hero.oilLabel'), t('hero.oilValue')],
+  ] as const;
 
   return (
-    <div className="lp-stage lp-stage--hero">
-      <div className="lp-stage-bar">
-        <span className="lp-field-chip">
-          <span className="lp-field-dot" aria-hidden />
-          {t('journal.field')}
-        </span>
-        <span className="lp-stage-month">{t('journal.month')}</span>
-      </div>
-      <ul className="lp-hero-rows">
-        {rows.map((row) => (
-          <li key={row.id} className={`lp-entry is-${row.id}`}>
-            <EntryGlyph id={row.id} />
-            <span>
-              <strong>{t(`journal.${row.id}Title`)}</strong>
-              <span>{t(`journal.${row.id}Meta`)}</span>
-            </span>
-            {row.photo ? <img src={grovePhoto} alt="" className="lp-note-photo" /> : null}
+    <article className="lp-dash">
+      <p className="lp-dash-head">
+        <span className="lp-field-dot" aria-hidden />
+        {t('hero.field')}
+        <span className="lp-dash-year">{t('hero.year')}</span>
+      </p>
+      <ul className="lp-dash-stats">
+        {stats.map(([id, label, value]) => (
+          <li key={id}>
+            <span>{label}</span>
+            <strong>{value}</strong>
           </li>
         ))}
       </ul>
+      <p className="lp-dash-status">{t('hero.status')}</p>
+    </article>
+  );
+};
+
+export const FourQuestions: React.FC = () => {
+  const { t } = useTranslation('landing');
+  const cards = asList<QuestionCard>(t('questions.cards', { returnObjects: true }));
+
+  return (
+    <div className="lp-questions">
+      {cards.map((card) => (
+        <article key={card.id} className={`lp-q lp-q--${card.id}`}>
+          <p>{card.ask}</p>
+          <h3>{card.answer}</h3>
+          {card.detail ? <span className="lp-q-detail">{card.detail}</span> : null}
+        </article>
+      ))}
     </div>
   );
 };
 
-export const ProofStrip: React.FC = () => {
+export const YearFlow: React.FC = () => {
   const { t } = useTranslation('landing');
-  const items = asStrings(t('hero.strip', { returnObjects: true }));
-  return (
-    <p className="lp-strip">
-      {items.map((item) => (
-        <span key={item}>{item}</span>
-      ))}
-    </p>
-  );
-};
+  const steps = asList<FlowStep>(t('flow.steps', { returnObjects: true }));
 
-const POINT_ENTRY: Record<number, string> = {
-  0: 'task',
-  1: 'note',
-  2: 'harvest',
+  return (
+    <div className="lp-flow-wrap">
+      <div className="lp-flow-atmosphere" aria-hidden>
+        <img src={journeyBanner} alt="" />
+      </div>
+      <ol className="lp-flow" aria-label={t('flow.title')}>
+        {steps.map((step) => (
+          <li key={step.id}>
+            <span className={`lp-flow-mark is-${step.id}`} aria-hidden>
+              {FLOW_ICON[step.id] ?? <Sprout size={28} />}
+            </span>
+            <strong>{step.label}</strong>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 };
 
 export const ChronologioCentre: React.FC = () => {
   const { t } = useTranslation('landing');
-  const reduced = useReducedMotion();
-  const months = asStrings(t('chronologio.months', { returnObjects: true }));
-  const points = asStrings(t('chronologio.points', { returnObjects: true }));
-  const [month, setMonth] = useState<MonthId>('oct');
-  const [selected, setSelected] = useState('note');
-  const [paused, setPaused] = useState(false);
-
-  const entries: TimelineEntry[] = [
-    {
-      id: 'sep',
-      month: 'sep',
-      kind: 'task',
-      day: '12',
-      title: t('journal.sepTitle'),
-      meta: t('journal.sepMeta'),
-      detail: t('journal.sepDetail'),
-    },
-    {
-      id: 'weather',
-      month: 'oct',
-      kind: 'weather',
-      day: '8',
-      title: t('journal.weatherTitle'),
-      meta: t('journal.weatherMeta'),
-      detail: t('journal.detailWeather'),
-    },
-    {
-      id: 'task',
-      month: 'oct',
-      kind: 'task',
-      day: '8',
-      title: t('journal.taskTitle'),
-      meta: t('journal.taskMeta'),
-      detail: t('journal.detailTask'),
-    },
-    {
-      id: 'note',
-      month: 'oct',
-      kind: 'note',
-      day: '8',
-      title: t('journal.noteTitle'),
-      meta: t('journal.noteMeta'),
-      detail: t('journal.detailNote'),
-      photo: true,
-    },
-    {
-      id: 'harvest',
-      month: 'oct',
-      kind: 'harvest',
-      day: '22',
-      title: t('journal.harvestTitle'),
-      meta: t('journal.harvestMeta'),
-      detail: t('journal.detailHarvest'),
-    },
-    {
-      id: 'expense',
-      month: 'oct',
-      kind: 'expense',
-      day: '22',
-      title: t('journal.expenseTitle'),
-      meta: t('journal.expenseMeta'),
-      detail: t('journal.detailExpense'),
-    },
-    {
-      id: 'nov',
-      month: 'nov',
-      kind: 'harvest',
-      day: '4',
-      title: t('journal.novTitle'),
-      meta: t('journal.novMeta'),
-      detail: t('journal.novDetail'),
-    },
-  ];
-
-  const visible = entries.filter((entry) => entry.month === month);
-  const open = visible.find((entry) => entry.id === selected) ?? visible[0];
-
-  useEffect(() => {
-    if (reduced || paused || month !== 'oct') return undefined;
-    const order = ['task', 'note', 'harvest', 'expense'];
-    const timer = window.setInterval(() => {
-      setSelected((current) => {
-        const index = order.indexOf(current);
-        return order[(index + 1) % order.length];
-      });
-    }, 4600);
-    return () => window.clearInterval(timer);
-  }, [reduced, paused, month]);
+  const years = asList<YearPack>(t('chronologio.years', { returnObjects: true }));
+  const [yearId, setYearId] = useState(years.find((year) => year.id === '2025')?.id ?? years[0]?.id ?? '');
 
   return (
     <div className="lp-centre">
       <div className="lp-centre-copy">
         <h2 id="chrono-title">{t('chronologio.title')}</h2>
         <p>{t('chronologio.text')}</p>
-        <div className="lp-points" role="group" aria-label={t('chronologio.title')}>
-          {points.map((point, index) => (
+      </div>
+      <div className="lp-years-card">
+        <p className="lp-years-field">{t('chronologio.field')}</p>
+        <div className="lp-rail lp-rail--years" role="group" aria-label={t('chronologio.railLabel')}>
+          {years.map((item) => (
             <button
-              key={point}
+              key={item.id}
               type="button"
-              className={open?.id === POINT_ENTRY[index] ? 'is-active' : ''}
-              onClick={() => {
-                setPaused(true);
-                setMonth('oct');
-                setSelected(POINT_ENTRY[index]);
-              }}
+              className={yearId === item.id ? 'is-active' : ''}
+              aria-pressed={yearId === item.id}
+              onClick={() => setYearId(item.id)}
             >
-              {point}
+              <span>{item.label}</span>
+              <em>{item.yield}</em>
             </button>
           ))}
         </div>
+        <article className="lp-years-highlight">
+          <img src={grovePhoto} alt="" />
+          <div>
+            <h3>{t('chronologio.highlightTitle')}</h3>
+            <p>{t('chronologio.highlightWhen')}</p>
+          </div>
+        </article>
       </div>
-      <div
-        className="lp-timeline"
-        onMouseEnter={() => setPaused(true)}
-        onFocusCapture={() => setPaused(true)}
-      >
-        <div className="lp-rail" role="group" aria-label={t('chronologio.railLabel')}>
-          {(['sep', 'oct', 'nov'] as MonthId[]).map((id, index) => (
-            <button
-              key={id}
-              type="button"
-              className={month === id ? 'is-active' : ''}
-              aria-pressed={month === id}
-              onClick={() => {
-                setPaused(true);
-                setMonth(id);
-                setSelected(id === 'oct' ? 'note' : id);
-              }}
-            >
-              {months[index]}
-            </button>
-          ))}
-        </div>
-        <div className="lp-timeline-body">
-          <ol>
-            {visible.map((entry) => (
-              <li key={entry.id}>
-                <button
-                  type="button"
-                  className={open?.id === entry.id ? 'is-active' : ''}
-                  aria-pressed={open?.id === entry.id}
-                  onClick={() => {
-                    setPaused(true);
-                    setSelected(entry.id);
-                  }}
-                >
-                  <span className="lp-timeline-day">{entry.day}</span>
-                  <span>
-                    <strong>{entry.title}</strong>
-                    <em>{entry.meta}</em>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ol>
-          {open ? (
-            <article className="lp-drawer" aria-live="polite">
-              {open.photo ? <img src={grovePhoto} alt="" /> : null}
-              <p className="lp-example">{t('journal.example')}</p>
-              <h3>{open.title}</h3>
-              <p className="lp-drawer-meta">{open.meta}</p>
-              <p>{open.detail}</p>
-              <p className="lp-drawer-field">{t('journal.field')}</p>
-            </article>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const EntryGlyph: React.FC<{ id: Kind }> = ({ id }) => {
-  const icon =
-    id === 'weather' ? (
-      <CloudSun size={20} />
-    ) : id === 'task' ? (
-      <Check size={20} />
-    ) : id === 'note' ? (
-      <Camera size={20} />
-    ) : id === 'harvest' ? (
-      <Wheat size={20} />
-    ) : (
-      <Wallet size={20} />
-    );
-  return (
-    <span className={`lp-glyph is-${id}`} aria-hidden>
-      {icon}
-    </span>
-  );
-};
-
-export const CapabilityGrid: React.FC = () => {
-  const { t } = useTranslation('landing');
-  const items = asCapabilities(t('capabilities.items', { returnObjects: true }));
-  const byKey = Object.fromEntries(items.map((item) => [item.key, item]));
-  const lead = ['map', 'harvest'];
-  const small = ['tasks', 'capture', 'money', 'context'];
-
-  return (
-    <>
-      <div className="lp-bento">
-        {lead.map((key) =>
-          byKey[key] ? (
-            <article key={key} className={`lp-cap lp-cap--lead lp-cap--${key}`}>
-              <CapabilitySketch kind={key} />
-              <h3>{byKey[key].title}</h3>
-              <p className="lp-cap-outcome">{byKey[key].outcome}</p>
-              <p>{byKey[key].text}</p>
-            </article>
-          ) : null
-        )}
-        {small.map((key) =>
-          byKey[key] ? (
-            <article key={key} className="lp-cap lp-cap--small">
-              <CapabilitySketch kind={key} />
-              <h3>{byKey[key].title}</h3>
-              <p className="lp-cap-outcome">{byKey[key].outcome}</p>
-            </article>
-          ) : null
-        )}
-      </div>
-      <p className="lp-bridge">{t('capabilities.bridge')}</p>
-    </>
-  );
-};
-
-const CapabilitySketch: React.FC<{ kind: string }> = ({ kind }) => {
-  const { t } = useTranslation('landing');
-  if (kind === 'map') {
-    return (
-      <div className="lp-sketch lp-sketch--map" aria-hidden>
-        <FieldShape tone="even" labeled={t('journal.field')} />
-      </div>
-    );
-  }
-  if (kind === 'harvest') {
-    return (
-      <ul className="lp-sketch lp-sketch-ledger" aria-hidden>
-        <li>
-          <span>{t('harvest.sacks')}</span>
-          <strong>42</strong>
-        </li>
-        <li>
-          <span>{t('harvest.kilos')}</span>
-          <strong>860</strong>
-        </li>
-        <li>
-          <span>{t('harvest.litres')}</span>
-          <strong>148</strong>
-        </li>
-        <li>
-          <span>{t('harvest.expenses')}</span>
-          <strong>{t('journal.expenseMeta')}</strong>
-        </li>
-      </ul>
-    );
-  }
-  const icon =
-    kind === 'tasks' ? (
-      <Check strokeWidth={2.4} />
-    ) : kind === 'capture' ? (
-      <Camera strokeWidth={2.2} />
-    ) : kind === 'money' ? (
-      <Wallet strokeWidth={2.2} />
-    ) : (
-      <CloudSun strokeWidth={2.2} />
-    );
-  return (
-    <div className={`lp-cue lp-cue--${kind}`} aria-hidden>
-      {icon}
     </div>
   );
 };
@@ -377,9 +156,9 @@ export const MapStage: React.FC = () => {
   return (
     <figure className="lp-map">
       <div className="lp-compare">
-        <FieldShape tone="patchy" labeled={t('journal.field')} />
+        <FieldShape tone="patchy" labeled={t('chronologio.field')} />
         <div className="lp-compare-top" style={{ width: `${june}%` }}>
-          <FieldShape tone="even" labeled={t('journal.field')} />
+          <FieldShape tone="even" labeled={t('chronologio.field')} />
         </div>
         <p className="lp-compare-label">{label}</p>
       </div>
@@ -432,8 +211,20 @@ const FieldShape: React.FC<{ tone: 'even' | 'patchy'; labeled?: string }> = ({ t
         <path d="M0 302 H640" />
         <path d="M0 360 H640" />
       </g>
-      <path d="M18 0 C 40 90, 22 180, 64 270 C 92 330, 48 380, 70 420" fill="none" stroke="#f3ead8" strokeWidth="14" opacity="0.72" />
-      <path d="M34 0 C 52 90, 36 180, 76 270 C 102 330, 60 380, 82 420" fill="none" stroke="#c4b48f" strokeWidth="2" opacity="0.55" />
+      <path
+        d="M18 0 C 40 90, 22 180, 64 270 C 92 330, 48 380, 70 420"
+        fill="none"
+        stroke="#f3ead8"
+        strokeWidth="14"
+        opacity="0.72"
+      />
+      <path
+        d="M34 0 C 52 90, 36 180, 76 270 C 102 330, 60 380, 82 420"
+        fill="none"
+        stroke="#c4b48f"
+        strokeWidth="2"
+        opacity="0.55"
+      />
       <polygon
         points="64,196 150,86 214,124 318,62 428,104 548,78 604,168 572,286 456,352 318,318 196,368 88,304 40,236"
         fill={tone === 'even' ? '#3f5a32' : '#b7c092'}
@@ -446,14 +237,7 @@ const FieldShape: React.FC<{ tone: 'even' | 'patchy'; labeled?: string }> = ({ t
         <polygon points="180,160 300,130 340,200 210,220" fill="#4e6b3c" opacity="0.55" />
       )}
       {labeled ? (
-        <text
-          x="330"
-          y="214"
-          textAnchor="middle"
-          fill={tone === 'even' ? '#F6F3EB' : '#243028'}
-          fontSize="28"
-          fontWeight="700"
-        >
+        <text x="330" y="214" textAnchor="middle" fill={tone === 'even' ? '#F6F3EB' : '#243028'} fontSize="28" fontWeight="700">
           {labeled}
         </text>
       ) : null}
@@ -461,46 +245,143 @@ const FieldShape: React.FC<{ tone: 'even' | 'patchy'; labeled?: string }> = ({ t
   );
 };
 
-export const HarvestCapture: React.FC = () => {
+export const HarvestJourney: React.FC = () => {
   const { t } = useTranslation('landing');
-  const lines = [
-    [t('harvest.sacks'), t('harvest.sacksValue')],
-    [t('harvest.kilos'), t('harvest.kilosValue')],
-    [t('harvest.litres'), t('harvest.litresValue')],
-    [t('harvest.expenses'), t('harvest.expensesValue')],
-  ];
+  const stages = asList<HarvestStage>(t('harvest.stages', { returnObjects: true }));
+
   return (
-    <div className="lp-phone">
-      <p className="lp-example">{t('journal.example')}</p>
-      <h3>
-        {t('journal.field')}
-        <span>{t('hero.today')}</span>
-      </h3>
-      <dl>
-        {lines.map(([name, value]) => (
-          <div key={name}>
-            <dt>{name}</dt>
-            <dd>{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <Link to="/register" className="lp-phone-add">
-        <Plus size={22} aria-hidden />
-        {t('harvest.add')}
-      </Link>
-      <p className="lp-phone-sofar">{t('harvest.soFar')}</p>
+    <ol className="lp-journey">
+      {stages.map((stage, index) => (
+        <li key={stage.id} className={`is-${stage.id}`}>
+          {stage.label ? <p>{stage.label}</p> : null}
+          {stage.focus ? <strong className="lp-journey-focus">{stage.focus}</strong> : null}
+          <ul>
+            {(stage.lines || []).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          {index < stages.length - 1 ? <span className="lp-journey-arrow" aria-hidden /> : null}
+        </li>
+      ))}
+    </ol>
+  );
+};
+
+const TIN_STATES = ['free', 'free', 'free', 'free', 'free', 'free', 'held', 'given'] as const;
+
+export const OilTinCluster: React.FC = () => {
+  const { t } = useTranslation('landing');
+  return (
+    <figure className="lp-oil-scene">
+      <img src={oilCellar} alt="" />
+      <figcaption className="lp-sr">{t('oil.titleLine')}</figcaption>
+    </figure>
+  );
+};
+
+export const FamilyStage: React.FC = () => {
+  const { t } = useTranslation('landing');
+  return (
+    <div className="lp-family-stage">
+      <FamilyBoard />
+      <figure className="lp-family-scene">
+        <img src={familyGrove} alt="" />
+        <figcaption className="lp-sr">{t('family.title')}</figcaption>
+      </figure>
     </div>
   );
 };
 
-export const TrustLabels: React.FC = () => {
+export const OilStore: React.FC = () => {
   const { t } = useTranslation('landing');
-  const labels = asStrings(t('trust.labels', { returnObjects: true }));
+  const groups = [
+    ['free', t('oil.available')],
+    ['held', t('oil.held')],
+    ['given', t('oil.given')],
+  ] as const;
+
   return (
-    <ul className="lp-trust-labels">
-      {labels.map((label) => (
-        <li key={label}>{label}</li>
+    <div className="lp-store">
+      <p className="lp-store-total">{t('oil.total')}</p>
+      <p className="lp-store-batch">{t('oil.batch')}</p>
+      {groups.map(([state, label]) => (
+        <div key={state} className="lp-store-row">
+          <div className="lp-tins" aria-hidden>
+            {TIN_STATES.filter((tin) => tin === state).map((tin, index) => (
+              <span key={`${tin}-${index}`} className={`lp-tin is-${tin}`}>
+                <i className="lp-tin-handle" />
+                <em>{t('oil.lot')}</em>
+              </span>
+            ))}
+          </div>
+          <span>{label}</span>
+        </div>
       ))}
-    </ul>
+      <p className="lp-store-actions">{t('oil.actions')}</p>
+    </div>
+  );
+};
+
+export const MemoryYears: React.FC = () => {
+  const { t } = useTranslation('landing');
+  const marks = asList<YearMark>(t('years.marks', { returnObjects: true }));
+
+  return (
+    <ol className="lp-memory-years">
+      {marks.map((mark) => (
+        <li key={mark.year}>
+          <strong>{mark.year}</strong>
+          <span>{mark.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+};
+
+export const FamilyBoard: React.FC = () => {
+  const { t } = useTranslation('landing');
+  const people = asList<Person>(t('family.people', { returnObjects: true }));
+
+  return (
+    <div className="lp-family-board">
+      <p className="lp-family-field">{t('family.field')}</p>
+      <ul className="lp-activity">
+        {people.map((person) => (
+          <li key={person.name}>
+            <strong>{person.name}</strong>
+            <span>{person.did}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export const FarmerProof: React.FC = () => {
+  const { t } = useTranslation('landing');
+  const quotes = asList<ProofQuote>(t('proof.quotes', { returnObjects: true })).filter(
+    (quote) => quote?.quote && quote?.name
+  );
+  if (quotes.length === 0) return null;
+
+  return (
+    <section className="lp-section lp-proof" aria-labelledby="proof-title">
+      <div className="landing-container">
+        <h2 id="proof-title">{t('proof.title')}</h2>
+        <ul>
+          {quotes.map((quote) => (
+            <li key={quote.name}>
+              <blockquote>
+                <p>{quote.quote}</p>
+                <footer>
+                  {quote.name}
+                  {quote.detail ? <span>{quote.detail}</span> : null}
+                </footer>
+              </blockquote>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 };

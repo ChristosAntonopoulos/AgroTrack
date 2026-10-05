@@ -18,6 +18,7 @@ import {
   canVisitActivationStep,
   evaluateStepCompletion,
   ownerHasAnyBoundary,
+  ownerHasEstablishedFarm,
   pickActivationField,
   shouldRunOwnerActivation,
   spatialStatusFromProfiles,
@@ -172,6 +173,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
           persisted.skippedSteps.includes('firstObservation'),
         knownBoundaryFieldId: optimisticBoundaryFieldId,
         knownGroveFieldId: optimisticGroveFieldId,
+        userId,
       }),
     [
       fields,
@@ -181,14 +183,17 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       persisted.skippedSteps,
       optimisticBoundaryFieldId,
       optimisticGroveFieldId,
+      userId,
     ]
   );
 
   const doneCount = OWNER_ACTIVATION_STEPS.filter((s) => completion[s]).length;
   const allComplete = doneCount === OWNER_ACTIVATION_STEPS.length;
-  /** Browse unlock = any owned grove has όρια (not spatial ready, not "primary only"). */
+  /** Browse unlock = any owned grove has όρια (or an already-live seeded farm). */
   const setupUnlocked =
-    ownerHasAnyBoundary(fields, userId) || Boolean(optimisticBoundaryFieldId);
+    ownerHasAnyBoundary(fields, userId) ||
+    ownerHasEstablishedFarm(fields, userId) ||
+    Boolean(optimisticBoundaryFieldId);
   const laterSnoozed = Boolean(persisted.laterSnoozedAt) && !setupUnlocked;
 
   const eligible = useMemo(

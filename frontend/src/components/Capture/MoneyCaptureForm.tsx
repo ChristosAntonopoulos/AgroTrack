@@ -344,9 +344,13 @@ const MoneyCaptureForm: React.FC<Props> = ({
     resolvedAmount = amountValue && amountValue > 0 ? amountValue : null;
   }
 
+  // Harvest oil lots only when the entry was started from συγκομιδή.
+  // From Χρήματα, a sale is litres and price — it does not open the harvest.
+  const tieOilToHarvest =
+    context.harvestCampaignLink === true || context.sourcePage === 'harvest';
   const oilLots = useMemo(
-    () => (harvestCampaign ? saleableOilLots(harvestCampaign.campaign) : []),
-    [harvestCampaign]
+    () => (tieOilToHarvest && harvestCampaign ? saleableOilLots(harvestCampaign.campaign) : []),
+    [tieOilToHarvest, harvestCampaign]
   );
   const oilPath = isOil && oilLots.length > 0;
   const selectedLots = useMemo(
@@ -367,12 +371,10 @@ const MoneyCaptureForm: React.FC<Props> = ({
     skippedPresetCategoryRef.current = true;
     if (context.category === 'olive_oil_sale' && oilLots.length > 0) {
       setStep('oil');
-    } else if (askField) {
-      setStep('field');
     } else {
       setStep('amount');
     }
-  }, [context.category, oilLots.length, askField, askKind, activeDraft]);
+  }, [context.category, oilLots.length, askKind, activeDraft]);
 
   const oilStock = combineOilPacks(selectedLots);
   const selectedOilLitres = Math.round(selectedLots.reduce((sum, lot) => sum + lot.litres, 0) * 10) / 10;
@@ -949,7 +951,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
                     <span aria-hidden>→</span>
                     <strong>{t('capture:money.incomeTotal')}</strong>
                   </p>
-                ) : oilLots.length === 0 ? (
+                ) : tieOilToHarvest && oilLots.length === 0 ? (
                   <p className="capture-hint">{t('capture:money.noHarvestOil')}</p>
                 ) : null}
                 <OliveOilSaleFields

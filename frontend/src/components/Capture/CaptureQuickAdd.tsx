@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Cylinder,
   Droplets,
+  Plus,
   FileText,
   HandCoins,
   Mic,
@@ -22,6 +23,7 @@ import type { Field } from '../../services/fieldService';
 import CaptureContextChips from './CaptureContextChips';
 
 const warehouseTitleKey = {
+  add: 'add',
   give: 'give',
   sell: 'sell',
   hold: 'hold',
@@ -105,6 +107,7 @@ const CaptureQuickAdd: React.FC<Props> = ({
       return <Icon size={26} strokeWidth={2.1} />;
     }
     if (move.surface === 'warehouse') {
+      if (move.action === 'add') return <Plus size={26} strokeWidth={2.1} />;
       if (move.action === 'give') return <Droplets size={26} strokeWidth={2.1} />;
       if (move.action === 'sell') return <HandCoins size={26} strokeWidth={2.1} />;
       if (move.action === 'hold') return <Bookmark size={26} strokeWidth={2.1} />;

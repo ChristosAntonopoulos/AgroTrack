@@ -14,6 +14,7 @@ type Props = {
   fieldNames: Record<string, string>;
   focusFieldId?: string | null;
   onFillGrove?: (group: GroveOilGroup) => void;
+  onEdit?: (group: GroveOilGroup) => void;
 };
 
 const SEGMENT_LABEL: Record<PackSegmentKey, string> = {
@@ -22,8 +23,14 @@ const SEGMENT_LABEL: Record<PackSegmentKey, string> = {
   tin17: 'byGrove.pack17',
 };
 
+const SEGMENT_ICON: Record<PackSegmentKey, React.ComponentProps<typeof Ionicons>['name']> = {
+  bulk: 'water-outline',
+  tin16: 'cube-outline',
+  tin17: 'file-tray-stacked-outline',
+};
+
 /** One shelf, fully: name, pack mix, and the litres behind each colour. */
-export function OilByGroveSection({ groups, fieldNames, focusFieldId, onFillGrove }: Props) {
+export function OilByGroveSection({ groups, fieldNames, focusFieldId, onFillGrove, onEdit }: Props) {
   const { t, i18n } = useTranslation('myOil');
   const { colors, tapMin } = useTheme();
   const styles = createMyOilStyles(colors, tapMin);
@@ -86,13 +93,25 @@ export function OilByGroveSection({ groups, fieldNames, focusFieldId, onFillGrov
                   </Text>
                 ) : null}
               </View>
+              {onEdit ? (
+                <Pressable
+                  onPress={() => onEdit(group)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('byGrove.edit')}
+                  hitSlop={8}
+                  style={styles.shelfEdit}
+                >
+                  <Ionicons name="pencil-outline" size={16} color={colors.primary} />
+                  <Text style={styles.shelfEditText}>{t('byGrove.edit')}</Text>
+                </Pressable>
+              ) : null}
             </View>
             <Text style={styles.shelfHeadline}>{headline}</Text>
             <OilShelfBar segments={segments} colors={segmentColor} track={colors.surfaceMuted} />
             <View style={{ gap: 6 }}>
               {segments.map((segment) => (
                 <View key={segment.key} style={styles.shelfSegRow}>
-                  <View style={[styles.ringDot, { backgroundColor: segmentColor[segment.key] }]} />
+                  <Ionicons name={SEGMENT_ICON[segment.key]} size={15} color={segmentColor[segment.key]} />
                   <Text style={styles.shelfSegLabel}>{t(SEGMENT_LABEL[segment.key])}</Text>
                   <Text style={styles.shelfSegValue} numberOfLines={1}>
                     {amountFor(segment)}

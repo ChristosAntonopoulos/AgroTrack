@@ -18,6 +18,12 @@ export const getSeasonStartYear = (now: Date | string | number = new Date()): nu
 
 export const currentHarvestSeason = (now = new Date()): string => String(getSeasonStartYear(now));
 
+/** Picking months: October through January. */
+export const isOliveHarvestSeason = (now: Date | string | number = new Date()): boolean => {
+  const month = athensParts(parseBusinessDate(now)).month;
+  return month >= 10 || month === 1;
+};
+
 export const getSeasonBounds = (seasonStartYear: number): SeasonBounds => {
   const from = new Date(seasonStartYear, SEASON_START_MONTH - 1, 1, 0, 0, 0, 0);
   const to = new Date(seasonStartYear + 1, SEASON_START_MONTH - 1, 1, 0, 0, 0, 0);

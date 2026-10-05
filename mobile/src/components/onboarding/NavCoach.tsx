@@ -3,6 +3,8 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import { measureViewInWindow, sameRect, type WindowRect } from '../../onboarding/measureSpotlight';
+import { ONBOARDING_JOURNEY, type CoachTargetId, type OnboardingJourneyId } from '../../onboarding/steps';
+import OnboardingStepLabel from './OnboardingStepLabel';
 
 /** Breathing room between the control and the cut-out edge. */
 const PAD = 8;
@@ -24,6 +26,7 @@ const NavCoach: React.FC = () => {
   const pulse = useRef(new Animated.Value(0)).current;
   const [host, setHost] = useState<WindowRect | null>(null);
   const beat = activation?.guideBeat ?? null;
+  const journeyId = beat ? journeyStep(beat) : null;
   const rect = activation?.guideRect ?? null;
   const armed = Boolean(beat && rect);
 
@@ -58,7 +61,9 @@ const NavCoach: React.FC = () => {
   }, [armed, pulse]);
 
   // The host stays mounted so its frame is known before the first lesson paints.
-  const hole = beat && rect && host ? cutOut(rect, host) : null;
+  // Drawing owns the whole map. The cue sits in the bottom sheet, not over the pins.
+  const hole =
+    beat && beat !== 'drawBoundary' && rect && host ? cutOut(rect, host) : null;
 
   // Opacity only: a scaled ring would leave its border outside the cut-out edge
   // and read as a second, ghost outline.
@@ -103,7 +108,8 @@ const NavCoach: React.FC = () => {
           />
 
           <View pointerEvents="none" style={[styles.card, tipPlacement(hole, host)]}>
-            <Text style={styles.title}>{t(`coach.${beat}.cue`)}</Text>
+            {journeyId ? <OnboardingStepLabel id={journeyId} /> : null}
+            <Text style={styles.title}>{beat ? cueFor(beat, t) : ''}</Text>
           </View>
         </>
       ) : null}
@@ -125,6 +131,21 @@ const cutOut = (target: WindowRect, host: WindowRect): Hole | null => {
   if (width < 8 || height < 8) return null;
   return { left, top, width, height };
 };
+
+const FORM_CUES = new Set<CoachTargetId>([
+  'createGrove',
+  'locatePlace',
+  'drawBoundary',
+  'saveBoundary',
+]);
+
+const JOURNEY_IDS = new Set<string>(ONBOARDING_JOURNEY);
+
+const journeyStep = (id: CoachTargetId): OnboardingJourneyId | null =>
+  JOURNEY_IDS.has(id) ? (id as OnboardingJourneyId) : null;
+
+const cueFor = (beat: CoachTargetId, t: (key: string) => string): string =>
+  FORM_CUES.has(beat) ? t(`spotlight.${beat}.cue`) : t(`coach.${beat}.cue`);
 
 const tipPlacement = (hole: Hole, host: WindowRect) => {
   const holeBottom = hole.top + hole.height;

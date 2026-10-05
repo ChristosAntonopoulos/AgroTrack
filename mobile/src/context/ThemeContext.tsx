@@ -80,3 +80,13 @@ export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);
   return context ?? FALLBACK_THEME;
 };
+
+/** One screen can swap surface colors without changing the rest of the app. */
+export const ThemeScope: React.FC<{ colors: AppColors; children: ReactNode }> = ({
+  colors,
+  children,
+}) => {
+  const parent = useTheme();
+  const value = useMemo(() => ({ ...parent, colors }), [parent, colors]);
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+};

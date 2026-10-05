@@ -202,9 +202,10 @@
 .landing-nav button {
   background: none;
   border: none;
-  padding: 0.4rem 0.5rem;
-  font-size: 0.78rem;
-  font-weight: 500;
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 650;
   color: var(--lp-text-muted);
   cursor: pointer;
   border-radius: 8px;

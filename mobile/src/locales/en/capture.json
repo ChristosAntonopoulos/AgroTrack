@@ -40,6 +40,7 @@
   "openHarvest": "Open this harvest",
   "tabLocked": "You cannot record this here.",
   "warehouseHint": {
+    "add": "Oil already in storage",
     "give": "Oil to someone",
     "sell": "A sale from storage",
     "hold": "Set some aside",

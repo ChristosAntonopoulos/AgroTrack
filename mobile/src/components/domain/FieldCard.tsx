@@ -8,7 +8,12 @@ import { createElevation } from '../../theme/elevation';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { formatFieldArea } from '../../utils/fieldGeo';
 import { getFieldShortLocation } from '../../utils/shortLocation';
-import { getFieldStatusLabel, isFieldSetupIncomplete } from '../../utils/fieldDisplay';
+import {
+  getFieldStatusLabel,
+  isFieldSetupIncomplete,
+  viewerFieldRole,
+  type ViewerFieldRole,
+} from '../../utils/fieldDisplay';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import FieldPolygonThumbnail from '../fields/FieldPolygonThumbnail';
 import FieldPinMark from '../maps/FieldPinMark';
@@ -21,18 +26,29 @@ export interface FieldCardStats {
 interface FieldCardProps {
   field: Field;
   stats: FieldCardStats;
+  currentUserId?: string | null;
   compact?: boolean;
   selected?: boolean;
   onPress?: () => void;
   onSelect?: () => void;
 }
 
+const ROLE_BADGE_TONE: Record<
+  ViewerFieldRole,
+  { bg: string; fg: string }
+> = {
+  Admin: { bg: 'rgba(61, 122, 74, 0.16)', fg: '#245734' },
+  Partner: { bg: 'rgba(59, 98, 140, 0.14)', fg: '#1e3a5f' },
+  Family: { bg: 'rgba(180, 120, 48, 0.16)', fg: '#7a4a12' },
+};
+
 /**
- * Field list card — title, place, status/size, one metadata line.
+ * Field list card — title, place, status/size, role, one metadata line.
  */
 const FieldCard: React.FC<FieldCardProps> = ({
   field,
   stats,
+  currentUserId,
   compact = false,
   selected,
   onPress,
@@ -42,6 +58,7 @@ const FieldCard: React.FC<FieldCardProps> = ({
   const { t, i18n } = useTranslation('fields');
   const accent = resolveFieldColor(field.color, field.id);
   const incomplete = isFieldSetupIncomplete(field.status);
+  const role = viewerFieldRole(field, currentUserId);
   const hasTasks = Boolean(stats.tasksReady) && stats.todayTaskCount > 0;
   const displayName = friendlyFieldLabel(field.name);
   const shortLocation = getFieldShortLocation(field);
@@ -62,9 +79,25 @@ const FieldCard: React.FC<FieldCardProps> = ({
         ? t('card.todayTasks', { count: stats.todayTaskCount })
         : null;
 
+  const roleLabel = role
+    ? t(`card.role.${role}`)
+    : currentUserId && field.ownerId !== currentUserId
+      ? t('card.sharedBadge')
+      : null;
+  const roleTone = role
+    ? ROLE_BADGE_TONE[role]
+    : roleLabel
+      ? ROLE_BADGE_TONE.Partner
+      : null;
+
   const handleActivate = () => {
-    if (onSelect) onSelect();
-    else onPress?.();
+    // Map mode: first tap focuses the grove on the map, second opens it.
+    if (onSelect) {
+      if (selected) onPress?.();
+      else onSelect();
+      return;
+    }
+    onPress?.();
   };
 
   return (
@@ -72,7 +105,9 @@ const FieldCard: React.FC<FieldCardProps> = ({
       onPress={handleActivate}
       accessibilityRole={onSelect ? 'button' : 'link'}
       accessibilityState={{ selected }}
-      accessibilityLabel={[displayName, shortLocation, facts, metaLine].filter(Boolean).join(', ')}
+      accessibilityLabel={[displayName, roleLabel, shortLocation, facts, metaLine]
+        .filter(Boolean)
+        .join(', ')}
       style={({ pressed }) => [
         styles.card,
         compact && styles.cardCompact,
@@ -92,6 +127,20 @@ const FieldCard: React.FC<FieldCardProps> = ({
         <FieldPolygonThumbnail field={field} size={96} circular={false} />
       )}
       <View style={styles.main}>
+        {incomplete || roleLabel ? (
+          <View style={styles.badgeRow}>
+            {incomplete ? (
+              <View style={[styles.badge, styles.badgeDraft]}>
+                <Text style={styles.badgeDraftText}>{t('card.draftBadge')}</Text>
+              </View>
+            ) : null}
+            {roleLabel && roleTone ? (
+              <View style={[styles.badge, { backgroundColor: roleTone.bg }]}>
+                <Text style={[styles.badgeText, { color: roleTone.fg }]}>{roleLabel}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
         <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={2}>
           {displayName}
         </Text>
@@ -147,6 +196,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   main: { flex: 1, minWidth: 0, gap: 2 },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 4,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  badgeDraft: {
+    backgroundColor: 'rgba(201, 162, 39, 0.22)',
+  },
+  badgeDraftText: {
+    ...typography.styles.caption,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7a5b00',
+  },
+  badgeText: {
+    ...typography.styles.caption,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.1,
+  },
   name: {
     ...typography.styles.body,
     fontWeight: '700',

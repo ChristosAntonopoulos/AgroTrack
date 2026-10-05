@@ -1,26 +1,24 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import { useTheme } from '../../context/ThemeContext';
-import type { RootStackParamList } from '../../navigation/types';
 import { radii, spacing } from '../../theme';
 
-/** Quiet top-left caption while the grower looks at the map on their own. */
+/**
+ * Quiet top-left caption while the grower looks at the map on their own.
+ * CTA advances to home coaching (launcher mark) — never navigates for them.
+ */
 const MapExploreCue: React.FC = () => {
   const { t } = useTranslation('onboarding');
   const { colors, tapMin } = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const activation = useOwnerActivationOptional();
 
   if (!activation || activation.navCoachPhase !== 'linger') return null;
   if (activation.awaitingFirstObservation || activation.completion.firstObservation) return null;
 
-  const goHistory = () => {
-    activation.continueToHistory();
-    navigation.navigate('Launcher');
+  const goHome = () => {
+    activation.continueToHome();
   };
 
   return (
@@ -37,7 +35,7 @@ const MapExploreCue: React.FC = () => {
       <Text style={[styles.caption, { color: colors.textPrimary }]}>{t('mapExplore.caption')}</Text>
       <Pressable
         style={[styles.cta, { backgroundColor: colors.primary, minHeight: tapMin }]}
-        onPress={goHistory}
+        onPress={goHome}
       >
         <Text style={styles.ctaText}>{t('mapExplore.cta')}</Text>
       </Pressable>

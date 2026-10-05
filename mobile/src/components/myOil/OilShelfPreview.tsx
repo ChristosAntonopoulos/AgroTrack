@@ -18,9 +18,9 @@ type Props = {
   onOpenShelf: (group: GroveOilGroup) => void;
 };
 
-const PREVIEW = 3;
+const PREVIEW = 4;
 
-/** The first shelves, enough to see where the oil sits. The rest opens on purpose. */
+/** Shelf summary rows. The full detail, including edit, opens from a row or from All. */
 export function OilShelfPreview({ groups, fieldNames, packLabels, onOpen, onOpenShelf }: Props) {
   const { t, i18n } = useTranslation('myOil');
   const { colors, tapMin } = useTheme();
@@ -35,14 +35,20 @@ export function OilShelfPreview({ groups, fieldNames, packLabels, onOpen, onOpen
   };
 
   return (
-    <View style={{ gap: 8 }}>
+    <View style={styles.stockPanel}>
       <View style={styles.shelfHead}>
         <Text style={styles.byGroveTitle}>{t('byGrove.title')}</Text>
-        <Text style={styles.shelfHeadCount}>
-          {t('byGrove.groveCount', { count: ordered.length })}
-        </Text>
+        <Pressable
+          onPress={onOpen}
+          accessibilityRole="button"
+          hitSlop={8}
+          style={styles.shelfAll}
+        >
+          <Text style={styles.shelfAllText}>{t('byGrove.all')}</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+        </Pressable>
       </View>
-      {ordered.slice(0, PREVIEW).map((group) => {
+      {ordered.slice(0, PREVIEW).map((group, index) => {
         const { title } = groveShelfTitle(group, fieldNames, {
           shared: t('byGrove.sharedTitle'),
           unassigned: t('byGrove.unassigned'),
@@ -52,10 +58,11 @@ export function OilShelfPreview({ groups, fieldNames, packLabels, onOpen, onOpen
           <Pressable
             key={group.key}
             onPress={() => onOpenShelf(group)}
-            style={({ pressed }) => [styles.shelfCard, pressed && { opacity: 0.92 }]}
+            accessibilityRole="button"
+            style={({ pressed }) => [pressed && { opacity: 0.88 }]}
           >
-            <View style={styles.shelfCardTop}>
-              <Ionicons name="cube-outline" size={16} color={colors.primary} />
+            {index > 0 ? <View style={[styles.hairline, { marginBottom: 10 }]} /> : null}
+            <View style={styles.shelfSummaryTop}>
               <Text style={[styles.shelfName, { flex: 1 }]} numberOfLines={1}>
                 {title}
               </Text>
@@ -63,20 +70,13 @@ export function OilShelfPreview({ groups, fieldNames, packLabels, onOpen, onOpen
                 {formatOilNumber(group.onHand.litres, i18n.language)} L
               </Text>
             </View>
-            <OilShelfBar segments={segments} colors={segmentColor} track={colors.surfaceMuted} />
-            <Text style={styles.shelfPackLine} numberOfLines={1}>
+            <OilShelfBar segments={segments} colors={segmentColor} track={colors.surfaceElevated} />
+            <Text style={styles.shelfPackLine} numberOfLines={2}>
               {formatOilPack(group.onHand, packLabels)}
             </Text>
           </Pressable>
         );
       })}
-      <Pressable
-        onPress={onOpen}
-        style={({ pressed }) => [styles.shelfSeeAll, pressed && { opacity: 0.92 }]}
-      >
-        <Text style={styles.shelfSeeAllText}>{t('byGrove.seeAll')}</Text>
-        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-      </Pressable>
     </View>
   );
 }

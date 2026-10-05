@@ -161,6 +161,19 @@ test('category is chosen before the amount and is not repeated later', async () 
   expect(screen.queryByRole('option', { name: 'Εργασία' })).not.toBeInTheDocument();
 });
 
+test('oil sale opened from money asks for litres and price, not harvest oil', async () => {
+  renderForm({
+    context: {
+      preferredType: 'income',
+      category: 'olive_oil_sale',
+      sourcePage: 'money',
+    },
+  });
+  expect(await screen.findByLabelText(/Πόσα λίτρα/i)).toBeInTheDocument();
+  expect(screen.queryByText(/Από ποιο λάδι/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/λάδι στη συγκομιδή/i)).not.toBeInTheDocument();
+});
+
 test('preselects a related harvest when provided', async () => {
   renderForm({
     context: { preferredType: 'income', fieldId: 'field-1', harvestId: 'harvest-1' },

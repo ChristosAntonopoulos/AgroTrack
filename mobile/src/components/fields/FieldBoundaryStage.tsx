@@ -36,6 +36,9 @@ import { locationService } from '../../services/locationService';
 import type { GeoJsonPolygon } from '../../services/fieldService';
 import { reverseGeocode } from '../../utils/geocodeLocation';
 import { typography, spacing, radii, createElevation } from '../../theme';
+import GuideTarget from '../onboarding/GuideTarget';
+import OnboardingStepLabel from '../onboarding/OnboardingStepLabel';
+import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 
 export type BoundaryPoint = { latitude: number; longitude: number };
 export type DrawPhase = 'locate' | 'drawing' | 'done';
@@ -58,7 +61,11 @@ type Props = {
 };
 
 const PLACE_FOCUS_ZOOM = 16;
-const VERTEX_HIT_PX = 36;
+/**
+ * Invisible grab radius. Mapbox GL Draw uses a 25px touch buffer around a
+ * 3–5px vertex so the handle stays small and the finger can still catch it.
+ */
+const VERTEX_HIT_PX = 28;
 
 const GREECE_OVERVIEW: MapRegion = {
   latitude: 38.42,
@@ -93,6 +100,8 @@ const FieldBoundaryStage: React.FC<Props> = ({
 }) => {
   const { t, i18n } = useTranslation(['fields', 'common', 'onboarding']);
   const { colors } = useTheme();
+  const activation = useOwnerActivationOptional();
+  const setBoundaryCoachPhase = activation?.setBoundaryCoachPhase;
   const insets = useSafeAreaInsets();
   const areaLocale = i18n.language?.startsWith('it')
     ? 'it'
@@ -103,6 +112,8 @@ const FieldBoundaryStage: React.FC<Props> = ({
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
   const [region, setRegion] = useState<MapRegion>(GREECE_OVERVIEW);
   const [phase, setPhase] = useState<DrawPhase>(() => (points.length >= 3 ? 'done' : 'locate'));
+  const locateCoached = activation?.guideBeat === 'locatePlace';
+  const drawCoached = activation?.guideBeat === 'drawBoundary' && phase === 'drawing';
   const [liveZoom, setLiveZoom] = useState(PLACE_FOCUS_ZOOM);
   const [drawError, setDrawError] = useState<string | null>(null);
   const [measuredSqm, setMeasuredSqm] = useState(0);
@@ -139,6 +150,10 @@ const FieldBoundaryStage: React.FC<Props> = ({
     mapRef.current?.flyTo(latitude, longitude, PLACE_FOCUS_ZOOM);
     setLiveZoom(PLACE_FOCUS_ZOOM);
   }, [placeFocus, latitude, longitude]);
+
+  useEffect(() => {
+    setBoundaryCoachPhase?.(phase === 'done' ? 'save' : phase === 'drawing' ? 'draw' : 'locate');
+  }, [phase, setBoundaryCoachPhase]);
 
   useEffect(() => {
     if (points.length >= 3 && phase === 'locate') {
@@ -236,8 +251,10 @@ const FieldBoundaryStage: React.FC<Props> = ({
         const index = dragIndexRef.current;
         if (index == null) return;
         const finger = fingerOnMap(event);
+        const map = mapRef.current;
+        if (!map) return;
         const gen = ++dragGenRef.current;
-        void mapRef.current?.getCoordinateFromView(finger.x, finger.y).then((next) => {
+        void map.getCoordinateFromView(finger.x, finger.y).then((next) => {
           if (!next || gen !== dragGenRef.current) return;
           movePointRef.current(index, next);
         });
@@ -364,9 +381,10 @@ const FieldBoundaryStage: React.FC<Props> = ({
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <GuideTarget id="drawBoundary" style={styles.mapFill}>
       <View
         ref={mapWrapRef}
-        style={styles.mapFill}
+        style={StyleSheet.absoluteFill}
         onLayout={measureMap}
         {...pan.panHandlers}
       >
@@ -418,12 +436,15 @@ const FieldBoundaryStage: React.FC<Props> = ({
               fillOpacity={phase === 'done' ? 0.32 : 0.12}
             />
           ) : null}
-          <BoundaryVertexPins points={points} activeIndex={activeIndex} numbered />
+          <BoundaryVertexPins points={points} activeIndex={activeIndex} />
         </AppMapView>
 
         {/* Mid-map chrome: layers + zoom, clear of search and sheet */}
         <View
-          style={[styles.mapChrome, { top: insets.top + 72, bottom: 168 + insets.bottom }]}
+          style={[
+            styles.mapChrome,
+            { top: insets.top + 72, bottom: (drawCoached ? 214 : 168) + insets.bottom },
+          ]}
           pointerEvents="box-none"
         >
           <View style={styles.mapChromeSide} pointerEvents="box-none">
@@ -437,13 +458,14 @@ const FieldBoundaryStage: React.FC<Props> = ({
           </View>
         </View>
       </View>
+      </GuideTarget>
 
-      {/* Top: search + locate only — coach lives in the bottom sheet */}
+      {/* Top: search + locate only — the focus ring frames this while they search */}
       <View
         style={[styles.topChrome, { paddingTop: Math.max(insets.top, 8) + 8 }]}
         pointerEvents="box-none"
       >
-        <View style={styles.searchRow}>
+        <GuideTarget id="locatePlace" style={styles.searchRow}>
           <View style={styles.searchField}>
             <LocationSearchField
               value={locationText}
@@ -463,11 +485,12 @@ const FieldBoundaryStage: React.FC<Props> = ({
           >
             <Ionicons name="navigate-outline" size={20} color={colors.textPrimary} />
           </Pressable>
-        </View>
+        </GuideTarget>
       </View>
 
-      {/* Bottom sheet: status + undo/clear + primary */}
-      <View
+      {/* Bottom sheet: the draw cue, undo, and the primary action. */}
+      <GuideTarget
+        id="saveBoundary"
         style={[
           styles.sheet,
           {
@@ -476,11 +499,24 @@ const FieldBoundaryStage: React.FC<Props> = ({
             borderColor: colors.borderLight,
           },
         ]}
-        accessibilityRole="summary"
       >
-        <Text style={[styles.sheetLine, { color: colors.textPrimary }]} numberOfLines={2}>
-          {sheetLine}
-        </Text>
+        {drawCoached ? (
+          <View style={styles.footerCue}>
+            <OnboardingStepLabel id="drawBoundary" />
+            <Text style={[styles.sheetLine, { color: colors.textPrimary }]}>
+              {t('onboarding:spotlight.drawBoundary.cue')}
+            </Text>
+            {points.length > 0 ? (
+              <Text style={[styles.footerHint, { color: colors.textSecondary }]}>
+                {t('onboarding:spotlight.drawBoundary.drag')}
+              </Text>
+            ) : null}
+          </View>
+        ) : locateCoached ? null : (
+          <Text style={[styles.sheetLine, { color: colors.textPrimary }]} numberOfLines={2}>
+            {sheetLine}
+          </Text>
+        )}
         {zoomTip ? (
           <View
             style={[
@@ -525,20 +561,14 @@ const FieldBoundaryStage: React.FC<Props> = ({
               <Ionicons name="arrow-undo-outline" size={20} color={colors.textPrimary} />
             </Pressable>
           ) : null}
-          {points.length > 0 ? (
+          {points.length > 0 && phase === 'done' ? (
             <Pressable
               style={[styles.iconBtn, { borderColor: colors.borderLight, backgroundColor: colors.surface }]}
               onPress={clearCorners}
               accessibilityRole="button"
-              accessibilityLabel={
-                phase === 'done' ? t('addField.boundaryRedraw') : t('addField.boundaryClear')
-              }
+              accessibilityLabel={t('addField.boundaryRedraw')}
             >
-              <Ionicons
-                name={phase === 'done' ? 'refresh-outline' : 'trash-outline'}
-                size={20}
-                color={colors.textPrimary}
-              />
+              <Ionicons name="refresh-outline" size={20} color={colors.textPrimary} />
             </Pressable>
           ) : null}
 
@@ -600,7 +630,7 @@ const FieldBoundaryStage: React.FC<Props> = ({
             </Text>
           </Pressable>
         ) : null}
-      </View>
+      </GuideTarget>
     </View>
   );
 };
@@ -678,6 +708,11 @@ const styles = StyleSheet.create({
     ...typography.styles.body,
     fontWeight: '700',
     letterSpacing: -0.2,
+  },
+  footerCue: { gap: 2 },
+  footerHint: {
+    ...typography.styles.bodySmall,
+    fontWeight: '600',
   },
   tipRow: {
     flexDirection: 'row',

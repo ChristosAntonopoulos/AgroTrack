@@ -384,6 +384,14 @@
     "todayTasksLoading": "Loading…",
     "open": "Open →",
     "continueSetup": "Continue setup",
+    "ownedBadge": "Admin",
+    "sharedBadge": "Partner",
+    "role": {
+      "Admin": "Admin",
+      "Partner": "Partner",
+      "Family": "Family"
+    },
+    "draftBadge": "Draft",
     "irrigationYes": "Yes",
     "metaAria": "Field details"
   },

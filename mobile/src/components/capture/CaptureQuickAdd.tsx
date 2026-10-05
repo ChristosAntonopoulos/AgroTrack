@@ -8,6 +8,7 @@ import { HARVEST_ACTION_ICONS } from '../../harvestCampaign/harvestActions';
 import { useTheme } from '../../context/ThemeContext';
 import { radii } from '../../theme';
 import CaptureContextChips from './CaptureContextChips';
+import OnboardingStepLabel from '../onboarding/OnboardingStepLabel';
 
 type Props = {
   moves: CaptureMove[];
@@ -16,6 +17,8 @@ type Props = {
   occurredAt: string;
   recentFieldId?: string;
   hints?: Partial<Record<string, string>>;
+  /** First-run coach: pulse the Observation tile. */
+  coachObservation?: boolean;
   onFieldChange: (id: string) => void;
   onOccurredAtChange: (iso: string) => void;
   onPick: (move: CaptureMove) => void;
@@ -29,12 +32,13 @@ const CaptureQuickAdd: React.FC<Props> = ({
   occurredAt,
   recentFieldId,
   hints,
+  coachObservation = false,
   onFieldChange,
   onOccurredAtChange,
   onPick,
   onMore,
 }) => {
-  const { t } = useTranslation(['capture', 'fields', 'myOil']);
+  const { t } = useTranslation(['capture', 'fields', 'myOil', 'onboarding']);
   const { colors, tapMin } = useTheme();
 
   const copyOf = (move: CaptureMove): { title: string; domain: string } => {
@@ -83,6 +87,7 @@ const CaptureQuickAdd: React.FC<Props> = ({
   const iconOf = (move: CaptureMove): keyof typeof Ionicons.glyphMap => {
     if (move.surface === 'harvest') return HARVEST_ACTION_ICONS[move.kind];
     if (move.surface === 'warehouse') {
+      if (move.action === 'add') return 'add-outline';
       if (move.action === 'give') return 'water-outline';
       if (move.action === 'sell') return 'cash-outline';
       if (move.action === 'hold') return 'bookmark-outline';
@@ -122,6 +127,14 @@ const CaptureQuickAdd: React.FC<Props> = ({
 
   return (
     <View style={styles.root}>
+      {coachObservation ? (
+        <View style={[styles.coachCard, { backgroundColor: colors.eventObservationSoft, borderColor: colors.eventObservation }]}>
+          <OnboardingStepLabel id="observationType" />
+          <Text style={[styles.coachTitle, { color: colors.textPrimary }]}>
+            {t('onboarding:coach.observationType.cue')}
+          </Text>
+        </View>
+      ) : null}
       <Text style={[styles.prompt, { color: colors.textPrimary }]}>{t('capture:whatToRecord')}</Text>
 
       <CaptureContextChips
@@ -141,6 +154,8 @@ const CaptureQuickAdd: React.FC<Props> = ({
             const copy = copyOf(move);
             const tone = toneOf(move);
             const hint = hints?.[move.id];
+            const isObservationCoach =
+              coachObservation && move.surface === 'capture' && move.type === 'observation';
             return (
               <Pressable
                 key={move.id}
@@ -148,8 +163,9 @@ const CaptureQuickAdd: React.FC<Props> = ({
                 style={({ pressed }) => [
                   styles.tile,
                   {
-                    borderColor: colors.borderLight,
-                    backgroundColor: colors.surfaceElevated,
+                    borderColor: isObservationCoach ? tone.accent : colors.borderLight,
+                    borderWidth: isObservationCoach ? 2 : StyleSheet.hairlineWidth,
+                    backgroundColor: isObservationCoach ? tone.soft : colors.surfaceElevated,
                     minHeight: Math.max(112, tapMin + 48),
                     opacity: pressed ? 0.92 : 1,
                     transform: [{ scale: pressed ? 0.99 : 1 }],
@@ -192,6 +208,18 @@ const CaptureQuickAdd: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   root: { gap: 12 },
+  coachCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
+  },
+  coachTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
   prompt: {
     fontSize: 18,
     fontWeight: '700',

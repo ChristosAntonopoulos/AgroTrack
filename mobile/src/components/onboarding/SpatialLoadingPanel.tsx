@@ -24,6 +24,7 @@ import {
 } from '../../onboarding/fieldFirstData';
 import type { RootStackParamList } from '../../navigation/types';
 import { spacing } from '../../theme';
+import OnboardingStepLabel from './OnboardingStepLabel';
 
 type Props = {
   fieldId: string;
@@ -221,6 +222,7 @@ const SpatialLoadingPanel: React.FC<Props> = ({ fieldId, fieldName }) => {
       <View style={styles.root}>
         <View style={styles.backdrop} />
         <View style={styles.card}>
+          {!completion.firstObservation ? <OnboardingStepLabel id="groveReady" /> : null}
           <Text style={styles.title}>
             {showWelcome
               ? firstName

@@ -18,7 +18,7 @@ import AuthNavigator from './AuthNavigator';
 import MainLayout from './MainLayout';
 import FieldDetailScreen from '../screens/FieldDetailScreen';
 import FieldWeatherVegetationScreen from '../screens/FieldWeatherVegetationScreen';
-import ChronologioStackRedirect from '../screens/ChronologioStackRedirect';
+import ChronologioScreen from '../screens/ChronologioScreen';
 import TaskDetailScreen from '../screens/TaskDetailScreen';
 import TaskCompletionScreen from '../screens/TaskCompletionScreen';
 import FieldFormScreen from '../screens/FieldFormScreen';
@@ -57,6 +57,7 @@ import {
 import { View, StyleSheet, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import OwnerActivationHost from '../components/onboarding/OwnerActivationHost';
+import NavCoach from '../components/onboarding/NavCoach';
 import ActivationGate from '../components/onboarding/ActivationGate';
 import { OwnerActivationProvider } from '../onboarding/OwnerActivationContext';
 import AppDock from './AppDock';
@@ -246,8 +247,8 @@ const RootNavigator = () => {
               />
               <Stack.Screen
                 name="Chronologio"
-                component={ChronologioStackRedirect}
-                options={{ headerShown: false }}
+                component={ChronologioScreen}
+                options={{ title: t('nav:chronologio', { defaultValue: 'History' }) }}
               />
               <Stack.Screen
                 name="FieldWeatherVegetation"
@@ -408,6 +409,7 @@ const RootNavigator = () => {
         {isAuthenticated && !dockHiddenForRoute(focusedRoute.name) ? (
           <AppDock route={focusedRoute} />
         ) : null}
+        {isAuthenticated ? <NavCoach /> : null}
         </View>
         </DockProvider>
         </OwnerActivationProvider>

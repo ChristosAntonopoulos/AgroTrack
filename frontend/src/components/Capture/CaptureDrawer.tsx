@@ -791,12 +791,12 @@ const CaptureDrawer: React.FC<Props> = ({
         {step === 'catalog' ? (
           <CaptureCatalog
             groups={menuGroups}
-            isHarvestLive={captureModeLive}
             harvestHint={harvestHint}
             fields={fields}
             fieldId={fieldId}
             occurredAtLocal={occurredAt}
             recentIds={readRecentCaptureMoves()}
+            preferMoneyMoves={context.sourcePage === 'money' || location.pathname.startsWith('/money')}
             onFieldChange={onFieldChange}
             onOccurredAtChange={onOccurredAtChange}
             onPick={pickMove}

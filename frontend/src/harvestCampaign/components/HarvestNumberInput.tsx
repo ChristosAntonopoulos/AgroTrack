@@ -70,6 +70,7 @@ type StepperProps = {
   value: number;
   onChange: (value: number) => void;
   min?: number;
+  max?: number;
   step?: number;
   suffix: string;
   label: string;
@@ -83,6 +84,7 @@ export const HarvestNumberStepper: React.FC<StepperProps> = ({
   value,
   onChange,
   min = 0,
+  max,
   step = 1,
   suffix,
   label,
@@ -92,6 +94,11 @@ export const HarvestNumberStepper: React.FC<StepperProps> = ({
   useEffect(() => {
     setDraft(String(value));
   }, [value]);
+
+  const clamp = (raw: number) => {
+    const next = clampMin(raw, min);
+    return max == null ? next : Math.min(max, next);
+  };
 
   const commitDraft = (raw: string) => {
     if (raw.trim() === '') {
@@ -104,7 +111,7 @@ export const HarvestNumberStepper: React.FC<StepperProps> = ({
       setDraft(String(value));
       return;
     }
-    const next = clampMin(parsed, min);
+    const next = clamp(parsed);
     onChange(next);
     setDraft(String(next));
   };
@@ -117,10 +124,11 @@ export const HarvestNumberStepper: React.FC<StepperProps> = ({
           type="button"
           className="hc-stepper-btn"
           onClick={() => {
-            const next = clampMin(value - step, min);
+            const next = clamp(value - step);
             onChange(next);
             setDraft(String(next));
           }}
+          disabled={value <= min}
           aria-label="-"
         >
           −
@@ -141,10 +149,11 @@ export const HarvestNumberStepper: React.FC<StepperProps> = ({
           type="button"
           className="hc-stepper-btn"
           onClick={() => {
-            const next = value + step;
+            const next = clamp(value + step);
             onChange(next);
             setDraft(String(next));
           }}
+          disabled={max != null && value >= max}
           aria-label="+"
         >
           +

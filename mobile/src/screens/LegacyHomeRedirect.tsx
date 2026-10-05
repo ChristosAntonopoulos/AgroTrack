@@ -8,7 +8,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 const LegacyHomeRedirect = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   useEffect(() => {
-    navigation.replace('Main', { screen: 'ChronologioTab' });
+    navigation.replace('Chronologio');
   }, [navigation]);
   return <LoadingSpinner fullScreen />;
 };

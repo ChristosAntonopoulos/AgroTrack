@@ -35,6 +35,31 @@ export const isPartnerScopeField = (
   return isListedGrove(field);
 };
 
+export const isOwnedField = (
+  field: Pick<Field, 'ownerId'>,
+  userId: string | undefined | null
+): boolean => Boolean(userId && field.ownerId === userId);
+
+/** Seat the signed-in person holds on a field. Admin is the person who manages it. */
+export type ViewerFieldRole = 'Admin' | 'Partner' | 'Family';
+
+const isViewerFieldRole = (value: string | undefined): value is ViewerFieldRole =>
+  value === 'Admin' || value === 'Partner' || value === 'Family';
+
+export const viewerFieldRole = (
+  field: Pick<Field, 'ownerId' | 'memberships'>,
+  userId: string | undefined | null
+): ViewerFieldRole | null => {
+  if (!userId) return null;
+  const membership = field.memberships?.find(
+    (member) =>
+      member.userId === userId && member.status !== 'removed' && member.status !== 'revoked'
+  );
+  if (membership && isViewerFieldRole(membership.role)) return membership.role;
+  if (field.ownerId === userId) return 'Admin';
+  return null;
+};
+
 export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
   const ring = field.boundary?.coordinates?.[0];
   return Boolean(ring && ring.length >= 4);

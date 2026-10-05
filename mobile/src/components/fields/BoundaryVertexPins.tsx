@@ -12,7 +12,8 @@ type Props = {
 
 /**
  * Corner handles drawn by the map, on the same coordinates as the outline.
- * A view slid across the map jumps away from the corner; a circle layer cannot.
+ * Visual size follows Mapbox GL Draw (about 4px core, 7px halo). The finger
+ * target is a separate invisible radius in the stage, not a bigger circle.
  */
 const BoundaryVertexPins: React.FC<Props> = ({ points, activeIndex = null }) => {
   const { colors } = useTheme();
@@ -37,18 +38,8 @@ const BoundaryVertexPins: React.FC<Props> = ({ points, activeIndex = null }) => 
       <CircleLayer
         id="boundary-vertex-halo"
         style={{
-          circleRadius: ['case', active, 15, 11],
-          circleColor: '#1C1A14',
-          circleOpacity: ['case', active, 0.28, 0.16],
-          circleBlur: 0.7,
-          circlePitchAlignment: 'viewport',
-        }}
-      />
-      <CircleLayer
-        id="boundary-vertex-disc"
-        style={{
-          circleRadius: ['case', active, 8, 6.5],
-          circleColor: '#FFFcf6',
+          circleRadius: ['case', active, 9, 7],
+          circleColor: '#fff',
           circleStrokeWidth: 1.5,
           circleStrokeColor: '#2C3824',
           circlePitchAlignment: 'viewport',
@@ -57,7 +48,7 @@ const BoundaryVertexPins: React.FC<Props> = ({ points, activeIndex = null }) => 
       <CircleLayer
         id="boundary-vertex-core"
         style={{
-          circleRadius: ['case', active, 3.2, 2.5],
+          circleRadius: ['case', active, 5, 4],
           circleColor: colors.primary,
           circlePitchAlignment: 'viewport',
         }}

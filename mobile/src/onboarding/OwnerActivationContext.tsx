@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import type { NavigationContainerRef } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useCaptureOptional } from '../context/CaptureContext';
 import { getFieldService } from '../services/serviceFactory';
 import { geospatialService } from '../services/geospatialService';
 import type { Field } from '../services/fieldService';
@@ -27,14 +28,15 @@ import { readPersisted, writePersisted } from './persistence';
 import {
   emptyPersisted,
   OWNER_ACTIVATION_STEPS,
-  type GuideTargetId,
+  type BoundaryCoachPhase,
+  type CoachTargetId,
   type NavCoachPhase,
   type OwnerActivationPersisted,
   type OwnerActivationStepId,
 } from './steps';
 
 export type GuideRect = {
-  id: GuideTargetId;
+  id: CoachTargetId;
   x: number;
   y: number;
   width: number;
@@ -65,16 +67,20 @@ type OwnerActivationContextValue = {
   setSpotlightScreen: (screen: SpotlightScreen | null) => void;
   /** Clears the screen only if it is still the one that asked — a replaced screen unmounts late. */
   releaseSpotlightScreen: (screen: SpotlightScreen) => void;
-  /** Soft post-spatial guide: free map look → History → first observation. */
+  /** Soft post-spatial guide: free map look → home → History → first observation. */
   awaitingFirstObservation: boolean;
   navCoachPhase: NavCoachPhase | null;
-  /** The control the grower should tap next. Null while a form or a quiet pause owns the screen. */
-  guideBeat: GuideTargetId | null;
+  /** The control the grower should tap next. Null while a quiet pause owns the screen. */
+  guideBeat: CoachTargetId | null;
   guideRect: GuideRect | null;
-  reportGuideTarget: (id: GuideTargetId, rect: Omit<GuideRect, 'id'>) => void;
-  /** After spatial welcome: free map look-around, then History. */
+  reportGuideTarget: (id: CoachTargetId, rect: Omit<GuideRect, 'id'>) => void;
+  /** Boundary screen tells the focus ring whether to frame search, the map, or save. */
+  setBoundaryCoachPhase: (phase: BoundaryCoachPhase) => void;
+  /** After spatial welcome: free map look-around, then home → History. */
   beginDetailsLesson: () => void;
-  /** Grower chose to leave the map and continue to History coaching. */
+  /** Grower left the map — coach the launcher mark next. */
+  continueToHome: () => void;
+  /** Launcher reached — coach the History card. */
   continueToHistory: () => void;
   refresh: () => Promise<void>;
   skipStep: (step: OwnerActivationStepId) => void;
@@ -97,6 +103,7 @@ export const OwnerActivationProvider: React.FC<{
   navRef: NavRef;
 }> = ({ children, navRef }) => {
   const { user, isAuthenticated, isFieldOwner } = useAuth();
+  const capture = useCaptureOptional();
   const userId = user?.id;
   const role = user?.role;
 
@@ -117,6 +124,7 @@ export const OwnerActivationProvider: React.FC<{
   const [routeName, setRouteName] = useState('');
   const [routeMode, setRouteMode] = useState('');
   const [guideRect, setGuideRect] = useState<GuideRect | null>(null);
+  const [boundaryCoachPhase, setBoundaryCoachPhase] = useState<BoundaryCoachPhase>('locate');
   const persistedRef = useRef(persisted);
   persistedRef.current = persisted;
   const wasUnlocked = useRef(false);
@@ -337,17 +345,39 @@ export const OwnerActivationProvider: React.FC<{
     return null;
   }, [visible, activeStep, laterSnoozed, persisted.skippedSteps, spotlightScreen]);
 
-  const guideBeat = useMemo((): GuideTargetId | null => {
+  const guideBeat = useMemo((): CoachTargetId | null => {
     if (!ready || !eligible || laterSnoozed || persisted.dismissedAt) return null;
     if (persisted.firstObservationDoneAt) return null;
 
     if (!completion.createGrove) {
       if (routeName === 'Launcher') return 'fieldsCard';
       if (routeName === 'FieldsHome') return 'createField';
+      if (routeName === 'FieldForm' && spotlightScreen === 'create') return 'createGrove';
       return null;
     }
 
+    if (!completion.drawBoundary && routeName === 'FieldMapBoundary') {
+      if (boundaryCoachPhase === 'save') return 'saveBoundary';
+      if (boundaryCoachPhase === 'draw') return 'drawBoundary';
+      return 'locatePlace';
+    }
+
+    if (persisted.navCoachPhase === 'home' && routeName !== 'Launcher') return 'homeButton';
     if (persisted.navCoachPhase === 'history' && routeName === 'Launcher') return 'historyCard';
+
+    // History is open: teach + → Observation → save. Capture sheet owns the later cues.
+    if (
+      persisted.awaitingFirstObservation &&
+      !persisted.firstObservationDoneAt &&
+      !capture?.isOpen
+    ) {
+      const onHistory =
+        routeName === 'ChronologioTab' ||
+        routeName === 'Chronologio' ||
+        (routeName === 'FieldDetail' && routeMode === 'chronologio');
+      if (onHistory) return 'addButton';
+    }
+
     return null;
   }, [
     ready,
@@ -355,9 +385,15 @@ export const OwnerActivationProvider: React.FC<{
     laterSnoozed,
     persisted.dismissedAt,
     persisted.firstObservationDoneAt,
+    persisted.awaitingFirstObservation,
     persisted.navCoachPhase,
     completion.createGrove,
+    completion.drawBoundary,
     routeName,
+    routeMode,
+    spotlightScreen,
+    boundaryCoachPhase,
+    capture?.isOpen,
   ]);
 
   const beginDetailsLesson = useCallback(() => {
@@ -366,6 +402,19 @@ export const OwnerActivationProvider: React.FC<{
     persist({
       ...current,
       navCoachPhase: 'linger',
+      forceShow: false,
+      laterSnoozedAt: null,
+    });
+    setCelebrating(false);
+  }, [persist]);
+
+  const continueToHome = useCallback(() => {
+    const current = persistedRef.current;
+    if (current.firstObservationDoneAt) return;
+    if (current.navCoachPhase === 'home' || current.navCoachPhase === 'history') return;
+    persist({
+      ...current,
+      navCoachPhase: 'home',
       forceShow: false,
       laterSnoozedAt: null,
     });
@@ -399,7 +448,7 @@ export const OwnerActivationProvider: React.FC<{
     setCelebrating(false);
   }, [persist]);
 
-  // If they leave the field during free map look-around, take them to History coaching.
+  // If they leave the field during free map look-around, coach home → History.
   useEffect(() => {
     if (persisted.navCoachPhase !== 'linger') return;
     if (routeName === 'FieldDetail' && routeMode !== 'chronologio') return;
@@ -411,6 +460,25 @@ export const OwnerActivationProvider: React.FC<{
       arriveAtHistory();
       return;
     }
+    if (routeName === 'Launcher') {
+      continueToHistory();
+      return;
+    }
+    continueToHome();
+  }, [persisted.navCoachPhase, routeName, routeMode, continueToHome, continueToHistory, arriveAtHistory]);
+
+  // Launcher reached via the home mark — next pulse is History.
+  useEffect(() => {
+    if (persisted.navCoachPhase !== 'home') return;
+    if (
+      routeName === 'ChronologioTab' ||
+      routeName === 'Chronologio' ||
+      (routeName === 'FieldDetail' && routeMode === 'chronologio')
+    ) {
+      arriveAtHistory();
+      return;
+    }
+    if (routeName !== 'Launcher') return;
     continueToHistory();
   }, [persisted.navCoachPhase, routeName, routeMode, continueToHistory, arriveAtHistory]);
 
@@ -424,7 +492,7 @@ export const OwnerActivationProvider: React.FC<{
     arriveAtHistory();
   }, [persisted.navCoachPhase, routeName, routeMode, arriveAtHistory]);
 
-  const reportGuideTarget = useCallback((id: GuideTargetId, rect: Omit<GuideRect, 'id'>) => {
+  const reportGuideTarget = useCallback((id: CoachTargetId, rect: Omit<GuideRect, 'id'>) => {
     setGuideRect((prev) => {
       if (
         prev &&
@@ -626,7 +694,9 @@ export const OwnerActivationProvider: React.FC<{
       guideBeat,
       guideRect: guideRect && guideBeat && guideRect.id === guideBeat ? guideRect : null,
       reportGuideTarget,
+      setBoundaryCoachPhase,
       beginDetailsLesson,
+      continueToHome,
       continueToHistory,
       refresh,
       skipStep,
@@ -674,6 +744,7 @@ export const OwnerActivationProvider: React.FC<{
       markFieldsDirty,
       beginFirstObservationGuide,
       beginDetailsLesson,
+      continueToHome,
       continueToHistory,
       reportGuideTarget,
       completeFirstObservation,

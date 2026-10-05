@@ -1,5 +1,12 @@
+/* Chrome stays mounted under the portaled map; hide it without collapsing layout. */
 .field-form-page.is-boundary-stage {
-  display: none;
+  visibility: hidden;
+  pointer-events: none;
+  height: 0;
+  max-height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 .field-form-page {

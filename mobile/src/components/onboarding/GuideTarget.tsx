@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import { measureViewInWindow } from '../../onboarding/measureSpotlight';
-import type { GuideTargetId } from '../../onboarding/steps';
+import type { CoachTargetId } from '../../onboarding/steps';
 
 type Props = {
-  id: GuideTargetId;
+  id: CoachTargetId;
   children: React.ReactNode;
   /**
    * Must make this wrapper match the tappable control exactly — the reported

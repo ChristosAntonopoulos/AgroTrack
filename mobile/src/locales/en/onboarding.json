@@ -33,7 +33,8 @@
     "skip": "Later",
     "createGrove": {
       "title": "Start with a name",
-      "body": "Type a short name, then tap Continue. Next we ask where it is."
+      "body": "Type a short name, then tap Continue. Next we ask where it is.",
+      "cue": "Write a name, then continue."
     },
     "createColor": {
       "title": "Pick a colour",
@@ -41,11 +42,19 @@
     },
     "locatePlace": {
       "title": "Find the place",
-      "body": "Type a village or area and pick from the list. Then draw the boundary on the map."
+      "body": "Type a village or area and pick from the list. Then draw the boundary on the map.",
+      "cue": "Search a village, then pick it."
     },
     "drawBoundary": {
       "title": "Draw the boundary",
-      "body": "Tap 3–6 points around the grove. When the shape looks right, continue to Chronologio."
+      "body": "Tap 3–6 points around the grove. When the shape looks right, continue to Chronologio.",
+      "cue": "Tap the corners on the map.",
+      "drag": "Drag a pin to move it."
+    },
+    "saveBoundary": {
+      "title": "Save the boundary",
+      "body": "The shape looks right. Continue to save it.",
+      "cue": "Tap continue to save the boundary."
     },
     "firstObservation": {
       "title": "Record your first note",
@@ -117,11 +126,12 @@
     "openGrove": "Open the map"
   },
   "mapExplore": {
-    "caption": "This is your grove on the map. Try a picture below, then open History.",
-    "cta": "Open History"
+    "caption": "This is your grove on the map. Try a picture below, then continue toward History.",
+    "cta": "Continue"
   },
   "coach": {
     "kicker": "Your move",
+    "progress": "Step {{current}} of {{total}}",
     "fieldsCard": {
       "title": "Open Fields",
       "body": "Tap Fields. That is where a grove begins.",
@@ -141,6 +151,21 @@
       "title": "Open History",
       "body": "Tap History — then leave the first note.",
       "cue": "Tap History — then leave the first note."
+    },
+    "addButton": {
+      "title": "Add a note",
+      "body": "Tap + to open what you can record.",
+      "cue": "Tap + to add your first note."
+    },
+    "observationType": {
+      "title": "Choose Observation",
+      "body": "Tap Observation — that is the first History note.",
+      "cue": "Tap Observation."
+    },
+    "saveObservation": {
+      "title": "Save the note",
+      "body": "Keep or edit the text, then tap Save to finish.",
+      "cue": "Tap Save to finish the first note."
     }
   },
   "settings": {

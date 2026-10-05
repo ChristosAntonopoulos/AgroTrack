@@ -5,9 +5,10 @@ export const LANDING_HELLO_EMAIL = 'hello@oleachron.com';
 export const LANDING_SUPPORT_EMAIL = 'support@oleachron.com';
 export const LANDING_CONTACT_EMAIL = LANDING_HELLO_EMAIL;
 
-/** Story nav only — the page carries the feature detail. */
+/** Story nav only — the page carries the detail. */
 export const LANDING_NAV = [
   { id: 'how-it-works', key: 'howItWorks' },
-  { id: 'capabilities', key: 'features' },
-  { id: 'chronologio', key: 'chronologio' },
+  { id: 'keeps', key: 'keeps' },
+  { id: 'for-whom', key: 'forWhom' },
+  { id: 'pricing', key: 'pricing' },
 ] as const;

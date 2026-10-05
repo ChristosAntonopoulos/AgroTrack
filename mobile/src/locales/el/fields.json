@@ -377,6 +377,14 @@
     "todayTasksLoading": "Φόρτωση…",
     "open": "Άνοιγμα →",
     "continueSetup": "Συνέχεια ρύθμισης",
+    "ownedBadge": "Διαχειριστής",
+    "sharedBadge": "Συνεργάτης",
+    "role": {
+      "Admin": "Διαχειριστής",
+      "Partner": "Συνεργάτης",
+      "Family": "Οικογένεια"
+    },
+    "draftBadge": "Πρόχειρο",
     "irrigationYes": "Ναι",
     "metaAria": "Στοιχεία ελαιώνα"
   },

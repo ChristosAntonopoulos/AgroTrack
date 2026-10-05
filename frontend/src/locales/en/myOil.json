@@ -9,7 +9,13 @@
   },
   "byGrove": {
     "title": "Shelves",
-    "hint": "Oil by grove origin",
+    "hint": "Oil by grove. Tap a shelf to change it.",
+    "edit": "Edit",
+    "editTitle": "Edit this shelf",
+    "editHint": "Change the loose oil and the tins sitting here.",
+    "editSave": "Save",
+    "editReserved": "Some of this oil is already held. Leave at least that much.",
+    "batch": "Batch {{batch}}",
     "shared": "Shared · {{names}}",
     "unassigned": "No grove tagged",
     "noneFree": "Nothing free",
@@ -38,7 +44,9 @@
     "onHandLabel": "In storage",
     "freeOfTotal": "{{amount}} L free",
     "available": "Free",
-    "holds": "On hold"
+    "holds": "On hold",
+    "cycle": "How the oil sits: bulk, 16 L tins, 17 L tins, free, and on hold",
+    "tinCount": "{{count}} · {{litres}} L"
   },
   "warehouse": {
     "pack16": "16 L",
@@ -46,6 +54,7 @@
     "packBulk": "Bulk"
   },
   "actions": {
+    "add": "Add oil",
     "give": "Give",
     "sell": "Sell",
     "hold": "Hold",
@@ -171,7 +180,17 @@
       "admin": "Admin",
       "family": "Family"
     },
-    "what": "How much?",
+    "inside": "In the app",
+    "insideHint": "People on this grove",
+    "insideEmpty": "No one else has an account.",
+    "outside": "Outside the app",
+    "outsideHint": "Type a name or pick one from your phone",
+    "outsidePlaceholder": "Name",
+    "savedContact": "Saved to your contacts",
+    "yourContacts": "Your contacts",
+    "what": "Quantity",
+    "tin16": "16 L",
+    "tin17": "17 L",
     "tinName": "Tin",
     "unitLitres": "L",
     "bulk": "Bulk",
@@ -232,9 +251,18 @@
     "tin17": "17L tins",
     "bulk": "Bulk (L)"
   },
+  "add": {
+    "title": "Add oil",
+    "subtitle": "What is already in storage. No grove, mill, or harvest.",
+    "hint": "The whole amount first. Split it into tins on the next step.",
+    "total": "{{amount}} L in storage",
+    "note": "Note (optional)",
+    "notePlaceholder": "e.g. last year's oil",
+    "save": "Put in storage"
+  },
   "empty": "No oil in your storage yet.",
-  "emptyHint": "When oil is put into your storage from harvest, you will see it here.",
-  "emptyCta": "Log harvest oil",
+  "emptyHint": "Add what is already here. No harvest or grove needed.",
+  "emptyCta": "Add oil",
   "loading": "Loading…",
   "error": "Could not load your oil. Try again.",
   "seeMyOil": "See storage",

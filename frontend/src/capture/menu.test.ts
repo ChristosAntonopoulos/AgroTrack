@@ -31,13 +31,39 @@ describe('buildCaptureMenu', () => {
       'voice',
       'document',
     ]);
-    expect(groups[2].moves.map((move) => move.id)).toEqual(['give', 'sell', 'hold', 'fill', 'count']);
+    expect(groups[2].moves.map((move) => move.id)).toEqual([
+      'add',
+      'give',
+      'sell',
+      'hold',
+      'fill',
+      'count',
+    ]);
     expect(groups[3].moves.map((move) => move.id)).toEqual([
       'income',
       'oil_sale',
       'expense',
       'payment',
     ]);
+  });
+
+  it('keeps harvest records available when the campaign is closed', () => {
+    const groups = buildCaptureMenu({
+      permissions: owner,
+      harvestKinds: ['sacks', 'mill', 'oil', 'people', 'expense', 'income', 'note'],
+      isHarvestLive: false,
+      canUseWarehouse: true,
+    });
+    expect(groups[0].moves.map((move) => move.id)).toEqual([
+      'sacks',
+      'mill',
+      'oil',
+      'people',
+      'expense',
+      'income',
+      'note',
+    ]);
+    expect(groups[0].moves.every((move) => !('featured' in move && move.featured))).toBe(true);
   });
 
   it('fills Ημέρα when harvest is live and features the waiting step', () => {

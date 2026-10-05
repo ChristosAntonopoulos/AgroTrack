@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   StyleSheet,
@@ -49,7 +49,7 @@ const SEARCH_HEIGHT = 52;
 
 const FieldsListScreen = () => {
   const navigation = useNavigation<Nav>();
-  const { isFieldOwner } = useAuth();
+  const { isFieldOwner, user } = useAuth();
   const { colors, tapMin } = useTheme();
   const { t } = useTranslation(['fields', 'common']);
   const insets = useSafeAreaInsets();
@@ -61,6 +61,7 @@ const FieldsListScreen = () => {
   const [sortOpen, setSortOpen] = useState(false);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const listRef = useRef<FlatList<Field>>(null);
   const { fields, loading, fieldTodayTaskCounts, refresh } = useFields('fields');
   const { refreshing, onRefresh } = useRefresh(refresh);
   const tasksReady = !loading || fields.length > 0;
@@ -121,6 +122,16 @@ const FieldsListScreen = () => {
       setSelectedFieldId(null);
     }
   }, [filteredFields, selectedFieldId]);
+
+  useEffect(() => {
+    if (!selectedFieldId || viewMode !== 'map') return;
+    const index = filteredFields.findIndex((field) => field.id === selectedFieldId);
+    if (index < 0) return;
+    const id = requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.15 });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [selectedFieldId, viewMode, filteredFields]);
 
   const draftToResume = useMemo(
     () =>
@@ -343,6 +354,7 @@ const FieldsListScreen = () => {
   return (
     <ScreenLayout dockInset={false}>
       <FlatList
+        ref={listRef}
         style={styles.flex}
         data={filteredFields}
         ListHeaderComponent={listHeader}
@@ -351,6 +363,7 @@ const FieldsListScreen = () => {
             <FieldCard
               field={item}
               stats={getStats(item.id)}
+              currentUserId={user?.id}
               compact={viewMode === 'map'}
               selected={viewMode === 'map' ? selectedFieldId === item.id : undefined}
               onSelect={viewMode === 'map' ? () => setSelectedFieldId(item.id) : undefined}
@@ -359,6 +372,12 @@ const FieldsListScreen = () => {
           </View>
         )}
         keyExtractor={(item) => item.id}
+        onScrollToIndexFailed={({ index }) => {
+          listRef.current?.scrollToOffset({
+            offset: Math.max(0, index * 88),
+            animated: true,
+          });
+        }}
         contentContainerStyle={
           fields.length === 0
             ? styles.emptyContainer

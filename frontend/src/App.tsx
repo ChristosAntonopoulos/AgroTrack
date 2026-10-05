@@ -169,7 +169,13 @@ function App() {
         <AuthProvider>
           <ExperienceModeProvider>
             <OfflineProvider>
-              <RouterProvider router={router} />
+              {/*
+                Chronologio (and other heavy pages) keep scheduling updates that starve
+                React 19 transitions. RR7 defaults to startTransition for navigations, so
+                the URL/history can move while useLocation + Outlet stay on the old page.
+                Force sync router updates so sidebar clicks always swap the screen.
+              */}
+              <RouterProvider router={router} unstable_useTransitions={false} />
             </OfflineProvider>
           </ExperienceModeProvider>
         </AuthProvider>

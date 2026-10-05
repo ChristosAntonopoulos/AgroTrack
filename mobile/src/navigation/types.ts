@@ -61,7 +61,7 @@ export type RootStackParamList = {
   ThisHarvest: undefined;
   ThisHarvestReview: undefined;
   Money: { fieldId?: string; year?: number; tx?: string } | undefined;
-  MyOil: { field?: string; do?: 'give' | 'sell' | 'hold' | 'fill' | 'count' } | undefined;
+  MyOil: { field?: string; do?: 'add' | 'give' | 'sell' | 'hold' | 'fill' | 'count' } | undefined;
   Photos: { fieldId?: string; photoId?: string; importNearby?: boolean } | undefined;
   Analytics: undefined;
   Reports: undefined;

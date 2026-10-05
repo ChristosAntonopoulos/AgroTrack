@@ -65,6 +65,8 @@ const FieldPolygonThumbnail: React.FC<Props> = ({ field, size = 96, circular = f
     setImageFailed(false);
   }, [preview?.uri]);
 
+  const stroke = Math.max(2, size * 0.028);
+
   const edges = useMemo(() => {
     const points = preview?.ring || [];
     if (points.length < 2) return [];
@@ -76,19 +78,24 @@ const FieldPolygonThumbnail: React.FC<Props> = ({ field, size = 96, circular = f
       const dy = point.y - prev.y;
       const length = Math.sqrt(dx * dx + dy * dy);
       if (length < 0.8) continue;
+      // Views rotate around their center. Sit that center on the segment
+      // midpoint, or the stroke swings off both vertices and the ring breaks.
+      // Extra stroke length puts the round cap's full width on each vertex.
+      const drawn = length + stroke;
+      const midX = (prev.x + point.x) / 2;
+      const midY = (prev.y + point.y) / 2;
       out.push({
         key: `${i}-${prev.x.toFixed(1)}-${prev.y.toFixed(1)}`,
-        left: prev.x,
-        top: prev.y,
-        width: length,
+        left: midX - drawn / 2,
+        top: midY,
+        width: drawn,
         angle: Math.atan2(dy, dx),
       });
     }
     return out;
-  }, [preview]);
+  }, [preview, stroke]);
 
   const radius = circular ? size / 2 : 16;
-  const stroke = Math.max(2, size * 0.028);
 
   if (!preview) {
     return (

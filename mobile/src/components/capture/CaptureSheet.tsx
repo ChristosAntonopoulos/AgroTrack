@@ -32,6 +32,8 @@ import { capturePermissionsFromCapabilities } from '../../utils/fieldGates';
 import { pickCapturePhotoUris, uploadCapturePhotoUris } from '../../capture/photos';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
+import OnboardingStepLabel from '../onboarding/OnboardingStepLabel';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import { openHarvestCampaign } from '../../navigation/intents';
 import { useOfflineMode } from '../../context/OfflineContext';
@@ -98,9 +100,10 @@ const CaptureSheet: React.FC<Props> = ({
   onContextChange,
   onSaved,
 }) => {
-  const { t, i18n } = useTranslation(['capture', 'fields', 'common', 'chronologio']);
+  const { t, i18n } = useTranslation(['capture', 'fields', 'common', 'chronologio', 'onboarding']);
   const { colors, tapMin } = useTheme();
   const { user, isFieldOwner } = useAuth();
+  const activation = useOwnerActivationOptional();
   const familyModules = useFamilyMembershipModules();
   const accessLevel = useActiveFieldAccessLevel();
   const { isOnline } = useOfflineMode();
@@ -111,7 +114,12 @@ const CaptureSheet: React.FC<Props> = ({
   type ChooserStep = 'quick' | 'catalog';
   type DrawerStep = ChooserStep | CaptureType;
 
+  const coachingFirstObservation =
+    Boolean(activation?.awaitingFirstObservation) && !activation?.completion.firstObservation;
+
   const initialStep = (preferredType?: CaptureType): DrawerStep => {
+    // First History note: always land on the chooser so they tap Observation themselves.
+    if (coachingFirstObservation) return 'quick';
     if (preferredType === 'expense' || preferredType === 'income') return preferredType;
     if (preferredType && preferredType !== 'harvest' && preferredType !== 'money') {
       return preferredType;
@@ -120,6 +128,9 @@ const CaptureSheet: React.FC<Props> = ({
   };
 
   const [step, setStep] = useState<DrawerStep>(() => initialStep(context.preferredType));
+  const firstObservationStep = coachingFirstObservation && step === 'observation';
+  const coachObservationPick =
+    coachingFirstObservation && (step === 'quick' || step === 'catalog');
   const [returnTo, setReturnTo] = useState<ChooserStep>('quick');
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldId, setFieldId] = useState(context.fieldId || '');
@@ -183,7 +194,11 @@ const CaptureSheet: React.FC<Props> = ({
     setStep(initialStep(context.preferredType));
     setReturnTo('quick');
     setOccurredAt(context.occurredAt || new Date().toISOString());
-    setBody(context.description || '');
+    setBody(
+      coachingFirstObservation
+        ? context.description || t('onboarding:firstObservation.prefill')
+        : context.description || ''
+    );
     setPhotos([]);
     setWorkTemplate('');
     setOliveKg('');
@@ -241,6 +256,8 @@ const CaptureSheet: React.FC<Props> = ({
     context.category,
     user?.id,
     user?.role,
+    coachingFirstObservation,
+    t,
   ]);
 
   useEffect(() => {
@@ -671,13 +688,31 @@ const CaptureSheet: React.FC<Props> = ({
       scrollable={false}
       footer={
         !isChooser && !isMoneyStep && !isPhotoStep ? (
-          <Button
-            title={submitting ? t('capture:saving') : t('capture:save')}
-            onPress={() => void save()}
-            loading={submitting}
-            fullWidth
-            size="large"
-          />
+          <View style={firstObservationStep ? styles.saveCoach : undefined}>
+            {firstObservationStep ? (
+              <View
+                style={[
+                  styles.saveCoachCard,
+                  {
+                    backgroundColor: colors.eventObservationSoft,
+                    borderColor: colors.eventObservation,
+                  },
+                ]}
+              >
+                <OnboardingStepLabel id="saveObservation" />
+                <Text style={[styles.saveCoachTitle, { color: colors.textPrimary }]}>
+                  {t('onboarding:coach.saveObservation.cue')}
+                </Text>
+              </View>
+            ) : null}
+            <Button
+              title={submitting ? t('capture:saving') : t('capture:save')}
+              onPress={() => void save()}
+              loading={submitting}
+              fullWidth
+              size="large"
+            />
+          </View>
         ) : undefined
       }
     >
@@ -729,6 +764,7 @@ const CaptureSheet: React.FC<Props> = ({
               occurredAt={occurredAt}
               recentFieldId={lastCaptureFieldId}
               hints={quickHints}
+              coachObservation={coachObservationPick}
               onFieldChange={onFieldChange}
               onOccurredAtChange={onOccurredAtChange}
               onPick={pickMove}
@@ -737,7 +773,6 @@ const CaptureSheet: React.FC<Props> = ({
           ) : step === 'catalog' ? (
             <CaptureCatalog
               groups={menuGroups}
-              isHarvestLive={captureModeLive}
               openSacks={openSacks}
               openMillKg={openMillKg}
               fields={fields}
@@ -748,7 +783,6 @@ const CaptureSheet: React.FC<Props> = ({
               onFieldChange={onFieldChange}
               onOccurredAtChange={onOccurredAtChange}
               onPick={pickMove}
-              onClose={onClose}
             />
           ) : (
             <>
@@ -763,6 +797,22 @@ const CaptureSheet: React.FC<Props> = ({
 
               {step === 'observation' ? (
                 <>
+                  {firstObservationStep ? (
+                    <View
+                      style={[
+                        styles.saveCoachCard,
+                        {
+                          backgroundColor: colors.eventObservationSoft,
+                          borderColor: colors.eventObservation,
+                        },
+                      ]}
+                    >
+                      <OnboardingStepLabel id="saveObservation" />
+                      <Text style={[styles.saveCoachTitle, { color: colors.textPrimary }]}>
+                        {t('onboarding:coach.saveObservation.body')}
+                      </Text>
+                    </View>
+                  ) : null}
                   {context.periodLabel ? (
                     <Text style={[styles.hint, { color: colors.textSecondary, fontWeight: '600' }]}>
                       {context.periodLabel}
@@ -1037,6 +1087,20 @@ const CaptureSheet: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   body: { paddingBottom: 24 },
+  saveCoach: { gap: 10 },
+  saveCoachCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
+  },
+  saveCoachTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    lineHeight: 20,
+  },
   prompt: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2, marginBottom: 12, marginTop: 2 },
   documentRow: {
     marginTop: 12,

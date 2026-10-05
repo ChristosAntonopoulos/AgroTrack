@@ -26,6 +26,7 @@
   },
   "byGrove": {
     "title": "Scaffali",
+    "all": "Tutti",
     "hint": "Da dove viene l'olio",
     "organize": "Come è messo l'olio, campo per campo.",
     "sharedTitle": "In comune",
@@ -43,7 +44,13 @@
     "lotCount_one": "{{count}} partita",
     "lotCount_other": "{{count}} partite",
     "filtered": "Mostra: {{name}}",
-    "clearFilter": "Tutti"
+    "clearFilter": "Tutti",
+    "edit": "Modifica",
+    "editTitle": "Modifica questo scaffale",
+    "editHint": "Cambia lo sfuso e le latte che stanno qui.",
+    "editSave": "Salva",
+    "editReserved": "Parte di questo olio è già prenotata. Lasciala almeno così.",
+    "batch": "Partita {{batch}}"
   },
   "quickLinks": {
     "aria": "Collegati",
@@ -91,9 +98,16 @@
     "onHandLabel": "In cantina",
     "totalInCellar": "Totale in magazzino",
     "ringTotal": "Totale",
+    "totalCaption": "Giacenza totale",
+    "thisYear": "Quest'anno",
+    "soldShort": "Venduti",
+    "givenShort": "Dati",
+    "howPacked": "Come lo tieni",
+    "tin16Title": "Latte da 16 L",
+    "tin17Title": "Latte da 17 L",
     "sliceFree": "Libero",
     "sliceHeld": "Riservato",
-    "sliceAwaiting": "In attesa di ritiro",
+    "sliceAwaiting": "In attesa",
     "sliceSold": "Venduto",
     "soldThisYear": "Venduto quest'anno",
     "given": "Dato",
@@ -110,6 +124,7 @@
     "freeHeldLine": "{{free}} L liberi · {{held}} L riservati"
   },
   "actions": {
+    "add": "Aggiungi olio",
     "give": "Dai / Vendi",
     "verbGive": "Dai",
     "hold": "Riserva",
@@ -121,6 +136,8 @@
     "homeUse": "Per casa",
     "loss": "Perdita",
     "sell": "Vendi",
+    "quickTitle": "Cosa vuoi fare?",
+    "allRecords": "Tutte le registrazioni",
     "count": "Conta le scorte",
     "delivered": "L'hanno preso",
     "cancelHold": "Annulla"
@@ -410,9 +427,18 @@
   "repack": "I filled tins",
   "repackHint": "Lo sfuso del campo diventa latte.",
   "adjust": "Gift / home / correction",
+  "add": {
+    "title": "Aggiungi olio",
+    "subtitle": "Quello che è già in magazzino. Senza campo, frantoio o raccolta.",
+    "hint": "Prima tutto l'olio. Nel passo dopo lo dividi in latte.",
+    "total": "{{amount}} L in magazzino",
+    "note": "Nota (facoltativa)",
+    "notePlaceholder": "es. olio dell'anno scorso",
+    "save": "Metti in magazzino"
+  },
   "empty": "Non c'è ancora olio nella tua cantina.",
-  "emptyHint": "Quando l'olio entra nella tua cantina dalla raccolta, lo vedi qui.",
-  "emptyCta": "Registra olio",
+  "emptyHint": "Aggiungi quello che è già qui. Non serve la raccolta né un campo.",
+  "emptyCta": "Aggiungi olio",
   "loading": "Caricamento…",
   "error": "Impossibile caricare l'olio. Riprova.",
   "seeMyOil": "See my oil",

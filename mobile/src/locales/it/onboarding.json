@@ -33,7 +33,8 @@
     "skip": "Più tardi",
     "createGrove": {
       "title": "Inizia dal nome",
-      "body": "Scrivi un nome breve e tocca Continua. Poi chiediamo dov’è."
+      "body": "Scrivi un nome breve e tocca Continua. Poi chiediamo dov’è.",
+      "cue": "Scrivi il nome, poi continua."
     },
     "createColor": {
       "title": "Scegli un colore",
@@ -41,11 +42,19 @@
     },
     "locatePlace": {
       "title": "Cerca il luogo",
-      "body": "Scrivi paese o zona e scegli dalla lista. Poi disegni il confine sulla mappa."
+      "body": "Scrivi paese o zona e scegli dalla lista. Poi disegni il confine sulla mappa.",
+      "cue": "Cerca un paese e sceglilo."
     },
     "drawBoundary": {
       "title": "Disegna i confini",
-      "body": "Tocca 3–6 punti intorno all’oliveto. Quando la forma è giusta, continua su Chronologio."
+      "body": "Tocca 3–6 punti intorno all’oliveto. Quando la forma è giusta, continua su Chronologio.",
+      "cue": "Tocca gli angoli sulla mappa.",
+      "drag": "Trascina un pin per spostarlo."
+    },
+    "saveBoundary": {
+      "title": "Salva il confine",
+      "body": "La forma è giusta. Continua per salvarla.",
+      "cue": "Tocca continua per salvare il confine."
     },
     "firstObservation": {
       "title": "Registra la prima nota",
@@ -117,11 +126,12 @@
     "openGrove": "Apri la mappa"
   },
   "mapExplore": {
-    "caption": "Questo è il tuo oliveto sulla mappa. Prova un’immagine sotto, poi apri la Cronologia.",
-    "cta": "Apri la Cronologia"
+    "caption": "Questo è il tuo oliveto sulla mappa. Prova un’immagine sotto, poi continua verso la Cronologia.",
+    "cta": "Continua"
   },
   "coach": {
     "kicker": "Tocca a te",
+    "progress": "Passo {{current}} di {{total}}",
     "fieldsCard": {
       "title": "Apri i campi",
       "body": "Tocca Campi. È lì che inizia un oliveto.",
@@ -141,6 +151,21 @@
       "title": "Apri la Cronologia",
       "body": "Tocca Cronologia — poi lascia la prima nota.",
       "cue": "Tocca Cronologia — poi lascia la prima nota."
+    },
+    "addButton": {
+      "title": "Aggiungi una nota",
+      "body": "Tocca + per aprire cosa puoi registrare.",
+      "cue": "Tocca + per la prima nota."
+    },
+    "observationType": {
+      "title": "Scegli Osservazione",
+      "body": "Tocca Osservazione — è la prima nota della Cronologia.",
+      "cue": "Tocca Osservazione."
+    },
+    "saveObservation": {
+      "title": "Salva la nota",
+      "body": "Tieni o modifica il testo, poi tocca Salva.",
+      "cue": "Tocca Salva per completare."
     }
   },
   "settings": {

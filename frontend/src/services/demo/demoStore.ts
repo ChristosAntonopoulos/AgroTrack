@@ -82,7 +82,7 @@ type DemoState = {
 };
 
 const STORAGE_KEY = 'Oleachron_demo_state_v1';
-const SCHEMA_VERSION = 10;
+const SCHEMA_VERSION = 11;
 
 export type DemoRouteState = {
   active: boolean;

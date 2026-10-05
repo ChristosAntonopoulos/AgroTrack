@@ -7,16 +7,11 @@ import {
   type CaptureMenuGroup,
   type CaptureMove,
 } from '../../capture/menu';
-import { CATALOG_SECTION_ORDER } from '../../capture/quickAdd';
+import { catalogSectionOrder } from '../../capture/quickAdd';
 import { HARVEST_ACTION_ICONS } from '../../harvestCampaign/harvestActions';
 import { useTheme } from '../../context/ThemeContext';
 import { radii } from '../../theme';
 import CaptureContextChips from './CaptureContextChips';
-import Button from '../ui/Button';
-import { openHarvestCampaign } from '../../navigation/intents';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 
 const SECTION_KEY: Record<string, string> = {
@@ -28,7 +23,6 @@ const SECTION_KEY: Record<string, string> = {
 
 type Props = {
   groups: CaptureMenuGroup[];
-  isHarvestLive: boolean;
   openSacks: number;
   openMillKg: number;
   fields: Field[];
@@ -39,12 +33,10 @@ type Props = {
   onFieldChange: (id: string) => void;
   onOccurredAtChange: (iso: string) => void;
   onPick: (move: CaptureMove) => void;
-  onClose: () => void;
 };
 
 const CaptureCatalog: React.FC<Props> = ({
   groups,
-  isHarvestLive,
   openSacks,
   openMillKg,
   fields,
@@ -55,11 +47,9 @@ const CaptureCatalog: React.FC<Props> = ({
   onFieldChange,
   onOccurredAtChange,
   onPick,
-  onClose,
 }) => {
   const { t } = useTranslation(['capture', 'fields', 'myOil']);
   const { colors, tapMin } = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const byId = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
 
   const allMoves = useMemo(() => {
@@ -117,6 +107,7 @@ const CaptureCatalog: React.FC<Props> = ({
   const iconOf = (move: CaptureMove): keyof typeof Ionicons.glyphMap => {
     if (move.surface === 'harvest') return HARVEST_ACTION_ICONS[move.kind];
     if (move.surface === 'warehouse') {
+      if (move.action === 'add') return 'add-outline';
       if (move.action === 'give') return 'water-outline';
       if (move.action === 'sell') return 'cash-outline';
       if (move.action === 'hold') return 'bookmark-outline';
@@ -211,35 +202,8 @@ const CaptureCatalog: React.FC<Props> = ({
         </View>
       ) : null}
 
-      {CATALOG_SECTION_ORDER.map((sectionId) => {
+      {catalogSectionOrder().map((sectionId) => {
         const group = byId.get(sectionId) || { id: sectionId, moves: [] as CaptureMove[] };
-
-        if (sectionId === 'day') {
-          return (
-            <View key={sectionId} style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                {t(`capture:${SECTION_KEY[sectionId]}`)}
-              </Text>
-              {isHarvestLive && group.moves.length > 0 ? (
-                grid(group.moves)
-              ) : (
-                <View style={{ gap: 10 }}>
-                  <Text style={{ color: colors.textSecondary, lineHeight: 20 }}>
-                    {t('capture:dayEmpty')}
-                  </Text>
-                  <Button
-                    title={t('capture:openHarvest')}
-                    onPress={() => {
-                      onClose();
-                      openHarvestCampaign(navigation, { fieldId: fieldId || undefined });
-                    }}
-                    fullWidth
-                  />
-                </View>
-              )}
-            </View>
-          );
-        }
 
         if (group.moves.length === 0) return null;
 

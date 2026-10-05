@@ -104,6 +104,14 @@
     "continueSetup": "Continua configurazione →",
     "todayTasks": "{{count}} tasks today",
     "todayTasksLoading": "Caricamento…",
+    "ownedBadge": "Amministratore",
+    "sharedBadge": "Partner",
+    "role": {
+      "Admin": "Amministratore",
+      "Partner": "Partner",
+      "Family": "Famiglia"
+    },
+    "draftBadge": "Bozza",
     "view": "View"
   },
   "controlRoom": {

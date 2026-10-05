@@ -1,4 +1,4 @@
-﻿import { Field } from '../fieldService';
+﻿import { Field, GeoJsonPolygon } from '../fieldService';
 import { checksForTemplate } from '../../utils/taskFormTypes';
 import { User } from '../userService';
 import { Lifecycle } from '../lifecycleService';
@@ -12,6 +12,36 @@ export const DEMO_FIELD_IDS = [
   '675555555555555555555101',
   '675555555555555555555102',
 ] as const;
+
+/** Closed rings from DemoFarmDataSeeder — keeps mock activation unlocked. */
+const demoPolygon = (ring: number[][]): GeoJsonPolygon => ({
+  type: 'Polygon',
+  coordinates: [ring],
+});
+
+const EPANO_BOUNDARY = demoPolygon([
+  [21.593982799448597, 37.193400347668451],
+  [21.594283192784363, 37.193665291370195],
+  [21.593854059447583, 37.193840495565475],
+  [21.593703862779677, 37.193737937061478],
+  [21.593489296111287, 37.193797762872407],
+  [21.5936180361123, 37.193908867824071],
+  [21.593215723609074, 37.194071251690133],
+  [21.592979700273794, 37.193878954968561],
+  [21.593982799448597, 37.193400347668451],
+]);
+
+const KATO_BOUNDARY = demoPolygon([
+  [21.592995654045499, 37.193912890701618],
+  [21.593961204053326, 37.193412917158163],
+  [21.594202591555273, 37.193626581470753],
+  [21.593875377385952, 37.193853064981909],
+  [21.593719816551342, 37.193724866851497],
+  [21.593553527383349, 37.193797512485474],
+  [21.593617897383876, 37.193917163965502],
+  [21.593226313214025, 37.19410946058975],
+  [21.592995654045499, 37.193912890701618],
+]);
 
 const DEMO_IMAGES = [
   '/demo-images/olive-branch.jpg',
@@ -51,13 +81,18 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
       latitude: 37.193787613627592,
       longitude: 21.593640833820832,
       area: 3200,
+      appMeasuredAreaSqm: 3200,
       variety: 'Κορωνέικη',
       treeAge: 15,
+      treeCount: 92,
       groundType: 'Loam',
       irrigationStatus: true,
       currentLifecycleYear: 'high',
       currentLifecycleStage: 'harvest',
       status: 'Active',
+      locationText: 'Φιλιατρά, Μεσσηνία',
+      color: '#E8C547',
+      boundary: EPANO_BOUNDARY,
       createdAt: toIso(oneYearAgo),
       updatedAt: toIso(now),
     },
@@ -68,13 +103,18 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
       latitude: 37.193794307275581,
       longitude: 21.593644047696579,
       area: 2968,
+      appMeasuredAreaSqm: 2968,
       variety: 'Κορωνέικη',
       treeAge: 18,
+      treeCount: 58,
       groundType: 'Clay Loam',
       irrigationStatus: true,
       currentLifecycleYear: 'high',
       currentLifecycleStage: 'harvest',
       status: 'Active',
+      locationText: 'Φιλιατρά, Μεσσηνία',
+      color: '#6B8F71',
+      boundary: KATO_BOUNDARY,
       createdAt: toIso(oneYearAgo),
       updatedAt: toIso(now),
     },

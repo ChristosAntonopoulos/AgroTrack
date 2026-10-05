@@ -3,14 +3,14 @@ import type { HarvestCampaignParams, RootStackParamList } from './types';
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
-/** Open the living journal tab — never the stack Chronologio redirect. */
+/** Open History on the root stack so it gets the same back-and-title bar as Money. */
 export const openChronologioHome = (navigation: RootNav): void => {
-  navigation.navigate('Main', { screen: 'ChronologioTab' });
+  navigation.navigate('Chronologio');
 };
 
-/** Open Chronologio locked to one field (History shortcut from the field page). */
+/** Open History locked to one field. */
 export const openChronologioForField = (navigation: RootNav, fieldId: string): void => {
-  navigation.navigate('Main', { screen: 'ChronologioTab', params: { fieldId } });
+  navigation.navigate('Chronologio', { fieldId });
 };
 
 /** Open harvest inside the Fields tab so ScreenHeader + MainTabs stay. */

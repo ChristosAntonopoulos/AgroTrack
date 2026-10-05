@@ -20,6 +20,7 @@ import { fieldHasBoundary, isListedGrove } from '../utils/fieldDisplay';
 import { RootStackParamList } from '../navigation/types';
 import { useAuth } from '../context/AuthContext';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
+import GuideTarget from '../components/onboarding/GuideTarget';
 
 type Route = RouteProp<RootStackParamList, 'FieldForm'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldForm'>;
@@ -293,15 +294,12 @@ const FieldFormScreen = () => {
       : t('fields:createGrove.title');
 
   return (
-    <ScreenLayout
-      scroll
-      contentContainerStyle={[styles.content, guidedSetup ? styles.contentGuided : null]}
-    >
+    <ScreenLayout scroll contentContainerStyle={styles.content}>
       {guidedSetup ? null : (
         <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
       )}
 
-      {!isActiveEdit ? (
+      {!isActiveEdit && !guidedSetup ? (
         <View style={styles.rail} accessibilityLabel={t('fields:createGrove.setupLevelAria')}>
           <View style={[styles.railLine, { backgroundColor: colors.border }]} />
           {(['name', 'boundary', 'details'] as const).map((key, idx) => {
@@ -373,6 +371,7 @@ const FieldFormScreen = () => {
       ) : null}
 
       {!isActiveEdit && createScreen === 'name' ? (
+        <GuideTarget id="createGrove" style={styles.coachTarget}>
         <View
           style={[
             styles.welcome,
@@ -383,9 +382,11 @@ const FieldFormScreen = () => {
             },
           ]}
         >
-          <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>
-            {t('fields:createGrove.nameHeading')}
-          </Text>
+          {guidedSetup ? null : (
+            <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>
+              {t('fields:createGrove.nameHeading')}
+            </Text>
+          )}
           <FormField
             accessibilityLabel={t('fields:createGrove.nameLabel')}
             value={formData.name}
@@ -443,6 +444,7 @@ const FieldFormScreen = () => {
             style={styles.cta}
           />
         </View>
+        </GuideTarget>
       ) : null}
 
       {isActiveEdit && editFocus === 'settings' ? (
@@ -510,7 +512,7 @@ const FieldFormScreen = () => {
 
 const styles = StyleSheet.create({
   content: { padding: spacing.base, paddingBottom: spacing['3xl'] },
-  contentGuided: { paddingTop: 92 },
+  coachTarget: { alignSelf: 'stretch' },
   title: { ...typography.styles.h3, fontWeight: '700' },
   subtitle: { ...typography.styles.bodySmall, marginTop: 4, marginBottom: spacing.sm },
   rail: {
