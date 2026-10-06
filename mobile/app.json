@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.oleachron.app",
+      "bundleIdentifier": "com.theolivelot.app",
       "associatedDomains": [
         "applinks:app.oleachron.app"
       ],
@@ -28,7 +28,7 @@
       }
     },
     "android": {
-      "package": "com.oleachron.app",
+      "package": "com.theolivelot.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F4F0E6"

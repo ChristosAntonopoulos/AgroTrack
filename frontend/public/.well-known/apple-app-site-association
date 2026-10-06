@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "TEAMID.com.oleachron.app",
+        "appID": "TEAMID.com.theolivelot.app",
         "paths": [
           "/invite/*",
           "/family-invite/*",
