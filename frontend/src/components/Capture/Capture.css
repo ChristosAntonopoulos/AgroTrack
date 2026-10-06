@@ -510,6 +510,15 @@
   min-height: 0;
 }
 
+.capture-quick-pending {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #6b7368);
+  font-size: 0.95rem;
+}
+
 .capture-quick-context {
   display: flex;
   align-items: center;

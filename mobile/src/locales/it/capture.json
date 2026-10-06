@@ -5,6 +5,7 @@
   "newRecord": "Nuova registrazione",
   "allRecords": "Tutte le registrazioni",
   "moreRecords": "Altre registrazioni",
+  "loadingContext": "Caricamento…",
   "whatToRecord": "Cosa vuoi registrare?",
   "alsoRecord": "Anche",
   "recentSection": "Recenti",
@@ -20,7 +21,8 @@
     "harvest": "Raccolta",
     "grove": "Oliveto",
     "money": "Denaro",
-    "warehouse": "Magazzino"
+    "warehouse": "Magazzino",
+    "stockCorrection": "Correzione scorte"
   },
   "tabs": {
     "day": "Giorno",

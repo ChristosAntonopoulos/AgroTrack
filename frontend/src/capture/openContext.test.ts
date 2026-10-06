@@ -54,4 +54,13 @@ describe('buildCaptureOpenContext', () => {
     expect(ctx.occurredAt).toBeTruthy();
     expect(dayKeyFromOccurredAt(ctx.occurredAt)).toBe('2026-10-02');
   });
+
+  it('uses the current route before a stale page snapshot', () => {
+    const ctx = buildCaptureOpenContext({
+      pathname: '/fields/grove-1',
+      page: { sourcePage: 'warehouse', fieldId: 'cellar-field' },
+    });
+    expect(ctx.sourcePage).toBe('grove');
+    expect(ctx.fieldId).toBe('grove-1');
+  });
 });

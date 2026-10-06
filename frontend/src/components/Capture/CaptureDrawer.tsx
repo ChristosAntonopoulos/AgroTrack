@@ -112,6 +112,7 @@ const CaptureDrawer: React.FC<Props> = ({
   wasOpenRef.current = open;
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldId, setFieldId] = useState(context.fieldId || '');
+  const [chooserReady, setChooserReady] = useState(false);
   const [occurredAt, setOccurredAt] = useState(toDateTimeLocal(context.occurredAt));
   const [dirty, setDirty] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -172,15 +173,21 @@ const CaptureDrawer: React.FC<Props> = ({
   // Full form reset only when the drawer opens (or preferred type jumps to a form).
   const openSessionKey = `${open ? '1' : '0'}|${context.preferredType || ''}|${context.description || ''}|${context.category || ''}`;
   const openSessionRef = useRef('');
+  const sessionGenRef = useRef(0);
   useEffect(() => {
     if (!open) {
       openSessionRef.current = '';
+      sessionGenRef.current += 1;
+      setChooserReady(false);
       return;
     }
     const sessionChanged = openSessionRef.current !== openSessionKey;
     openSessionRef.current = openSessionKey;
     if (!sessionChanged) return;
 
+    const sessionGen = ++sessionGenRef.current;
+    setChooserReady(false);
+    setFieldId(context.fieldId || '');
     setStep(initialStepFromContext(context.preferredType));
     setReturnTo('quick');
     setOccurredAt(toDateTimeLocal(context.occurredAt));
@@ -203,6 +210,7 @@ const CaptureDrawer: React.FC<Props> = ({
     void getFieldService()
       .getFields()
       .then((list) => {
+        if (sessionGenRef.current !== sessionGen) return;
         setFields(list);
         const resolved = resolveCaptureFieldId({
           contextFieldId: context.fieldId,
@@ -215,6 +223,7 @@ const CaptureDrawer: React.FC<Props> = ({
         setFieldId(resolved);
       })
       .catch(() => {
+        if (sessionGenRef.current !== sessionGen) return;
         setFields([]);
         setFieldId(
           resolveCaptureFieldId({
@@ -226,6 +235,9 @@ const CaptureDrawer: React.FC<Props> = ({
             availableIds: [],
           })
         );
+      })
+      .finally(() => {
+        if (sessionGenRef.current === sessionGen) setChooserReady(true);
       });
   }, [
     open,
@@ -641,12 +653,10 @@ const CaptureDrawer: React.FC<Props> = ({
     () =>
       buildQuickAddMoves({
         pathname: location.pathname,
-        isHarvestLive: captureModeLive,
         sourcePage: context.sourcePage,
-        groups: menuGroups,
-        recentIds: readRecentCaptureMoves(),
+        permissions: { ...permissions, canUseWarehouse: permissions.canRecordMoney },
       }),
-    [location.pathname, captureModeLive, menuGroups, context.sourcePage]
+    [location.pathname, context.sourcePage, permissions]
   );
 
   const pickMove = (move: CaptureMove) => {
@@ -757,7 +767,7 @@ const CaptureDrawer: React.FC<Props> = ({
       }
       bodyClassName={isMoneyStep ? 'oa-drawer-body--flush' : undefined}
       footer={
-        !isChoosing && !isMoneyStep && !isPhotoStep ? (
+        chooserReady && !isChoosing && !isMoneyStep && !isPhotoStep ? (
           <button
             type="button"
             className="capture-save-btn"
@@ -770,6 +780,12 @@ const CaptureDrawer: React.FC<Props> = ({
       }
     >
       <div className="capture-with-tabs">
+        {!chooserReady ? (
+          <div className="capture-quick-pending" aria-busy="true">
+            {t('capture:loadingContext')}
+          </div>
+        ) : (
+          <>
         {error && isChoosing ? <p className="capture-error">{error}</p> : null}
         {step === 'quick' ? (
           <CaptureQuickAdd
@@ -1111,6 +1127,8 @@ const CaptureDrawer: React.FC<Props> = ({
                   {error ? <p className="capture-error">{error}</p> : null}
                 </div>
             ) : null}
+          </>
+        )}
       </div>
     </RightDrawer>
   );

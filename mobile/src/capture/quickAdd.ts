@@ -1,5 +1,5 @@
-import type { CaptureMenuGroup, CaptureMove } from './menu';
-import type { CaptureSourcePage } from './types';
+import { canonicalQuickMove, type CaptureMove } from './menu';
+import type { CapturePermissions, CaptureSourcePage } from './types';
 import { isOliveHarvestSeason } from '../utils/harvestSeason';
 import { sourcePageFromRoute } from './openContext';
 
@@ -12,37 +12,34 @@ export type QuickAddContext =
   | 'photos'
   | 'home';
 
-/** Which page/context drives the four Quick Add slots. */
+const mapSourcePage = (page?: CaptureSourcePage | ''): QuickAddContext | undefined => {
+  if (!page) return undefined;
+  if (page === 'harvest') return 'harvest';
+  if (page === 'warehouse') return 'warehouse';
+  if (page === 'money') return 'money';
+  if (page === 'tasks') return 'tasks';
+  if (page === 'photos') return 'photos';
+  if (page === 'grove') return 'grove';
+  if (page === 'chronologio' || page === 'home') return 'home';
+  return undefined;
+};
+
+/**
+ * Route first, then opener sourcePage. Harvest-live never retargets another page.
+ */
 export const resolveQuickAddContext = (input: {
   routeName?: string;
   isHarvestLive?: boolean;
   sourcePage?: CaptureSourcePage;
 }): QuickAddContext => {
-  if (input.sourcePage === 'harvest') return 'harvest';
-  if (input.sourcePage === 'warehouse') return 'warehouse';
-  if (input.sourcePage === 'money') return 'money';
-  if (input.sourcePage === 'tasks') return 'tasks';
-  if (input.sourcePage === 'photos') return 'photos';
-  if (input.sourcePage === 'grove') return 'grove';
-  if (input.sourcePage === 'chronologio' || input.sourcePage === 'home') {
-    return input.isHarvestLive ? 'harvest' : 'home';
-  }
-
-  const fromRoute = sourcePageFromRoute(input.routeName || '');
-  if (fromRoute === 'harvest') return 'harvest';
-  if (fromRoute === 'warehouse') return 'warehouse';
-  if (fromRoute === 'money') return 'money';
-  if (fromRoute === 'tasks') return 'tasks';
-  if (fromRoute === 'photos') return 'photos';
-  if (fromRoute === 'grove') return 'grove';
-  if (fromRoute === 'chronologio') {
-    return input.isHarvestLive ? 'harvest' : 'home';
-  }
-  if (input.isHarvestLive) return 'harvest';
-  return 'home';
+  return (
+    mapSourcePage(sourcePageFromRoute(input.routeName || '')) ||
+    mapSourcePage(input.sourcePage) ||
+    'home'
+  );
 };
 
-/** Preferred move ids for each context (first available wins). */
+/** Exact allowed Quick Add ids per surface. Never merge recents or leftovers. */
 export const QUICK_PRESETS: Record<QuickAddContext, readonly string[]> = {
   harvest: ['sacks', 'mill', 'oil', 'expense'],
   warehouse: ['add', 'sell', 'give', 'fill'],
@@ -53,52 +50,58 @@ export const QUICK_PRESETS: Record<QuickAddContext, readonly string[]> = {
   home: ['work', 'observation', 'expense', 'harvest'],
 };
 
-const flattenMoves = (groups: readonly CaptureMenuGroup[]): CaptureMove[] =>
-  groups.flatMap((group) => group.moves);
+const isPresetAllowed = (
+  id: string,
+  permissions?: CapturePermissions & { canUseWarehouse?: boolean }
+): boolean => {
+  if (!permissions) return true;
+  switch (id) {
+    case 'work':
+      return permissions.canRecordWork;
+    case 'observation':
+      return permissions.canRecordObservation;
+    case 'expense':
+      return permissions.canRecordExpense;
+    case 'income':
+      return permissions.canRecordIncome;
+    case 'harvest':
+    case 'sacks':
+    case 'mill':
+    case 'oil':
+      return permissions.canRecordHarvest;
+    case 'add':
+    case 'sell':
+    case 'give':
+    case 'fill':
+      return permissions.canUseWarehouse ?? permissions.canRecordMoney;
+    default:
+      return false;
+  }
+};
 
 /**
- * Four obvious actions for the Quick Add sheet.
- * Context beats frequency: first 2 slots from presets, then recent, then fill.
+ * Returns only the canonical moves for the current surface.
+ * `groups` and `recentIds` are ignored so stale catalog/recents cannot leak in.
  */
 export const buildQuickAddMoves = (input: {
   routeName?: string;
   isHarvestLive?: boolean;
   sourcePage?: CaptureSourcePage;
-  groups: readonly CaptureMenuGroup[];
+  groups?: readonly unknown[];
   recentIds?: readonly string[];
+  permissions?: CapturePermissions & { canUseWarehouse?: boolean };
 }): CaptureMove[] => {
   const ctx = resolveQuickAddContext({
     routeName: input.routeName,
-    isHarvestLive: input.isHarvestLive,
     sourcePage: input.sourcePage,
   });
-  const available = flattenMoves(input.groups);
-  const byId = new Map<string, CaptureMove>();
-  for (const move of available) {
-    if (!byId.has(move.id)) byId.set(move.id, move);
+  const moves: CaptureMove[] = [];
+  for (const id of QUICK_PRESETS[ctx]) {
+    if (!isPresetAllowed(id, input.permissions)) continue;
+    const move = canonicalQuickMove(id);
+    if (move) moves.push(move);
   }
-
-  let presets = [...QUICK_PRESETS[ctx]];
-  if (ctx === 'home' && input.isHarvestLive && byId.has('sacks')) {
-    presets = ['sacks', 'work', 'expense', 'observation'];
-  }
-
-  const picked: CaptureMove[] = [];
-  const seen = new Set<string>();
-  const pushId = (id: string) => {
-    if (seen.has(id) || picked.length >= 4) return;
-    const move = byId.get(id);
-    if (!move) return;
-    seen.add(id);
-    picked.push(move);
-  };
-
-  for (const id of presets.slice(0, 2)) pushId(id);
-  for (const id of input.recentIds || []) pushId(id);
-  for (const id of presets) pushId(id);
-  for (const move of available) pushId(move.id);
-
-  return picked;
+  return moves;
 };
 
 /** Catalog section order for the full list (no horizontal tabs). */

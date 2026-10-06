@@ -233,13 +233,33 @@ const CaptureCatalog: React.FC<Props> = ({
         : catalogSectionOrder()
       ).map((sectionId) => {
         const group = byId.get(sectionId) || { id: sectionId, moves: [] as CaptureMove[] };
+        const primary =
+          sectionId === 'warehouse'
+            ? group.moves.filter((move) => !(move.surface === 'warehouse' && move.action === 'count'))
+            : group.moves;
+        const correction =
+          sectionId === 'warehouse'
+            ? group.moves.filter((move) => move.surface === 'warehouse' && move.action === 'count')
+            : [];
 
-        if (group.moves.length === 0) return null;
+        if (primary.length === 0 && correction.length === 0) return null;
 
         return (
           <section key={sectionId} className="capture-catalog-section">
-            <h3 className="capture-catalog-section-title">{t(`capture:${SECTION_KEY[sectionId]}`)}</h3>
-            <div className="capture-catalog-grid">{group.moves.map((m) => tile(m))}</div>
+            {primary.length > 0 ? (
+              <>
+                <h3 className="capture-catalog-section-title">{t(`capture:${SECTION_KEY[sectionId]}`)}</h3>
+                <div className="capture-catalog-grid">{primary.map((m) => tile(m))}</div>
+              </>
+            ) : null}
+            {correction.length > 0 ? (
+              <>
+                <h3 className="capture-catalog-section-title">
+                  {t('capture:catalogSections.stockCorrection')}
+                </h3>
+                <div className="capture-catalog-grid">{correction.map((m) => tile(m))}</div>
+              </>
+            ) : null}
           </section>
         );
       })}

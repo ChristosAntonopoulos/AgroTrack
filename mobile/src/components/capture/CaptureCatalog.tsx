@@ -204,15 +204,35 @@ const CaptureCatalog: React.FC<Props> = ({
 
       {catalogSectionOrder().map((sectionId) => {
         const group = byId.get(sectionId) || { id: sectionId, moves: [] as CaptureMove[] };
+        const primary =
+          sectionId === 'warehouse'
+            ? group.moves.filter((move) => !(move.surface === 'warehouse' && move.action === 'count'))
+            : group.moves;
+        const correction =
+          sectionId === 'warehouse'
+            ? group.moves.filter((move) => move.surface === 'warehouse' && move.action === 'count')
+            : [];
 
-        if (group.moves.length === 0) return null;
+        if (primary.length === 0 && correction.length === 0) return null;
 
         return (
           <View key={sectionId} style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              {t(`capture:${SECTION_KEY[sectionId]}`)}
-            </Text>
-            {grid(group.moves)}
+            {primary.length > 0 ? (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  {t(`capture:${SECTION_KEY[sectionId]}`)}
+                </Text>
+                {grid(primary)}
+              </>
+            ) : null}
+            {correction.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  {t('capture:catalogSections.stockCorrection')}
+                </Text>
+                {grid(correction)}
+              </View>
+            ) : null}
           </View>
         );
       })}

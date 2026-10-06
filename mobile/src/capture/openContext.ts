@@ -83,7 +83,7 @@ export const buildCaptureOpenContext = (input: {
   }
 
   const sourcePage =
-    explicit.sourcePage || page.sourcePage || sourcePageFromRoute(input.routeName);
+    explicit.sourcePage || sourcePageFromRoute(input.routeName) || page.sourcePage;
 
   const taskId =
     explicit.taskId ||

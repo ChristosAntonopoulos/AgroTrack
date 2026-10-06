@@ -5,6 +5,7 @@
   "newRecord": "New record",
   "allRecords": "All records",
   "moreRecords": "More records",
+  "loadingContext": "Loading…",
   "whatToRecord": "What do you want to record?",
   "alsoRecord": "Also",
   "recentSection": "Recent",
@@ -20,7 +21,8 @@
     "harvest": "Harvest",
     "grove": "Grove",
     "money": "Money",
-    "warehouse": "Cellar"
+    "warehouse": "Cellar",
+    "stockCorrection": "Stock correction"
   },
   "tabs": {
     "day": "Day",

@@ -5,6 +5,7 @@
   "newRecord": "Νέα καταγραφή",
   "allRecords": "Όλες οι καταγραφές",
   "moreRecords": "Περισσότερες καταγραφές",
+  "loadingContext": "Φόρτωση…",
   "whatToRecord": "Τι θέλεις να καταγράψεις;",
   "alsoRecord": "Επίσης",
   "recentSection": "Πρόσφατα",
@@ -21,7 +22,8 @@
     "harvest": "Συγκομιδή",
     "grove": "Ελαιώνας",
     "money": "Οικονομικά",
-    "warehouse": "Αποθήκη"
+    "warehouse": "Αποθήκη",
+    "stockCorrection": "Διόρθωση αποθέματος"
   },
   "tabs": {
     "day": "Ημέρα",

@@ -66,7 +66,7 @@ export const buildCaptureOpenContext = (input: {
   }
 
   const sourcePage =
-    explicit.sourcePage || page.sourcePage || sourcePageFromPath(input.pathname);
+    explicit.sourcePage || sourcePageFromPath(input.pathname) || page.sourcePage;
 
   return {
     ...page,

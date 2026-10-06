@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -135,6 +136,7 @@ const CaptureSheet: React.FC<Props> = ({
   const [returnTo, setReturnTo] = useState<ChooserStep>('quick');
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldId, setFieldId] = useState(context.fieldId || '');
+  const [chooserReady, setChooserReady] = useState(false);
   const [occurredAt, setOccurredAt] = useState(context.occurredAt || new Date().toISOString());
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [lastCaptureFieldId, setLastCaptureFieldId] = useState<string | undefined>();
@@ -142,6 +144,7 @@ const CaptureSheet: React.FC<Props> = ({
   const [moreOpen, setMoreOpen] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const openSessionRef = useRef('');
+  const sessionGenRef = useRef(0);
 
   const [body, setBody] = useState('');
   const [workTemplate, setWorkTemplate] = useState('');
@@ -186,12 +189,17 @@ const CaptureSheet: React.FC<Props> = ({
   useEffect(() => {
     if (!open) {
       openSessionRef.current = '';
+      sessionGenRef.current += 1;
+      setChooserReady(false);
       return;
     }
     const sessionChanged = openSessionRef.current !== openSessionKey;
     openSessionRef.current = openSessionKey;
     if (!sessionChanged) return;
 
+    const sessionGen = ++sessionGenRef.current;
+    setChooserReady(false);
+    setFieldId(context.fieldId || '');
     setStep(initialStep(context.preferredType));
     setReturnTo('quick');
     setOccurredAt(context.occurredAt || new Date().toISOString());
@@ -212,39 +220,46 @@ const CaptureSheet: React.FC<Props> = ({
     setDocumentFile(null);
 
     void (async () => {
-      const [recent, lastCapture, lastMoney] = await Promise.all([
-        readRecentCaptureMoves(),
-        readLastCaptureFieldId(),
-        readLastMoneyFieldId(),
-      ]);
-      setRecentIds(recent);
-      setLastCaptureFieldId(lastCapture);
-      if (!user?.id) {
-        setFields([]);
-        setFieldId(
-          resolveCaptureFieldId({
-            contextFieldId: context.fieldId,
-            lastCaptureFieldId: lastCapture,
-            lastMoneyFieldId: lastMoney,
-            availableIds: [],
-          })
-        );
-        return;
-      }
       try {
-        const list = await getFieldService().getFields(user.id, user.role || '');
-        setFields(list);
-        setFieldId(
-          resolveCaptureFieldId({
-            contextFieldId: context.fieldId,
-            lastCaptureFieldId: lastCapture,
-            lastMoneyFieldId: lastMoney,
-            availableIds: list.map((f) => f.id),
-          })
-        );
-      } catch {
-        setFields([]);
-        setFieldId(context.fieldId || '');
+        const [recent, lastCapture, lastMoney] = await Promise.all([
+          readRecentCaptureMoves(),
+          readLastCaptureFieldId(),
+          readLastMoneyFieldId(),
+        ]);
+        if (sessionGenRef.current !== sessionGen) return;
+        setRecentIds(recent);
+        setLastCaptureFieldId(lastCapture);
+        if (!user?.id) {
+          setFields([]);
+          setFieldId(
+            resolveCaptureFieldId({
+              contextFieldId: context.fieldId,
+              lastCaptureFieldId: lastCapture,
+              lastMoneyFieldId: lastMoney,
+              availableIds: [],
+            })
+          );
+          return;
+        }
+        try {
+          const list = await getFieldService().getFields(user.id, user.role || '');
+          if (sessionGenRef.current !== sessionGen) return;
+          setFields(list);
+          setFieldId(
+            resolveCaptureFieldId({
+              contextFieldId: context.fieldId,
+              lastCaptureFieldId: lastCapture,
+              lastMoneyFieldId: lastMoney,
+              availableIds: list.map((f) => f.id),
+            })
+          );
+        } catch {
+          if (sessionGenRef.current !== sessionGen) return;
+          setFields([]);
+          setFieldId(context.fieldId || '');
+        }
+      } finally {
+        if (sessionGenRef.current === sessionGen) setChooserReady(true);
       }
     })();
   }, [
@@ -546,12 +561,10 @@ const CaptureSheet: React.FC<Props> = ({
     () =>
       buildQuickAddMoves({
         routeName: focused.name,
-        isHarvestLive: captureModeLive,
         sourcePage: context.sourcePage,
-        groups: menuGroups,
-        recentIds,
+        permissions: { ...permissions, canUseWarehouse: permissions.canRecordMoney },
       }),
-    [focused.name, captureModeLive, context.sourcePage, menuGroups, recentIds]
+    [focused.name, context.sourcePage, permissions]
   );
 
   const quickHints = useMemo(() => {
@@ -675,7 +688,7 @@ const CaptureSheet: React.FC<Props> = ({
       maxHeightPercent={isChooser ? 90 : 92}
       scrollable={false}
       footer={
-        !isChooser && !isMoneyStep && !isPhotoStep ? (
+        chooserReady && !isChooser && !isMoneyStep && !isPhotoStep ? (
           <View style={firstObservationStep ? styles.saveCoach : undefined}>
             {firstObservationStep ? (
               <View
@@ -704,7 +717,11 @@ const CaptureSheet: React.FC<Props> = ({
         ) : undefined
       }
     >
-      {isMoneyStep ? (
+      { !chooserReady ? (
+        <View style={styles.chooserPending} accessibilityLabel={t('capture:loadingContext')}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : isMoneyStep ? (
         <MoneyCaptureForm
           context={{
             ...context,
@@ -1167,6 +1184,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   photoActions: { gap: 8 },
+  chooserPending: {
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 
 export default CaptureSheet;

@@ -50,13 +50,13 @@ describe('resolveQuickAddContext', () => {
     expect(resolveQuickAddContext({ pathname: '/tasks' })).toBe('tasks');
     expect(resolveQuickAddContext({ pathname: '/photos' })).toBe('photos');
     expect(resolveQuickAddContext({ pathname: '/chronologio' })).toBe('home');
-    expect(resolveQuickAddContext({ pathname: '/chronologio', isHarvestLive: true })).toBe('harvest');
+    expect(resolveQuickAddContext({ pathname: '/chronologio', isHarvestLive: true })).toBe('home');
   });
 
-  it('prefers sourcePage over pathname', () => {
+  it('uses the current route before a stale sourcePage', () => {
     expect(
-      resolveQuickAddContext({ pathname: '/chronologio', sourcePage: 'tasks' })
-    ).toBe('tasks');
+      resolveQuickAddContext({ pathname: '/fields/abc', sourcePage: 'warehouse' })
+    ).toBe('grove');
   });
 });
 
@@ -70,14 +70,16 @@ describe('buildQuickAddMoves', () => {
     expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'harvest']);
   });
 
-  it('prioritises harvest actions inside harvest', () => {
+  it('prioritises harvest actions inside harvest even before campaign hydrates', () => {
     const moves = buildQuickAddMoves({
       pathname: '/harvest',
-      isHarvestLive: true,
-      groups: groups(true),
+      isHarvestLive: false,
+      groups: groups(false),
+      recentIds: ['sell', 'income'],
     });
     expect(moves.map((m) => m.id)).toEqual(['sacks', 'mill', 'oil', 'expense']);
     expect(moves[0].surface).toBe('harvest');
+    expect(moves[3]).toMatchObject({ surface: 'capture', type: 'expense' });
   });
 
   it('surfaces cellar actions on my-oil', () => {
@@ -88,21 +90,23 @@ describe('buildQuickAddMoves', () => {
     expect(moves.map((m) => m.id)).toEqual(['add', 'sell', 'give', 'fill']);
   });
 
-  it('keeps two context-fixed slots before recent', () => {
+  it('never merges recents into grove tiles', () => {
     const moves = buildQuickAddMoves({
       pathname: '/fields',
-      groups: groups(false),
-      recentIds: ['expense', 'photo'],
+      isHarvestLive: true,
+      groups: groups(true),
+      recentIds: ['sell', 'income', 'sacks'],
     });
     expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'harvest']);
   });
 
-  it('uses money presets including sell, not payment', () => {
+  it('uses money presets including sell, not sacks', () => {
     const moves = buildQuickAddMoves({
       pathname: '/money',
       groups: groups(false),
+      recentIds: ['sacks', 'add'],
     });
-    expect(moves.map((m) => m.id).slice(0, 3)).toEqual(['income', 'expense', 'sell']);
+    expect(moves.map((m) => m.id)).toEqual(['income', 'expense', 'sell']);
     expect(moves.find((move) => move.id === 'expense')).toMatchObject({
       surface: 'capture',
       type: 'expense',

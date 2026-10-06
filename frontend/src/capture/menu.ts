@@ -58,6 +58,30 @@ const captureMove = (type: CaptureType): CaptureMove => ({
   type,
 });
 
+/** Exact Quick Add move for a preset id. Does not look up the catalog or recents. */
+export const canonicalQuickMove = (id: string): CaptureMove | null => {
+  switch (id) {
+    case 'work':
+    case 'observation':
+    case 'expense':
+    case 'income':
+    case 'harvest':
+      return { id, surface: 'capture', type: id };
+    case 'sacks':
+    case 'mill':
+    case 'oil':
+      return { id, surface: 'harvest', kind: id };
+    case 'add':
+    case 'sell':
+    case 'give':
+    case 'fill':
+    case 'count':
+      return { id, surface: 'warehouse', action: id };
+    default:
+      return null;
+  }
+};
+
 const uniqueMoveIds = (groups: CaptureMenuGroup[]): CaptureMenuGroup[] => {
   const seen = new Set<string>();
   return groups.map((group) => ({
