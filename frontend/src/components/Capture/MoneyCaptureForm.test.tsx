@@ -161,26 +161,25 @@ test('category is chosen before the amount and is not repeated later', async () 
   expect(screen.queryByRole('option', { name: 'Εργασία' })).not.toBeInTheDocument();
 });
 
-test('oil sale opened from money asks for litres and price, not harvest oil', async () => {
+test('oil sale opened from money redirects to cellar sell', async () => {
+  const onSellOil = jest.fn();
   renderForm({
     context: {
       preferredType: 'income',
       category: 'olive_oil_sale',
       sourcePage: 'money',
     },
+    onSellOil,
   });
-  expect(await screen.findByLabelText(/Πόσα λίτρα/i)).toBeInTheDocument();
-  expect(screen.queryByText(/Από ποιο λάδι/i)).not.toBeInTheDocument();
-  expect(screen.queryByText(/λάδι στη συγκομιδή/i)).not.toBeInTheDocument();
+  await waitFor(() => expect(onSellOil).toHaveBeenCalled());
 });
 
 test('preselects a related harvest when provided', async () => {
   renderForm({
     context: { preferredType: 'income', fieldId: 'field-1', harvestId: 'harvest-1' },
   });
-  await pickCategory(/Πώληση ελαιολάδου/);
-  fireEvent.change(await screen.findByLabelText(/Πόσα λίτρα/i), { target: { value: '1' } });
-  fireEvent.change(screen.getByLabelText(/Τιμή ανά λίτρο/i), { target: { value: '1' } });
+  await pickCategory(/Επιδότηση/);
+  fireEvent.change(await screen.findByLabelText('Ποσό'), { target: { value: '1' } });
   continueOn();
   fireEvent.click(screen.getByRole('radio', { name: 'Kato' }));
   const harvestSelect = (await screen.findByLabelText(/Σχετική συγκομιδή/i)) as HTMLSelectElement;
@@ -247,9 +246,8 @@ test('saves a draft from the footer without posting', async () => {
     context: { preferredType: 'income', fieldId: 'field-1' },
     onSaved,
   });
-  await pickCategory(/Πώληση ελαιολάδου/);
-  fireEvent.change(await screen.findByLabelText(/Πόσα λίτρα/i), { target: { value: '10' } });
-  fireEvent.change(screen.getByLabelText(/Τιμή ανά λίτρο/i), { target: { value: '12' } });
+  await pickCategory(/Επιδότηση/);
+  fireEvent.change(await screen.findByLabelText('Ποσό'), { target: { value: '120' } });
   continueOn();
   fireEvent.click(screen.getByRole('radio', { name: 'Kato' }));
   fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση ως πρόχειρο/i }));

@@ -161,5 +161,9 @@
   "unsoldThisYear": "Αυτή η χρονιά",
   "unsoldYear": "Χρονιά {{span}}",
   "unsoldTin": "{{count}} × {{size}} L",
-  "unsoldBulk": "{{amount}} χύμα"
+  "unsoldBulk": "{{amount}} χύμα",
+  "markPaid": "Εξοφλήθηκε",
+  "markOwed": "Μου χρωστάει",
+  "settlementPaid": "Πληρώθηκε",
+  "settlementOwed": "Εκκρεμεί πληρωμή"
 }

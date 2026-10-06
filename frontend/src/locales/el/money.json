@@ -147,5 +147,9 @@
   "unsoldTin": "{{count}} × {{size}} L",
   "unsoldBulk": "{{amount}} χύμα",
   "openMyOil": "Δες την αποθήκη",
-  "oilSaleInCellar": "Συνδεδεμένο με την αποθήκη λαδιού"
+  "oilSaleInCellar": "Συνδεδεμένο με την αποθήκη λαδιού",
+  "markPaid": "Εξοφλήθηκε",
+  "markOwed": "Μου χρωστάει",
+  "settlementPaid": "Πληρώθηκε",
+  "settlementOwed": "Εκκρεμεί πληρωμή"
 }

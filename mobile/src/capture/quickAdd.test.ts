@@ -52,7 +52,7 @@ describe('buildQuickAddMoves', () => {
       isHarvestLive: false,
       groups: groups(false),
     });
-    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'photo']);
+    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'harvest']);
   });
 
   it('prioritises harvest actions inside harvest', () => {
@@ -70,15 +70,27 @@ describe('buildQuickAddMoves', () => {
       groups: groups(false),
       recentIds: ['expense', 'photo'],
     });
-    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'photo']);
+    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'harvest']);
   });
 
-  it('uses money presets including oil sale and payment', () => {
+  it('uses money presets including sell, not payment', () => {
     const moves = buildQuickAddMoves({
       routeName: 'Money',
       groups: groups(false),
     });
-    expect(moves.map((m) => m.id)).toEqual(['expense', 'income', 'oil_sale', 'payment']);
+    expect(moves.map((m) => m.id).slice(0, 3)).toEqual(['income', 'expense', 'sell']);
+    expect(moves.find((move) => move.id === 'sell')).toMatchObject({
+      surface: 'warehouse',
+      action: 'sell',
+    });
+  });
+
+  it('does not default grove to the first available field', () => {
+    expect(
+      resolveCaptureFieldId({
+        availableIds: ['first', 'second'],
+      })
+    ).toBe('');
   });
 });
 

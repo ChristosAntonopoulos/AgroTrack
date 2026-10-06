@@ -41,7 +41,7 @@ import '../../harvestCampaign/HarvestSheets.css';
 
 const MAX_PHOTOS = 5;
 
-const WORK_CHOICES = ['T06', 'T05', 'T09', 'T14', 'T15', 'T08', 'T17', 'T21'] as const;
+const WORK_CHOICES = ['T06', 'T05', 'T09', 'T14', 'T15', 'T08', 'T17'] as const;
 
 type Props = {
   open: boolean;
@@ -61,6 +61,7 @@ const isChooserStep = (step: DrawerStep): step is ChooserStep =>
   step === 'quick' || step === 'catalog';
 
 const initialStepFromContext = (preferredType?: CaptureType): DrawerStep => {
+  if (preferredType === 'photo') return 'observation';
   if (preferredType === 'expense' || preferredType === 'income') return preferredType;
   if (preferredType && preferredType !== 'harvest' && preferredType !== 'money') {
     return preferredType;
@@ -653,26 +654,24 @@ const CaptureDrawer: React.FC<Props> = ({
     if (fieldId) rememberLastCaptureFieldId(fieldId);
 
     if (move.surface === 'capture') {
-      if (move.id === 'oil_sale') {
-        onContextChange({
-          ...context,
-          fieldId: fieldId || context.fieldId,
-          preferredType: 'income',
-          category: 'olive_oil_sale',
-          occurredAt: fromDateTimeLocal(occurredAt),
-        });
-        selectType('income');
+      if (move.type === 'harvest') {
+        onClose();
+        navigate(
+          harvestPath({
+            add: true,
+            fieldId: fieldId || context.fieldId,
+            day: dayKeyFromOccurredAt(context.occurredAt || fromDateTimeLocal(occurredAt)),
+          })
+        );
         return;
       }
-      if (move.id === 'payment') {
+      if (move.type === 'photo') {
         onContextChange({
           ...context,
           fieldId: fieldId || context.fieldId,
-          preferredType: 'expense',
-          category: 'labor',
           occurredAt: fromDateTimeLocal(occurredAt),
         });
-        selectType('expense');
+        selectType('observation');
         return;
       }
       onContextChange({
@@ -815,6 +814,10 @@ const CaptureDrawer: React.FC<Props> = ({
                 canRecordIncome={permissions.canRecordIncome}
                 canRecordExpense={permissions.canRecordExpense}
                 onSaved={onSaved}
+                onSellOil={() => {
+                  onClose();
+                  navigate(myOilPath({ do: 'sell', field: fieldId || undefined }));
+                }}
                 onDirtyChange={(next) => {
                   if (next) markDirty();
                   else setDirty(false);

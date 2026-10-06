@@ -25,7 +25,6 @@ export const HARVEST_HOME_ACTIONS: HarvestCaptureKind[] = [
   'mill',
   'oil',
   'expense',
-  'income',
   'people',
   'note',
 ];

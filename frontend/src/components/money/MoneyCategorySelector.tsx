@@ -44,8 +44,10 @@ type Props = {
 const MoneyCategorySelector: React.FC<Props> = ({ type, value, onChange, hideLabel }) => {
   const { t, i18n } = useTranslation('capture');
   const [showAll, setShowAll] = useState(false);
-  const featured = type === 'income' ? FEATURED_INCOME_CATEGORIES : FEATURED_EXPENSE_CATEGORIES;
-  const all = categoriesForType(type);
+  const featured = (type === 'income' ? FEATURED_INCOME_CATEGORIES : FEATURED_EXPENSE_CATEGORIES).filter(
+    (c) => c !== 'olive_oil_sale'
+  );
+  const all = categoriesForType(type).filter((c) => c !== 'olive_oil_sale');
   const options = showAll ? all : featured;
   const extraSelected = value && !featured.includes(value as FinancialCategory) && !showAll;
 

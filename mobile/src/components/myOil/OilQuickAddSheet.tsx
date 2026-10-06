@@ -8,9 +8,9 @@ import Sheet from '../ui/Sheet';
 type Props = {
   open: boolean;
   onClose: () => void;
+  onAdd: () => void;
   onSell: () => void;
   onGive: () => void;
-  onHold: () => void;
   onFill: () => void;
   onAllRecords: () => void;
 };
@@ -26,9 +26,9 @@ type Action = {
 export function OilQuickAddSheet({
   open,
   onClose,
+  onAdd,
   onSell,
   onGive,
-  onHold,
   onFill,
   onAllRecords,
 }: Props) {
@@ -36,9 +36,9 @@ export function OilQuickAddSheet({
   const { colors, tapMin } = useTheme();
 
   const actions: Action[] = [
+    { key: 'add', label: t('actions.add'), icon: 'add-outline', onPress: onAdd },
     { key: 'sell', label: t('actions.sell'), icon: 'cash-outline', onPress: onSell },
     { key: 'give', label: t('actions.verbGive'), icon: 'water-outline', onPress: onGive },
-    { key: 'hold', label: t('actions.hold'), icon: 'bookmark-outline', onPress: onHold },
     { key: 'fill', label: t('actions.fillVerb'), icon: 'cube-outline', onPress: onFill },
   ];
 

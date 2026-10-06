@@ -181,10 +181,7 @@ export const applyOilSale = (
       if (add <= 0) return entry;
       return {
         ...entry,
-        soldLitres: round1(oilSoldLitres(entry) + add),
-        soldTin16: (entry.soldTin16 ?? 0) + pack.tin16,
-        soldTin17: (entry.soldTin17 ?? 0) + pack.tin17,
-        soldBulkLitres: round1((entry.soldBulkLitres ?? 0) + pack.bulkLitres),
+        saleLinks: [...(entry.saleLinks || []), { litres: add, ...pack }],
       };
     }),
   };

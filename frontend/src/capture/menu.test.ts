@@ -23,47 +23,24 @@ describe('buildCaptureMenu', () => {
       canUseWarehouse: true,
     });
     expect(groups.map((group) => group.id)).toEqual(['day', 'grove', 'warehouse', 'money']);
-    expect(groups[0].moves).toEqual([]);
-    expect(groups[1].moves.map((move) => move.id)).toEqual([
-      'work',
-      'photo',
-      'observation',
-      'voice',
-      'document',
-    ]);
-    expect(groups[2].moves.map((move) => move.id)).toEqual([
-      'add',
-      'give',
-      'sell',
-      'hold',
-      'fill',
-      'count',
-    ]);
-    expect(groups[3].moves.map((move) => move.id)).toEqual([
-      'income',
-      'oil_sale',
-      'expense',
-      'payment',
-    ]);
+    expect(groups[0].moves.map((move) => move.id)).toEqual(['harvest']);
+    expect(groups[1].moves.map((move) => move.id)).toEqual(['work', 'observation']);
+    expect(groups[2].moves.map((move) => move.id)).toEqual(['add', 'sell', 'give', 'fill', 'count']);
+    expect(groups[3].moves.map((move) => move.id)).toEqual(['income', 'expense']);
   });
 
-  it('keeps harvest records available when the campaign is closed', () => {
+  it('shows only Συγκομιδή when the campaign is closed', () => {
     const groups = buildCaptureMenu({
       permissions: owner,
       harvestKinds: ['sacks', 'mill', 'oil', 'people', 'expense', 'income', 'note'],
       isHarvestLive: false,
       canUseWarehouse: true,
     });
-    expect(groups[0].moves.map((move) => move.id)).toEqual([
-      'sacks',
-      'mill',
-      'oil',
-      'people',
-      'expense',
-      'income',
-      'note',
-    ]);
+    expect(groups[0].moves.map((move) => move.id)).toEqual(['harvest']);
     expect(groups[0].moves.every((move) => !('featured' in move && move.featured))).toBe(true);
+    const ids = groups.flatMap((g) => g.moves.map((m) => m.id));
+    expect(ids).not.toContain('sacks');
+    expect(ids.filter((id) => id === 'sell')).toHaveLength(1);
   });
 
   it('fills Ημέρα when harvest is live and features the waiting step', () => {
@@ -75,15 +52,7 @@ describe('buildCaptureMenu', () => {
       openSacks: 4,
     });
     expect(groups[0].moves.find((move) => move.id === 'mill')).toMatchObject({ featured: true });
-    expect(groups[0].moves.map((move) => move.id)).toEqual([
-      'sacks',
-      'mill',
-      'oil',
-      'people',
-      'expense',
-      'income',
-      'note',
-    ]);
+    expect(groups[0].moves.map((move) => move.id)).toEqual(['sacks', 'mill', 'oil']);
   });
 
   it('suggests oil when fruit is weighed and sacks are clear', () => {

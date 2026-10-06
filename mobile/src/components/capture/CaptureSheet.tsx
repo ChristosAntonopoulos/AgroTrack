@@ -65,7 +65,7 @@ const MAX_PHOTOS = 5;
 
 type DocPick = { uri: string; name: string; mimeType: string };
 
-const WORK_CHOICES = ['T06', 'T05', 'T09', 'T14', 'T15', 'T08', 'T17', 'T21'] as const;
+const WORK_CHOICES = ['T06', 'T05', 'T09', 'T14', 'T15', 'T08', 'T17'] as const;
 
 const toDateKey = (iso?: string): string => {
   const d = iso ? new Date(iso) : new Date();
@@ -120,6 +120,7 @@ const CaptureSheet: React.FC<Props> = ({
   const initialStep = (preferredType?: CaptureType): DrawerStep => {
     // First History note: always land on the chooser so they tap Observation themselves.
     if (coachingFirstObservation) return 'quick';
+    if (preferredType === 'photo') return 'observation';
     if (preferredType === 'expense' || preferredType === 'income') return preferredType;
     if (preferredType && preferredType !== 'harvest' && preferredType !== 'money') {
       return preferredType;
@@ -591,7 +592,7 @@ const CaptureSheet: React.FC<Props> = ({
   };
 
   const selectType = (type: CaptureType) => {
-    if (type === 'harvest' && harvestCampaign?.isLive) {
+    if (type === 'harvest') {
       onClose();
       openHarvestCampaign(navigation, {
         add: true,
@@ -610,26 +611,13 @@ const CaptureSheet: React.FC<Props> = ({
     setRecentIds((prev) => [move.id, ...prev.filter((id) => id !== move.id)].slice(0, 12));
 
     if (move.surface === 'capture') {
-      if (move.id === 'oil_sale') {
+      if (move.type === 'photo') {
         onContextChange({
           ...context,
           fieldId: fieldId || context.fieldId,
-          preferredType: 'income',
-          category: 'olive_oil_sale',
           occurredAt,
         });
-        selectType('income');
-        return;
-      }
-      if (move.id === 'payment') {
-        onContextChange({
-          ...context,
-          fieldId: fieldId || context.fieldId,
-          preferredType: 'expense',
-          category: 'labor',
-          occurredAt,
-        });
-        selectType('expense');
+        selectType('observation');
         return;
       }
       onContextChange({
@@ -728,6 +716,10 @@ const CaptureSheet: React.FC<Props> = ({
           canRecordIncome={permissions.canRecordIncome}
           canRecordExpense={permissions.canRecordExpense}
           onSaved={onSaved}
+          onSellOil={() => {
+            onClose();
+            navigation.navigate('MyOil', { do: 'sell', field: fieldId || undefined });
+          }}
         />
       ) : isPhotoStep ? (
         <PhotoCaptureForm

@@ -123,7 +123,7 @@ stages:
 - stage: MobileBuild
   displayName: 'Build Mobile APK (Gradle, no EAS)'
   dependsOn: []
-  condition: and(succeeded(), eq('${{ parameters.buildMobileApk }}', true))
+  condition: and(succeeded(), eq('${{ parameters.buildMobileApk }}', true), not(contains(variables['Build.SourceVersionMessage'], '[skip apk]')))
   jobs:
   - job: BuildMobile
     displayName: 'Build Android APK (Gradle on agent)'
@@ -216,7 +216,7 @@ stages:
 
     - task: DownloadBuildArtifacts@1
       displayName: 'Download staged APK into frontend/public/downloads'
-      condition: eq('${{ parameters.buildMobileApk }}', true)
+      condition: and(eq('${{ parameters.buildMobileApk }}', true), not(contains(variables['Build.SourceVersionMessage'], '[skip apk]')))
       inputs:
         buildType: 'current'
         artifactName: 'frontend-downloads'

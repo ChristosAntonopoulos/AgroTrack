@@ -93,6 +93,8 @@ export type HarvestOilEntry = {
   soldTin16?: number;
   soldTin17?: number;
   soldBulkLitres?: number;
+  /** Provenance only — does not reduce cellar stock. */
+  saleLinks?: { litres: number; tin16?: number; tin17?: number; bulkLitres?: number }[];
   createdAt: string;
 };
 

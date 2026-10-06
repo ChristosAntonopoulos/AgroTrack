@@ -11,7 +11,6 @@ export const FEATURED_EXPENSE_CATEGORIES: FinancialCategory[] = [
 ];
 
 export const FEATURED_INCOME_CATEGORIES: FinancialCategory[] = [
-  'olive_oil_sale',
   'olive_sale',
   'subsidy',
   'compensation',

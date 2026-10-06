@@ -67,7 +67,7 @@ describe('buildQuickAddMoves', () => {
       isHarvestLive: false,
       groups: groups(false),
     });
-    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'photo']);
+    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'harvest']);
   });
 
   it('prioritises harvest actions inside harvest', () => {
@@ -85,7 +85,7 @@ describe('buildQuickAddMoves', () => {
       pathname: '/my-oil',
       groups: groups(false),
     });
-    expect(moves.map((m) => m.id)).toEqual(['add', 'give', 'sell', 'hold']);
+    expect(moves.map((m) => m.id)).toEqual(['add', 'sell', 'give', 'fill']);
   });
 
   it('keeps two context-fixed slots before recent', () => {
@@ -94,15 +94,15 @@ describe('buildQuickAddMoves', () => {
       groups: groups(false),
       recentIds: ['expense', 'photo'],
     });
-    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'photo']);
+    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'harvest']);
   });
 
-  it('uses money presets including oil sale and payment', () => {
+  it('uses money presets including sell, not payment', () => {
     const moves = buildQuickAddMoves({
       pathname: '/money',
       groups: groups(false),
     });
-    expect(moves.map((m) => m.id)).toEqual(['expense', 'income', 'oil_sale', 'payment']);
+    expect(moves.map((m) => m.id).slice(0, 3)).toEqual(['income', 'expense', 'sell']);
     expect(moves.find((move) => move.id === 'expense')).toMatchObject({
       surface: 'capture',
       type: 'expense',
@@ -116,10 +116,19 @@ describe('buildQuickAddMoves', () => {
   it('uses tasks and photos presets', () => {
     expect(
       buildQuickAddMoves({ pathname: '/tasks', groups: groups(false) }).map((m) => m.id)
-    ).toEqual(['work', 'observation', 'expense', 'photo']);
+    ).toEqual(['work', 'observation', 'expense', 'harvest']);
     expect(
       buildQuickAddMoves({ pathname: '/photos', groups: groups(false) }).map((m) => m.id)
-    ).toEqual(['photo', 'observation', 'work', 'expense']);
+    ).toEqual(['observation', 'work', 'expense', 'harvest']);
+  });
+
+  it('does not default grove to the first available field', () => {
+    expect(
+      resolveCaptureFieldId({
+        pathname: '/chronologio',
+        availableIds: ['first', 'second'],
+      })
+    ).toBe('');
   });
 });
 

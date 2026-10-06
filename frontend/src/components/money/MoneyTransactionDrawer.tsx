@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import Button from '../Common/Button';
 import RightDrawer from '../Common/RightDrawer';
-import type { FinancialTransaction } from '../../services/financialTransactionService';
+import type { CreateFinancialTransactionInput, FinancialTransaction } from '../../services/financialTransactionService';
 import {
   financialCategoryLabel,
   financialSourceLabel,
@@ -31,6 +31,10 @@ type Props = {
   onVoid: (id: string, reason: string) => Promise<void>;
   onPostDraft: (id: string) => Promise<void>;
   onDeleteDraft: (id: string) => Promise<void>;
+  onUpdate: (
+    id: string,
+    input: Partial<CreateFinancialTransactionInput>
+  ) => Promise<void>;
 };
 
 const labelOr = (raw: string | undefined, fallback: string) =>
@@ -46,6 +50,7 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
   onVoid,
   onPostDraft,
   onDeleteDraft,
+  onUpdate,
 }) => {
   const { t, i18n } = useTranslation(['money', 'common']);
   const { formatDate, formatDateTime } = useLocaleFormatters();
@@ -107,6 +112,15 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
               {t('money:deleteDraft')}
             </Button>
           </>
+        ) : null}
+        {transaction.status === 'posted' && !transaction.paymentMethod ? (
+          <Button
+            variant="primary"
+            disabled={busy}
+            onClick={() => void run(() => onUpdate(transaction.id, { paymentMethod: 'cash' }))}
+          >
+            {t('money:markPaid')}
+          </Button>
         ) : null}
         {transaction.status === 'posted' ? (
           confirmVoid ? (

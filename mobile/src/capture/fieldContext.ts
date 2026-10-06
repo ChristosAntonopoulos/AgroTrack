@@ -1,6 +1,6 @@
 /**
  * Resolve which grove Καταγραφή should use.
- * Order: explicit context → route field → active field → last capture → last money → first available.
+ * Order: current context → selected/route grove → last choice. Never the first grove.
  */
 export const resolveCaptureFieldId = (input: {
   contextFieldId?: string;
@@ -17,7 +17,6 @@ export const resolveCaptureFieldId = (input: {
     input.activeFieldId || undefined,
     input.lastCaptureFieldId,
     input.lastMoneyFieldId,
-    available[0],
   ].filter((id): id is string => Boolean(id));
 
   if (available.length === 0) {
@@ -27,7 +26,7 @@ export const resolveCaptureFieldId = (input: {
   for (const id of candidates) {
     if (available.includes(id)) return id;
   }
-  return available[0] || '';
+  return '';
 };
 
 export const fieldIdFromRouteParams = (

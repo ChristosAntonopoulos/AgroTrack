@@ -147,5 +147,9 @@
   "unsoldTin": "{{count}} × {{size}} L",
   "unsoldBulk": "{{amount}} bulk",
   "openMyOil": "See storage",
-  "oilSaleInCellar": "Linked to your oil cellar"
+  "oilSaleInCellar": "Linked to your oil cellar",
+  "markPaid": "Mark as paid",
+  "markOwed": "Still owed",
+  "settlementPaid": "Paid",
+  "settlementOwed": "Payment pending"
 }

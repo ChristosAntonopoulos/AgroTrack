@@ -58,12 +58,12 @@ import {
 } from '../harvestCampaign/storage';
 import {
   harvestExpenseCaptureContext,
-  harvestIncomeCaptureContext,
   harvestNoteCaptureContext,
   shouldMirrorHarvestExpense,
   shouldMirrorHarvestIncome,
   shouldMirrorHarvestNote,
 } from '../harvestCampaign/harvestMoneyCapture';
+import { resolveHarvestCaptureFieldId } from '../harvestCampaign/fieldSelection';
 import {
   persistMillRecord,
   persistOilRecord,
@@ -460,13 +460,17 @@ const HarvestCampaignScreen = () => {
   };
 
   const openHarvestExpense = () => {
-    const fieldId = preferredFieldId || campaign.fieldOrder[0] || harvestable[0]?.id;
+    const fieldId = resolveHarvestCaptureFieldId({
+      preferredFieldId: preferredFieldId || route.params?.fieldId,
+      campaignFieldOrder: campaign.fieldOrder,
+      allowedFieldIds: harvestable.map((f) => f.id),
+    });
     closeSheet();
     clearPreferredField();
     moneyCapture?.openCapture(
       harvestExpenseCaptureContext({
         campaign,
-        fieldId,
+        fieldId: fieldId || undefined,
         today: workingDay,
         description: t('fields:harvestCampaign.expense.moneyDescription'),
       })
@@ -475,27 +479,23 @@ const HarvestCampaignScreen = () => {
 
   const openHarvestIncome = () => {
     if (!harvestCaps.canAddIncome) return;
-    const fieldId = preferredFieldId || campaign.fieldOrder[0] || harvestable[0]?.id;
     closeSheet();
     clearPreferredField();
-    moneyCapture?.openCapture(
-      harvestIncomeCaptureContext({
-        campaign,
-        fieldId,
-        today: workingDay,
-        description: t('fields:harvestCampaign.income.moneyDescription'),
-      })
-    );
+    navigation.navigate('MyOil', { do: 'sell' });
   };
 
   const openHarvestNote = () => {
-    const fieldId = preferredFieldId || campaign.fieldOrder[0] || harvestable[0]?.id;
+    const fieldId = resolveHarvestCaptureFieldId({
+      preferredFieldId: preferredFieldId || route.params?.fieldId,
+      campaignFieldOrder: campaign.fieldOrder,
+      allowedFieldIds: harvestable.map((f) => f.id),
+    });
     closeSheet();
     clearPreferredField();
     moneyCapture?.openCapture(
       harvestNoteCaptureContext({
         campaign,
-        fieldId,
+        fieldId: fieldId || undefined,
         today: workingDay,
       })
     );

@@ -152,30 +152,27 @@ describe('oilSaleFieldId', () => {
 });
 
 describe('allocateSoldPack + applyOilSale', () => {
-  it('records the sale on the oil entry so the next listing shows remaining', () => {
+  it('links provenance without reducing harvest remaining litres', () => {
     const campaign = emptyCampaign(2026);
     campaign.oils = [
       oil({ id: 'a', amount: 100, unit: 'litres', tin16Count: 2, tin17Count: 1 }),
     ];
     const [lot] = saleableOilLots(campaign);
+    const beforeLitres = lot.litres;
     const sold = { tin16: 1, tin17: 0, bulkLitres: 20 };
     const allocations = allocateSoldPack([lot], sold);
     expect(allocations).toEqual([{ id: 'a', pack: sold }]);
     const next = applyOilSale(campaign, allocations);
-    const again = saleableOilLots(next);
-    expect(again[0]).toMatchObject({
-      litres: 64,
-      soldLitres: 36,
-      sold: false,
-      pack: { tin16: 1, tin17: 1, bulkLitres: 31 },
-    });
+    expect(saleableOilLots(next)[0].litres).toBe(beforeLitres);
+    expect(next.oils[0].saleLinks?.[0]).toMatchObject(sold);
   });
 
-  it('marks the lot sold when every litre is taken', () => {
+  it('does not treat harvest soldLitres as a second inventory', () => {
     const campaign = emptyCampaign(2026);
     campaign.oils = [oil({ id: 'a', amount: 40, unit: 'litres' })];
     const [lot] = saleableOilLots(campaign);
     const next = applyOilSale(campaign, allocateSoldPack([lot], { tin16: 0, tin17: 0, bulkLitres: 40 }));
-    expect(saleableOilLots(next)[0]).toMatchObject({ litres: 0, sold: true });
+    expect(saleableOilLots(next)[0]).toMatchObject({ litres: 40, sold: false });
+    expect(next.oils[0].saleLinks?.[0].litres).toBe(40);
   });
 });

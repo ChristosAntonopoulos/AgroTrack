@@ -246,8 +246,9 @@ const MyOilPage: React.FC = () => {
           counterpartyName: input.counterpartyName,
           requested: input.requested,
           isSale: input.isSale,
-          amount: input.isSale && input.alreadyPaid ? input.amount : undefined,
+          amount: input.isSale ? input.amount : undefined,
           alreadyDelivered: input.alreadyDelivered,
+          notes: input.isSale && !input.alreadyPaid ? 'owed' : undefined,
         });
       }
       setShowGive(false);

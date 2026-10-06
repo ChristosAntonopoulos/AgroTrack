@@ -84,7 +84,6 @@ export const getHarvestCapabilities = (opts: HarvestCapabilityInput): HarvestCap
     captureKinds.push('sacks', 'mill', 'oil', 'people');
   }
   if (canAddExpense) captureKinds.push('expense');
-  if (canAddIncome) captureKinds.push('income');
   if (canAddNote) captureKinds.push('note');
 
   const isViewOnly = canView && !canProduce && captureKinds.length === 0;

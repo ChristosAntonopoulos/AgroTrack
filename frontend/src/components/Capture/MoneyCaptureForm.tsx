@@ -45,8 +45,6 @@ import {
 import { harvestYearRangeLabel, harvestYearSpan } from '../../finance/harvestYear';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import {
-  allocateSoldPack,
-  applyOilSale,
   combineOilPacks,
   emptyOilPack,
   oilSaleFieldId,
@@ -70,7 +68,6 @@ import RelatedRecordSelector from '../money/RelatedRecordSelector';
 import TransactionAdvancedDetails from '../money/TransactionAdvancedDetails';
 import SaleBuyerPicker from '../money/SaleBuyerPicker';
 import AddMoneyFooter from '../money/AddMoneyFooter';
-import { oilStockService } from '../../services/oilStockService';
 import '../money/Money.css';
 
 type PhotoItem = { id: string; file: File; preview: string; url?: string };
@@ -94,6 +91,7 @@ type Props = {
       discardLocal: () => void;
     } | null
   ) => void;
+  onSellOil?: () => void;
 };
 
 const moneySteps = (askKind: boolean, oilPath: boolean, askField: boolean): MoneyEntryStep[] => {
@@ -129,6 +127,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
   onSaved,
   onDirtyChange,
   onBindLeave,
+  onSellOil,
 }) => {
   const { t, i18n } = useTranslation(['capture', 'chronologio', 'money']);
   const language = i18n.language || 'el';
@@ -236,10 +235,16 @@ const MoneyCaptureForm: React.FC<Props> = ({
   }, []);
 
   useEffect(() => {
+    if (context.category === 'olive_oil_sale' && onSellOil) onSellOil();
+  }, [context.category, onSellOil]);
+
+  useEffect(() => {
     if (skipContextHydrationRef.current) return;
     if (preferredKind) {
       setKind(preferredKind);
-      if (!context.category) setCategory(defaultCategoryForType(preferredKind));
+      if (!context.category) {
+        setCategory(preferredKind === 'income' ? 'other_income' : defaultCategoryForType(preferredKind));
+      }
     }
   }, [preferredKind, context.category]);
 
@@ -252,7 +257,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
 
   useEffect(() => {
     if (skipContextHydrationRef.current) return;
-    if (!context.category) return;
+    if (!context.category || context.category === 'olive_oil_sale') return;
     setCategory(context.category);
     const units = suggestedUnitsForCategory(context.category);
     if (units[0]) setUnit(units[0] as FinancialQuantityUnit);
@@ -294,6 +299,10 @@ const MoneyCaptureForm: React.FC<Props> = ({
   }, [fieldId]);
 
   const applyCategory = (next: FinancialCategory) => {
+    if (next === 'olive_oil_sale') {
+      onSellOil?.();
+      return;
+    }
     setCategory(next);
     const units = suggestedUnitsForCategory(next);
     if (units[0]) setUnit(units[0]);
@@ -303,7 +312,7 @@ const MoneyCaptureForm: React.FC<Props> = ({
 
   const selectKind = (next: FinancialTransactionType) => {
     setKind(next);
-    applyCategory(defaultCategoryForType(next));
+    applyCategory(next === 'income' ? 'other_income' : defaultCategoryForType(next));
   };
 
   const onDateChange = (value: string) => {
@@ -582,12 +591,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
         const url = photo.url || (await fileUploadService.uploadFile(photo.file));
         attachmentIds.push(url);
       }
-      if (oilPath && !saveAsDraft && packLitres(soldPack) > 0 && harvestCampaign) {
-        const allocations = allocateSoldPack(selectedLots, soldPack);
-        if (allocations.length > 0) {
-          harvestCampaign.patch((campaign) => applyOilSale(campaign, allocations));
-        }
-      }
       let createdId = '';
       let createdStatus: 'draft' | 'posted' = saveAsDraft ? 'draft' : 'posted';
       let savedCount = 0;
@@ -627,41 +630,6 @@ const MoneyCaptureForm: React.FC<Props> = ({
       rememberLastMoneyFieldId(entries[0]?.fieldId || undefined);
       clearMoneyEntryDraft();
       onDirtyChange?.(false);
-
-      // Sync cellar reservation when a posted olive-oil sale is recorded via καταγραφή.
-      if (
-        !saveAsDraft &&
-        kind === 'income' &&
-        category === 'olive_oil_sale' &&
-        createdId &&
-        resolvedAmount &&
-        resolvedAmount > 0
-      ) {
-        const pack =
-          oilPath && packLitres(soldPack) > 0
-            ? {
-                tin16: soldPack.tin16,
-                tin17: soldPack.tin17,
-                bulkLitres: soldPack.bulkLitres,
-              }
-            : qtyValue && qtyValue > 0
-              ? { tin16: 0, tin17: 0, bulkLitres: qtyValue }
-              : null;
-        if (pack) {
-          try {
-            await oilStockService.createCommitment({
-              counterpartyName: counterpartyName.trim() || text,
-              requested: pack,
-              isSale: true,
-              amount: resolvedAmount,
-              alreadyDelivered: false,
-              financialTransactionId: createdId,
-            });
-          } catch {
-            // Income stands; farmer can reserve/deliver from Το λάδι μου if stock sync fails.
-          }
-        }
-      }
 
       const message =
         savedCount < entries.length

@@ -60,7 +60,7 @@ const sameContact = (contact: SavedContact, label: string, phone?: string) => {
   return contact.displayName.trim().toLowerCase() === label.trim().toLowerCase();
 };
 
-export function GiveOilSheet({
+export function OilMovementSheet({
   open,
   available,
   busy,
@@ -268,6 +268,7 @@ export function GiveOilSheet({
   };
 
   const submit = () => {
+    if (busy) return;
     setSaveError(null);
     void onSave({
       counterpartyName: resolvedName,
@@ -589,3 +590,5 @@ export function GiveOilSheet({
     </RightDrawer>
   );
 }
+
+export { OilMovementSheet as GiveOilSheet };

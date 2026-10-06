@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen,
@@ -85,7 +85,7 @@ import {
 import { allDaySummaries, campaignTotals, daySummary, fieldSummaries, harvestDayNumber, oilAmountToKg } from '../harvestCampaign/totals';
 import { convertOliveOilKgToLitres, formatHarvestYieldPercent } from '../harvestCampaign/utils/harvestCalculations';
 import type { HarvestCaptureKind, HarvestFieldShare, HarvestModeView } from '../harvestCampaign/types';
-import { harvestExpenseCaptureContext, harvestIncomeCaptureContext, harvestNoteCaptureContext, shouldMirrorHarvestExpense, shouldMirrorHarvestIncome, shouldMirrorHarvestNote } from '../harvestCampaign/harvestMoneyCapture';
+import { harvestExpenseCaptureContext, harvestNoteCaptureContext, shouldMirrorHarvestExpense, shouldMirrorHarvestIncome, shouldMirrorHarvestNote } from '../harvestCampaign/harvestMoneyCapture';
 import { getHarvestCapabilities } from '../harvestCampaign/harvestCapabilities';
 import { resolveHarvestCaptureFieldId } from '../harvestCampaign/fieldSelection';
 import { resolveHarvestTotalsLifecycle } from '../harvestCampaign/lifecycleActions';
@@ -130,6 +130,7 @@ import {
   harvestRecordsForDay,
   resolveHistoricalHarvestLink,
 } from '../harvestCampaign/historicalDay';
+import { myOilPath } from '../navigation/intents';
 import './HarvestCampaignPage.css';
 
 type HarvestAddPrefill = {
@@ -147,6 +148,7 @@ const HarvestCampaignPage: React.FC = () => {
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const pageGuard = useModulePageGuard({ module: 'harvest' });
   const { campaign, seasonStartYear, isLive, isActive, start, stop, pause, resume, markGroveDone, patch } =
     useHarvestCampaign();
@@ -656,19 +658,7 @@ const HarvestCampaignPage: React.FC = () => {
   const openHarvestIncome = () => {
     if (!harvestCaps.canAddIncome) return;
     closeSheet();
-    const fieldId = resolveHarvestCaptureFieldId({
-      preferredFieldId: searchParams.get('fieldId'),
-      campaignFieldOrder: campaign.fieldOrder,
-      allowedFieldIds: sheetFields.map((f) => f.id),
-    });
-    moneyCapture?.openCapture(
-      harvestIncomeCaptureContext({
-        campaign,
-        fieldId: fieldId || undefined,
-        today: workingDay,
-        description: t('harvestCampaign.income.moneyDescription'),
-      })
-    );
+    navigate(myOilPath({ do: 'sell' }));
   };
 
   const openHarvestNote = () => {

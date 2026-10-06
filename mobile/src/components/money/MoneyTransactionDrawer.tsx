@@ -239,6 +239,13 @@ const MoneyTransactionDrawer: React.FC<Props> = ({
                 />
               </>
             ) : null}
+            {!editing && transaction.status === 'posted' && !transaction.paymentMethod ? (
+              <Button
+                title={t('money:markPaid')}
+                disabled={busy}
+                onPress={() => void run(() => onUpdate(transaction.id, { paymentMethod: 'cash' }))}
+              />
+            ) : null}
             {!editing && transaction.status === 'posted' ? (
               confirmVoid ? (
                 <>

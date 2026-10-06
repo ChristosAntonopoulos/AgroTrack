@@ -161,5 +161,9 @@
   "unsoldThisYear": "This harvest year",
   "unsoldYear": "Harvest year {{span}}",
   "unsoldTin": "{{count}} × {{size}} L",
-  "unsoldBulk": "{{amount}} bulk"
+  "unsoldBulk": "{{amount}} bulk",
+  "markPaid": "Mark as paid",
+  "markOwed": "Still owed",
+  "settlementPaid": "Paid",
+  "settlementOwed": "Payment pending"
 }

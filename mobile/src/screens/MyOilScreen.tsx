@@ -290,8 +290,9 @@ const MyOilScreen = () => {
           counterpartyName: input.counterpartyName,
           requested: input.requested,
           isSale: input.isSale,
-          amount: input.isSale && input.alreadyPaid ? input.amount : undefined,
+          amount: input.isSale ? input.amount : undefined,
           alreadyDelivered: input.alreadyDelivered,
+          notes: input.isSale && !input.alreadyPaid ? 'owed' : undefined,
           allocations: planFieldDrain(lots, input.requested).map((slice) => ({
             oilLotId: slice.oilLotId,
             pack: slice.pack,
@@ -657,6 +658,10 @@ const MyOilScreen = () => {
       <OilQuickAddSheet
         open={quickOpen}
         onClose={() => setQuickOpen(false)}
+        onAdd={() => {
+          setQuickOpen(false);
+          setShowAdd(true);
+        }}
         onSell={() => {
           setQuickOpen(false);
           openGive('sell');
@@ -664,10 +669,6 @@ const MyOilScreen = () => {
         onGive={() => {
           setQuickOpen(false);
           openGive('give');
-        }}
-        onHold={() => {
-          setQuickOpen(false);
-          openGive('hold');
         }}
         onFill={() => {
           setQuickOpen(false);

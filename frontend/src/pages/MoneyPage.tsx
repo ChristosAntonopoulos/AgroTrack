@@ -599,6 +599,10 @@ const MoneyPage: React.FC = () => {
           patch({ tx: null });
           reload();
         }}
+        onUpdate={async (id, input) => {
+          await getFinancialTransactionService().update(id, input);
+          reload();
+        }}
       />
     </PageContainer>
   );

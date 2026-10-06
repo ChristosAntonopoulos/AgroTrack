@@ -127,7 +127,7 @@ type Props = {
   initialIntent?: GiveOilIntent;
 };
 
-export function GiveOilSheet({
+export function OilMovementSheet({
   open,
   available,
   pools = [],
@@ -220,6 +220,7 @@ export function GiveOilSheet({
   };
 
   const submit = () => {
+    if (busy) return;
     setSaveError(null);
     void onSave({
       counterpartyName: resolvedName,
@@ -527,3 +528,5 @@ export function GiveOilSheet({
     </Sheet>
   );
 }
+
+export { OilMovementSheet as GiveOilSheet };

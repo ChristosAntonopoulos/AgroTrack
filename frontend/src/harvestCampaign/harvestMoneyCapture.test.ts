@@ -154,4 +154,15 @@ describe('harvest money capture', () => {
     expect(ctx.occurredAt).toBe('2026-11-13T12:00:00');
     expect(ctx.harvestCampaignLink).toBe(true);
   });
+
+  it('does not default expense to the first grove when several participate', () => {
+    const campaign = { ...emptyCampaign(2026), fieldOrder: ['north', 'south'] };
+    expect(
+      harvestExpenseCaptureContext({
+        campaign,
+        today: '2026-11-12',
+        description: 'Έξοδο συγκομιδής',
+      }).fieldId
+    ).toBeUndefined();
+  });
 });

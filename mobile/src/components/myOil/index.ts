@@ -23,6 +23,7 @@ export {
 } from './OilOverviewSections';
 export { default as SaleBuyerPicker } from './SaleBuyerPicker';
 export { GiveOilSheet } from './GiveOilSheet';
+export { OilMovementSheet } from './GiveOilSheet';
 export type { GiveOilSaveInput, GiveOilIntent } from './GiveOilSheet';
 export { AddOilSheet } from './AddOilSheet';
 export { EditShelfSheet } from './EditShelfSheet';

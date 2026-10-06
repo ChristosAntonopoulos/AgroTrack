@@ -5,6 +5,9 @@ export const harvestLinkedRecordId = (campaign: HarvestCampaign): string | undef
   [...campaign.millWeights].reverse().find((row) => row.harvestRecordId)?.harvestRecordId ||
   [...campaign.sacks].reverse().find((row) => row.harvestRecordId)?.harvestRecordId;
 
+const harvestContextFieldId = (fieldId: string | undefined, campaign: HarvestCampaign): string | undefined =>
+  fieldId || (campaign.fieldOrder.length === 1 ? campaign.fieldOrder[0] : undefined);
+
 export const harvestExpenseCaptureContext = (input: {
   campaign: HarvestCampaign;
   fieldId?: string;
@@ -12,7 +15,7 @@ export const harvestExpenseCaptureContext = (input: {
   description: string;
 }): CaptureContext => ({
   preferredType: 'expense',
-  fieldId: input.fieldId || input.campaign.fieldOrder[0],
+  fieldId: harvestContextFieldId(input.fieldId, input.campaign),
   occurredAt: `${input.today}T12:00:00`,
   harvestId: harvestLinkedRecordId(input.campaign),
   category: 'other_expense',
@@ -35,7 +38,7 @@ export const harvestIncomeCaptureContext = (input: {
   description: string;
 }): CaptureContext => ({
   preferredType: 'income',
-  fieldId: input.fieldId || input.campaign.fieldOrder[0],
+  fieldId: harvestContextFieldId(input.fieldId, input.campaign),
   occurredAt: `${input.today}T12:00:00`,
   harvestId: harvestLinkedRecordId(input.campaign),
   category: 'olive_oil_sale',
@@ -57,7 +60,7 @@ export const harvestNoteCaptureContext = (input: {
   today: string;
 }): CaptureContext => ({
   preferredType: 'observation',
-  fieldId: input.fieldId || input.campaign.fieldOrder[0],
+  fieldId: harvestContextFieldId(input.fieldId, input.campaign),
   occurredAt: `${input.today}T12:00:00`,
   harvestCampaignLink: true,
 });

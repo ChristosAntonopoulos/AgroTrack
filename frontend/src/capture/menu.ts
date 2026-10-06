@@ -25,9 +25,8 @@ const HARVEST_KINDS: HarvestCaptureKind[] = [
 ];
 
 export const PRODUCTION_KINDS: HarvestCaptureKind[] = ['sacks', 'mill', 'oil'];
-const DAY_EXTRA: HarvestCaptureKind[] = ['people', 'expense', 'income', 'note'];
 
-const WAREHOUSE: WarehouseAction[] = ['add', 'give', 'sell', 'hold', 'fill', 'count'];
+const WAREHOUSE_PRIMARY: WarehouseAction[] = ['add', 'sell', 'give', 'fill'];
 
 export const isHarvestCaptureKind = (value: string | null | undefined): value is HarvestCaptureKind =>
   !!value && (HARVEST_KINDS as string[]).includes(value);
@@ -59,8 +58,21 @@ const captureMove = (type: CaptureType): CaptureMove => ({
   type,
 });
 
+const uniqueMoveIds = (groups: CaptureMenuGroup[]): CaptureMenuGroup[] => {
+  const seen = new Set<string>();
+  return groups.map((group) => ({
+    ...group,
+    moves: group.moves.filter((move) => {
+      if (seen.has(move.id)) return false;
+      seen.add(move.id);
+      return true;
+    }),
+  }));
+};
+
 /**
- * Harvest records are always available. A live campaign only marks the next step.
+ * One move id per real event. Production steps only while harvest is live.
+ * Count lives in the warehouse catalog (Περισσότερα), not Quick Add.
  */
 export const buildCaptureMenu = (input: {
   permissions: CapturePermissions;
@@ -73,48 +85,47 @@ export const buildCaptureMenu = (input: {
   const { permissions, canUseWarehouse, isHarvestLive } = input;
 
   const dayMoves: CaptureMove[] = [];
-  const suggested = isHarvestLive
-    ? suggestHarvestKind(input.harvestKinds, input.openSacks ?? 0, input.openMillKg ?? 0)
-    : null;
-  for (const kind of PRODUCTION_KINDS) {
-    if (!input.harvestKinds.includes(kind)) continue;
-    dayMoves.push({
-      id: kind,
-      surface: 'harvest',
-      kind,
-      featured: kind === suggested,
-    });
-  }
-  for (const kind of DAY_EXTRA) {
-    if (!input.harvestKinds.includes(kind)) continue;
-    dayMoves.push({ id: kind, surface: 'harvest', kind });
+  if (isHarvestLive) {
+    const suggested = suggestHarvestKind(
+      input.harvestKinds,
+      input.openSacks ?? 0,
+      input.openMillKg ?? 0
+    );
+    for (const kind of PRODUCTION_KINDS) {
+      if (!input.harvestKinds.includes(kind)) continue;
+      dayMoves.push({
+        id: kind,
+        surface: 'harvest',
+        kind,
+        featured: kind === suggested,
+      });
+    }
+  } else if (permissions.canRecordHarvest) {
+    dayMoves.push(captureMove('harvest'));
   }
 
   const grove: CaptureMove[] = [];
   if (permissions.canRecordWork) grove.push(captureMove('work'));
-  if (permissions.canRecordPhoto) grove.push(captureMove('photo'));
   if (permissions.canRecordObservation) grove.push(captureMove('observation'));
-  if (permissions.canRecordVoice) grove.push(captureMove('voice'));
-  if (permissions.canRecordDocument) grove.push(captureMove('document'));
 
   const warehouse: CaptureMove[] = canUseWarehouse
-    ? WAREHOUSE.map((action) => ({ id: action, surface: 'warehouse' as const, action }))
+    ? [
+        ...WAREHOUSE_PRIMARY.map((action) => ({ id: action, surface: 'warehouse' as const, action })),
+        { id: 'count', surface: 'warehouse' as const, action: 'count' as const },
+      ]
     : [];
 
   const money: CaptureMove[] = [];
-  if (permissions.canRecordIncome) {
-    money.push(captureMove('income'));
-    money.push({ id: 'oil_sale', surface: 'capture', type: 'income' });
-  }
-  if (permissions.canRecordExpense) {
-    money.push(captureMove('expense'));
-    money.push({ id: 'payment', surface: 'capture', type: 'expense' });
+  if (permissions.canRecordIncome) money.push(captureMove('income'));
+  if (permissions.canRecordExpense) money.push(captureMove('expense'));
+  if (canUseWarehouse) {
+    money.push({ id: 'sell', surface: 'warehouse', action: 'sell' });
   }
 
-  return [
+  return uniqueMoveIds([
     { id: 'day', moves: dayMoves },
     { id: 'grove', moves: grove },
     { id: 'warehouse', moves: warehouse },
     { id: 'money', moves: money },
-  ];
+  ]);
 };

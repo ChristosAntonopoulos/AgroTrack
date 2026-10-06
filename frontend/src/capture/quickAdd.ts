@@ -41,13 +41,12 @@ export const resolveQuickAddContext = (input: {
 /** Preferred move ids for each context (first available wins). */
 export const QUICK_PRESETS: Record<QuickAddContext, readonly string[]> = {
   harvest: ['sacks', 'mill', 'oil', 'expense'],
-  warehouse: ['add', 'give', 'sell', 'hold'],
-  grove: ['work', 'observation', 'expense', 'photo'],
-  money: ['expense', 'income', 'oil_sale', 'payment'],
-  tasks: ['work', 'observation', 'expense', 'photo'],
-  photos: ['photo', 'observation', 'work', 'expense'],
-  /** Universal four when harvest is closed; sacks inserted when live via harvest context. */
-  home: ['work', 'observation', 'expense', 'photo'],
+  warehouse: ['add', 'sell', 'give', 'fill'],
+  grove: ['work', 'observation', 'expense', 'harvest'],
+  money: ['income', 'expense', 'sell'],
+  tasks: ['work', 'observation', 'expense', 'harvest'],
+  photos: ['observation', 'work', 'expense', 'harvest'],
+  home: ['work', 'observation', 'expense', 'harvest'],
 };
 
 const flattenMoves = (groups: readonly CaptureMenuGroup[]): CaptureMove[] =>
