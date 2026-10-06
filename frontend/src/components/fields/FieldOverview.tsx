@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  AlertTriangle,
   BookOpen,
   ChevronRight,
   Droplets,
@@ -45,9 +44,7 @@ const FieldOverview: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation(['fields', 'chronologio']);
   const { formatRelativeTime, formatDate } = useLocaleFormatters();
-  const attention = overview?.current.primaryAttention;
   const latest = overview?.current.latestRecord;
-  const hasAttention = Boolean(attention && attention.severity === 'warning');
   const showMap = field.capabilities?.canViewEnvironmentalData !== false;
   const showHistory = field.capabilities?.canViewChronologio !== false && Boolean(overview);
   const weatherView = presentGroveWeather({ field: weather });
@@ -78,36 +75,13 @@ const FieldOverview: React.FC<Props> = ({
     <div className="field-overview field-overview--v2">
       <GroveEnrichmentCards field={field} canEdit={canEdit} />
 
-      {hasAttention && attention ? (
-        <section className="field-priority-card field-priority-card--warn" aria-labelledby="field-priority-title">
-          <span className="field-priority-icon" aria-hidden>
-            <AlertTriangle size={20} strokeWidth={2.1} />
-          </span>
-          <div className="field-priority-main">
-            <p className="field-priority-kicker">{t('overview.priority.needsNow')}</p>
-            <h2 id="field-priority-title">{attention.label}</h2>
-            {attention.detail ? <p className="field-priority-detail">{attention.detail}</p> : null}
-          </div>
-          {attention.href ? (
-            <div className="field-priority-actions">
-              <Link className="field-overview-cta field-overview-cta--primary" to={attention.href}>
-                {t('overview.priority.open')}
-                <ChevronRight size={16} aria-hidden />
-              </Link>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
       <section className="field-today-strip" aria-labelledby="field-today-strip-title">
         <h2 id="field-today-strip-title" className="field-overview-kicker">
           {t('overview.weather.today')}
         </h2>
         {weatherLine ? <p className="field-today-weather">{weatherLine}</p> : null}
         <p className="field-today-task">
-          {hasAttention && attention
-            ? attention.label
-            : t('overview.today.noTask', { defaultValue: 'Καμία εργασία σήμερα' })}
+          {t('overview.today.noTask', { defaultValue: 'Καμία εργασία σήμερα' })}
         </p>
         {latest ? (
           <p className="field-today-last">

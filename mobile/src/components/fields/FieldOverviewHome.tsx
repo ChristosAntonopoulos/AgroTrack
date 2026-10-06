@@ -7,7 +7,6 @@ import type { FieldOverviewDto } from '../../services/fieldOverviewService';
 import type { FieldWeather } from '../../services/geospatialService';
 import type { FieldTask } from '../../services/fieldWorkService';
 import type { ChronologioEntry } from '../../services/chronologioService';
-import type { FieldAttentionModel } from '../../utils/fieldOverviewAttention';
 import { presentGroveWeather } from '../../weather/presentGroveWeather';
 import { formatRelativeTime, numberLocaleFor } from '../../utils/fieldDisplay';
 import { useTheme } from '../../context/ThemeContext';
@@ -38,7 +37,6 @@ type Props = {
   weather: FieldWeather | null;
   tasks: FieldTask[];
   recentEntries: ChronologioEntry[];
-  attention: FieldAttentionModel | null;
   canEdit: boolean;
   canViewMap: boolean;
   canViewMoney: boolean;
@@ -53,7 +51,6 @@ type Props = {
   onSeeFinance: () => void;
   onPeople: () => void;
   onMyOil: () => void;
-  onAttention?: () => void;
 };
 
 /**
@@ -65,7 +62,6 @@ const FieldOverviewHome: React.FC<Props> = ({
   weather,
   tasks,
   recentEntries,
-  attention,
   canEdit,
   canViewMap,
   canViewMoney,
@@ -79,13 +75,11 @@ const FieldOverviewHome: React.FC<Props> = ({
   onSeeFinance,
   onPeople,
   onMyOil,
-  onAttention,
 }) => {
   const { t, i18n } = useTranslation(['fields', 'chronologio']);
   const { colors, tapMin } = useTheme();
   const locale = numberLocaleFor(i18n.language);
   const weatherView = presentGroveWeather({ field: weather });
-  const hasAlert = Boolean(attention && attention.kind !== 'none' && attention.id !== 'draft');
 
   const weatherLine =
     weatherView.mood === 'missing'
@@ -118,36 +112,6 @@ const FieldOverviewHome: React.FC<Props> = ({
   return (
     <View style={styles.root}>
       <GroveEnrichmentCards field={field} canEdit={canEdit} />
-
-      {hasAlert && attention ? (
-        <Pressable
-          onPress={onAttention}
-          style={({ pressed }) => [
-            styles.alert,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.warning || colors.accentGold,
-              opacity: pressed ? 0.94 : 1,
-              minHeight: Math.max(52, tapMin),
-              ...createElevation(colors, 'sm'),
-            },
-          ]}
-          accessibilityRole="button"
-        >
-          <View style={[styles.alertIcon, { backgroundColor: colors.warningLight || colors.primaryLight }]}>
-            <Ionicons name="warning-outline" size={18} color={colors.warning || colors.accentGold} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={[styles.kicker, { color: colors.warning || colors.accentGold }]}>
-              {t('fields:overview.priority.needsNow', { defaultValue: 'Χρειάζεται τώρα' })}
-            </Text>
-            <Text style={[styles.alertTitle, { color: colors.textPrimary }]} numberOfLines={2}>
-              {attention.title}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-        </Pressable>
-      ) : null}
 
       <View style={styles.today}>
         <Text style={[styles.kicker, { color: colors.textTertiary }]}>
@@ -334,22 +298,6 @@ const styles = StyleSheet.create({
   today: { gap: 3, paddingHorizontal: 2 },
   weatherRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   weather: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3, flex: 1 },
-  alert: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: radii.card,
-    borderWidth: 1.5,
-    padding: 12,
-  },
-  alertIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  alertTitle: { fontSize: 15, fontWeight: '700' },
   mapCard: {
     borderRadius: radii.card,
     borderWidth: StyleSheet.hairlineWidth,

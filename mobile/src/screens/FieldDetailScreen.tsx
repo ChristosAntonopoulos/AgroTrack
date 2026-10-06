@@ -356,10 +356,6 @@ const FieldDetailScreen = () => {
       ? 'en'
       : 'el';
   const readyArea = formatFieldArea(field, areaLocale);
-  const showAttentionNudge =
-    attention &&
-    attention.kind !== 'none' &&
-    attention.id !== 'draft';
 
   return (
     <ScreenLayout scroll contentContainerStyle={styles.scrollBody}>
@@ -429,7 +425,6 @@ const FieldDetailScreen = () => {
             weather={weather}
             tasks={tasks}
             recentEntries={recentEntries}
-            attention={attention}
             canEdit={Boolean(canOwn)}
             canViewMap={gates.canViewMap}
             canViewMoney={gates.canViewMoney}
@@ -444,24 +439,6 @@ const FieldDetailScreen = () => {
             onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id, year })}
             onPeople={() => navigation.navigate('Partners', { fieldId: field.id })}
             onMyOil={() => navigation.navigate('MyOil', { field: field.id })}
-            onAttention={
-              showAttentionNudge
-                ? () => {
-                    if (attention?.taskId) {
-                      navigation.navigate('TaskDetail', { taskId: attention.taskId });
-                      return;
-                    }
-                    if (attention?.kind === 'weatherReschedule') {
-                      setTab('weather');
-                      return;
-                    }
-                    navigation.navigate('Main', {
-                      screen: 'Tasks',
-                      params: { fieldId: field.id, year: String(year) },
-                    });
-                  }
-                : undefined
-            }
           />
         </View>
       ) : null}
