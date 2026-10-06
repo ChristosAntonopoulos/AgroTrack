@@ -170,7 +170,7 @@
     "androidTestTitle": "Δοκιμή Android (προχωρημένοι)",
     "download": "Λήψη δοκιμαστικού APK Android",
     "downloadHint": "Προαιρετική εγκατάσταση. Οι περισσότεροι ξεκινούν από το web.",
-    "safetyWhy": "Η έκδοση είναι υπογεγραμμένη και φιλοξενείται μόνο στο The Olive Lot.com. Το Android θα προειδοποιήσει για άγνωστη πηγή — φυσιολογικό πριν το Play Store.",
+    "safetyWhy": "Η έκδοση είναι υπογεγραμμένη και φιλοξενείται μόνο στο theolivelot.com. Το Android θα προειδοποιήσει για άγνωστη πηγή — φυσιολογικό πριν το Play Store.",
     "version": "Έκδοση",
     "versionValue": "0.1.0-alpha",
     "released": "Ημερομηνία",
@@ -184,7 +184,7 @@
       "Ανοίξτε το The Olive Lot.",
       "Δημιουργήστε λογαριασμό ή συνδεθείτε."
     ],
-    "safety": "Εγκαταστήστε μόνο από το The Olive Lot.com."
+    "safety": "Εγκαταστήστε μόνο από το theolivelot.com."
   },
   "footer": {
     "description": "Από το χωράφι μέχρι τον τενεκέ.",

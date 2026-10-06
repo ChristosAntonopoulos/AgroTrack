@@ -81,7 +81,7 @@ public class FieldPeopleInviteIdentityTests
                 Modules = ["chronologio", "photos"],
                 AccessLevel = "view"
             },
-            "https://app.oleachron.app");
+            "https://theolivelot.com");
 
         Assert.True(result.InviteeHasAccount);
         Assert.Equal("user-elena", result.TargetUserId);

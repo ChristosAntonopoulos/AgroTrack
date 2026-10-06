@@ -492,12 +492,18 @@
     "name": "Name",
     "email": "Email",
     "phone": "Phone",
-    "customize": "Customize access",
+    "customize": "Customize",
+    "resetPreset": "Reset role",
+    "accessSummary": "What this role gives",
+    "customizedHint": "You changed area exceptions. The simple role stays as the base.",
+    "customizedShort": "customized",
+    "baselineLimitsShort": "They cannot invite others, change the grove, or become the owner.",
     "relationshipTitle": "Relationship",
+    "relationshipPickHint": "Choose one.",
     "actionTitle": "What they can do",
-    "actionHint": "Pick one of three simple levels.",
+    "actionHint": "Pick one simple role. Customize only if you need an exception.",
     "areasTitle": "Grove areas",
-    "areasHint": "Open the parts of the app they need on this grove.",
+    "areasHint": "Open or close areas only when you need an exception.",
     "moduleClosed": "Closed — they cannot open this part.",
     "oilNote": "Oil follows the grove and harvest. It has no separate permission.",
     "capability": {
@@ -505,6 +511,20 @@
       "record": "Can view and record",
       "work": "Can record and manage tasks",
       "help": "Can update tasks"
+    },
+    "presetSummary": {
+      "view": {
+        "areas": "Sees History, tasks, photos, and harvest.",
+        "limits": "Does not add records or manage tasks."
+      },
+      "record": {
+        "areas": "Sees and records in History, photos, and harvest.",
+        "limits": "Does not manage tasks."
+      },
+      "work": {
+        "areas": "Records and works with tasks, History, photos, and harvest.",
+        "limits": "Cannot invite others or change the grove."
+      }
     },
     "moduleEffect": {
       "fields": {
@@ -595,13 +615,13 @@
       "view": "View only",
       "record": "View and record",
       "help": "Update tasks",
-      "work": "Record and manage tasks"
+      "work": "Task collaborator"
     },
     "presetHint": {
       "view": "Sees the information you choose.",
       "record": "Can also add ordinary records.",
       "help": "Updates tasks. Does not add new records.",
-      "work": "Can record and work with tasks."
+      "work": "Records and manages tasks."
     },
     "modules": {
       "chronologio": "History",
@@ -614,10 +634,15 @@
     },
     "steps": {
       "1": { "title": "Who are you adding?", "hint": "Name and mobile or email." },
-      "2": { "title": "Which groves?", "hint": "The current grove is already selected; add more if needed." },
-      "3": { "title": "What can they do?", "hint": "Pick a relationship and one of three simple levels." },
-      "4": { "title": "Review", "hint": "Check and send the invitation." },
-      "5": { "title": "Review", "hint": "Check and send the invitation." }
+      "2": {
+        "title": "What access do they get?",
+        "hint": "Relationship, a simple role, and groves if needed.",
+        "groves": "Groves",
+        "grovesHint": "The current grove is already selected; add more if you want."
+      },
+      "3": { "title": "Review and send", "hint": "Check and send the invitation." },
+      "4": { "title": "Review and send", "hint": "Check and send the invitation." },
+      "5": { "title": "Review and send", "hint": "Check and send the invitation." }
     }
   }
 }

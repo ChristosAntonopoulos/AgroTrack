@@ -1,5 +1,8 @@
 .notification-bell-container {
   position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .notification-bell {
@@ -7,31 +10,34 @@
   background: none;
   border: none;
   color: var(--color-text-primary);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   cursor: pointer;
-  padding: var(--spacing-sm);
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0.35rem;
   border-radius: var(--radius-md);
   transition: background var(--transition-base);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 .notification-bell:hover {
-  background: var(--color-surface-hover);
+  background: var(--color-surface-hover, var(--surface-hover, var(--bg-hover)));
 }
 
 .notification-bell-count {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 2px;
+  right: 2px;
   background: var(--color-error);
   color: var(--color-text-inverse);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 2px 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
   border-radius: var(--radius-full);
-  min-width: 18px;
+  min-width: 16px;
+  line-height: 1.25;
   text-align: center;
-  line-height: 1.2;
+  pointer-events: none;
 }

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check } from 'lucide-react';
 import Button from '../Common/Button';
 import PartnersSheet from '../Partners/PartnersSheet';
-import FieldPermissionPanel from './FieldPermissionPanel';
+import FieldPermissionPanel, { modulesMatchPreset } from './FieldPermissionPanel';
 import {
   FieldAccessLevel,
   FieldModule,
@@ -133,24 +132,29 @@ const EditAccessSheet: React.FC<Props> = ({
       <section className="perm-section">
         <h3 className="perm-label">{t('partners:peoplePage.grovesWithAccess')}</h3>
         {memberships.length > 1 ? (
-          <ul className="invite-option-list">
+          <ul className="invite-option-list" role="radiogroup" aria-label={t('partners:peoplePage.grovesWithAccess')}>
             {memberships.map((row) => {
               const on = row.fieldId === fieldId;
+              const rowChoice = choiceFromAccess(row.accessLevel, row.modules);
               return (
                 <li key={row.fieldId}>
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={on}
                     className={`invite-option${on ? ' is-on' : ''}`}
-                    aria-pressed={on}
                     onClick={() => loadField(row.fieldId)}
                   >
+                    <span className={`perm-radio-dot${on ? ' is-on' : ''}`} aria-hidden />
                     <span className="invite-option-copy">
                       <strong>{row.fieldName}</strong>
                       <span>
-                        {t(`partners:peoplePage.capability.${choiceFromAccess(row.accessLevel, row.modules) || 'help'}`)}
+                        {t(`partners:peoplePage.capability.${rowChoice || 'help'}`)}
+                        {rowChoice && !modulesMatchPreset(rowChoice, row.modules)
+                          ? ` · ${t('partners:peoplePage.customizedShort')}`
+                          : ''}
                       </span>
                     </span>
-                    {on ? <Check size={18} aria-hidden /> : null}
                   </button>
                 </li>
               );
@@ -162,23 +166,31 @@ const EditAccessSheet: React.FC<Props> = ({
       </section>
 
       <section className="perm-section">
-        <h3 className="perm-label">{t('partners:peoplePage.relationshipTitle')}</h3>
-        <div className="perm-choice-list">
+        <h3 className="perm-label" id="edit-relationship-label">
+          {t('partners:peoplePage.relationshipTitle')}
+        </h3>
+        <p className="perm-hint">{t('partners:peoplePage.relationshipPickHint')}</p>
+        <div
+          className="perm-choice-list"
+          role="radiogroup"
+          aria-labelledby="edit-relationship-label"
+        >
           {(['Family', 'Collaborator'] as const).map((option) => {
             const selectedRole = role === option;
             return (
               <button
                 key={option}
                 type="button"
+                role="radio"
+                aria-checked={selectedRole}
                 className={`perm-choice${selectedRole ? ' is-on' : ''}`}
-                aria-pressed={selectedRole}
                 onClick={() => setRole(option)}
               >
+                <span className={`perm-radio-dot${selectedRole ? ' is-on' : ''}`} aria-hidden />
                 <span className="perm-choice-copy">
                   <strong>{t(`partners:peoplePage.relationship.${option}`)}</strong>
                   <span>{t(`partners:peoplePage.relationshipHint.${option}`)}</span>
                 </span>
-                {selectedRole ? <Check size={18} aria-hidden /> : null}
               </button>
             );
           })}
@@ -186,6 +198,7 @@ const EditAccessSheet: React.FC<Props> = ({
       </section>
 
       <FieldPermissionPanel
+        key={`${fieldId}-${current.accessLevel}-${pickedPreset ? 'picked' : 'legacy'}`}
         choice={choice}
         modules={selected}
         role={role === 'Collaborator' ? 'Partner' : 'Family'}

@@ -36,7 +36,7 @@ public sealed class SmtpEmailSender : IEmailSender
         var port = int.TryParse(_configuration["Email:SmtpPort"], out var parsedPort) ? parsedPort : 587;
         var enableSsl = !string.Equals(_configuration["Email:EnableSsl"], "false", StringComparison.OrdinalIgnoreCase);
         var fromAddress = string.IsNullOrWhiteSpace(_configuration["Email:FromAddress"])
-            ? "hello@The Olive Lot.app"
+            ? "hello@theolivelot.com"
             : _configuration["Email:FromAddress"]!;
         var fromName = string.IsNullOrWhiteSpace(_configuration["Email:FromName"])
             ? "The Olive Lot"

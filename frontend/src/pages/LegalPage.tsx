@@ -26,7 +26,7 @@ const LegalPage: React.FC<{ kind: Kind }> = ({ kind }) => {
         ))}
         <p>
           {t('contact')}{' '}
-          <a href="mailto:hello@The Olive Lot.com">hello@The Olive Lot.com</a>
+          <a href="mailto:hello@theolivelot.com">hello@theolivelot.com</a>
         </p>
         <p>
           <Link to="/">{t('back')}</Link>

@@ -30,7 +30,9 @@ public class MeManagedPeopleController : BaseApiController
     [HttpGet("managed-people")]
     public async Task<ActionResult<ManagedPeopleDto>> GetManagedPeople(CancellationToken cancellationToken)
     {
-        var baseUrl = _configuration["App:PublicUrl"] ?? Request.Headers.Origin.FirstOrDefault();
+        var baseUrl = _configuration["App:PublicWebBaseUrl"]
+            ?? _configuration["App:PublicUrl"]
+            ?? Request.Headers.Origin.FirstOrDefault();
         var people = await _people.GetManagedPeopleAsync(UserContext.UserId, baseUrl, cancellationToken);
         return OkResult(people);
     }
@@ -43,7 +45,9 @@ public class MeManagedPeopleController : BaseApiController
         [FromBody] CreateMultiFieldInviteDto dto,
         CancellationToken cancellationToken)
     {
-        var baseUrl = _configuration["App:PublicUrl"] ?? Request.Headers.Origin.FirstOrDefault();
+        var baseUrl = _configuration["App:PublicWebBaseUrl"]
+            ?? _configuration["App:PublicUrl"]
+            ?? Request.Headers.Origin.FirstOrDefault();
         var invites = await _people.CreateInvitesAsync(UserContext.UserId, dto, baseUrl, cancellationToken);
         return OkResult(invites);
     }
@@ -52,7 +56,9 @@ public class MeManagedPeopleController : BaseApiController
     [HttpGet("invites/pending")]
     public async Task<ActionResult<IReadOnlyList<FieldInviteDto>>> GetPendingInvites(CancellationToken cancellationToken)
     {
-        var baseUrl = _configuration["App:PublicUrl"] ?? Request.Headers.Origin.FirstOrDefault();
+        var baseUrl = _configuration["App:PublicWebBaseUrl"]
+            ?? _configuration["App:PublicUrl"]
+            ?? Request.Headers.Origin.FirstOrDefault();
         var invites = await _people.GetPendingInvitesForUserAsync(UserContext.UserId, baseUrl, cancellationToken);
         return OkResult(invites);
     }

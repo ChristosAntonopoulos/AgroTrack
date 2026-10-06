@@ -46,8 +46,8 @@ public class FeedbackServiceTests
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Feedback:InboxEmail"] = "product@oleachron.app",
-                ["Email:FromAddress"] = "hello@oleachron.app"
+                ["Feedback:InboxEmail"] = "product@theolivelot.com",
+                ["Email:FromAddress"] = "hello@theolivelot.com"
             })
             .Build();
 
@@ -67,7 +67,7 @@ public class FeedbackServiceTests
         var result = await _service.SubmitAsync("user-1", "FieldOwner", new SubmitFeedbackRequest
         {
             Comment = "The harvest map is hard to read on a phone.",
-            PageUrl = "https://app.oleachron.app/harvest"
+            PageUrl = "https://theolivelot.com/harvest"
         });
 
         Assert.Equal("fb-1", result.Id);
@@ -79,7 +79,7 @@ public class FeedbackServiceTests
             f.Comment.Contains("harvest map") &&
             f.PageUrl!.Contains("/harvest")), It.IsAny<CancellationToken>()), Times.Once);
         _email.Verify(e => e.SendAsync(
-            "product@oleachron.app",
+            "product@theolivelot.com",
             It.Is<string>(s => s.Contains("Maria Grove")),
             It.Is<string>(b => b.Contains("harvest map") && b.Contains("grower@test.com")),
             It.IsAny<CancellationToken>()), Times.Once);

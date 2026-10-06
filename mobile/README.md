@@ -37,7 +37,7 @@ APK lands in `../frontend/public/downloads/`.
 | Script | Role |
 |--------|------|
 | `scripts/build-and-stage-apk.sh` | **Atomic** build + stage (use this in pipeline) |
-| `scripts/build-android-apk.sh` | Gradle release APK → `mobile/Oleachron-mobile.apk` |
+| `scripts/build-android-apk.sh` | Gradle release APK → `mobile/theolivelot.apk` |
 | `scripts/stage-apk-for-frontend.js` | Copy to `frontend/public/downloads/` + `latest.json` |
 
 Do not run staging alone in Azure DevOps without the build step.

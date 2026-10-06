@@ -1,9 +1,12 @@
 .harvest-header-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   gap: 0.45rem;
   min-height: 40px;
-  padding: 0.3rem 0.85rem 0.3rem 0.7rem;
+  height: 40px;
+  padding: 0 0.85rem 0 0.7rem;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--harvest-gold, #9A6B32) 55%, var(--color-border));
   background: var(--surface-1, var(--bg-card));

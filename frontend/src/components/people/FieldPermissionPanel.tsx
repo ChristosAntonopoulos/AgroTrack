@@ -1,17 +1,11 @@
-import React, { useId, useMemo } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check } from 'lucide-react';
-import { FieldAccessLevel, FieldModule } from '../../services/fieldPeopleService';
+import { FieldModule } from '../../services/fieldPeopleService';
 import {
   AccessChoice,
-  levelForChoice,
   modulesForChoice,
 } from '../../people/aggregatePeople';
-import {
-  PICKABLE_MODULES,
-  PreviewLine,
-  buildAccessPreview,
-} from '../Partners/accessPreview';
+import { PICKABLE_MODULES } from '../Partners/accessPreview';
 
 type Props = {
   choice: AccessChoice | null;
@@ -27,6 +21,12 @@ type Props = {
 
 const CHOICES: AccessChoice[] = ['view', 'record', 'work'];
 
+const sortedKey = (modules: FieldModule[]) =>
+  [...modules].filter((module) => PICKABLE_MODULES.includes(module)).sort().join(',');
+
+export const modulesMatchPreset = (choice: AccessChoice, modules: FieldModule[]) =>
+  sortedKey(modules) === sortedKey(modulesForChoice(choice));
+
 const moduleEffectKey = (module: FieldModule, choice: AccessChoice | null): string => {
   if (!choice) return `partners:peoplePage.moduleEffect.${module}.off`;
   if (choice === 'view') return `partners:peoplePage.moduleEffect.${module}.view`;
@@ -35,49 +35,37 @@ const moduleEffectKey = (module: FieldModule, choice: AccessChoice | null): stri
 };
 
 /**
- * Grove permission editor: action depth + every product area + live can/cannot summary.
+ * Simple access picker: one preset, a clear summary, optional area exceptions.
  */
 const FieldPermissionPanel: React.FC<Props> = ({
   choice,
   modules,
-  role = 'Family',
   legacyHelp = false,
-  previewMode = 'edit',
   onPickChoice,
   onChangeModules,
 }) => {
   const { t } = useTranslation(['partners', 'common']);
   const uid = useId();
   const actionId = `${uid}-action`;
+  const summaryId = `${uid}-summary`;
   const areasId = `${uid}-areas`;
-  const previewId = `${uid}-preview`;
+  const activeChoice = choice || 'view';
+  const customized = Boolean(choice) && !modulesMatchPreset(activeChoice, modules);
+  const [customizeOpen, setCustomizeOpen] = useState(customized || legacyHelp);
 
-  const accessLevel: FieldAccessLevel = legacyHelp ? 'help' : levelForChoice(choice || 'view');
-  const preview = useMemo(
-    () => buildAccessPreview(role, modules, accessLevel),
-    [accessLevel, modules, role]
-  );
-  const canLines = preview.filter((line) => line.kind === 'can');
-  const cannotLines = preview.filter(
-    (line) =>
-      line.kind === 'cannot' &&
-      line.key !== 'family.preview.cannotSeeModuleData' &&
-      line.key !== 'family.preview.cannotOpen' &&
-      line.key !== 'family.preview.cannotDeleteOthers' &&
-      line.key !== 'family.preview.cannotManageAccess'
-  );
-  const closed = preview.filter(
-    (line) =>
-      (line.key === 'family.preview.cannotSeeModuleData' ||
-        line.key === 'family.preview.cannotOpen') &&
-      line.module
-  );
+  const summaryLines = useMemo(() => {
+    const key = activeChoice;
+    return [
+      t(`partners:peoplePage.capability.${key}`),
+      t(`partners:peoplePage.presetSummary.${key}.areas`),
+      t(`partners:peoplePage.presetSummary.${key}.limits`),
+    ];
+  }, [activeChoice, t]);
 
   const applyPreset = (next: AccessChoice) => {
-    const seeded = modulesForChoice(next);
-    const keepMoney = modules.includes('money') ? (['money'] as FieldModule[]) : [];
     onPickChoice(next);
-    onChangeModules([...seeded, ...keepMoney.filter((module) => !seeded.includes(module))]);
+    onChangeModules(modulesForChoice(next));
+    setCustomizeOpen(false);
   };
 
   const toggleModule = (module: FieldModule) => {
@@ -86,8 +74,11 @@ const FieldPermissionPanel: React.FC<Props> = ({
     );
   };
 
-  const lineLabel = (line: PreviewLine) =>
-    t(line.key, line.module ? { module: t(`partners:peoplePage.modules.${line.module}`) } : undefined);
+  const resetPreset = () => {
+    if (!choice) return;
+    onChangeModules(modulesForChoice(choice));
+    setCustomizeOpen(false);
+  };
 
   return (
     <div className="perm-panel">
@@ -110,88 +101,94 @@ const FieldPermissionPanel: React.FC<Props> = ({
                 className={`perm-choice${selected ? ' is-on' : ''}`}
                 onClick={() => applyPreset(option)}
               >
+                <span className={`perm-radio-dot${selected ? ' is-on' : ''}`} aria-hidden />
                 <span className="perm-choice-copy">
                   <strong>{t(`partners:peoplePage.preset.${option}`)}</strong>
                   <span>{t(`partners:peoplePage.presetHint.${option}`)}</span>
                 </span>
-                {selected ? <Check size={18} aria-hidden /> : null}
               </button>
             );
           })}
         </div>
       </section>
 
-      <section className="perm-section" aria-labelledby={areasId}>
-        <h3 className="perm-label" id={areasId}>
-          {t('partners:peoplePage.areasTitle')}
+      <section className="perm-preview" aria-labelledby={summaryId} aria-live="polite">
+        <h3 className="perm-label" id={summaryId}>
+          {t('partners:peoplePage.accessSummary')}
         </h3>
-        <p className="perm-hint">{t('partners:peoplePage.areasHint')}</p>
-        <ul className="perm-module-list">
-          {PICKABLE_MODULES.map((module) => {
-            const on = modules.includes(module);
-            return (
-              <li key={module}>
-                <button
-                  type="button"
-                  className={`perm-module${on ? ' is-on' : ''}`}
-                  aria-pressed={on}
-                  onClick={() => toggleModule(module)}
-                >
-                  <span className={`perm-check${on ? ' is-on' : ''}`} aria-hidden>
-                    {on ? <Check size={14} strokeWidth={3} /> : null}
-                  </span>
-                  <span className="perm-module-copy">
-                    <strong>{t(`partners:peoplePage.modules.${module}`)}</strong>
-                    <span>
-                      {on
-                        ? t(moduleEffectKey(module, choice || 'view'))
-                        : t('partners:peoplePage.moduleClosed')}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
+        <ul className="perm-preview-can">
+          {summaryLines.map((line) => (
+            <li key={line}>
+              <span className="perm-summary-bullet" aria-hidden />
+              <span>{line}</span>
+            </li>
+          ))}
         </ul>
-        <p className="perm-footnote">{t('partners:peoplePage.oilNote')}</p>
+        {customized ? (
+          <p className="perm-limits">{t('partners:peoplePage.customizedHint')}</p>
+        ) : (
+          <p className="perm-footnote">{t('partners:peoplePage.baselineLimitsShort')}</p>
+        )}
       </section>
 
-      <section className="perm-preview" aria-labelledby={previewId} aria-live="polite">
-        <h3 className="perm-label" id={previewId}>
-          {t(
-            previewMode === 'invite'
-              ? 'partners:family.preview.title'
-              : 'partners:family.preview.titleEdit'
-          )}
-        </h3>
-        {canLines.length > 0 ? (
-          <ul className="perm-preview-can">
-            {canLines.map((line) => (
-              <li key={line.id}>
-                <Check size={13} strokeWidth={3} aria-hidden />
-                <span>{lineLabel(line)}</span>
-              </li>
-            ))}
-          </ul>
+      <div className="perm-customize">
+        {!customizeOpen ? (
+          <button
+            type="button"
+            className="people-text-button"
+            onClick={() => setCustomizeOpen(true)}
+          >
+            {t('partners:peoplePage.customize')}
+          </button>
         ) : (
-          <p className="perm-empty">{t('partners:family.preview.nothingSelected')}</p>
+          <section className="perm-section" aria-labelledby={areasId}>
+            <div className="perm-customize-head">
+              <h3 className="perm-label" id={areasId}>
+                {t('partners:peoplePage.customize')}
+              </h3>
+              <div className="perm-customize-actions">
+                {customized ? (
+                  <button type="button" className="people-text-button" onClick={resetPreset}>
+                    {t('partners:peoplePage.resetPreset')}
+                  </button>
+                ) : null}
+                <button type="button" className="people-text-button" onClick={() => setCustomizeOpen(false)}>
+                  {t('common:done', { defaultValue: 'Done' })}
+                </button>
+              </div>
+            </div>
+            <p className="perm-hint">{t('partners:peoplePage.areasHint')}</p>
+            <ul className="perm-module-list">
+              {PICKABLE_MODULES.map((module) => {
+                const on = modules.includes(module);
+                return (
+                  <li key={module}>
+                    <button
+                      type="button"
+                      className={`perm-module${on ? ' is-on' : ''}`}
+                      aria-pressed={on}
+                      onClick={() => toggleModule(module)}
+                    >
+                      <span className={`perm-check${on ? ' is-on' : ''}`} aria-hidden>
+                        {on ? '✓' : null}
+                      </span>
+                      <span className="perm-module-copy">
+                        <strong>{t(`partners:peoplePage.modules.${module}`)}</strong>
+                        <span>
+                          {on
+                            ? t(moduleEffectKey(module, choice || 'view'))
+                            : t('partners:peoplePage.moduleClosed')}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="perm-footnote">{t('partners:peoplePage.oilNote')}</p>
+          </section>
         )}
-        {closed.length > 0 ? (
-          <p className="perm-closed">
-            {t('partners:family.preview.closedModules', {
-              list: closed.map((line) => t(`partners:peoplePage.modules.${line.module}`)).join(' · '),
-            })}
-          </p>
-        ) : null}
-        {cannotLines.length > 0 ? (
-          <p className="perm-limits">
-            {t('partners:family.preview.extraLimits', {
-              list: cannotLines.map((line) => lineLabel(line)).join(' · '),
-            })}
-          </p>
-        ) : null}
-        <p className="perm-footnote">{t('partners:family.preview.baselineLimits')}</p>
-      </section>
+      </div>
     </div>
   );
 };

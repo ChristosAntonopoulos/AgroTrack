@@ -153,7 +153,11 @@ const RootNavigator = () => {
       onStateChange={(state) => setFocusedRoute(getFocusedRoute(state))}
       theme={navTheme}
       linking={{
-        prefixes: ['oleachron://', 'https://app.oleachron.app'],
+        prefixes: [
+          'theolivelot://',
+          'https://theolivelot.com',
+          'https://www.theolivelot.com',
+        ],
         config: {
           screens: {
             InviteAccept: 'invite/:token',

@@ -16,7 +16,7 @@ public class FieldInvite : BaseEntity
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public string? DisplayName { get; set; }
-    /// <summary>Set when the invite email already belongs to an Oleachron account.</summary>
+    /// <summary>Set when the invite email already belongs to a The Olive Lot account.</summary>
     public string? TargetUserId { get; set; }
     public string Status { get; set; } = "pending";
     public DateTime ExpiresAt { get; set; }

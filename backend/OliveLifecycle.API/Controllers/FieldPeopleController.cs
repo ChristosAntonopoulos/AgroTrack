@@ -65,7 +65,9 @@ public class FieldPeopleController : BaseApiController
         [FromBody] CreateFieldInviteDto dto,
         CancellationToken cancellationToken)
     {
-        var baseUrl = _configuration["App:PublicUrl"] ?? Request.Headers.Origin.FirstOrDefault();
+        var baseUrl = _configuration["App:PublicWebBaseUrl"]
+            ?? _configuration["App:PublicUrl"]
+            ?? Request.Headers.Origin.FirstOrDefault();
         var invite = await _peopleService.CreateInviteAsync(fieldId, UserContext.UserId, dto, baseUrl, cancellationToken);
         return OkResult(invite);
     }
@@ -73,7 +75,9 @@ public class FieldPeopleController : BaseApiController
     [HttpGet("invites")]
     public async Task<ActionResult<IReadOnlyList<FieldInviteDto>>> GetInvites(string fieldId, CancellationToken cancellationToken)
     {
-        var baseUrl = _configuration["App:PublicUrl"] ?? Request.Headers.Origin.FirstOrDefault();
+        var baseUrl = _configuration["App:PublicWebBaseUrl"]
+            ?? _configuration["App:PublicUrl"]
+            ?? Request.Headers.Origin.FirstOrDefault();
         var invites = await _peopleService.GetInvitesAsync(fieldId, UserContext.UserId, baseUrl, cancellationToken);
         return OkResult(invites);
     }
@@ -84,7 +88,9 @@ public class FieldPeopleController : BaseApiController
         string inviteId,
         CancellationToken cancellationToken)
     {
-        var baseUrl = _configuration["App:PublicUrl"] ?? Request.Headers.Origin.FirstOrDefault();
+        var baseUrl = _configuration["App:PublicWebBaseUrl"]
+            ?? _configuration["App:PublicUrl"]
+            ?? Request.Headers.Origin.FirstOrDefault();
         var invite = await _peopleService.ResendInviteAsync(fieldId, UserContext.UserId, inviteId, baseUrl, cancellationToken);
         return OkResult(invite);
     }

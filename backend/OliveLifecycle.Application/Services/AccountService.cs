@@ -14,7 +14,7 @@ namespace OliveLifecycle.Application.Services;
 
 public class AccountService : IAccountService
 {
-    public const string DefaultSupportEmail = "support@The Olive Lot.com";
+    public const string DefaultSupportEmail = "support@theolivelot.com";
     private const int MinimumPasswordLength = 8;
     private const int EmailCodeHours = 1;
     private const int MaxNameLength = 80;
@@ -246,7 +246,7 @@ public class AccountService : IAccountService
         }
 
         var now = _clock.UtcNow;
-        user.Email = $"deleted.{user.Id}@deleted.The Olive Lot.invalid";
+        user.Email = $"deleted.{user.Id}@deleted.theolivelot.invalid";
         user.FirstName = null;
         user.LastName = null;
         user.PendingEmail = null;

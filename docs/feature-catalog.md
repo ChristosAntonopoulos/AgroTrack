@@ -6,7 +6,7 @@ This document is an inventory of product features that exist in the AgroTrack / 
 
 - **Experience modes (Everyday / Full) were retired on 2026-09-11.** The app uses a single UI (the former Full surface). Older “Modes: Everyday / Full” notes later in this catalog are historical and should be ignored.
 - **User types** are JWT roles plus field membership capacities and family-circle access. A page may be reachable by role in the nav, then further limited by field ownership, family modules, or capacity.
-- **Website** paths are React Router routes. **Mobile** names are React Navigation screen names (tabs and stacks). Deep-link paths use the `oleachron://` and `https://app.oleachron.app` prefixes.
+- **Website** paths are React Router routes. **Mobile** names are React Navigation screen names (tabs and stacks). Deep-link paths use the `theolivelot://` and `https://theolivelot.com` prefixes.
 - **Information shown** lists data fields, sections, widgets, and actions that the code renders. Form inputs are listed for create/edit screens.
 - If a feature exists on only one platform, that is stated.
 
@@ -87,7 +87,7 @@ Marketing site for the product. Unauthenticated. No experience mode.
   - FAQ: six accordion items (default open: item 1)
   - Bottom CTA: register + download
   - Footer: brand, version pill, product anchors, contact mailto, language, Privacy and Terms text (not linked)
-- Forms (demo modal): `name` (required), `email` (required), `org`, `message` — opens a mailto to `hello@oleachron.app`
+- Forms (demo modal): `name` (required), `email` (required), `org`, `message` — opens a mailto to `hello@theolivelot.com`
 
 ### Mobile
 
@@ -105,7 +105,7 @@ Sign-in, registration, and session expiry.
 - Purpose: Authenticate and route to role/mode home.
 - Who: Unauthenticated users. After success, `roleHomePath` is used.
 - Modes: Uses saved `experienceMode` only if `experienceModeChosen` is already true.
-- Information shown: `LoginHero` (eyebrow, title, subtitle, three feature items: Timeline, Costs, Knowledge); brand, tagline, title, subtitle; optional demo quick-login buttons when `showDemoLogin()` is true; error alert; security note; support mailto for forgot password (`hello@oleachron.app`); link to Register.
+- Information shown: `LoginHero` (eyebrow, title, subtitle, three feature items: Timeline, Costs, Knowledge); brand, tagline, title, subtitle; optional demo quick-login buttons when `showDemoLogin()` is true; error alert; security note; support mailto for forgot password (`hello@theolivelot.com`); link to Register.
 - Chrome: theme toggle (light/dark), language `en` / `el`.
 - Forms: `email`, `password` (show/hide). Submit logs in.
 - Invite pages send `/login?redirect=…`. **LoginPage does not read the `redirect` query param.** After login the user goes to `roleHomePath`, then `/experience` if mode is unchosen.

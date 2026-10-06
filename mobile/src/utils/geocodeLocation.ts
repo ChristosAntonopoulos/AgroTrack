@@ -36,7 +36,7 @@ type PhotonFeature = {
  * Nominatim rejects the Android HTTP stack's default `okhttp` user agent with 403.
  * A named agent is required by their usage policy and is what makes village search succeed.
  */
-const USER_AGENT = 'OleachronMobile/1.0 (grove place search)';
+const USER_AGENT = 'TheOliveLotMobile/1.0 (grove place search)';
 
 const uniqueParts = (parts: Array<string | undefined | null>): string[] => {
   const seen = new Set<string>();

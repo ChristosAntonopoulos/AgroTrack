@@ -26,7 +26,7 @@ const getCurrentUser = () => {
 };
 
 export const mockFieldService = {
-  getFields: async (module?: string): Promise<Field[]> => {
+  getFields: async (module?: string, status?: 'active' | 'archived' | 'all'): Promise<Field[]> => {
     await simulateDelay();
     demoStore.ensureSeeded();
     const fields = demoStore.getFields();
@@ -59,6 +59,13 @@ export const mockFieldService = {
 
     // Demo mode has no per-seat module matrix; module filter is a no-op identity filter.
     void module;
+
+    if (status === 'archived') {
+      list = list.filter((f) => f.status === 'Archived');
+    } else if (status !== 'all') {
+      list = list.filter((f) => f.status !== 'Archived');
+    }
+
     return list;
   },
 

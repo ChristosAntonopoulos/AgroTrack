@@ -28,8 +28,8 @@ const LegalScreen = () => {
         ))}
         <Text style={[styles.point, { color: colors.textSecondary }]}>
           {t('contact')}{' '}
-          <Text style={{ color: colors.link }} onPress={() => void Linking.openURL('mailto:hello@The Olive Lot.com')}>
-            hello@The Olive Lot.com
+          <Text style={{ color: colors.link }} onPress={() => void Linking.openURL('mailto:hello@theolivelot.com')}>
+            hello@theolivelot.com
           </Text>
         </Text>
         <Button title={t('back')} variant="outline" onPress={() => navigation.goBack()} />

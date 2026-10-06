@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "oleachron",
+    "scheme": "theolivelot",
     "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -17,7 +17,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.theolivelot.app",
       "associatedDomains": [
-        "applinks:app.oleachron.app"
+        "applinks:theolivelot.com",
+        "applinks:www.theolivelot.com"
       ],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show field locations on the map and provide weather information.",
@@ -42,17 +43,32 @@
           "data": [
             {
               "scheme": "https",
-              "host": "app.oleachron.app",
+              "host": "theolivelot.com",
               "pathPrefix": "/invite"
             },
             {
               "scheme": "https",
-              "host": "app.oleachron.app",
+              "host": "theolivelot.com",
               "pathPrefix": "/family-invite"
             },
             {
               "scheme": "https",
-              "host": "app.oleachron.app",
+              "host": "theolivelot.com",
+              "pathPrefix": "/partner-invite"
+            },
+            {
+              "scheme": "https",
+              "host": "www.theolivelot.com",
+              "pathPrefix": "/invite"
+            },
+            {
+              "scheme": "https",
+              "host": "www.theolivelot.com",
+              "pathPrefix": "/family-invite"
+            },
+            {
+              "scheme": "https",
+              "host": "www.theolivelot.com",
               "pathPrefix": "/partner-invite"
             }
           ],

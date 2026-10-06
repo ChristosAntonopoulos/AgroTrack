@@ -54,7 +54,7 @@ const SRC = {
     'on-dark': '/branding/mark-ivory.png?v=2',
   },
   favicon: '/branding/mark-ink.png?v=2',
-  appIcon: '/branding/app-icon.png?v=2',
+  appIcon: '/branding/app-icon.png?v=3',
 } as const;
 
 const BrandLogo: React.FC<Props> = ({

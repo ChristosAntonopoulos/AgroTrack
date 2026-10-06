@@ -66,7 +66,7 @@ public class FieldInviteDto
     public string WhatsAppUrl { get; set; } = string.Empty;
     public string? MailtoUrl { get; set; }
     public bool EmailSent { get; set; }
-    /// <summary>True when the invite email already has an Oleachron account.</summary>
+    /// <summary>True when the invite email already has a The Olive Lot account.</summary>
     public bool InviteeHasAccount { get; set; }
     public string? TargetUserId { get; set; }
     /// <summary>True when an in-app notification was queued for an existing invitee.</summary>

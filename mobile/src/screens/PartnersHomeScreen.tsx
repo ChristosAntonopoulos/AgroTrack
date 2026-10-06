@@ -33,7 +33,7 @@ import { spacing } from '../theme';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Partners'>;
 type Route = RouteProp<RootStackParamList, 'Partners'>;
 
-const FIELD_KEY = '@The Olive Lot/lastPartnerFieldId';
+const FIELD_KEY = '@Oleachron/lastPartnerFieldId';
 
 const PartnersHomeScreen = () => {
   const { t, i18n } = useTranslation(['partners', 'common', 'nav']);

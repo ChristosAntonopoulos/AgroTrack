@@ -170,7 +170,7 @@
     "androidTestTitle": "Android trial (advanced)",
     "download": "Download the Android trial APK",
     "downloadHint": "Optional install. Most people start on the web.",
-    "safetyWhy": "This build is signed and hosted only on The Olive Lot.com. Android will warn about an unknown source — that is normal before the Play Store.",
+    "safetyWhy": "This build is signed and hosted only on theolivelot.com. Android will warn about an unknown source — that is normal before the Play Store.",
     "version": "Version",
     "versionValue": "0.1.0-alpha",
     "released": "Date",
@@ -184,7 +184,7 @@
       "Open The Olive Lot.",
       "Create an account or sign in."
     ],
-    "safety": "Install only from The Olive Lot.com."
+    "safety": "Install only from theolivelot.com."
   },
   "footer": {
     "description": "From the field to the tin.",

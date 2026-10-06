@@ -131,7 +131,7 @@ public class FeedbackService : IFeedbackService
 
         if (string.IsNullOrWhiteSpace(inbox))
         {
-            inbox = "hello@The Olive Lot.app";
+            inbox = "hello@theolivelot.com";
         }
 
         var subject = $"The Olive Lot feedback from {feedback.UserName}";

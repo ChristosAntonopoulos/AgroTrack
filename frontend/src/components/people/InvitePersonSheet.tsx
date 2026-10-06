@@ -39,9 +39,8 @@ const looksLikeEmail = (value: string) => value.includes('@');
 const looksLikePhone = (value: string) => !looksLikeEmail(value) && /\d{6,}/.test(value.replace(/\s/g, ''));
 
 /**
- * Invite flow: Who → Groves (if needed) → What they can do → Review.
- * Contact is a single “mobile or email” field; a second field appears only when a
- * saved contact still needs a reach method for the invite.
+ * Invite flow: Who → Access → Review.
+ * Contact is a single “mobile or email” field.
  */
 const InvitePersonSheet: React.FC<Props> = ({
   open = true,
@@ -57,10 +56,9 @@ const InvitePersonSheet: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation(['partners', 'common']);
   const knownPerson = Boolean(initialEmail || initialPhone);
-  const skipGrove = fields.length <= 1;
-  // Logical steps: 1 who, 2 groves, 3 permissions (+ relationship), 4 review
-  const stepOrder = skipGrove ? [1, 3, 4] : [1, 2, 3, 4];
-  const openingStep = knownPerson ? (skipGrove ? 3 : 2) : 1;
+  const multiGrove = fields.length > 1;
+  const stepOrder = [1, 2, 3];
+  const openingStep = knownPerson ? 2 : 1;
   const [step, setStep] = useState(openingStep);
   const [mode, setMode] = useState<WhoMode>(
     initialEmail || initialPhone || initialName ? 'new' : contacts.length > 0 ? 'search' : 'new'
@@ -72,9 +70,11 @@ const InvitePersonSheet: React.FC<Props> = ({
   const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState(initialPhone);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
-  const [fieldIds, setFieldIds] = useState<string[]>(
-    initialFieldIds.filter((id) => fields.some((field) => field.id === id))
-  );
+  const [fieldIds, setFieldIds] = useState<string[]>(() => {
+    const seeded = initialFieldIds.filter((id) => fields.some((field) => field.id === id));
+    if (seeded.length > 0) return seeded;
+    return fields[0] ? [fields[0].id] : [];
+  });
   const [relationship, setRelationship] = useState<Relationship>('Collaborator');
   const [choice, setChoice] = useState<AccessChoice>('record');
   const [choiceTouched, setChoiceTouched] = useState(false);
@@ -202,7 +202,7 @@ const InvitePersonSheet: React.FC<Props> = ({
       if (typedPhone) setPhone(typedPhone);
       setFieldIds((current) => {
         const kept = current.filter((id) => !takenFieldIds.has(id));
-        if (skipGrove && kept.length === 0 && fields[0] && !takenFieldIds.has(fields[0].id)) {
+        if (kept.length === 0 && fields[0] && !takenFieldIds.has(fields[0].id)) {
           return [fields[0].id];
         }
         return kept;
@@ -262,7 +262,7 @@ const InvitePersonSheet: React.FC<Props> = ({
   return (
     <PartnersSheet
       open={open}
-      size={step >= 3 ? 'lg' : 'md'}
+      size={step >= 2 ? 'lg' : 'md'}
       kicker={t('partners:peoplePage.inviteStep', { step: stepPos + 1, total: stepOrder.length })}
       title={t(`partners:peoplePage.steps.${step}.title`)}
       subtitle={t(`partners:peoplePage.steps.${step}.hint`)}
@@ -534,71 +534,84 @@ const InvitePersonSheet: React.FC<Props> = ({
 
           {step === 2 ? (
             <div className="invite-form">
-              <ul className="invite-option-list">
-                {fields.map((field) => {
-                  const taken = takenFieldIds.has(field.id);
-                  const selected = !taken && fieldIds.includes(field.id);
-                  return (
-                    <li key={field.id}>
-                      <button
-                        type="button"
-                        className={`invite-option${selected ? ' is-on' : ''}${taken ? ' is-taken' : ''}`}
-                        disabled={taken}
-                        aria-pressed={selected}
-                        onClick={() => {
-                          toggleField(field.id);
-                          setAttempted(false);
-                        }}
-                      >
-                        <span className="invite-option-copy">
-                          <strong>{field.name}</strong>
-                          <span>
-                            {taken
-                              ? t('partners:peoplePage.alreadyAccess')
-                              : selected
-                                ? t('partners:peoplePage.groveSelected')
-                                : t('partners:peoplePage.groveAdd')}
-                          </span>
-                        </span>
-                        {selected ? <Check size={18} aria-hidden /> : null}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-              {attempted && !canLeaveStep() ? (
-                <p className="people-error" role="alert">
-                  {t('partners:peoplePage.needGrove')}
-                </p>
+              {multiGrove ? (
+                <section className="perm-section">
+                  <h3 className="perm-label">{t('partners:peoplePage.steps.2.groves')}</h3>
+                  <p className="perm-hint">{t('partners:peoplePage.steps.2.grovesHint')}</p>
+                  <ul className="invite-option-list">
+                    {fields.map((field) => {
+                      const taken = takenFieldIds.has(field.id);
+                      const selected = !taken && fieldIds.includes(field.id);
+                      return (
+                        <li key={field.id}>
+                          <button
+                            type="button"
+                            className={`invite-option${selected ? ' is-on' : ''}${taken ? ' is-taken' : ''}`}
+                            disabled={taken}
+                            aria-pressed={selected}
+                            onClick={() => {
+                              toggleField(field.id);
+                              setAttempted(false);
+                            }}
+                          >
+                            <span className={`perm-check${selected ? ' is-on' : ''}`} aria-hidden>
+                              {selected ? '✓' : null}
+                            </span>
+                            <span className="invite-option-copy">
+                              <strong>{field.name}</strong>
+                              <span>
+                                {taken
+                                  ? t('partners:peoplePage.alreadyAccess')
+                                  : selected
+                                    ? t('partners:peoplePage.groveSelected')
+                                    : t('partners:peoplePage.groveAdd')}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {attempted && !canLeaveStep() ? (
+                    <p className="people-error" role="alert">
+                      {t('partners:peoplePage.needGrove')}
+                    </p>
+                  ) : null}
+                </section>
               ) : null}
-            </div>
-          ) : null}
 
-          {step === 3 ? (
-            <div className="invite-form">
               <section className="perm-section">
-                <h3 className="perm-label">{t('partners:peoplePage.relationshipTitle')}</h3>
-                <div className="perm-choice-list">
+                <h3 className="perm-label" id="invite-relationship-label">
+                  {t('partners:peoplePage.relationshipTitle')}
+                </h3>
+                <p className="perm-hint">{t('partners:peoplePage.relationshipPickHint')}</p>
+                <div
+                  className="perm-choice-list"
+                  role="radiogroup"
+                  aria-labelledby="invite-relationship-label"
+                >
                   {(['Family', 'Collaborator'] as Relationship[]).map((option) => {
                     const selected = relationship === option;
                     return (
                       <button
                         key={option}
                         type="button"
+                        role="radio"
+                        aria-checked={selected}
                         className={`perm-choice${selected ? ' is-on' : ''}`}
-                        aria-pressed={selected}
                         onClick={() => pickRelationship(option)}
                       >
+                        <span className={`perm-radio-dot${selected ? ' is-on' : ''}`} aria-hidden />
                         <span className="perm-choice-copy">
                           <strong>{t(`partners:peoplePage.relationship.${option}`)}</strong>
                           <span>{t(`partners:peoplePage.relationshipHint.${option}`)}</span>
                         </span>
-                        {selected ? <Check size={18} aria-hidden /> : null}
                       </button>
                     );
                   })}
                 </div>
               </section>
+
               <FieldPermissionPanel
                 choice={choice}
                 modules={modules}
@@ -613,7 +626,7 @@ const InvitePersonSheet: React.FC<Props> = ({
             </div>
           ) : null}
 
-          {step === 4 ? (
+          {step === 3 ? (
             <div className="invite-preview">
               <div className="invite-preview-card">
                 <p className="invite-confirm">
@@ -633,13 +646,8 @@ const InvitePersonSheet: React.FC<Props> = ({
                     </p>
                     <ul>
                       <li>{t(`partners:peoplePage.capability.${choice}`)}</li>
-                      {modules.map((module) => (
-                        <li key={module}>
-                          {t('partners:peoplePage.canSee', {
-                            module: t(`partners:peoplePage.modules.${module}`),
-                          })}
-                        </li>
-                      ))}
+                      <li>{t(`partners:peoplePage.presetSummary.${choice}.areas`)}</li>
+                      <li>{t(`partners:peoplePage.presetSummary.${choice}.limits`)}</li>
                     </ul>
                   </section>
                 ))}

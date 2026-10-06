@@ -119,7 +119,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
 
           <div className="user-menu u-hide-below-md">
             <div className="user-info">
-              <User className="user-icon" />
+              <User className="user-icon" size={18} aria-hidden />
               <div className="user-details">
                 <span className="user-name">{displayName}</span>
                 {collaboratorBadge ? (
@@ -130,7 +130,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
               </div>
             </div>
             <button className="logout-button" onClick={handleLogout} aria-label={tCommon('logoutAria')}>
-              <LogOut size={18} aria-hidden />
+              <LogOut size={16} aria-hidden />
               <span>{tCommon('logout')}</span>
             </button>
           </div>

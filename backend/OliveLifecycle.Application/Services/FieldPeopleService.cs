@@ -1058,7 +1058,7 @@ public class FieldPeopleService : IFieldPeopleService
 
     private static FieldInviteDto ToInviteDto(FieldInvite invite, string? publicAppBaseUrl, string? invitedByName = null)
     {
-        var baseUrl = string.IsNullOrWhiteSpace(publicAppBaseUrl) ? "https://app.The Olive Lot.local" : publicAppBaseUrl.TrimEnd('/');
+        var baseUrl = string.IsNullOrWhiteSpace(publicAppBaseUrl) ? "https://theolivelot.com" : publicAppBaseUrl.TrimEnd('/');
         var shareUrl = $"{baseUrl}/invite/{invite.Token}";
         var message = string.IsNullOrWhiteSpace(invitedByName)
             ? $"Σε προσκάλεσαν στο {invite.FieldName} στο The Olive Lot. Άνοιξε: {shareUrl}"
