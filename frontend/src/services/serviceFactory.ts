@@ -34,6 +34,7 @@ import { chronologioService } from './chronologioService';
 import { mockChronologioService } from './mock/mockChronologioService';
 import { fieldWorkService } from './fieldWorkService';
 import { mockFieldWorkService } from './mock/mockFieldWorkService';
+import { fieldOverviewService } from './fieldOverviewService';
 import { feedbackService } from './feedbackService';
 import { mockFeedbackService } from './mock/mockFeedbackService';
 import { photoService } from './photoService';
@@ -60,6 +61,7 @@ export const getChronologioService = () =>
   useMockData ? mockChronologioService : chronologioService;
 export const getFieldWorkService = () =>
   useMockData ? mockFieldWorkService : fieldWorkService;
+export const getFieldOverviewService = () => fieldOverviewService;
 export const getFeedbackService = () =>
   useMockData ? mockFeedbackService : feedbackService;
 /** Photo Hub uses the live API even in mock mode (local uploads need the backend). */

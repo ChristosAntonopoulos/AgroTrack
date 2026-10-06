@@ -54,9 +54,17 @@ const FieldCard: React.FC<FieldCardProps> = ({
   const hasTasks = stats.tasksReady && stats.todayTaskCount > 0;
   const todayLine = !stats.tasksReady
     ? t('fields:card.todayTasksLoading')
-    : stats.todayTaskCount === 0
-      ? t('fields:card.todayTasks_zero')
-      : t('fields:card.todayTasks', { count: stats.todayTaskCount });
+    : stats.todayTaskCount > 0
+      ? t('fields:card.needsNowTasks', {
+          count: stats.todayTaskCount,
+          defaultValue: `Χρειάζεται τώρα · ${stats.todayTaskCount} εργασίες`,
+        })
+      : showActivityDate && field.updatedAt
+        ? t('fields:card.lastRecord', {
+            date: formatCompactDate(field.updatedAt, locale === 'el' ? 'el-GR' : locale),
+            defaultValue: `Τελευταία καταγραφή · ${formatCompactDate(field.updatedAt, locale === 'el' ? 'el-GR' : locale)}`,
+          })
+        : t('fields:card.todayTasks_zero');
 
   const handleActivate = () => {
     // Map split: first click focuses the grove on the map, second opens it.

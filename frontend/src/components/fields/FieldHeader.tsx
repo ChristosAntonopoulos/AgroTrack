@@ -15,6 +15,8 @@ type Props = {
   showYearControl?: boolean;
   onYearChange: (year: number) => void;
   phenology?: FieldPhenology | null;
+  onArchive?: () => Promise<void>;
+  onRestore?: () => Promise<void>;
 };
 
 const FieldHeader: React.FC<Props> = ({
@@ -25,6 +27,8 @@ const FieldHeader: React.FC<Props> = ({
   showYearControl = true,
   onYearChange,
   phenology,
+  onArchive,
+  onRestore,
 }) => {
   const { t } = useTranslation('fields');
   const isDraft = field.status === 'Draft' || field.status === 'NeedsBoundaryConfirmation' || field.status === 'NeedsAreaReview';
@@ -43,6 +47,8 @@ const FieldHeader: React.FC<Props> = ({
           field={field}
           canOwn={canOwn}
           canManageAccess={canManageAccess}
+          onArchive={onArchive}
+          onRestore={onRestore}
         />
       </div>
     </header>

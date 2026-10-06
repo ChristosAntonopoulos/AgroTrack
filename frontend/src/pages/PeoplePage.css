@@ -195,14 +195,17 @@ input.people-search {
   font-size: 1rem;
 }
 
-.people-row-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.55rem;
-  margin-top: 0.2rem;
+.people-capability {
+  margin: 0.2rem 0 0;
   color: var(--text-secondary);
-  font-size: 0.88rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.people-remove-block {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-strong, rgba(0, 0, 0, 0.08));
 }
 
 .people-row-actions {

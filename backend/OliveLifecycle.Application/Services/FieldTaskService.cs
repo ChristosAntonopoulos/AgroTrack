@@ -161,6 +161,7 @@ public class FieldTaskService : IFieldTaskService
     private readonly IFieldTaskWeatherEvaluationService _weatherEvaluation;
     private readonly ITaskProposalEngine _proposalEngine;
     private readonly IUserNotificationService _notifications;
+    private readonly IFieldStatusGuard _fieldStatusGuard;
 
     public FieldTaskService(
         IFieldTaskRepository tasks,
@@ -171,7 +172,8 @@ public class FieldTaskService : IFieldTaskService
         IDateTimeProvider clock,
         IFieldTaskWeatherEvaluationService weatherEvaluation,
         ITaskProposalEngine proposalEngine,
-        IUserNotificationService notifications)
+        IUserNotificationService notifications,
+        IFieldStatusGuard fieldStatusGuard)
     {
         _tasks = tasks;
         _executions = executions;
@@ -182,6 +184,7 @@ public class FieldTaskService : IFieldTaskService
         _weatherEvaluation = weatherEvaluation;
         _proposalEngine = proposalEngine;
         _notifications = notifications;
+        _fieldStatusGuard = fieldStatusGuard;
     }
 
     public async Task<IReadOnlyList<FieldTaskDto>> ListAsync(
@@ -245,6 +248,7 @@ public class FieldTaskService : IFieldTaskService
         CancellationToken cancellationToken = default)
     {
         await _auth.EnsureCanCreateOrEditTaskAsync(dto.FieldId, userId, userRole, cancellationToken);
+        await _fieldStatusGuard.EnsureAcceptsNewRecordsAsync(dto.FieldId, cancellationToken);
 
         var now = _clock.UtcNow;
         var plannedStart = dto.PlannedStart;

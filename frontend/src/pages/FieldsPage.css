@@ -381,6 +381,28 @@
   color: var(--text-secondary, #4b5563);
 }
 
+.fields-status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.fields-status-filter {
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  background: var(--surface-1, #fff);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.fields-status-filter--on {
+  border-color: color-mix(in srgb, var(--olive-active, #5a7a4e) 55%, transparent);
+  background: color-mix(in srgb, var(--olive-active, #5a7a4e) 12%, #fff);
+  font-weight: 600;
+}
+
 .fields-status-legend {
   margin: 0.25rem 0 0;
   width: 100%;

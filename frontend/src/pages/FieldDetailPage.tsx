@@ -9,19 +9,16 @@ import { useGrantedFieldAccess } from '../hooks/useGrantedFieldAccess';
 import {
   getFieldService,
   getFieldWorkService,
-  getFinancialSummaryService,
-  getChronologioService,
+  getFieldOverviewService,
 } from '../services/serviceFactory';
 import { geospatialService } from '../services/geospatialService';
 import type { FieldEnvironmentalAlert, FieldWeather } from '../services/geospatialService';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { Field } from '../services/fieldService';
+import type { FieldOverviewDto } from '../services/fieldOverviewService';
 import type { FieldPhenology, FieldTask, FieldWorkProfile, TaskProposal } from '../services/fieldWorkService';
-import type { YearFinancialSummary } from '../services/financialSummaryService';
-import type { FieldYearSummary } from '../services/financialSummaryService';
 import { athensCalendarYear } from '../utils/athensDate';
-import type { ChronologioEntry } from '../services/chronologioService';
 import { parseFieldPageTab, parseFieldResultYear, type FieldPageTab } from '../utils/fieldPageQuery';
 import { writeFieldViewPreferences } from '../utils/fieldViewPreferences';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -69,9 +66,7 @@ const FieldDetailPage: React.FC = () => {
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState(false);
   const [workProfile, setWorkProfile] = useState<FieldWorkProfile | null | undefined>(undefined);
-  const [costSummary, setCostSummary] = useState<YearFinancialSummary | null>(null);
-  const [yearRollup, setYearRollup] = useState<FieldYearSummary | null>(null);
-  const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
+  const [overview, setOverview] = useState<FieldOverviewDto | null>(null);
   const [fieldLoading, setFieldLoading] = useState(true);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState(false);
@@ -146,34 +141,24 @@ const FieldDetailPage: React.FC = () => {
         setOverviewLoading(true);
         setOverviewError(false);
         setWeatherLoading(true);
-        const [plan, summary, chrono, fieldYear, profile, stage, weatherData, alertData] =
-          await Promise.all([
-            getFieldWorkService().getTaskPlan(id, year).catch(() => null),
-            getFinancialSummaryService().getYear(year, id, i18n.language).catch(() => null),
-            getChronologioService()
-              .getFieldChronologio(id, {
-                limit: 8,
-                from: `${year}-01-01`,
-                to: `${year}-12-31`,
-              })
-              .catch(() => [] as ChronologioEntry[]),
-            getFinancialSummaryService().getFieldYear(id, year, i18n.language).catch(() => null),
-            getFieldWorkService().getWorkProfile(id).catch(() => null),
-            getFieldWorkService().getPhenology(id).catch(() => null),
-            geospatialService.getFieldWeather(id).catch(() => null),
-            geospatialService.getAlerts(id).catch(() => [] as FieldEnvironmentalAlert[]),
-          ]);
+        const [plan, overviewDto, profile, stage, weatherData, alertData] = await Promise.all([
+          getFieldWorkService().getTaskPlan(id, year).catch(() => null),
+          getFieldOverviewService().getOverview(id, year).catch(() => null),
+          getFieldWorkService().getWorkProfile(id).catch(() => null),
+          getFieldWorkService().getPhenology(id).catch(() => null),
+          geospatialService.getFieldWeather(id).catch(() => null),
+          geospatialService.getAlerts(id).catch(() => [] as FieldEnvironmentalAlert[]),
+        ]);
         if (cancelled) return;
         setTasks(plan?.tasks ?? []);
         setProposals(plan?.proposals ?? []);
-        setCostSummary(summary);
-        setYearRollup(fieldYear);
-        setRecentEntries(chrono);
+        setOverview(overviewDto);
         setWorkProfile(profile);
         setPhenology(stage);
         setWeather(weatherData);
         setWeatherError(!weatherData);
         setAlerts(alertData ?? []);
+        if (!overviewDto) setOverviewError(true);
       } catch {
         if (!cancelled) setOverviewError(true);
       } finally {
@@ -200,7 +185,7 @@ const FieldDetailPage: React.FC = () => {
   const canDelete = Boolean(capabilities?.canDeleteField ?? canOwn);
   const canViewMoney =
     capabilities == null ? Boolean(canOwn) : Boolean(capabilities.canViewMoney);
-  const canCapture = capabilities?.canCreateRecords !== false;
+  const canCapture = capabilities?.canCreateRecords === true && field?.status !== 'Archived';
   const canViewChronologio = capabilities?.canViewChronologio !== false;
   const canViewMap = capabilities?.canViewBoundary !== false;
 
@@ -248,6 +233,28 @@ const FieldDetailPage: React.FC = () => {
 
   const openCapture = () => {
     if (field) capture?.openCapture({ fieldId: field.id, sourcePage: 'grove' });
+  };
+
+  const handleArchive = async () => {
+    if (!id) return;
+    try {
+      const updated = await getFieldService().archiveField(id);
+      setField(updated);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fields:failedArchive'));
+      throw err;
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!id) return;
+    try {
+      const updated = await getFieldService().restoreField(id);
+      setField(updated);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fields:failedRestore'));
+      throw err;
+    }
   };
 
   const handleDelete = async () => {
@@ -317,6 +324,8 @@ const FieldDetailPage: React.FC = () => {
           showYearControl={tab === 'overview'}
           onYearChange={setYear}
           phenology={phenology}
+          onArchive={field.capabilities?.canArchiveField ? handleArchive : undefined}
+          onRestore={field.capabilities?.canRestoreField ? handleRestore : undefined}
         />
 
         {activation?.eligible &&
@@ -390,34 +399,23 @@ const FieldDetailPage: React.FC = () => {
             role="tabpanel"
             aria-labelledby="field-tab-overview"
           >
-            {overviewLoading && !weather && tasks.length === 0 ? (
+            {overviewLoading && !overview ? (
               <FieldTabStatus kind="loading" />
-            ) : overviewError ? (
+            ) : overviewError && !overview ? (
               <FieldTabStatus kind="error" onRetry={() => setOverviewTick((n) => n + 1)} />
             ) : (
               <FieldOverview
                 field={field}
-                year={year}
-                currentYear={currentYear}
-                phenology={phenology}
-                tasks={tasks}
-                proposals={proposals}
-                alerts={alerts}
+                overview={overview}
                 weather={weather}
-                weatherLoading={weatherLoading}
-                weatherError={weatherError}
-                onRetryWeather={() => setWeatherTick((n) => n + 1)}
-                costSummary={costSummary}
-                yearRollup={yearRollup}
-                recentEntries={recentEntries}
                 canViewMoney={Boolean(canViewMoney)}
                 canEdit={Boolean(canOwn)}
-                onOpenChronologio={(entry) => {
+                onOpenChronologio={(entryId) => {
                   writeFieldViewPreferences({ lastTab: 'chronologio' });
                   replaceParams((params) => {
                     params.delete('mode');
                     params.set('tab', 'chronologio');
-                    if (entry) params.set('entry', entry.id);
+                    if (entryId) params.set('entry', entryId);
                     else params.delete('entry');
                   });
                 }}
@@ -455,6 +453,8 @@ const FieldDetailPage: React.FC = () => {
               canOwn={Boolean(canOwn)}
               workProfile={workProfile}
               phenology={phenology}
+              onArchive={field.capabilities?.canArchiveField ? handleArchive : undefined}
+              onRestore={field.capabilities?.canRestoreField ? handleRestore : undefined}
               onDelete={canDelete ? handleDelete : undefined}
             />
           </div>

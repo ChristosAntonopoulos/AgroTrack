@@ -186,7 +186,7 @@ export const fieldService = {
    * When omitted, returns every grove with an active seat (identity list).
    * Module-scoped lists do not replace the identity EntityCache.
    */
-  getFields: async (module?: string): Promise<Field[]> => {
+  getFields: async (module?: string, status?: 'active' | 'archived' | 'all'): Promise<Field[]> => {
     const userId = getCurrentUserId();
     const scoped = Boolean(module);
 
@@ -200,8 +200,11 @@ export const fieldService = {
 
     try {
       const startedAt = Date.now();
+      const params: Record<string, string> = {};
+      if (module) params.module = module;
+      if (status) params.status = status;
       const response = await api.get<Field[]>('/api/v1/fields', {
-        params: module ? { module } : undefined,
+        params: Object.keys(params).length ? params : undefined,
       });
       const incoming = response.data ?? [];
 
@@ -327,6 +330,18 @@ export const fieldService = {
 
   deleteField: async (id: string): Promise<void> => {
     await api.delete(`/api/v1/fields/${id}`);
+  },
+
+  archiveField: async (id: string): Promise<Field> => {
+    const response = await api.post<Field>(`/api/v1/fields/${id}/archive`);
+    EntityCache.setField(response.data);
+    return response.data;
+  },
+
+  restoreField: async (id: string): Promise<Field> => {
+    const response = await api.post<Field>(`/api/v1/fields/${id}/restore`);
+    EntityCache.setField(response.data);
+    return response.data;
   },
 
   importGreekCadastre: async (kdFile: File, kfFile: File): Promise<ImportGreekCadastreFieldResponse> => {

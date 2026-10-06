@@ -9,18 +9,37 @@ namespace OliveLifecycle.Application.Tests;
 public class FieldCapabilitiesResolverTests
 {
     [Fact]
-    public void AdminGetsAllImplementedCapabilitiesExceptDocumentsAndArchive()
+    public void AdminGetsArchiveWhenActive_AndNotPermanentlyDeleteUntilEnriched()
     {
         var field = BuildField("admin");
+        field.Status = FieldStatus.Active;
 
         var capabilities = FieldCapabilitiesResolver.Resolve(field, "admin");
 
         Assert.True(capabilities.CanViewSensitiveIdentity);
         Assert.True(capabilities.CanManageAccess);
         Assert.True(capabilities.CanDeleteField);
+        Assert.True(capabilities.CanArchiveField);
+        Assert.False(capabilities.CanRestoreField);
+        Assert.False(capabilities.CanPermanentlyDelete);
         Assert.False(capabilities.CanViewDocuments);
         Assert.False(capabilities.CanManageDocuments);
+    }
+
+    [Fact]
+    public void AdminOnArchivedField_CanRestore_NotArchive_NotCreate()
+    {
+        var field = BuildField("admin");
+        field.Status = FieldStatus.Archived;
+
+        var capabilities = FieldCapabilitiesResolver.Resolve(field, "admin");
+
         Assert.False(capabilities.CanArchiveField);
+        Assert.True(capabilities.CanRestoreField);
+        Assert.False(capabilities.CanCreateRecords);
+        Assert.False(capabilities.CanEditField);
+        Assert.True(capabilities.CanViewChronologio);
+        Assert.True(capabilities.CanDeleteField);
     }
 
     [Fact]
@@ -46,6 +65,7 @@ public class FieldCapabilitiesResolverTests
         Assert.False(capabilities.CanViewPhotos);
         Assert.False(capabilities.CanViewSensitiveIdentity);
         Assert.False(capabilities.CanEditField);
+        Assert.False(capabilities.CanArchiveField);
     }
 
     private static Field BuildField(string ownerId)

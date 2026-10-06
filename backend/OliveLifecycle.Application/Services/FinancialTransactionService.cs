@@ -23,6 +23,7 @@ public class FinancialTransactionService : IFinancialTransactionService
     private readonly IFinancialAuthorizationService _authorization;
     private readonly IActivityService _activityService;
     private readonly IDateTimeProvider _clock;
+    private readonly IFieldStatusGuard _fieldStatusGuard;
     private readonly ILogger<FinancialTransactionService> _logger;
 
     public FinancialTransactionService(
@@ -34,6 +35,7 @@ public class FinancialTransactionService : IFinancialTransactionService
         IFinancialAuthorizationService authorization,
         IActivityService activityService,
         IDateTimeProvider clock,
+        IFieldStatusGuard fieldStatusGuard,
         ILogger<FinancialTransactionService> logger)
     {
         _transactions = transactions;
@@ -44,6 +46,7 @@ public class FinancialTransactionService : IFinancialTransactionService
         _authorization = authorization;
         _activityService = activityService;
         _clock = clock;
+        _fieldStatusGuard = fieldStatusGuard;
         _logger = logger;
     }
 
@@ -57,6 +60,10 @@ public class FinancialTransactionService : IFinancialTransactionService
             ?? throw new ValidationException("Type must be income or expense.");
         var status = dto.SaveAsDraft ? FinancialTransactionStatus.Draft : FinancialTransactionStatus.Posted;
         var field = await ResolveFieldAsync(dto.FieldId, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(dto.FieldId))
+        {
+            await _fieldStatusGuard.EnsureAcceptsNewRecordsAsync(dto.FieldId, cancellationToken);
+        }
         var ownerUserId = field?.OwnerId ?? userId;
         var access = await ResolveAccessAsync(dto.FieldId, userId, userRole, cancellationToken);
         EnsureCanCreate(access, type);

@@ -191,6 +191,9 @@ public class FieldCapabilitiesDto
     public bool CanManageAccess { get; set; }
     public bool CanEditField { get; set; }
     public bool CanArchiveField { get; set; }
+    public bool CanRestoreField { get; set; }
+    /// <summary>True only when the caller may delete and the field has no linked history.</summary>
+    public bool CanPermanentlyDelete { get; set; }
     public bool CanDeleteField { get; set; }
 }
 

@@ -1,4 +1,5 @@
 import type { ChronologioEntry, ChronologioMedia } from '../services/chronologioService';
+import { pickRealMediaUrl } from '../chronologio/mediaGuard';
 
 export const isChronologioPhotoEntry = (entry: ChronologioEntry): boolean =>
   entry.category === 'photo' || entry.sourceType === 'Photo';
@@ -7,8 +8,10 @@ export type ChronologioDayDisplayItem =
   | { type: 'entry'; entry: ChronologioEntry }
   | { type: 'photoGroup'; id: string; entries: ChronologioEntry[] };
 
-const isImageMedia = (m: ChronologioMedia): boolean =>
-  Boolean(m.url || m.thumbnailUrl) && !/audio|voice|document/i.test(m.type || '');
+const isImageMedia = (m: ChronologioMedia): boolean => {
+  if (/audio|voice|document/i.test(m.type || '')) return false;
+  return Boolean(pickRealMediaUrl([m.thumbnailUrl, m.url]));
+};
 
 /**
  * Collapses all Photo Hub / photo-category entries for a single day into one

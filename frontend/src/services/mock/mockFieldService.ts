@@ -139,6 +139,18 @@ export const mockFieldService = {
     demoStore.setFields(next);
   },
 
+  archiveField: async (id: string): Promise<Field> => {
+    await simulateDelay();
+    const updated = demoStore.updateField(id, { status: 'Archived' } as UpdateFieldDto);
+    return { ...updated, status: 'Archived' };
+  },
+
+  restoreField: async (id: string): Promise<Field> => {
+    await simulateDelay();
+    const updated = demoStore.updateField(id, { status: 'Active' } as UpdateFieldDto);
+    return { ...updated, status: 'Active' };
+  },
+
   getAssignedProducers: async (fieldId: string): Promise<string[]> => {
     await simulateDelay();
     demoStore.ensureSeeded();

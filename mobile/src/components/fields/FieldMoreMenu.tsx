@@ -34,6 +34,8 @@ type Props = {
   canViewMap: boolean;
   canViewEnvironmentalData: boolean;
   onDelete?: () => void;
+  onArchive?: () => void;
+  onRestore?: () => void;
   onOpenChronologio: () => void;
   /** Match StackScreenHeader paper controls (field page header). */
   headerStyle?: boolean;
@@ -62,6 +64,8 @@ const FieldMoreMenu: React.FC<Props> = ({
   canViewMap,
   canViewEnvironmentalData,
   onDelete,
+  onArchive,
+  onRestore,
   onOpenChronologio,
   headerStyle = false,
   open: openProp,
@@ -160,6 +164,22 @@ const FieldMoreMenu: React.FC<Props> = ({
             )}`
           );
         }),
+    });
+  }
+  if (onArchive) {
+    actions.push({
+      key: 'archive',
+      label: t('fields:page.archive', { defaultValue: t('fields:archive', { defaultValue: 'Archive' }) }),
+      icon: 'archive-outline',
+      onPress: () => run(onArchive),
+    });
+  }
+  if (onRestore) {
+    actions.push({
+      key: 'restore',
+      label: t('fields:page.restore', { defaultValue: 'Restore' }),
+      icon: 'refresh-outline',
+      onPress: () => run(onRestore),
     });
   }
   if (canDelete && onDelete) {

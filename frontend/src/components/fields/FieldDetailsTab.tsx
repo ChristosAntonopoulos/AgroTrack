@@ -38,6 +38,8 @@ type Props = {
   canOwn: boolean;
   workProfile?: FieldWorkProfile | null;
   phenology?: FieldPhenology | null;
+  onArchive?: () => Promise<void>;
+  onRestore?: () => Promise<void>;
   onDelete?: () => Promise<void>;
 };
 
@@ -151,7 +153,16 @@ const InfoButton: React.FC<{ label: string; onClick: () => void }> = ({ label, o
   </button>
 );
 
-const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, phenology, onDelete }) => {
+const FieldDetailsTab: React.FC<Props> = ({
+  field,
+  year,
+  canOwn,
+  workProfile,
+  phenology,
+  onArchive,
+  onRestore,
+  onDelete,
+}) => {
   const { t, i18n } = useTranslation(['fields', 'common']);
   const { formatDateTime, formatRelativeTime, formatNumber, formatDate } = useLocaleFormatters();
   const locale = (i18n.language?.startsWith('el')
@@ -174,6 +185,9 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
   const [confirmName, setConfirmName] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteExpanded, setDeleteExpanded] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -476,6 +490,36 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
   const elevationHero = formatM(terrain?.averageElevationM, numberLocale);
   const slopeHero = formatPct(terrain?.averageSlopePercent, numberLocale);
   const nameMatches = confirmName.trim() === field.name.trim();
+  const canArchive = Boolean(field.capabilities?.canArchiveField && onArchive);
+  const canRestore = Boolean(field.capabilities?.canRestoreField && onRestore);
+  const canPermanentlyDelete = Boolean(field.capabilities?.canPermanentlyDelete && onDelete);
+  const isArchived = field.status === 'Archived';
+
+  const runArchive = async () => {
+    if (!onArchive) return;
+    setArchiving(true);
+    setArchiveError(null);
+    try {
+      await onArchive();
+    } catch {
+      setArchiveError(t('fields:failedArchive'));
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const runRestore = async () => {
+    if (!onRestore) return;
+    setArchiving(true);
+    setArchiveError(null);
+    try {
+      await onRestore();
+    } catch {
+      setArchiveError(t('fields:failedRestore'));
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   const runDelete = async () => {
     if (!onDelete || !nameMatches) return;
@@ -977,91 +1021,147 @@ const FieldDetailsTab: React.FC<Props> = ({ field, year, canOwn, workProfile, ph
         </section>
 
         {canOwn ? (
-          <section className="fd-panel fd-span fd-danger-zone" aria-labelledby="fd-danger">
-            <div className="fd-panel-head">
-              <div>
-                <p className="fd-kicker">{t('fields:details.danger.kicker')}</p>
-                <h3 id="fd-danger">{t('fields:details.danger.title')}</h3>
+          <>
+            <section className="fd-panel fd-span" aria-labelledby="fd-archive">
+              <div className="fd-panel-head">
+                <div>
+                  <p className="fd-kicker">{t('fields:details.archive.kicker')}</p>
+                  <h3 id="fd-archive">{t('fields:details.archive.title')}</h3>
+                </div>
               </div>
-            </div>
-            <p className="fd-empty">{t('fields:details.danger.body')}</p>
-            <ul className="fd-danger-list">
-              <li>{t('fields:details.danger.tasks')}</li>
-              <li>{t('fields:details.danger.photos')}</li>
-              <li>{t('fields:details.danger.money')}</li>
-              <li>{t('fields:details.danger.harvest')}</li>
-              <li>{t('fields:details.danger.notes')}</li>
-              <li>{t('fields:details.danger.chronologio')}</li>
-              <li>{t('fields:details.danger.collaborators')}</li>
-            </ul>
-            <div className="fd-danger-actions">
-              <button type="button" className="btn btn-secondary" disabled title={t('fields:page.archiveUnavailable')}>
-                {t('fields:page.archive')}
-              </button>
-              {onDelete && !confirmOpen ? (
-                <button
-                  type="button"
-                  className="btn btn-error"
-                  onClick={() => {
-                    setConfirmOpen(true);
-                    setConfirmName('');
-                    setDeleteError(null);
-                  }}
-                >
-                  {t('fields:deleteField')}
-                </button>
+              <p className="fd-empty">{t('fields:details.archive.body')}</p>
+              <p className="fd-empty">{t('fields:details.archive.safe')}</p>
+              {archiveError ? (
+                <p className="fd-danger-confirm-error" role="alert">
+                  {archiveError}
+                </p>
               ) : null}
-            </div>
-            {onDelete && confirmOpen ? (
-              <div className="fd-danger-confirm" role="group" aria-label={t('fields:details.danger.confirmDelete')}>
-                <p>{t('fields:details.danger.typeNamePrompt', { name: field.name })}</p>
-                <label className="fd-danger-confirm-label" htmlFor="fd-delete-name">
-                  {t('fields:details.danger.typeNameLabel')}
-                </label>
-                <input
-                  id="fd-delete-name"
-                  type="text"
-                  className="fd-danger-confirm-input"
-                  value={confirmName}
-                  autoComplete="off"
-                  onChange={(event) => setConfirmName(event.target.value)}
-                  aria-invalid={confirmName.length > 0 && !nameMatches}
-                />
-                {confirmName.length > 0 && !nameMatches ? (
-                  <p className="fd-danger-confirm-error" role="alert">
-                    {t('fields:details.danger.typeNameMismatch')}
-                  </p>
-                ) : null}
-                {deleteError ? (
-                  <p className="fd-danger-confirm-error" role="alert">
-                    {deleteError}
-                  </p>
-                ) : null}
-                <div className="fd-danger-actions">
+              <div className="fd-danger-actions">
+                {canArchive ? (
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    disabled={deleting}
-                    onClick={() => {
-                      setConfirmOpen(false);
-                      setConfirmName('');
-                      setDeleteError(null);
-                    }}
+                    disabled={archiving}
+                    onClick={() => void runArchive()}
                   >
-                    {t('fields:details.danger.cancel')}
+                    {t('fields:details.archive.action')}
                   </button>
+                ) : null}
+                {canRestore ? (
                   <button
                     type="button"
-                    className="btn btn-error"
-                    disabled={!nameMatches || deleting}
-                    onClick={() => void runDelete()}
+                    className="btn btn-primary"
+                    disabled={archiving}
+                    onClick={() => void runRestore()}
                   >
-                    {t('fields:details.danger.confirmAction')}
+                    {t('fields:details.archive.restore')}
                   </button>
-                </div>
+                ) : null}
+                {isArchived && !canRestore ? (
+                  <p className="fd-empty">{t('fields:details.archive.already')}</p>
+                ) : null}
               </div>
-            ) : null}
-          </section>
+            </section>
+
+            <section className="fd-panel fd-span fd-danger-zone" aria-labelledby="fd-danger">
+              <div className="fd-panel-head">
+                <div>
+                  <p className="fd-kicker">{t('fields:details.danger.kicker')}</p>
+                  <h3 id="fd-danger">{t('fields:details.danger.title')}</h3>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setDeleteExpanded((v) => !v)}
+                  aria-expanded={deleteExpanded}
+                >
+                  {deleteExpanded
+                    ? t('fields:details.danger.collapse')
+                    : t('fields:details.danger.expand')}
+                </button>
+              </div>
+              {deleteExpanded ? (
+                <>
+                  {canPermanentlyDelete ? (
+                    <p className="fd-empty">{t('fields:details.danger.bodyEmpty')}</p>
+                  ) : (
+                    <>
+                      <p className="fd-empty">{t('fields:details.danger.bodyBlocked')}</p>
+                      <p className="fd-empty">{t('fields:details.danger.archiveInstead')}</p>
+                    </>
+                  )}
+                  <div className="fd-danger-actions">
+                    {canPermanentlyDelete && onDelete && !confirmOpen ? (
+                      <button
+                        type="button"
+                        className="btn btn-error"
+                        onClick={() => {
+                          setConfirmOpen(true);
+                          setConfirmName('');
+                          setDeleteError(null);
+                        }}
+                      >
+                        {t('fields:deleteField')}
+                      </button>
+                    ) : (
+                      <button type="button" className="btn btn-error" disabled title={t('fields:details.danger.bodyBlocked')}>
+                        {t('fields:deleteField')}
+                      </button>
+                    )}
+                  </div>
+                  {canPermanentlyDelete && onDelete && confirmOpen ? (
+                    <div className="fd-danger-confirm" role="group" aria-label={t('fields:details.danger.confirmDelete')}>
+                      <p>{t('fields:details.danger.typeNamePrompt', { name: field.name })}</p>
+                      <label className="fd-danger-confirm-label" htmlFor="fd-delete-name">
+                        {t('fields:details.danger.typeNameLabel')}
+                      </label>
+                      <input
+                        id="fd-delete-name"
+                        type="text"
+                        className="fd-danger-confirm-input"
+                        value={confirmName}
+                        autoComplete="off"
+                        onChange={(event) => setConfirmName(event.target.value)}
+                        aria-invalid={confirmName.length > 0 && !nameMatches}
+                      />
+                      {confirmName.length > 0 && !nameMatches ? (
+                        <p className="fd-danger-confirm-error" role="alert">
+                          {t('fields:details.danger.typeNameMismatch')}
+                        </p>
+                      ) : null}
+                      {deleteError ? (
+                        <p className="fd-danger-confirm-error" role="alert">
+                          {deleteError}
+                        </p>
+                      ) : null}
+                      <div className="fd-danger-actions">
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          disabled={deleting}
+                          onClick={() => {
+                            setConfirmOpen(false);
+                            setConfirmName('');
+                            setDeleteError(null);
+                          }}
+                        >
+                          {t('fields:details.danger.cancel')}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-error"
+                          disabled={!nameMatches || deleting}
+                          onClick={() => void runDelete()}
+                        >
+                          {t('fields:details.danger.confirmAction')}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+            </section>
+          </>
         ) : null}
       </div>
 

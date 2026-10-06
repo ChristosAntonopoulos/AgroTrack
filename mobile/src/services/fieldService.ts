@@ -298,6 +298,16 @@ export const fieldService = {
     await api.delete(`/api/v1/fields/${id}`);
   },
 
+  archiveField: async (id: string): Promise<Field> => {
+    const response = await api.post<Field>(`/api/v1/fields/${id}/archive`);
+    return response.data;
+  },
+
+  restoreField: async (id: string): Promise<Field> => {
+    const response = await api.post<Field>(`/api/v1/fields/${id}/restore`);
+    return response.data;
+  },
+
   getProducers: async (fieldId: string): Promise<string[]> => {
     const response = await api.get<string[]>(`/api/v1/fields/${fieldId}/producers`);
     return response.data;

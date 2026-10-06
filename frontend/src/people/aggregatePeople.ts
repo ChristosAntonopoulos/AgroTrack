@@ -147,6 +147,12 @@ export const choiceFromAccess = (level: string, modules: string[]): AccessChoice
   return modules.includes('tasks') ? 'work' : 'record';
 };
 
+/** Plain-language capability line for member cards (not technical role names). */
+export const capabilitySummaryKey = (
+  level: string,
+  modules: string[]
+): 'view' | 'record' | 'work' | 'help' => presetLabelKey(level, modules);
+
 export const defaultPresetForRelationship = (
   relationship: 'Family' | 'Collaborator'
 ): AccessChoice => (relationship === 'Family' ? 'view' : 'work');

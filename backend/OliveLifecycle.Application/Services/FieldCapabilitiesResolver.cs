@@ -15,6 +15,9 @@ public static class FieldCapabilitiesResolver
         var isAdmin = string.Equals(userRole, Roles.Administrator, StringComparison.Ordinal)
             || FieldPeopleRules.IsAdmin(field, userId);
         var hasFieldAccess = isAdmin || seat != null;
+        var isArchived = field.Status == FieldStatus.Archived;
+        var canArchive = isAdmin && !isArchived && field.Status != FieldStatus.Draft;
+        var canRestore = isAdmin && isArchived;
 
         if (isAdmin)
         {
@@ -25,25 +28,27 @@ public static class FieldCapabilitiesResolver
                 CanViewSensitiveIdentity = true,
                 CanViewEnvironmentalData = true,
                 CanViewChronologio = true,
-                CanCreateRecords = true,
+                CanCreateRecords = !isArchived,
                 CanViewTasks = true,
-                CanManageTasks = true,
+                CanManageTasks = !isArchived,
                 CanViewPhotos = true,
-                CanUploadPhotos = true,
+                CanUploadPhotos = !isArchived,
                 CanViewMoney = true,
                 CanViewHarvest = true,
                 // Documents remain intentionally hidden for the alpha cycle.
                 CanViewDocuments = false,
                 CanManageDocuments = false,
-                CanManageAccess = true,
-                CanEditField = true,
-                CanArchiveField = false,
+                CanManageAccess = !isArchived,
+                CanEditField = !isArchived,
+                CanArchiveField = canArchive,
+                CanRestoreField = canRestore,
+                CanPermanentlyDelete = false,
                 CanDeleteField = true
             };
         }
 
-        var canCreate = seat != null && FamilyAccessLevels.CanCreateContent(seat.AccessLevel);
-        var canWrite = seat != null && FamilyAccessLevels.CanWrite(seat.AccessLevel);
+        var canCreate = !isArchived && seat != null && FamilyAccessLevels.CanCreateContent(seat.AccessLevel);
+        var canWrite = !isArchived && seat != null && FamilyAccessLevels.CanWrite(seat.AccessLevel);
         var hasTasks = hasFieldAccess && HasModule(seat, FamilyModules.Tasks);
         var hasPhotos = hasFieldAccess && HasModule(seat, FamilyModules.Photos);
 
@@ -66,6 +71,8 @@ public static class FieldCapabilitiesResolver
             CanManageAccess = false,
             CanEditField = false,
             CanArchiveField = false,
+            CanRestoreField = false,
+            CanPermanentlyDelete = false,
             CanDeleteField = false
         };
     }

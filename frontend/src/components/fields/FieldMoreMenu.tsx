@@ -9,16 +9,21 @@ type Props = {
   field: Field;
   canOwn: boolean;
   canManageAccess?: boolean;
+  onArchive?: () => Promise<void>;
+  onRestore?: () => Promise<void>;
 };
 
 const FieldMoreMenu: React.FC<Props> = ({
   field,
   canOwn,
   canManageAccess = false,
+  onArchive,
+  onRestore,
 }) => {
   const { t } = useTranslation(['fields', 'common']);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,8 +45,9 @@ const FieldMoreMenu: React.FC<Props> = ({
   const capabilities = field.capabilities;
   const canEdit = capabilities?.canEditField ?? canOwn;
   const canManage = capabilities?.canManageAccess ?? canManageAccess;
-  const canArchive = capabilities?.canArchiveField ?? false;
-  const hasItems = canEdit || canManage || canArchive;
+  const canArchive = Boolean(capabilities?.canArchiveField && onArchive);
+  const canRestore = Boolean(capabilities?.canRestoreField && onRestore);
+  const hasItems = canEdit || canManage || canArchive || canRestore;
 
   if (!hasItems) return null;
 
@@ -84,8 +90,33 @@ const FieldMoreMenu: React.FC<Props> = ({
             </button>
           ) : null}
           {canArchive ? (
-            <button type="button" role="menuitem" disabled title={t('fields:page.archiveUnavailable')}>
+            <button
+              type="button"
+              role="menuitem"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                void onArchive?.()
+                  .then(() => setOpen(false))
+                  .finally(() => setBusy(false));
+              }}
+            >
               {t('fields:page.archive')}
+            </button>
+          ) : null}
+          {canRestore ? (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                void onRestore?.()
+                  .then(() => setOpen(false))
+                  .finally(() => setBusy(false));
+              }}
+            >
+              {t('fields:page.restore')}
             </button>
           ) : null}
         </div>

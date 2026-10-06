@@ -23,6 +23,7 @@ public class HarvestService : IHarvestService
     private readonly IMediaAttachmentService _mediaAttachmentService;
     private readonly IActivityService _activityService;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IFieldStatusGuard _fieldStatusGuard;
     private readonly ILogger<HarvestService> _logger;
 
     public HarvestService(
@@ -34,6 +35,7 @@ public class HarvestService : IHarvestService
         IMediaAttachmentService mediaAttachmentService,
         IActivityService activityService,
         IDateTimeProvider dateTimeProvider,
+        IFieldStatusGuard fieldStatusGuard,
         ILogger<HarvestService> logger)
     {
         _harvestRecordRepository = harvestRecordRepository;
@@ -44,6 +46,7 @@ public class HarvestService : IHarvestService
         _mediaAttachmentService = mediaAttachmentService;
         _activityService = activityService;
         _dateTimeProvider = dateTimeProvider;
+        _fieldStatusGuard = fieldStatusGuard;
         _logger = logger;
     }
 
@@ -60,6 +63,7 @@ public class HarvestService : IHarvestService
         }
 
         await EnsureHarvestModuleAsync(dto.FieldId, userId, userRole, write: true, cancellationToken);
+        await _fieldStatusGuard.EnsureAcceptsNewRecordsAsync(dto.FieldId, cancellationToken);
 
         var field = await _fieldRepository.GetByIdAsync(dto.FieldId, cancellationToken)
             ?? throw new NotFoundException("Field not found.");

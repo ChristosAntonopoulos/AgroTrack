@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Mail, Phone, Search, User, UserPlus } from 'lucide-react';
+import { Check, Search, User, UserPlus } from 'lucide-react';
 import Button from '../Common/Button';
 import PartnersSheet from '../Partners/PartnersSheet';
 import { FieldModule, ManagedContact, fieldPeopleService } from '../../services/fieldPeopleService';
@@ -38,6 +38,11 @@ type Props = {
 const looksLikeEmail = (value: string) => value.includes('@');
 const looksLikePhone = (value: string) => !looksLikeEmail(value) && /\d{6,}/.test(value.replace(/\s/g, ''));
 
+/**
+ * Invite flow: Who → Groves (if needed) → What they can do → Review.
+ * Contact is a single “mobile or email” field; a second field appears only when a
+ * saved contact still needs a reach method for the invite.
+ */
 const InvitePersonSheet: React.FC<Props> = ({
   open = true,
   fields,
@@ -53,7 +58,8 @@ const InvitePersonSheet: React.FC<Props> = ({
   const { t } = useTranslation(['partners', 'common']);
   const knownPerson = Boolean(initialEmail || initialPhone);
   const skipGrove = fields.length <= 1;
-  const stepOrder = skipGrove ? [1, 3, 4, 5] : [1, 2, 3, 4, 5];
+  // Logical steps: 1 who, 2 groves, 3 permissions (+ relationship), 4 review
+  const stepOrder = skipGrove ? [1, 3, 4] : [1, 2, 3, 4];
   const openingStep = knownPerson ? (skipGrove ? 3 : 2) : 1;
   const [step, setStep] = useState(openingStep);
   const [mode, setMode] = useState<WhoMode>(
@@ -61,16 +67,18 @@ const InvitePersonSheet: React.FC<Props> = ({
   );
   const [query, setQuery] = useState('');
   const [name, setName] = useState(initialName);
+  const seedReach = initialEmail || initialPhone;
+  const [reach, setReach] = useState(seedReach);
   const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState(initialPhone);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [fieldIds, setFieldIds] = useState<string[]>(
     initialFieldIds.filter((id) => fields.some((field) => field.id === id))
   );
-  const [relationship, setRelationship] = useState<Relationship>('Family');
-  const [choice, setChoice] = useState<AccessChoice>('view');
+  const [relationship, setRelationship] = useState<Relationship>('Collaborator');
+  const [choice, setChoice] = useState<AccessChoice>('record');
   const [choiceTouched, setChoiceTouched] = useState(false);
-  const [modules, setModules] = useState<FieldModule[]>(modulesForChoice('view'));
+  const [modules, setModules] = useState<FieldModule[]>(modulesForChoice('record'));
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [successHint, setSuccessHint] = useState('');
@@ -84,8 +92,14 @@ const InvitePersonSheet: React.FC<Props> = ({
     setSuccessHint('');
   }, [open, openingStep]);
 
-  const typedEmail = email.trim() || (looksLikeEmail(query) ? query.trim() : '');
-  const typedPhone = phone.trim() || (looksLikePhone(query) ? query.trim() : '');
+  const typedEmail =
+    email.trim() ||
+    (looksLikeEmail(reach) ? reach.trim() : '') ||
+    (looksLikeEmail(query) ? query.trim() : '');
+  const typedPhone =
+    phone.trim() ||
+    (looksLikePhone(reach) ? reach.trim() : '') ||
+    (looksLikePhone(query) ? query.trim() : '');
 
   const matches = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -110,11 +124,16 @@ const InvitePersonSheet: React.FC<Props> = ({
     );
   }, [people, typedEmail]);
 
+  const selectedContact = contacts.find((contact) => contact.id === selectedContactId) || null;
+  const needsExtraReach =
+    Boolean(selectedContact) && !selectedContact?.email && !selectedContact?.phone && !reach.trim();
+
   const chooseContact = (contact: ManagedContact) => {
     setSelectedContactId(contact.id);
     setName(contact.displayName);
     setEmail(contact.email || '');
     setPhone(contact.phone || '');
+    setReach(contact.email || contact.phone || '');
     setQuery('');
     setAttempted(false);
     if (!contact.email && !contact.phone) {
@@ -127,8 +146,23 @@ const InvitePersonSheet: React.FC<Props> = ({
     setSelectedContactId(null);
     setAttempted(false);
     if (!name && query && !looksLikeEmail(query) && !looksLikePhone(query)) setName(query.trim());
-    if (!email && looksLikeEmail(query)) setEmail(query.trim());
-    if (!phone && looksLikePhone(query)) setPhone(query.trim());
+    if (!reach && (looksLikeEmail(query) || looksLikePhone(query))) setReach(query.trim());
+  };
+
+  const applyReach = (value: string) => {
+    setReach(value);
+    setSelectedContactId(null);
+    setAttempted(false);
+    if (looksLikeEmail(value)) {
+      setEmail(value.trim());
+      setPhone('');
+    } else if (looksLikePhone(value)) {
+      setPhone(value.trim());
+      setEmail('');
+    } else {
+      setEmail('');
+      setPhone('');
+    }
   };
 
   const pickRelationship = (next: Relationship) => {
@@ -223,13 +257,12 @@ const InvitePersonSheet: React.FC<Props> = ({
   const lastStep = stepOrder[stepOrder.length - 1];
   const selectedFields = fields.filter((field) => fieldIds.includes(field.id) && !takenFieldIds.has(field.id));
   const who = name.trim() || typedEmail || typedPhone;
-  const selectedContact = contacts.find((contact) => contact.id === selectedContactId) || null;
   const reachReady = Boolean(typedEmail || typedPhone);
 
   return (
     <PartnersSheet
       open={open}
-      size={step >= 4 ? 'lg' : 'md'}
+      size={step >= 3 ? 'lg' : 'md'}
       kicker={t('partners:peoplePage.inviteStep', { step: stepPos + 1, total: stepOrder.length })}
       title={t(`partners:peoplePage.steps.${step}.title`)}
       subtitle={t(`partners:peoplePage.steps.${step}.hint`)}
@@ -243,29 +276,29 @@ const InvitePersonSheet: React.FC<Props> = ({
             </Button>
           </div>
         ) : (
-        <div className="invite-footer">
-          {stepPos > 0 ? (
-            <Button variant="ghost" onClick={goBack} disabled={sending}>
-              {t('common:back')}
-            </Button>
-          ) : (
-            <span className="invite-footer-spacer" />
-          )}
-          {step !== lastStep ? (
-            <Button variant="primary" onClick={goNext} disabled={sending}>
-              {t('common:next')}
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              onClick={() => void send()}
-              loading={sending}
-              disabled={selectedFields.length === 0}
-            >
-              {t('partners:peoplePage.sendInvite')}
-            </Button>
-          )}
-        </div>
+          <div className="invite-footer">
+            {stepPos > 0 ? (
+              <Button variant="ghost" onClick={goBack} disabled={sending}>
+                {t('common:back')}
+              </Button>
+            ) : (
+              <span className="invite-footer-spacer" />
+            )}
+            {step !== lastStep ? (
+              <Button variant="primary" onClick={goNext} disabled={sending}>
+                {t('common:next')}
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={() => void send()}
+                loading={sending}
+                disabled={selectedFields.length === 0}
+              >
+                {t('partners:peoplePage.sendInvite')}
+              </Button>
+            )}
+          </div>
         )
       }
     >
@@ -277,347 +310,351 @@ const InvitePersonSheet: React.FC<Props> = ({
       ) : null}
 
       {!successHint ? (
-      <>
-      <div className="invite-progress" role="progressbar" aria-valuemin={1} aria-valuemax={stepOrder.length} aria-valuenow={stepPos + 1}>
-        {stepOrder.map((number, index) => {
-          const state = number === step ? 'is-on' : index < stepPos ? 'is-done' : '';
-          return (
-            <button
-              key={number}
-              type="button"
-              className={`invite-progress-seg ${state}`.trim()}
-              aria-label={t('partners:peoplePage.inviteStep', { step: index + 1, total: stepOrder.length })}
-              aria-current={number === step ? 'step' : undefined}
-              disabled={index > stepPos}
-              onClick={() => {
-                if (index < stepPos) setStep(number);
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {step > 1 ? (
-        <div className="invite-who">
-          <div className="invite-who-avatar" aria-hidden>
-            {(who || '?').slice(0, 1).toUpperCase()}
-          </div>
-          <div className="invite-who-copy">
-            <strong>{who}</strong>
-            <span>{typedEmail || typedPhone}</span>
-          </div>
-          <button type="button" className="invite-who-edit" onClick={() => setStep(1)}>
-            {t('partners:peoplePage.changePerson')}
-          </button>
-        </div>
-      ) : null}
-
-      {step === 1 ? (
-        <div className="invite-form">
-          <div className="invite-mode" role="tablist" aria-label={t('partners:peoplePage.steps.1.title')}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'search'}
-              className={`invite-mode-btn${mode === 'search' ? ' is-on' : ''}`}
-              onClick={() => {
-                setMode('search');
-                setAttempted(false);
-              }}
-            >
-              <Search size={16} aria-hidden />
-              {t('partners:peoplePage.fromContacts')}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'new'}
-              className={`invite-mode-btn${mode === 'new' ? ' is-on' : ''}`}
-              onClick={startNew}
-            >
-              <UserPlus size={16} aria-hidden />
-              {t('partners:peoplePage.newContact')}
-            </button>
-          </div>
-
-          {mode === 'search' ? (
-            <div className="invite-panel">
-              <label className="invite-field" htmlFor="invite-query">
-                <span>{t('partners:peoplePage.searchLabel')}</span>
-                <span className="invite-input">
-                  <Search size={18} aria-hidden />
-                  <input
-                    id="invite-query"
-                    type="search"
-                    value={query}
-                    onChange={(event) => {
-                      setQuery(event.target.value);
-                      setSelectedContactId(null);
-                      setAttempted(false);
-                    }}
-                    placeholder={t('partners:peoplePage.searchPlaceholder')}
-                    autoComplete="off"
-                    autoFocus
-                  />
-                </span>
-              </label>
-
-              {selectedContact && reachReady ? (
-                <div className="invite-selected">
-                  <div>
-                    <strong>{selectedContact.displayName}</strong>
-                    <span>{selectedContact.email || selectedContact.phone}</span>
-                  </div>
-                  <Check size={18} aria-hidden />
-                </div>
-              ) : null}
-
-              {matches.length > 0 ? (
-                <ul className="invite-contact-list">
-                  {matches.map((contact) => {
-                    const selected = selectedContactId === contact.id;
-                    return (
-                      <li key={contact.id}>
-                        <button
-                          type="button"
-                          className={`invite-contact${selected ? ' is-on' : ''}`}
-                          onClick={() => chooseContact(contact)}
-                          aria-pressed={selected}
-                        >
-                          <span className="invite-contact-avatar" aria-hidden>
-                            {contact.displayName.slice(0, 1).toUpperCase()}
-                          </span>
-                          <span className="invite-contact-copy">
-                            <strong>{contact.displayName}</strong>
-                            <span>{contact.email || contact.phone || t('partners:peoplePage.noReach')}</span>
-                          </span>
-                          {selected ? <Check size={16} aria-hidden /> : null}
-                        </button>
-                      </li>
-                    );
+        <>
+          <div
+            className="invite-progress"
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={stepOrder.length}
+            aria-valuenow={stepPos + 1}
+          >
+            {stepOrder.map((number, index) => {
+              const state = number === step ? 'is-on' : index < stepPos ? 'is-done' : '';
+              return (
+                <button
+                  key={number}
+                  type="button"
+                  className={`invite-progress-seg ${state}`.trim()}
+                  aria-label={t('partners:peoplePage.inviteStep', {
+                    step: index + 1,
+                    total: stepOrder.length,
                   })}
-                </ul>
-              ) : (
-                <p className="invite-empty">
-                  {query.trim()
-                    ? t('partners:peoplePage.noContactMatch')
-                    : t('partners:peoplePage.noContactsYet')}
-                </p>
-              )}
+                  aria-current={number === step ? 'step' : undefined}
+                  disabled={index > stepPos}
+                  onClick={() => {
+                    if (index < stepPos) setStep(number);
+                  }}
+                />
+              );
+            })}
+          </div>
 
-              <button type="button" className="invite-link" onClick={startNew}>
-                {t('partners:peoplePage.switchToNew')}
+          {step > 1 ? (
+            <div className="invite-who">
+              <div className="invite-who-avatar" aria-hidden>
+                {(who || '?').slice(0, 1).toUpperCase()}
+              </div>
+              <div className="invite-who-copy">
+                <strong>{who}</strong>
+                <span>{typedEmail || typedPhone}</span>
+              </div>
+              <button type="button" className="invite-who-edit" onClick={() => setStep(1)}>
+                {t('partners:peoplePage.changePerson')}
               </button>
             </div>
-          ) : (
-            <div className="invite-panel">
-              <label className="invite-field" htmlFor="invite-name">
-                <span>{t('partners:peoplePage.name')}</span>
-                <span className="invite-input">
-                  <User size={18} aria-hidden />
-                  <input
-                    id="invite-name"
-                    type="text"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    placeholder={t('partners:peoplePage.namePlaceholder')}
-                    autoComplete="name"
-                    autoFocus
-                  />
-                </span>
-              </label>
+          ) : null}
 
-              <label className="invite-field" htmlFor="invite-email">
-                <span>
-                  {t('partners:peoplePage.email')}
-                  <em>{t('partners:peoplePage.orPhoneRequired')}</em>
-                </span>
-                <span className="invite-input">
-                  <Mail size={18} aria-hidden />
-                  <input
-                    id="invite-email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => {
-                      setEmail(event.target.value);
-                      setSelectedContactId(null);
-                      setAttempted(false);
-                    }}
-                    placeholder={t('partners:peoplePage.emailPlaceholder')}
-                    autoComplete="email"
-                  />
-                </span>
-              </label>
-
-              <label className="invite-field" htmlFor="invite-phone">
-                <span>{t('partners:peoplePage.phone')}</span>
-                <span className="invite-input">
-                  <Phone size={18} aria-hidden />
-                  <input
-                    id="invite-phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(event) => {
-                      setPhone(event.target.value);
-                      setSelectedContactId(null);
-                      setAttempted(false);
-                    }}
-                    placeholder={t('partners:peoplePage.phonePlaceholder')}
-                    autoComplete="tel"
-                  />
-                </span>
-              </label>
-
-              {reachReady ? (
-                <p className="invite-confirm">
-                  {t('partners:peoplePage.willRegister', { contact: typedEmail || typedPhone })}
-                </p>
-              ) : null}
-
-              {contacts.length > 0 ? (
+          {step === 1 ? (
+            <div className="invite-form">
+              <div className="invite-mode" role="tablist" aria-label={t('partners:peoplePage.steps.1.title')}>
                 <button
                   type="button"
-                  className="invite-link"
+                  role="tab"
+                  aria-selected={mode === 'search'}
+                  className={`invite-mode-btn${mode === 'search' ? ' is-on' : ''}`}
                   onClick={() => {
                     setMode('search');
                     setAttempted(false);
                   }}
                 >
-                  {t('partners:peoplePage.switchToContacts')}
+                  <Search size={16} aria-hidden />
+                  {t('partners:peoplePage.fromContacts')}
                 </button>
-              ) : null}
-            </div>
-          )}
-
-          {attempted && !canLeaveStep() ? (
-            <p className="people-error" role="alert">
-              {t('partners:peoplePage.needReach')}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {step === 2 ? (
-        <div className="invite-form">
-          <ul className="invite-option-list">
-            {fields.map((field) => {
-              const taken = takenFieldIds.has(field.id);
-              const selected = !taken && fieldIds.includes(field.id);
-              return (
-                <li key={field.id}>
-                  <button
-                    type="button"
-                    className={`invite-option${selected ? ' is-on' : ''}${taken ? ' is-taken' : ''}`}
-                    disabled={taken}
-                    aria-pressed={selected}
-                    onClick={() => {
-                      toggleField(field.id);
-                      setAttempted(false);
-                    }}
-                  >
-                    <span className="invite-option-copy">
-                      <strong>{field.name}</strong>
-                      <span>
-                        {taken
-                          ? t('partners:peoplePage.alreadyAccess')
-                          : selected
-                            ? t('partners:peoplePage.groveSelected')
-                            : t('partners:peoplePage.groveAdd')}
-                      </span>
-                    </span>
-                    {selected ? <Check size={18} aria-hidden /> : null}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          {attempted && !canLeaveStep() ? (
-            <p className="people-error" role="alert">
-              {t('partners:peoplePage.needGrove')}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {step === 3 ? (
-        <ul className="invite-option-list">
-          {(['Family', 'Collaborator'] as Relationship[]).map((option) => {
-            const selected = relationship === option;
-            return (
-              <li key={option}>
                 <button
                   type="button"
-                  className={`invite-option${selected ? ' is-on' : ''}`}
-                  aria-pressed={selected}
-                  onClick={() => pickRelationship(option)}
+                  role="tab"
+                  aria-selected={mode === 'new'}
+                  className={`invite-mode-btn${mode === 'new' ? ' is-on' : ''}`}
+                  onClick={startNew}
                 >
-                  <span className="invite-option-copy">
-                    <strong>{t(`partners:peoplePage.relationship.${option}`)}</strong>
-                    <span>{t(`partners:peoplePage.relationshipHint.${option}`)}</span>
-                  </span>
-                  {selected ? <Check size={18} aria-hidden /> : null}
+                  <UserPlus size={16} aria-hidden />
+                  {t('partners:peoplePage.newContact')}
                 </button>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+              </div>
 
-      {step === 4 ? (
-        <FieldPermissionPanel
-          choice={choice}
-          modules={modules}
-          role={relationship === 'Collaborator' ? 'Partner' : 'Family'}
-          previewMode="invite"
-          onPickChoice={pickChoice}
-          onChangeModules={(next) => {
-            setChoiceTouched(true);
-            setModules(next);
-          }}
-        />
-      ) : null}
+              {mode === 'search' ? (
+                <div className="invite-panel">
+                  <label className="invite-field" htmlFor="invite-query">
+                    <span>{t('partners:peoplePage.searchLabel')}</span>
+                    <span className="invite-input">
+                      <Search size={18} aria-hidden />
+                      <input
+                        id="invite-query"
+                        type="search"
+                        value={query}
+                        onChange={(event) => {
+                          setQuery(event.target.value);
+                          setSelectedContactId(null);
+                          setAttempted(false);
+                        }}
+                        placeholder={t('partners:peoplePage.searchPlaceholder')}
+                        autoComplete="off"
+                        autoFocus
+                      />
+                    </span>
+                  </label>
 
-      {step === 5 ? (
-        <div className="invite-preview">
-          <div className="invite-preview-card">
-            <p className="invite-confirm">
-              {typedEmail
-                ? t('partners:peoplePage.registerAccount', { email: typedEmail })
-                : t('partners:peoplePage.registerAccountPhone', { phone: typedPhone })}
-            </p>
-            <p className="invite-preview-lead">{t('partners:peoplePage.previewLead', { name: who })}</p>
-            {selectedFields.map((field) => (
-              <section key={field.id} className="invite-preview-grove">
-                <h3>{field.name}</h3>
-                <p>
-                  {t(`partners:peoplePage.relationship.${relationship}`)} ·{' '}
-                  {t(`partners:peoplePage.preset.${choice}`)}
-                </p>
-                <ul>
-                  {modules.map((module) => (
-                    <li key={module}>
-                      {t('partners:peoplePage.canSee', {
-                        module: t(`partners:peoplePage.modules.${module}`),
+                  {selectedContact && reachReady ? (
+                    <div className="invite-selected">
+                      <div>
+                        <strong>{selectedContact.displayName}</strong>
+                        <span>{selectedContact.email || selectedContact.phone || reach}</span>
+                      </div>
+                      <Check size={18} aria-hidden />
+                    </div>
+                  ) : null}
+
+                  {needsExtraReach ? (
+                    <label className="invite-field" htmlFor="invite-reach-extra">
+                      <span>{t('partners:peoplePage.reach')}</span>
+                      <span className="invite-input">
+                        <input
+                          id="invite-reach-extra"
+                          type="text"
+                          inputMode="email"
+                          value={reach}
+                          onChange={(event) => applyReach(event.target.value)}
+                          placeholder={t('partners:peoplePage.reachPlaceholder')}
+                          autoComplete="off"
+                        />
+                      </span>
+                    </label>
+                  ) : null}
+
+                  {matches.length > 0 ? (
+                    <ul className="invite-contact-list">
+                      {matches.map((contact) => {
+                        const selected = selectedContactId === contact.id;
+                        return (
+                          <li key={contact.id}>
+                            <button
+                              type="button"
+                              className={`invite-contact${selected ? ' is-on' : ''}`}
+                              onClick={() => chooseContact(contact)}
+                              aria-pressed={selected}
+                            >
+                              <span className="invite-contact-avatar" aria-hidden>
+                                {contact.displayName.slice(0, 1).toUpperCase()}
+                              </span>
+                              <span className="invite-contact-copy">
+                                <strong>{contact.displayName}</strong>
+                                <span>
+                                  {contact.email || contact.phone || t('partners:peoplePage.noReach')}
+                                </span>
+                              </span>
+                              {selected ? <Check size={16} aria-hidden /> : null}
+                            </button>
+                          </li>
+                        );
                       })}
+                    </ul>
+                  ) : (
+                    <p className="invite-empty">
+                      {query.trim()
+                        ? t('partners:peoplePage.noContactMatch')
+                        : t('partners:peoplePage.noContactsYet')}
+                    </p>
+                  )}
+
+                  <button type="button" className="invite-link" onClick={startNew}>
+                    {t('partners:peoplePage.switchToNew')}
+                  </button>
+                </div>
+              ) : (
+                <div className="invite-panel">
+                  <label className="invite-field" htmlFor="invite-name">
+                    <span>{t('partners:peoplePage.name')}</span>
+                    <span className="invite-input">
+                      <User size={18} aria-hidden />
+                      <input
+                        id="invite-name"
+                        type="text"
+                        value={name}
+                        onChange={(event) => setName(event.target.value)}
+                        placeholder={t('partners:peoplePage.namePlaceholder')}
+                        autoComplete="name"
+                        autoFocus
+                      />
+                    </span>
+                  </label>
+
+                  <label className="invite-field" htmlFor="invite-reach">
+                    <span>{t('partners:peoplePage.reach')}</span>
+                    <span className="invite-input">
+                      <input
+                        id="invite-reach"
+                        type="text"
+                        inputMode="email"
+                        value={reach}
+                        onChange={(event) => applyReach(event.target.value)}
+                        placeholder={t('partners:peoplePage.reachPlaceholder')}
+                        autoComplete="off"
+                      />
+                    </span>
+                  </label>
+
+                  {reachReady ? (
+                    <p className="invite-confirm">
+                      {t('partners:peoplePage.willRegister', { contact: typedEmail || typedPhone })}
+                    </p>
+                  ) : null}
+
+                  {contacts.length > 0 ? (
+                    <button
+                      type="button"
+                      className="invite-link"
+                      onClick={() => {
+                        setMode('search');
+                        setAttempted(false);
+                      }}
+                    >
+                      {t('partners:peoplePage.switchToContacts')}
+                    </button>
+                  ) : null}
+                </div>
+              )}
+
+              {attempted && !canLeaveStep() ? (
+                <p className="people-error" role="alert">
+                  {t('partners:peoplePage.needReach')}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {step === 2 ? (
+            <div className="invite-form">
+              <ul className="invite-option-list">
+                {fields.map((field) => {
+                  const taken = takenFieldIds.has(field.id);
+                  const selected = !taken && fieldIds.includes(field.id);
+                  return (
+                    <li key={field.id}>
+                      <button
+                        type="button"
+                        className={`invite-option${selected ? ' is-on' : ''}${taken ? ' is-taken' : ''}`}
+                        disabled={taken}
+                        aria-pressed={selected}
+                        onClick={() => {
+                          toggleField(field.id);
+                          setAttempted(false);
+                        }}
+                      >
+                        <span className="invite-option-copy">
+                          <strong>{field.name}</strong>
+                          <span>
+                            {taken
+                              ? t('partners:peoplePage.alreadyAccess')
+                              : selected
+                                ? t('partners:peoplePage.groveSelected')
+                                : t('partners:peoplePage.groveAdd')}
+                          </span>
+                        </span>
+                        {selected ? <Check size={18} aria-hidden /> : null}
+                      </button>
                     </li>
-                  ))}
-                  {choice !== 'view' ? <li>{t('partners:peoplePage.canRecord')}</li> : null}
-                  {choice === 'work' ? <li>{t('partners:peoplePage.canWorkTasks')}</li> : null}
-                </ul>
+                  );
+                })}
+              </ul>
+              {attempted && !canLeaveStep() ? (
+                <p className="people-error" role="alert">
+                  {t('partners:peoplePage.needGrove')}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {step === 3 ? (
+            <div className="invite-form">
+              <section className="perm-section">
+                <h3 className="perm-label">{t('partners:peoplePage.relationshipTitle')}</h3>
+                <div className="perm-choice-list">
+                  {(['Family', 'Collaborator'] as Relationship[]).map((option) => {
+                    const selected = relationship === option;
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        className={`perm-choice${selected ? ' is-on' : ''}`}
+                        aria-pressed={selected}
+                        onClick={() => pickRelationship(option)}
+                      >
+                        <span className="perm-choice-copy">
+                          <strong>{t(`partners:peoplePage.relationship.${option}`)}</strong>
+                          <span>{t(`partners:peoplePage.relationshipHint.${option}`)}</span>
+                        </span>
+                        {selected ? <Check size={18} aria-hidden /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
               </section>
-            ))}
-          </div>
-          <div className="invite-preview-never">
-            <p>{t('partners:peoplePage.willNot')}</p>
-            <ul>
-              <li>{t('partners:peoplePage.cannotInvite')}</li>
-              <li>{t('partners:peoplePage.cannotChangeGrove')}</li>
-              <li>{t('partners:peoplePage.cannotOwn')}</li>
-            </ul>
-          </div>
-        </div>
-      ) : null}
-      </>
+              <FieldPermissionPanel
+                choice={choice}
+                modules={modules}
+                role={relationship === 'Collaborator' ? 'Partner' : 'Family'}
+                previewMode="invite"
+                onPickChoice={pickChoice}
+                onChangeModules={(next) => {
+                  setChoiceTouched(true);
+                  setModules(next);
+                }}
+              />
+            </div>
+          ) : null}
+
+          {step === 4 ? (
+            <div className="invite-preview">
+              <div className="invite-preview-card">
+                <p className="invite-confirm">
+                  {typedEmail
+                    ? t('partners:peoplePage.registerAccount', { email: typedEmail })
+                    : t('partners:peoplePage.registerAccountPhone', { phone: typedPhone })}
+                </p>
+                <p className="invite-preview-lead">
+                  {t('partners:peoplePage.previewLead', { name: who })}
+                </p>
+                {selectedFields.map((field) => (
+                  <section key={field.id} className="invite-preview-grove">
+                    <h3>{field.name}</h3>
+                    <p>
+                      {t(`partners:peoplePage.relationship.${relationship}`)} ·{' '}
+                      {t(`partners:peoplePage.preset.${choice}`)}
+                    </p>
+                    <ul>
+                      <li>{t(`partners:peoplePage.capability.${choice}`)}</li>
+                      {modules.map((module) => (
+                        <li key={module}>
+                          {t('partners:peoplePage.canSee', {
+                            module: t(`partners:peoplePage.modules.${module}`),
+                          })}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </div>
+              <div className="invite-preview-never">
+                <p>{t('partners:peoplePage.willNot')}</p>
+                <ul>
+                  <li>{t('partners:peoplePage.cannotInvite')}</li>
+                  <li>{t('partners:peoplePage.cannotChangeGrove')}</li>
+                  <li>{t('partners:peoplePage.cannotOwn')}</li>
+                </ul>
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </PartnersSheet>
   );

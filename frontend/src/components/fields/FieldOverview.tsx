@@ -1,36 +1,20 @@
-import React, { useMemo } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
-import type { FieldPhenology, FieldTask, TaskProposal } from '../../services/fieldWorkService';
-import type { FieldEnvironmentalAlert, FieldWeather } from '../../services/geospatialService';
-import type { FieldYearSummary, YearFinancialSummary } from '../../services/financialSummaryService';
-import type { ChronologioEntry } from '../../services/chronologioService';
-import { countPlannedRemaining, resolveFieldAttention } from '../../utils/fieldOverviewAttention';
-import GroveWeatherCard from '../weather/GroveWeatherCard';
-import FieldStatusStrip from './FieldStatusStrip';
-import FieldWeatherCard from './FieldWeatherCard';
-import FieldYearGlance from './FieldYearGlance';
-import FieldRecentChronologio from './FieldRecentChronologio';
+import type { FieldOverviewDto } from '../../services/fieldOverviewService';
+import type { FieldWeather } from '../../services/geospatialService';
 import FieldDetailMap from './FieldDetailMap';
+import FieldYearGlance from './FieldYearGlance';
 import FieldPhotosStrip from './FieldPhotosStrip';
 import GroveEnrichmentCards from './GroveEnrichmentCards';
+import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 
 type Props = {
   field: Field;
-  year: number;
-  currentYear: number;
-  phenology: FieldPhenology | null;
-  tasks: FieldTask[];
-  proposals: TaskProposal[];
-  alerts: FieldEnvironmentalAlert[];
+  overview: FieldOverviewDto | null;
   weather: FieldWeather | null;
-  weatherLoading: boolean;
-  weatherError: boolean;
-  onRetryWeather: () => void;
-  costSummary: YearFinancialSummary | null;
-  yearRollup: FieldYearSummary | null;
-  recentEntries: ChronologioEntry[];
-  onOpenChronologio: (entry?: ChronologioEntry) => void;
+  onOpenChronologio: (entryId?: string) => void;
   onOpenMap: () => void;
   canViewMoney?: boolean;
   canEdit?: boolean;
@@ -38,142 +22,143 @@ type Props = {
 
 const FieldOverview: React.FC<Props> = ({
   field,
-  year,
-  currentYear,
-  phenology,
-  tasks,
-  proposals,
-  alerts,
+  overview,
   weather,
-  weatherLoading,
-  weatherError,
-  onRetryWeather,
-  costSummary,
-  yearRollup,
-  recentEntries,
   onOpenChronologio,
   onOpenMap,
   canViewMoney = true,
   canEdit = false,
 }) => {
-  const { t, i18n } = useTranslation('fields');
-  const isDraft = field.status === 'Draft';
-  const isHistoricalYear = year < currentYear;
-  const latestEntry = useMemo(
-    () =>
-      [...recentEntries].sort(
-        (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
-      )[0],
-    [recentEntries]
-  );
+  const { t } = useTranslation('fields');
+  const { formatRelativeTime, formatDate } = useLocaleFormatters();
+  const attention = overview?.current.primaryAttention;
+  const latest = overview?.current.latestRecord;
+  const hasAttention = Boolean(attention && attention.severity === 'warning');
 
-  const attention = useMemo(
-    () =>
-      resolveFieldAttention({
-        isDraft,
-        isHistoricalYear,
-        alerts,
-        tasks,
-        proposals,
-        language: i18n.language,
-      }),
-    [isDraft, isHistoricalYear, alerts, tasks, proposals, i18n.language]
-  );
-
-  const harvestDaySacks = useMemo(() => {
-    const harvestEntries = recentEntries.filter((e) => e.category === 'harvest');
-    if (harvestEntries.length === 0) return null;
-    let sacks = 0;
-    let found = false;
-    for (const entry of harvestEntries) {
-      const raw = entry.details?.harvest?.sackCount;
-      if (raw != null && Number.isFinite(Number(raw))) {
-        sacks += Number(raw);
-        found = true;
-      }
+  const whenLabel = (iso: string) => {
+    try {
+      return formatRelativeTime(iso);
+    } catch {
+      return formatDate(iso);
     }
-    return found ? sacks : null;
-  }, [recentEntries]);
+  };
 
   return (
     <div className="field-overview">
       <GroveEnrichmentCards field={field} canEdit={canEdit} />
 
-      <FieldStatusStrip
-        phenology={phenology}
-        currentLifecycleStage={field.currentLifecycleStage}
-        tasks={tasks}
-        attention={attention}
-        latestEntry={latestEntry}
-      />
+      <section
+        className={`field-priority-card ${hasAttention ? 'field-priority-card--warn' : 'field-priority-card--ok'}`}
+        aria-labelledby="field-priority-title"
+      >
+        {hasAttention && attention ? (
+          <>
+            <p className="field-priority-kicker">{t('overview.priority.needsNow')}</p>
+            <h2 id="field-priority-title">{attention.label}</h2>
+            <p>{attention.detail}</p>
+            {attention.href ? (
+              <Link className="field-attention-secondary" to={attention.href}>
+                {t('overview.priority.open')}
+              </Link>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <p className="field-priority-kicker">{t('overview.priority.allOk')}</p>
+            <h2 id="field-priority-title">{t('overview.priority.nothingUrgent')}</h2>
+            {latest ? (
+              <p>
+                {t('overview.priority.lastRecord', {
+                  title: latest.title,
+                  when: whenLabel(latest.occurredAt),
+                })}
+              </p>
+            ) : (
+              <p>{t('overview.statusStrip.noRecording')}</p>
+            )}
+          </>
+        )}
+      </section>
 
       {field.capabilities?.canViewEnvironmentalData !== false ? (
-      <div className="field-overview-grid">
-        <div className="field-overview-map">
+        <section className="field-overview-map-card" aria-labelledby="field-map-peek-title">
+          <h2 id="field-map-peek-title">{t('overview.mapPeek.title')}</h2>
           <FieldDetailMap
             field={field}
-            heightPx={320}
+            heightPx={220}
             variant="peek"
             weather={weather}
             onOpenMapTab={onOpenMap}
           />
-        </div>
-        <aside className="field-overview-side">
-          {weather && !weatherLoading && !weatherError ? (
-            <div className="field-overview-weather">
-              {isHistoricalYear ? (
-                <p className="field-weather-year-note">{t('weather.notThatYear', { year })}</p>
-              ) : null}
-              <GroveWeatherCard
-                fieldWeather={weather}
-                fieldName={field.name}
-                fieldId={field.id}
-                fieldColor={field.color}
-              />
-              <button type="button" className="field-weather-more" onClick={onOpenMap}>
-                {t('weather.seeCharts')}
-              </button>
-            </div>
-          ) : (
-            <FieldWeatherCard
-              weather={weather}
-              loading={weatherLoading}
-              error={weatherError}
-              year={year}
-              isHistoricalYear={isHistoricalYear}
-              allowRecommendation={!isDraft}
-              attention={attention}
-              nextTaskTitle={
-                attention.kind === 'weatherReschedule' ? attention.title : undefined
-              }
-              onRetry={onRetryWeather}
-              onSeeMore={onOpenMap}
-            />
-          )}
-        </aside>
-      </div>
+          <p className="field-overview-map-meta">
+            {overview?.field.areaStremmata != null
+              ? t('overview.mapPeek.areaBoundary', {
+                  area: overview.field.areaStremmata.toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  }),
+                  boundary:
+                    overview.field.boundaryStatus === 'complete'
+                      ? t('overview.mapPeek.boundaryComplete')
+                      : t('overview.mapPeek.boundaryMissing'),
+                })
+              : null}
+          </p>
+          <button type="button" className="field-weather-more" onClick={onOpenMap}>
+            {t('overview.mapPeek.openMap')}
+          </button>
+        </section>
+      ) : null}
+
+      {overview?.weather ? (
+        <section className="field-overview-weather-short" aria-labelledby="field-weather-short">
+          <h2 id="field-weather-short">{t('overview.weather.today')}</h2>
+          <p className="field-weather-headline">{overview.weather.headline}</p>
+          {overview.weather.recommendation ? <p>{overview.weather.recommendation}</p> : null}
+          {overview.weather.sourceLabel ? (
+            <p className="field-weather-source">{overview.weather.sourceLabel}</p>
+          ) : null}
+          <button type="button" className="field-weather-more" onClick={onOpenMap}>
+            {t('overview.weather.seeEnvironment')}
+          </button>
+        </section>
       ) : null}
 
       <div className="field-overview-lower">
-        <FieldYearGlance
-          fieldId={field.id}
-          year={year}
-          costSummary={costSummary}
-          yearRollup={yearRollup}
-          plannedRemaining={countPlannedRemaining(tasks)}
-          harvestDaySacks={harvestDaySacks}
-          canViewMoney={canViewMoney}
-        />
-        {field.capabilities?.canViewChronologio !== false ? (
-          <FieldRecentChronologio
-            fieldId={field.id}
-            entries={recentEntries}
-            onSelect={onOpenChronologio}
-          />
+        {overview ? <FieldYearGlance overview={overview} canViewMoney={canViewMoney} /> : null}
+
+        {field.capabilities?.canViewChronologio !== false && overview ? (
+          <section className="field-recent-history" aria-labelledby="field-recent-history-title">
+            <h2 id="field-recent-history-title">{t('overview.recentHistory')}</h2>
+            {overview.recentHistory.length === 0 ? (
+              <p className="fd-empty">{t('overview.statusStrip.noRecording')}</p>
+            ) : (
+              <ul className="field-recent-history-list">
+                {overview.recentHistory.map((item) => (
+                  <li key={item.id}>
+                    <button type="button" onClick={() => onOpenChronologio(item.id)}>
+                      <span className="field-recent-when">{whenLabel(item.occurredAt)}</span>
+                      <strong>{item.title}</strong>
+                      {item.summary ? <span>{item.summary}</span> : null}
+                      {item.amount != null ? (
+                        <em>
+                          {item.amount.toLocaleString(undefined, {
+                            style: 'currency',
+                            currency: item.currency || 'EUR',
+                          })}
+                        </em>
+                      ) : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         ) : null}
       </div>
 
-      {field.capabilities?.canViewPhotos !== false ? <FieldPhotosStrip fieldId={field.id} /> : null}
+      {field.capabilities?.canViewPhotos !== false ? (
+        <FieldPhotosStrip fieldId={field.id} photos={overview?.photos ?? null} />
+      ) : null}
     </div>
   );
 };

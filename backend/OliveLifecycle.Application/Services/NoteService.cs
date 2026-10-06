@@ -17,19 +17,22 @@ public class NoteService : INoteService
     private readonly IMediaAttachmentService _mediaService;
     private readonly IFieldAccessService _fieldAccess;
     private readonly IDateTimeProvider _clock;
+    private readonly IFieldStatusGuard _fieldStatusGuard;
 
     public NoteService(
         INoteRepository notes,
         IMediaAttachmentRepository media,
         IMediaAttachmentService mediaService,
         IFieldAccessService fieldAccess,
-        IDateTimeProvider clock)
+        IDateTimeProvider clock,
+        IFieldStatusGuard fieldStatusGuard)
     {
         _notes = notes;
         _media = media;
         _mediaService = mediaService;
         _fieldAccess = fieldAccess;
         _clock = clock;
+        _fieldStatusGuard = fieldStatusGuard;
     }
 
     public async Task<IReadOnlyList<NoteDto>> GetMineAsync(
@@ -56,6 +59,10 @@ public class NoteService : INoteService
         var mediaUrls = NormalizeMediaUrls(dto.MediaUrls);
         var body = NormalizeBody(dto.Body, allowEmpty: mediaUrls.Count > 0);
         var fieldId = await NormalizeFieldIdAsync(userId, userRole, dto.FieldId, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(fieldId))
+        {
+            await _fieldStatusGuard.EnsureAcceptsNewRecordsAsync(fieldId, cancellationToken);
+        }
         var now = _clock.UtcNow;
         var occurredAt = dto.OccurredAt?.ToUniversalTime() ?? now;
 

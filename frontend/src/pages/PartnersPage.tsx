@@ -9,7 +9,7 @@ import SavedContactSheet from '../components/Partners/SavedContactSheet';
 import EditAccessSheet from '../components/people/EditAccessSheet';
 import InvitePersonSheet from '../components/people/InvitePersonSheet';
 import { useAuth } from '../context/AuthContext';
-import { aggregateManagedPeople, presetLabelKey } from '../people/aggregatePeople';
+import { aggregateManagedPeople, capabilitySummaryKey } from '../people/aggregatePeople';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import { getFieldService, getPartnerService, isMockMode } from '../services/serviceFactory';
 import { rememberPartnerFieldId, rememberedPartnerFieldId, SavedContact } from '../services/partnerService';
@@ -199,8 +199,8 @@ const PartnersPage: React.FC = () => {
   const relationshipLabel = (role: string) =>
     t(`partners:peoplePage.relationship.${role === 'Partner' ? 'Collaborator' : 'Family'}`);
 
-  const presetLabel = (level: string, modules: string[]) =>
-    t(`partners:peoplePage.preset.${presetLabelKey(level, modules)}`);
+  const capabilityLabel = (level: string, modules: string[]) =>
+    t(`partners:peoplePage.capability.${capabilitySummaryKey(level, modules)}`);
 
   const ask = (message: string, onYes: () => void) => setConfirm({ message, onYes });
 
@@ -325,27 +325,21 @@ const PartnersPage: React.FC = () => {
                     <div className="people-row-main">
                       <strong>{person.displayName || person.email}</strong>
                       <div className="people-row-meta">
-                        <span>
-                          {relationshipLabel(membership.relationship)} · {presetLabel(membership.accessPreset, membership.modules)}
-                        </span>
+                        <span>{relationshipLabel(membership.relationship)}</span>
                       </div>
+                      <p className="people-capability">
+                        {capabilityLabel(membership.accessPreset, membership.modules)}
+                      </p>
                     </div>
-                    <details className="people-menu">
-                      <summary aria-label={t('partners:moreActions')}>⋯</summary>
-                      <div className="people-menu-panel">
-                        <button type="button" onClick={() => setEditing({ person, membership })}>
-                          {t('partners:peoplePage.manage')}
-                        </button>
-                        {person.email ? (
-                          <button type="button" onClick={() => window.location.assign(`mailto:${person.email}`)}>
-                            {t('partners:peoplePage.sendEmail')}
-                          </button>
-                        ) : null}
-                        <button type="button" className="is-danger" onClick={() => removeAccess(person, membership)}>
-                          {t('partners:peoplePage.removeOn', { field: friendlyFieldLabel(membership.fieldName) })}
-                        </button>
-                      </div>
-                    </details>
+                    <div className="people-row-actions">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditing({ person, membership })}
+                      >
+                        {t('partners:peoplePage.manage')}
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}
@@ -363,7 +357,8 @@ const PartnersPage: React.FC = () => {
                       <div className="people-row-meta">
                         <span className="people-kind is-invite">{t('partners:peoplePage.kindInvite')}</span>
                         <span>
-                          {relationshipLabel(invite.role)} · {presetLabel(invite.accessLevel, invite.modules)}
+                          {relationshipLabel(invite.role)} ·{' '}
+                          {capabilityLabel(invite.accessLevel, invite.modules)}
                           {/^expired$/i.test(invite.status)
                             ? ` · ${t('partners:peoplePage.expired')}`
                             : left != null
@@ -482,6 +477,13 @@ const PartnersPage: React.FC = () => {
             }))}
             onClose={() => setEditing(null)}
             onSaved={refresh}
+            onRemove={(groveId) => {
+              const membership =
+                editing.person.memberships.find((row) => row.fieldId === groveId) ||
+                editing.membership;
+              setEditing(null);
+              removeAccess(editing.person, membership);
+            }}
           />
         ) : null}
 

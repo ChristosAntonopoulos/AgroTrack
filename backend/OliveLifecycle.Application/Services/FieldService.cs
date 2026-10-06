@@ -32,6 +32,7 @@ public class FieldService : IFieldService
     private readonly ILifecycleService _lifecycleService;
     private readonly ILifecycleRepository _lifecycleRepository;
     private readonly IGeospatialJobQueue _geospatialJobQueue;
+    private readonly IFieldDeletionGuard _deletionGuard;
     private readonly ILogger<FieldService> _logger;
 
     public FieldService(
@@ -49,6 +50,7 @@ public class FieldService : IFieldService
         ILifecycleService lifecycleService,
         ILifecycleRepository lifecycleRepository,
         IGeospatialJobQueue geospatialJobQueue,
+        IFieldDeletionGuard deletionGuard,
         ILogger<FieldService> logger)
     {
         _fieldRepository = fieldRepository;
@@ -65,6 +67,7 @@ public class FieldService : IFieldService
         _lifecycleService = lifecycleService;
         _lifecycleRepository = lifecycleRepository;
         _geospatialJobQueue = geospatialJobQueue;
+        _deletionGuard = deletionGuard;
         _logger = logger;
     }
 
@@ -203,7 +206,7 @@ public class FieldService : IFieldService
             return null;
         }
 
-        return ToDtoForUser(field, userId, userRole);
+        return await ToDtoForUserAsync(field, userId, userRole, enrichDeletion: true, cancellationToken);
     }
 
     public async Task<IEnumerable<FieldDto>> GetFieldsByOwnerAsync(string ownerId, CancellationToken cancellationToken = default)
@@ -216,6 +219,7 @@ public class FieldService : IFieldService
         string userId,
         string userRole,
         string? module = null,
+        string? status = null,
         CancellationToken cancellationToken = default)
     {
         string? requiredModule = null;
@@ -232,7 +236,8 @@ public class FieldService : IFieldService
 
         var fields = await _fieldAccessScope.ResolveAccessibleFieldsAsync(
             userId, userRole, requiredModule, cancellationToken);
-        return fields.Select(f => ToDtoForUser(f, userId, userRole));
+        var filtered = FilterByStatus(fields, status);
+        return filtered.Select(f => ToDtoForUser(f, userId, userRole));
     }
 
     public async Task<FieldDto> UpdateFieldAsync(string id, string userId, UpdateFieldDto updateFieldDto, CancellationToken cancellationToken = default)
@@ -258,6 +263,55 @@ public class FieldService : IFieldService
         return ToDtoForUser(updatedField, userId);
     }
 
+    public async Task<FieldDto> ArchiveFieldAsync(string id, string userId, CancellationToken cancellationToken = default)
+    {
+        var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException("Field not found.");
+
+        if (!await _fieldAccessService.CanUserModifyFieldAsync(id, userId, cancellationToken))
+        {
+            throw new ForbiddenException("You do not have permission to archive this field.");
+        }
+
+        if (field.Status == FieldStatus.Archived)
+        {
+            return await ToDtoForUserAsync(field, userId, enrichDeletion: true, cancellationToken: cancellationToken);
+        }
+
+        if (field.Status == FieldStatus.Draft)
+        {
+            throw new ValidationException("Draft fields cannot be archived. Delete the empty draft or activate it first.");
+        }
+
+        field.Status = FieldStatus.Archived;
+        field.UpdatedAt = _dateTimeProvider.UtcNow;
+        var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
+        _logger.LogInformation("Archived field {FieldId} by user {UserId}", id, userId);
+        return await ToDtoForUserAsync(updated, userId, enrichDeletion: true, cancellationToken: cancellationToken);
+    }
+
+    public async Task<FieldDto> RestoreFieldAsync(string id, string userId, CancellationToken cancellationToken = default)
+    {
+        var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException("Field not found.");
+
+        if (!await _fieldAccessService.CanUserModifyFieldAsync(id, userId, cancellationToken))
+        {
+            throw new ForbiddenException("You do not have permission to restore this field.");
+        }
+
+        if (field.Status != FieldStatus.Archived)
+        {
+            return await ToDtoForUserAsync(field, userId, enrichDeletion: true, cancellationToken: cancellationToken);
+        }
+
+        field.Status = FieldStatus.Active;
+        field.UpdatedAt = _dateTimeProvider.UtcNow;
+        var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
+        _logger.LogInformation("Restored field {FieldId} by user {UserId}", id, userId);
+        return await ToDtoForUserAsync(updated, userId, enrichDeletion: true, cancellationToken: cancellationToken);
+    }
+
     public async Task<bool> DeleteFieldAsync(string id, string userId, CancellationToken cancellationToken = default)
     {
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken);
@@ -269,6 +323,13 @@ public class FieldService : IFieldService
         if (!await _fieldAccessService.CanUserModifyFieldAsync(id, userId, cancellationToken))
         {
             throw new ForbiddenException("You do not have permission to delete this field.");
+        }
+
+        // Never null FieldId on historical records. Reject when any linked history exists.
+        if (await _deletionGuard.HasLinkedRecordsAsync(id, field.OwnerId, cancellationToken))
+        {
+            throw new ConflictException(
+                "This grove cannot be permanently deleted because it has history. Archive it instead.");
         }
 
         return await _fieldRepository.DeleteAsync(id, cancellationToken);
@@ -589,7 +650,29 @@ public class FieldService : IFieldService
         var capabilities = FieldCapabilitiesResolver.Resolve(field, userId, userRole);
         var dto = FieldMapper.ToDto(field, includeDocuments: false);
         dto.Capabilities = capabilities;
+        ApplyCapabilityRedactions(dto, capabilities);
+        return dto;
+    }
 
+    private async Task<FieldDto> ToDtoForUserAsync(
+        FieldEntity field,
+        string userId,
+        string? userRole = null,
+        bool enrichDeletion = false,
+        CancellationToken cancellationToken = default)
+    {
+        var dto = ToDtoForUser(field, userId, userRole);
+        if (enrichDeletion && dto.Capabilities.CanDeleteField)
+        {
+            var hasLinks = await _deletionGuard.HasLinkedRecordsAsync(field.Id, field.OwnerId, cancellationToken);
+            dto.Capabilities.CanPermanentlyDelete = !hasLinks;
+        }
+
+        return dto;
+    }
+
+    private static void ApplyCapabilityRedactions(FieldDto dto, FieldCapabilitiesDto capabilities)
+    {
         if (!capabilities.CanViewSensitiveIdentity)
         {
             dto.Latitude = null;
@@ -603,8 +686,20 @@ public class FieldService : IFieldService
         {
             dto.Boundary = null;
         }
+    }
 
-        return dto;
+    /// <summary>
+    /// status=active (default): non-archived. status=archived: archived only. status=all: no filter.
+    /// </summary>
+    private static IEnumerable<FieldEntity> FilterByStatus(IEnumerable<FieldEntity> fields, string? status)
+    {
+        var key = string.IsNullOrWhiteSpace(status) ? "active" : status.Trim().ToLowerInvariant();
+        return key switch
+        {
+            "all" => fields,
+            "archived" => fields.Where(f => f.Status == FieldStatus.Archived),
+            _ => fields.Where(f => f.Status != FieldStatus.Archived)
+        };
     }
 
     private void ApplyUpdate(FieldEntity field, UpdateFieldDto updateFieldDto)

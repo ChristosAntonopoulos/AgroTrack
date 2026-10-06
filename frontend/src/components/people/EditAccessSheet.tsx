@@ -34,6 +34,7 @@ type Props = {
   activeFieldId: string;
   onClose: () => void;
   onSaved: () => void;
+  onRemove?: (fieldId: string) => void;
 };
 
 const EditAccessSheet: React.FC<Props> = ({
@@ -44,6 +45,7 @@ const EditAccessSheet: React.FC<Props> = ({
   activeFieldId,
   onClose,
   onSaved,
+  onRemove,
 }) => {
   const { t } = useTranslation(['partners', 'common']);
   const initial = memberships.find((row) => row.fieldId === activeFieldId) || memberships[0];
@@ -128,23 +130,36 @@ const EditAccessSheet: React.FC<Props> = ({
     >
       {error ? <p className="people-error">{error}</p> : null}
 
-      {memberships.length > 1 ? (
-        <label className="invite-field" htmlFor="edit-access-field">
-          <span>{t('partners:peoplePage.thisGrove')}</span>
-          <select
-            id="edit-access-field"
-            className="people-input"
-            value={fieldId}
-            onChange={(event) => loadField(event.target.value)}
-          >
-            {memberships.map((row) => (
-              <option key={row.fieldId} value={row.fieldId}>
-                {row.fieldName}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
+      <section className="perm-section">
+        <h3 className="perm-label">{t('partners:peoplePage.grovesWithAccess')}</h3>
+        {memberships.length > 1 ? (
+          <ul className="invite-option-list">
+            {memberships.map((row) => {
+              const on = row.fieldId === fieldId;
+              return (
+                <li key={row.fieldId}>
+                  <button
+                    type="button"
+                    className={`invite-option${on ? ' is-on' : ''}`}
+                    aria-pressed={on}
+                    onClick={() => loadField(row.fieldId)}
+                  >
+                    <span className="invite-option-copy">
+                      <strong>{row.fieldName}</strong>
+                      <span>
+                        {t(`partners:peoplePage.capability.${choiceFromAccess(row.accessLevel, row.modules) || 'help'}`)}
+                      </span>
+                    </span>
+                    {on ? <Check size={18} aria-hidden /> : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="people-note">{current.fieldName}</p>
+        )}
+      </section>
 
       <section className="perm-section">
         <h3 className="perm-label">{t('partners:peoplePage.relationshipTitle')}</h3>
@@ -179,6 +194,19 @@ const EditAccessSheet: React.FC<Props> = ({
         onPickChoice={pickChoice}
         onChangeModules={setSelected}
       />
+
+      {onRemove ? (
+        <div className="people-remove-block">
+          <button
+            type="button"
+            className="people-text-button is-danger"
+            disabled={saving}
+            onClick={() => onRemove(fieldId)}
+          >
+            {t('partners:peoplePage.removeAccess')}
+          </button>
+        </div>
+      ) : null}
     </PartnersSheet>
   );
 };

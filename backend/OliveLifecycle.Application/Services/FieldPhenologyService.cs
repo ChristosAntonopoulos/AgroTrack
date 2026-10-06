@@ -41,17 +41,20 @@ public class FieldPhenologyService : IFieldPhenologyService
     private readonly IFieldWorkAuthorizationService _auth;
     private readonly ITaskProposalEngine _proposalEngine;
     private readonly IDateTimeProvider _clock;
+    private readonly IFieldStatusGuard _fieldStatusGuard;
 
     public FieldPhenologyService(
         IFieldPhenologyObservationRepository observations,
         IFieldWorkAuthorizationService auth,
         ITaskProposalEngine proposalEngine,
-        IDateTimeProvider clock)
+        IDateTimeProvider clock,
+        IFieldStatusGuard fieldStatusGuard)
     {
         _observations = observations;
         _auth = auth;
         _proposalEngine = proposalEngine;
         _clock = clock;
+        _fieldStatusGuard = fieldStatusGuard;
     }
 
     public async Task<FieldPhenologyDto> GetCurrentAsync(
@@ -76,6 +79,7 @@ public class FieldPhenologyService : IFieldPhenologyService
         CancellationToken cancellationToken = default)
     {
         await _auth.EnsureCanRecordPhenologyAsync(fieldId, userId, userRole, cancellationToken);
+        await _fieldStatusGuard.EnsureAcceptsNewRecordsAsync(fieldId, cancellationToken);
 
         var source = PhenologySourceExtensions.FromApiString(dto.Source) ?? PhenologySource.User;
         if (userRole == Roles.Agronomist && dto.Source is null)

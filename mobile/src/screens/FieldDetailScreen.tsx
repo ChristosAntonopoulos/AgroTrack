@@ -49,6 +49,8 @@ import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
 import FieldWeatherVegetationCharts from '../components/fields/FieldWeatherVegetationCharts';
 import FieldLocalNavigation, { FIELD_PAGE_TABS, FieldTab } from '../components/fields/FieldLocalNavigation';
 import FieldHarvestYearsCard from '../components/fields/FieldHarvestYearsCard';
+import FieldYearGlance from '../components/fields/FieldYearGlance';
+import { fieldOverviewService, type FieldOverviewDto } from '../services/fieldOverviewService';
 import FieldNextTasks from '../components/fields/FieldNextTasks';
 import FieldQuickLinks from '../components/fields/FieldQuickLinks';
 import FieldPageErrorBoundary from '../components/fields/FieldPageErrorBoundary';
@@ -113,6 +115,7 @@ const FieldDetailScreen = () => {
   const [dismissedAttentionIds, setDismissedAttentionIds] = useState<string[]>([]);
   const [recentEntries, setRecentEntries] = useState<ChronologioEntry[]>([]);
   const [workProfile, setWorkProfile] = useState<FieldWorkProfile | null | undefined>(undefined);
+  const [overview, setOverview] = useState<FieldOverviewDto | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [hasLocalDraft, setHasLocalDraft] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -147,6 +150,7 @@ const FieldDetailScreen = () => {
         profile,
         dismissed,
         draft,
+        overviewDto,
       ] = await Promise.all([
         getFieldService().getField(fieldId),
         work.getTaskPlan(fieldId, year).catch(() => null),
@@ -162,6 +166,7 @@ const FieldDetailScreen = () => {
         work.getWorkProfile(fieldId).catch(() => null),
         isWorkSetupBannerDismissed(fieldId),
         readWorkProfileDraft(fieldId),
+        fieldOverviewService.getOverview(fieldId, year).catch(() => null),
       ]);
       if (isFieldSetupIncomplete(fieldData.status)) {
         navigation.replace('FieldForm', { fieldId: fieldData.id });
@@ -177,6 +182,7 @@ const FieldDetailScreen = () => {
       setPhenology(fieldPhenology);
       setRecentEntries(chrono);
       setWorkProfile(profile);
+      setOverview(overviewDto);
       setBannerDismissed(dismissed);
       setHasLocalDraft(Boolean(draft?.stepId));
       setError(null);
@@ -443,6 +449,21 @@ const FieldDetailScreen = () => {
             </FieldPageErrorBoundary>
           ) : null}
 
+          {overview ? (
+            <FieldPageErrorBoundary label="YearGlance">
+              <FieldYearGlance
+                overview={overview}
+                canViewMoney={gates.canViewMoney}
+                onSeeFinance={() =>
+                  navigation.navigate('Main', {
+                    screen: 'Money',
+                    params: { fieldId: field.id, year: String(year) },
+                  })
+                }
+              />
+            </FieldPageErrorBoundary>
+          ) : null}
+
           <FieldPageErrorBoundary label="Harvest">
             <FieldHarvestYearsCard
               fieldId={field.id}
@@ -581,7 +602,7 @@ const FieldDetailScreen = () => {
         canViewMap={gates.canViewMap}
         canViewEnvironmentalData={gates.canViewEnvironmentalData}
         onDelete={
-          gates.canDelete
+          gates.canDelete && field.capabilities?.canPermanentlyDelete
             ? () => {
                 Alert.alert(t('fields:deleteField'), t('fields:deleteConfirm'), [
                   { text: t('common:cancel'), style: 'cancel' },
@@ -596,6 +617,55 @@ const FieldDetailScreen = () => {
                     },
                   },
                 ]);
+              }
+            : gates.canDelete
+              ? () => {
+                  Alert.alert(
+                    t('fields:deleteField'),
+                    t('fields:details.danger.bodyBlocked', {
+                      defaultValue: 'Cannot be deleted because it has history. Archive it instead.',
+                    })
+                  );
+                }
+              : undefined
+        }
+        onArchive={
+          field.capabilities?.canArchiveField
+            ? () => {
+                Alert.alert(
+                  t('fields:page.archive', { defaultValue: 'Archive' }),
+                  t('fields:details.archive.safe', {
+                    defaultValue: 'History, expenses, harvest and photos stay safe.',
+                  }),
+                  [
+                    { text: t('common:cancel'), style: 'cancel' },
+                    {
+                      text: t('fields:page.archive', { defaultValue: 'Archive' }),
+                      onPress: () => {
+                        void getFieldService()
+                          .archiveField(fieldId)
+                          .then((updated) => setField(updated))
+                          .catch(() =>
+                            Alert.alert(
+                              t('fields:failedArchive', { defaultValue: 'Failed to archive grove' })
+                            )
+                          );
+                      },
+                    },
+                  ]
+                );
+              }
+            : undefined
+        }
+        onRestore={
+          field.capabilities?.canRestoreField
+            ? () => {
+                void getFieldService()
+                  .restoreField(fieldId)
+                  .then((updated) => setField(updated))
+                  .catch(() =>
+                    Alert.alert(t('fields:failedRestore', { defaultValue: 'Failed to restore grove' }))
+                  );
               }
             : undefined
         }

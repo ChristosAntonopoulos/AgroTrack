@@ -419,18 +419,18 @@
     "title": "People & access",
     "subtitle": "Decide who can see each grove and who can record in it.",
     "focusKicker": "This grove",
-    "focusLead": "Who can open the grove, and who you keep without access.",
+    "focusLead": "Who has access to this grove, and which contacts you keep only so you can find them.",
     "switchGrove": "Grove",
     "addPerson": "Invite",
     "notebookAdd": "New contact",
     "onThisGrove": "In the app",
     "appLead": "They open this grove and see what you allow.",
-    "yourContacts": "Your notebook",
-    "contactsConnect": "A name and a phone, with no access. Invite them into the app when you want.",
+    "yourContacts": "Contacts without access",
+    "contactsConnect": "The mill, workers, and people you want to find easily. They cannot enter the app until you invite them.",
     "kindUser": "User",
     "kindUserHint": "Can open this grove.",
     "kindContact": "Contact",
-    "kindContactHint": "Only in your notebook.",
+    "kindContactHint": "No app access.",
     "kindInvite": "Invitation",
     "giveAccess": "Give access",
     "alreadyHere": "Already on this grove",
@@ -467,6 +467,8 @@
     "details": "Details",
     "editOn": "Edit · {{field}}",
     "removeOn": "Remove from {{field}}",
+    "removeAccess": "Remove access",
+    "grovesWithAccess": "Groves with access",
     "sendEmail": "Send email",
     "thisPerson": "this person",
     "removeConfirm": "Remove {{name}}'s access? They will no longer be able to open {{field}}. Records they already made stay in the history.",
@@ -484,6 +486,8 @@
     "expiresIn_other": "Expires in {{count}} days",
     "expired": "Invitation expired",
     "emailOrPhone": "Email or phone",
+    "reach": "Mobile or email",
+    "reachPlaceholder": "69… or name@example.com",
     "newContact": "New contact",
     "name": "Name",
     "email": "Email",
@@ -491,11 +495,17 @@
     "customize": "Customize access",
     "relationshipTitle": "Relationship",
     "actionTitle": "What they can do",
-    "actionHint": "This sets whether they only look, also record, or also work with tasks.",
+    "actionHint": "Pick one of three simple levels.",
     "areasTitle": "Grove areas",
     "areasHint": "Open the parts of the app they need on this grove.",
     "moduleClosed": "Closed — they cannot open this part.",
     "oilNote": "Oil follows the grove and harvest. It has no separate permission.",
+    "capability": {
+      "view": "Can view",
+      "record": "Can view and record",
+      "work": "Can record and manage tasks",
+      "help": "Can update tasks"
+    },
     "moduleEffect": {
       "fields": {
         "view": "Sees grove details and the map.",
@@ -544,12 +554,12 @@
     "cannotChangeGrove": "change the grove",
     "cannotOwn": "become the owner",
     "alreadyAccess": "Already has access",
-    "needReach": "Add an email or phone so the invitation can be sent.",
+    "needReach": "Add a mobile number or email so the invitation can be sent.",
     "searchLabel": "Search contacts",
     "searchPlaceholder": "Name, email, or phone",
     "searchHint": "Choose a saved contact or type a new email.",
     "fromContacts": "From contacts",
-    "newContactHint": "Name, email, or phone for the invitation.",
+    "newContactHint": "Name and mobile or email for the invitation.",
     "namePlaceholder": "Elena Papadaki",
     "emailPlaceholder": "name@example.com",
     "phonePlaceholder": "69…",
@@ -557,7 +567,7 @@
     "noReach": "No email or phone",
     "noContactMatch": "No contact matches. Invite someone new.",
     "noContactsYet": "You have no saved contacts yet.",
-    "switchToNew": "Invite with a new email",
+    "switchToNew": "Invite someone new",
     "switchToContacts": "Choose from your contacts",
     "willRegister": "They will register on The Olive Lot with {{contact}}.",
     "registerAccount": "They will create an account with {{email}} and return to this invitation.",
@@ -583,9 +593,9 @@
     },
     "preset": {
       "view": "View only",
-      "record": "Record",
+      "record": "View and record",
       "help": "Update tasks",
-      "work": "Record & tasks"
+      "work": "Record and manage tasks"
     },
     "presetHint": {
       "view": "Sees the information you choose.",
@@ -603,11 +613,11 @@
       "documents": "Documents"
     },
     "steps": {
-      "1": { "title": "Who do you want to invite?", "hint": "Pick a contact or enter email and phone." },
-      "2": { "title": "Which groves?", "hint": "One person can have a relationship with more than one grove." },
-      "3": { "title": "What is the relationship?", "hint": "Relationship does not by itself decide what they can do." },
-      "4": { "title": "What can they do?", "hint": "Choose how deep they can act and which grove areas open." },
-      "5": { "title": "Review", "hint": "This sends one invitation for each selected grove." }
+      "1": { "title": "Who are you adding?", "hint": "Name and mobile or email." },
+      "2": { "title": "Which groves?", "hint": "The current grove is already selected; add more if needed." },
+      "3": { "title": "What can they do?", "hint": "Pick a relationship and one of three simple levels." },
+      "4": { "title": "Review", "hint": "Check and send the invitation." },
+      "5": { "title": "Review", "hint": "Check and send the invitation." }
     }
   }
 }

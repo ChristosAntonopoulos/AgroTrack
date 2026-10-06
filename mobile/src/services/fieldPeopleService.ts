@@ -30,6 +30,8 @@ export interface FieldCapabilities {
   canManageAccess: boolean;
   canEditField: boolean;
   canArchiveField: boolean;
+  canRestoreField: boolean;
+  canPermanentlyDelete: boolean;
   canDeleteField: boolean;
 }
 
@@ -156,7 +158,9 @@ export const capabilitiesForAccess = (
     canManageDocuments: has('documents') && canCreate,
     canManageAccess: admin,
     canEditField: admin,
-    canArchiveField: false,
+    canArchiveField: admin,
+    canRestoreField: false,
+    canPermanentlyDelete: false,
     canDeleteField: admin,
   };
 };

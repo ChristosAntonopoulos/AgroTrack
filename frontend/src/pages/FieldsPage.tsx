@@ -34,8 +34,9 @@ import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import './FieldsPage.css';
 
-type SortKey = 'name' | 'area' | 'activity' | 'distance';
+type SortKey = 'name' | 'area' | 'activity' | 'attention' | 'distance';
 type ViewMode = 'list' | 'map';
+type StatusFilter = 'all' | 'active' | 'archived';
 
 const FieldsPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common', 'errors', 'onboarding']);
@@ -52,13 +53,14 @@ const FieldsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('name');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [hoveredFieldId, setHoveredFieldId] = useState<string | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     void loadFields();
-  }, [refreshGeneration]);
+  }, [refreshGeneration, statusFilter]);
 
   useEffect(() => {
     if (fields.length > 0) void loadFieldTasks();
@@ -82,7 +84,9 @@ const FieldsPage: React.FC = () => {
   const loadFields = async () => {
     try {
       if (fields.length === 0) setLoading(true);
-      setFields(await getFieldService().getFields('fields'));
+      const status =
+        statusFilter === 'archived' ? 'archived' : statusFilter === 'all' ? 'all' : 'active';
+      setFields(await getFieldService().getFields('fields', status));
       setShowingCachedData(!isDeviceOnline());
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fields:failedLoad'));
@@ -126,7 +130,10 @@ const FieldsPage: React.FC = () => {
         const areaB = b.appMeasuredAreaSqm || b.area || 0;
         return areaB - areaA;
       }
-      if (sortBy === 'activity') {
+      if (sortBy === 'activity' || sortBy === 'attention') {
+        const tasksA = countTasksToday(fieldTasks.get(a.id) || []);
+        const tasksB = countTasksToday(fieldTasks.get(b.id) || []);
+        if (sortBy === 'attention' && tasksA !== tasksB) return tasksB - tasksA;
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
       }
       if (sortBy === 'distance' && userCoords) {
@@ -145,7 +152,10 @@ const FieldsPage: React.FC = () => {
 
   const filteredFields = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let list = fields.filter(isVisibleOnFieldsList);
+    let list =
+      statusFilter === 'archived'
+        ? fields.filter((f) => f.status === 'Archived')
+        : fields.filter(isVisibleOnFieldsList);
     if (q) {
       list = list.filter((f) => {
         const short = getFieldShortLocation(f).toLowerCase();
@@ -153,7 +163,7 @@ const FieldsPage: React.FC = () => {
       });
     }
     return sortFields(list);
-  }, [fields, search, sortBy, userCoords]);
+  }, [fields, search, sortBy, userCoords, statusFilter, fieldTasks]);
 
   const listCounts = useMemo(
     () => countFieldListBuckets(filteredFields, user?.userId),
@@ -197,11 +207,6 @@ const FieldsPage: React.FC = () => {
         : t('fields:subtitleDefault');
 
   const canCreate = user?.role !== 'Producer';
-
-  const tasksTodayTotal = useMemo(() => {
-    if (!tasksReady) return 0;
-    return filteredFields.reduce((sum, field) => sum + countTasksToday(fieldTasks.get(field.id) || []), 0);
-  }, [filteredFields, fieldTasks, tasksReady]);
 
   const renderCard = (field: Field, compact = false) => (
     <FieldCard
@@ -362,26 +367,35 @@ const FieldsPage: React.FC = () => {
                   </div>
                   <div className="fields-summary-strip" aria-live="polite">
                     <span className="fields-summary-item">
-                      {t('fields:summary.breakdown', {
-                        active: listCounts.active,
-                        draft: listCounts.draft,
-                        shared: listCounts.shared,
+                      {t('fields:summary.activeCount', {
+                        count: listCounts.active,
+                        defaultValue: `${listCounts.active} ενεργοί ελαιώνες`,
                       })}
                     </span>
-                    <span className={`fields-summary-item${tasksTodayTotal > 0 ? ' fields-summary-item--active' : ''}`}>
-                      {tasksReady
-                        ? t('fields:summary.tasksTodayCount', { count: tasksTodayTotal })
-                        : '…'}
-                    </span>
                   </div>
-                  <p className="fields-status-legend">{t('fields:summary.statusLegend')}</p>
+                  <div className="fields-status-filters" role="group" aria-label={t('fields:summary.filtersAria', { defaultValue: 'Φίλτρο κατάστασης' })}>
+                    {(['all', 'active', 'archived'] as StatusFilter[]).map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={`fields-status-filter${statusFilter === key ? ' fields-status-filter--on' : ''}`}
+                        onClick={() => setStatusFilter(key)}
+                      >
+                        {t(`fields:summary.filter.${key}`, {
+                          defaultValue:
+                            key === 'all' ? 'Όλοι' : key === 'active' ? 'Ενεργοί' : 'Αρχειοθετημένοι',
+                        })}
+                      </button>
+                    ))}
+                  </div>
                   <div className="fields-toolbar-right">
                     <label className="fields-sort">
                       <span className="fields-sort-label">{t('fields:sortLabel')}</span>
                       <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)}>
                         <option value="name">{t('fields:sortName')}</option>
-                        <option value="area">{t('fields:sortArea')}</option>
                         <option value="activity">{t('fields:sortActivity')}</option>
+                        <option value="attention">{t('fields:sortAttention', { defaultValue: 'Χρειάζεται προσοχή' })}</option>
+                        <option value="area">{t('fields:sortArea')}</option>
                         {canSortByDistance ? (
                           <option value="distance">{t('fields:sortDistance')}</option>
                         ) : null}

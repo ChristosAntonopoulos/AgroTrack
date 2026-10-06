@@ -21,10 +21,11 @@ public class FieldsController : BaseApiController
     [HttpGet]
     public async Task<ActionResult<IEnumerable<FieldDto>>> GetFields(
         [FromQuery] string? module,
+        [FromQuery] string? status,
         CancellationToken cancellationToken)
     {
         var fields = await _fieldService.GetFieldsForUserAsync(
-            UserContext.UserId, UserContext.Role, module, cancellationToken);
+            UserContext.UserId, UserContext.Role, module, status, cancellationToken);
         return OkResult(fields);
     }
 
@@ -51,6 +52,20 @@ public class FieldsController : BaseApiController
     public async Task<ActionResult<FieldDto>> UpdateField(string id, [FromBody] UpdateFieldDto updateFieldDto, CancellationToken cancellationToken)
     {
         var field = await _fieldService.UpdateFieldAsync(id, UserContext.UserId, updateFieldDto, cancellationToken);
+        return OkResult(field);
+    }
+
+    [HttpPost("{id}/archive")]
+    public async Task<ActionResult<FieldDto>> ArchiveField(string id, CancellationToken cancellationToken)
+    {
+        var field = await _fieldService.ArchiveFieldAsync(id, UserContext.UserId, cancellationToken);
+        return OkResult(field);
+    }
+
+    [HttpPost("{id}/restore")]
+    public async Task<ActionResult<FieldDto>> RestoreField(string id, CancellationToken cancellationToken)
+    {
+        var field = await _fieldService.RestoreFieldAsync(id, UserContext.UserId, cancellationToken);
         return OkResult(field);
     }
 

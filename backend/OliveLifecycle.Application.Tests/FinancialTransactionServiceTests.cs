@@ -40,6 +40,7 @@ public class FinancialTransactionServiceTests
             _auth.Object,
             _activities.Object,
             _clock.Object,
+            Mock.Of<IFieldStatusGuard>(),
             NullLogger<FinancialTransactionService>.Instance);
     }
 

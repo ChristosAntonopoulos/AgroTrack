@@ -38,6 +38,7 @@ public class HarvestServiceTests
             _media.Object,
             _activities.Object,
             _clock.Object,
+            Mock.Of<IFieldStatusGuard>(),
             NullLogger<HarvestService>.Instance);
     }
 

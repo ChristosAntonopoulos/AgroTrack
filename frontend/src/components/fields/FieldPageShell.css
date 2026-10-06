@@ -231,6 +231,99 @@
   gap: 12px;
 }
 
+.field-priority-card {
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  background: var(--surface-raised, var(--surface-1));
+}
+
+.field-priority-card--warn {
+  border-color: color-mix(in srgb, var(--amber-warning, #c9a227) 45%, transparent);
+  background: color-mix(in srgb, var(--amber-warning, #c9a227) 10%, var(--surface-1));
+}
+
+.field-priority-card--ok {
+  border-color: color-mix(in srgb, var(--olive-strong, #5a7a4e) 35%, transparent);
+}
+
+.field-priority-kicker {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.field-priority-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+}
+
+.field-overview-map-card,
+.field-overview-weather-short,
+.field-recent-history {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--surface-raised, var(--surface-1));
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+}
+
+.field-overview-map-card h2,
+.field-overview-weather-short h2,
+.field-recent-history h2,
+.field-year-glance-group-title {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.field-year-glance-groups {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 720px) {
+  .field-year-glance-groups {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.field-recent-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-recent-history-list button {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--surface-1) 80%, transparent);
+  cursor: pointer;
+}
+
+.field-recent-when {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.field-weather-headline {
+  font-size: 1.15rem;
+  margin: 0 0 6px;
+}
+
+.field-weather-source {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 .field-photos-strip {
   display: flex;
   flex-direction: column;
@@ -286,13 +379,22 @@
   overflow: hidden;
   background: #1f2a1c;
   border: 2px solid transparent;
-  cursor: pointer;
 }
 
 .field-photo-thumb.is-linked {
   border-color: var(--color-accent, #5a7a4e);
 }
 
+.field-photo-thumb.is-broken-link {
+  border-color: color-mix(in srgb, var(--status-warning, #c8924e) 70%, transparent);
+}
+
+.field-photo-frame {
+  width: 100%;
+  height: 100%;
+}
+
+.field-photo-frame .photo-frame-img,
 .field-photo-thumb img {
   width: 100%;
   height: 100%;
@@ -304,12 +406,17 @@
   position: absolute;
   left: 0.3rem;
   top: 0.3rem;
+  z-index: 2;
   font-size: 0.65rem;
   font-weight: 600;
   padding: 0.1rem 0.35rem;
   border-radius: 999px;
   background: rgba(90, 122, 78, 0.92);
   color: #f4f7f2;
+}
+
+.field-photo-badge.is-warn {
+  background: rgba(160, 100, 40, 0.92);
 }
 
 .field-photo-date {

@@ -47,7 +47,12 @@ const PhotoHubGallery: React.FC<Props> = ({
           : null;
         const typeLabel = (ownerType: string) =>
           t(`badges.${ownerType}`, { defaultValue: ownerType });
-        const linkLabel = photo.isLinked ? linkedRecordLabel(photo, typeLabel) : null;
+        const linkBroken = Boolean(photo.linkBroken);
+        const linkLabel = photo.isLinked
+          ? linkBroken
+            ? t('detail.linkBroken')
+            : linkedRecordLabel(photo, typeLabel)
+          : null;
         const needsReview =
           photo.fieldAssignment === 'needsReview' || photo.fieldAssignment === 'unassigned';
         const selected = selectedIds?.has(photo.id) ?? false;
@@ -61,7 +66,7 @@ const PhotoHubGallery: React.FC<Props> = ({
         return (
           <div
             key={photo.id}
-            className={`photo-card${photo.isLinked ? ' is-linked' : ''}${needsReview ? ' needs-review' : ''}${selected ? ' is-selected' : ''}`}
+            className={`photo-card${photo.isLinked && !linkBroken ? ' is-linked' : ''}${linkBroken ? ' is-broken-link' : ''}${needsReview ? ' needs-review' : ''}${selected ? ' is-selected' : ''}`}
             role="listitem"
             data-photo-id={photo.id}
           >
@@ -114,7 +119,9 @@ const PhotoHubGallery: React.FC<Props> = ({
                 <span className="photo-card-meta-time"> · {timeLabel}</span>
               </span>
               {linkLabel ? (
-                <span className="photo-card-meta-link is-static">{linkLabel}</span>
+                <span className={`photo-card-meta-link is-static${linkBroken ? ' is-broken' : ''}`}>
+                  {linkLabel}
+                </span>
               ) : null}
               {photo.fileName ? (
                 <span className="photo-card-meta-filename" title={photo.fileName}>

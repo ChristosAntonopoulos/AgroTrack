@@ -20,6 +20,8 @@ public static class DependencyInjection
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IFieldService, FieldService>();
+        services.AddScoped<IFieldDeletionGuard, FieldDeletionGuard>();
+        services.AddScoped<IFieldStatusGuard, FieldStatusGuard>();
         services.AddScoped<IFieldPeopleService, FieldPeopleService>();
         services.AddScoped<IKaekNormalizer, KaekNormalizer>();
         services.AddScoped<IFieldAreaCalculator, FieldAreaCalculator>();
@@ -34,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IFinancialTransactionService, FinancialTransactionService>();
         services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
         services.AddScoped<IFieldYearSummaryService, FieldYearSummaryService>();
+        services.AddScoped<IFieldOverviewService, FieldOverviewService>();
         services.AddScoped<IHarvestService, HarvestService>();
         services.AddScoped<IOilStockService, OilStockService>();
         services.AddScoped<IPartnerService, PartnerService>();

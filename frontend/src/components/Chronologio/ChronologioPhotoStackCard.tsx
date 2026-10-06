@@ -32,7 +32,8 @@ const ChronologioPhotoStackCard: React.FC<Props> = ({
     const raw = m.thumbnailUrl || m.url || '';
     return resolvePublicAssetUrl(raw) || raw;
   });
-  const count = Math.max(images.length, entries.length);
+  // Count only loadable images — never claim N photos when the collage is empty.
+  const count = images.length || entries.length;
   const fieldIds = [
     ...new Set(entries.map((e) => e.fieldId || e.field?.id).filter(Boolean) as string[]),
   ];

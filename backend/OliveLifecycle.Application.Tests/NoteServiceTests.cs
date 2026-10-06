@@ -28,7 +28,13 @@ public class NoteServiceTests
             .ReturnsAsync(Array.Empty<MediaAttachment>());
         _media.Setup(m => m.GetByOwnerAsync(It.IsAny<MediaOwnerType>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<MediaAttachment>());
-        _service = new NoteService(_notes.Object, _media.Object, _mediaService.Object, _access.Object, _clock.Object);
+        _service = new NoteService(
+            _notes.Object,
+            _media.Object,
+            _mediaService.Object,
+            _access.Object,
+            _clock.Object,
+            Mock.Of<IFieldStatusGuard>());
     }
 
     [Fact]

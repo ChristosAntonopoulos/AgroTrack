@@ -15,8 +15,11 @@ public interface IFieldService
         string userId,
         string userRole,
         string? module = null,
+        string? status = null,
         CancellationToken cancellationToken = default);
     Task<FieldDto> UpdateFieldAsync(string id, string userId, UpdateFieldDto updateFieldDto, CancellationToken cancellationToken = default);
+    Task<FieldDto> ArchiveFieldAsync(string id, string userId, CancellationToken cancellationToken = default);
+    Task<FieldDto> RestoreFieldAsync(string id, string userId, CancellationToken cancellationToken = default);
     Task<bool> DeleteFieldAsync(string id, string userId, CancellationToken cancellationToken = default);
     Task<ImportGreekCadastreFieldResponse> ImportGreekCadastreAsync(
         string ownerId,

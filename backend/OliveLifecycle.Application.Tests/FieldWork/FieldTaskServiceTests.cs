@@ -44,7 +44,8 @@ public class FieldTaskServiceTests
             _clock.Object,
             weather.Object,
             Mock.Of<ITaskProposalEngine>(),
-            _notifications.Object);
+            _notifications.Object,
+            Mock.Of<IFieldStatusGuard>());
     }
 
     [Fact]

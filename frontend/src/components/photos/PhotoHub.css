@@ -842,6 +842,10 @@
   border-color: color-mix(in srgb, var(--photo-accent) 55%, var(--photo-border-soft));
 }
 
+.photo-card.is-broken-link {
+  border-color: color-mix(in srgb, var(--photo-warning) 70%, var(--photo-border-soft));
+}
+
 .photo-card.needs-review {
   border-color: color-mix(in srgb, var(--photo-warning) 65%, var(--photo-border-soft));
 }
@@ -942,6 +946,11 @@
 .photo-card-meta-standalone {
   color: var(--photo-text-muted);
   font-weight: 550;
+}
+
+.photo-card-meta-link.is-broken {
+  color: var(--photo-warning, #b07830);
+  font-weight: 650;
 }
 
 .photo-card-meta-link:hover {
