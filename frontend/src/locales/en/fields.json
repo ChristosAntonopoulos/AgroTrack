@@ -74,11 +74,20 @@
     },
     "yearGlance": {
       "title": "The year at a glance",
+      "titleShort": "The year",
+      "noHarvestShort": "—",
+      "production": "Production",
+      "money": "Money",
       "plannedRemaining": "Planned work remaining",
       "harvest": "Harvest",
       "oil": "Oil litres",
+      "oilProduced": "Oil produced",
       "inMyCellar": "In my cellar from this grove",
+      "inCellarNow": "In the cellar now",
+      "noOilYet": "No oil produced yet.",
       "seeInMyCellar": "See in my cellar",
+      "openMoney": "Open Money",
+      "openMyOil": "Open My Oil",
       "perHectare": "€ / stremma",
       "perLitre": "€ / litre",
       "noHarvest": "There is no completed harvest result for {{year}}.",
@@ -87,6 +96,48 @@
       "noCompletedHarvest": "No completed harvest result yet.",
       "noMoney": "There are no financial entries for {{year}}."
     },
+    "priority": {
+      "needsNow": "Needed now",
+      "allOk": "All clear for now",
+      "nothingUrgent": "Nothing needs immediate action.",
+      "lastRecord": "Last recording: {{title}} · {{when}}",
+      "open": "Open"
+    },
+    "mapPeek": {
+      "title": "Map",
+      "areaBoundary": "{{area}} stremmata · {{boundary}}",
+      "boundaryComplete": "Boundary complete",
+      "boundaryMissing": "Boundary pending",
+      "openMap": "Open map",
+      "layers": "Layers"
+    },
+    "today": {
+      "noTask": "No task today",
+      "last": "Last: {{title}} · {{when}}"
+    },
+    "statusCard": {
+      "title": "Status",
+      "hint": "Greenness, moisture and satellite image"
+    },
+    "people": {
+      "title": "People",
+      "manage": "Manage",
+      "seeAll": "All · {{count}}",
+      "moreNames": "{{names}} +{{count}}"
+    },
+    "more": {
+      "aria": "More",
+      "title": "More",
+      "cellar": "Cellar"
+    },
+    "seeAllChronologioShort": "All",
+    "weather": {
+      "today": "Today",
+      "seeEnvironment": "Weather & environment",
+      "seeCharts": "See details",
+      "notThatYear": "Weather is for today, not {{year}}."
+    },
+    "recentHistory": "Recent history",
     "recorded": "Recorded {{when}}.",
     "seeObservation": "See observation",
     "area": "Area",
@@ -299,6 +350,7 @@
   "sortName": "Name",
   "sortArea": "Area",
   "sortOverdue": "Overdue first",
+  "sortAttention": "Needs attention",
   "emptySearchTitle": "No matching fields",
   "emptySearchDescription": "Try a different search term or clear the filter.",
   "summary": {
@@ -307,6 +359,18 @@
     "overdue": "overdue",
     "approvals": "awaiting approval",
     "fieldsCount": "{{count}} fields",
+    "activeCount_one": "{{count}} active grove",
+    "activeCount_other": "{{count}} active groves",
+    "activeCount": "{{count}} active groves",
+    "archivedCount_one": "{{count}} archived",
+    "archivedCount_other": "{{count}} archived",
+    "archivedCount": "{{count}} archived",
+    "filtersAria": "Status filter",
+    "filter": {
+      "all": "All",
+      "active": "Active",
+      "archived": "Archived"
+    },
     "tasksTodayCount_one": "{{count}} task today",
     "tasksTodayCount_other": "{{count}} tasks today",
     "tasksTodayCount": "{{count}} tasks today",
@@ -322,12 +386,21 @@
     "monitoring": "Monitoring",
     "timeline": "History"
   },
+  "switcher": {
+    "title": "Switch grove",
+    "search": "Search",
+    "loading": "Loading…",
+    "empty": "No grove found"
+  },
   "page": {
     "tabsAria": "Field sections",
     "mapData": "Map & environment",
+    "mapDataShort": "Map",
     "mapDataFull": "Map & environment",
     "details": "Grove record",
     "tabDetails": "Record",
+    "tabStatus": "Status",
+    "editBoundary": "Edit boundary",
     "yearAria": "Result year",
     "prevYear": "Previous year",
     "nextYear": "Next year",
@@ -356,7 +429,9 @@
   },
   "mapWorkspace": {
     "lead": "Choose what to look at on the field — boundary, photo, greenness or moisture.",
-    "whatToSee": "Pictures on the map",
+    "whatToSee": "What do you want to see?",
+    "layers": "Layers",
+    "moreLayers": "More",
     "terrain": "Terrain",
     "recenter": "Centre on field",
     "openTab": "Open map",

@@ -242,10 +242,13 @@ const FieldDetailMap: React.FC<Props> = ({
   }
 
   return (
-    <div className={`field-detail-map-wrap field-detail-map-wrap--${mode}`}>
+    <div
+      className={`field-detail-map-wrap field-detail-map-wrap--${mode}`}
+      style={isFull ? undefined : heightPx ? { minHeight: heightPx } : undefined}
+    >
       <div
         className={`field-detail-map field-detail-map--${mode}${isPeek ? ' field-detail-map--compact' : ''}`}
-        style={isFull ? undefined : { height: heightPx }}
+        style={isFull ? undefined : heightPx ? { height: '100%', minHeight: heightPx } : undefined}
       >
         <div className="field-detail-map-stage">
           <div className="field-detail-map-canvas">

@@ -152,7 +152,7 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
     );
   }
 
-  const overlayChips = allowDataLayers && definitions.length > 0;
+  const overlayChips = false; // Layers live only behind the Επίπεδα sheet — not a chip grid.
 
   return (
     <View style={styles.block}>
@@ -225,8 +225,12 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
             accessibilityLabel={t('fields:mapLayers.title')}
           >
             <Text style={[styles.layersLabel, { color: colors.textSecondary }]}>
-              {t('fields:mapLayers.title')}
-              {activeLayerId ? ` · ${t(`fields:mapLayers.names.${activeLayerId}`, { defaultValue: activeLayerId })}` : ''}
+              {t('fields:mapWorkspace.layers', { defaultValue: t('fields:mapLayers.title') })}
+              {activeLayerId
+                ? ` · ${t(`fields:mapLayers.looks.${activeLayerId}`, {
+                    defaultValue: t(`fields:mapLayers.names.${activeLayerId}`, { defaultValue: activeLayerId }),
+                  })}`
+                : ''}
             </Text>
           </Pressable>
         ) : (

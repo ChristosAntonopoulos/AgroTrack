@@ -16,6 +16,7 @@ import {
 } from '../../utils/fieldDisplay';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import FieldPolygonThumbnail from '../fields/FieldPolygonThumbnail';
+import FieldPeopleStrip from '../fields/FieldPeopleStrip';
 import FieldPinMark from '../maps/FieldPinMark';
 
 export interface FieldCardStats {
@@ -153,6 +154,14 @@ const FieldCard: React.FC<FieldCardProps> = ({
           <Text style={[styles.facts, { color: colors.textSecondary }]} numberOfLines={1}>
             {facts}
           </Text>
+        ) : null}
+        {!compact ? (
+          <FieldPeopleStrip
+            fieldId={field.id}
+            variant="card"
+            seed={field.memberships}
+            onManage={() => undefined}
+          />
         ) : null}
         {metaLine ? (
           <Text

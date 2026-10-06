@@ -77,6 +77,18 @@ const FieldMoreMenu: React.FC<Props> = ({
               {t('fields:page.editField')}
             </button>
           ) : null}
+          {canEdit ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                navigate(`/fields/${field.id}/edit?focus=boundary`);
+              }}
+            >
+              {t('fields:page.editBoundary', { defaultValue: 'Αλλαγή ορίου' })}
+            </button>
+          ) : null}
           {canManage ? (
             <button
               type="button"

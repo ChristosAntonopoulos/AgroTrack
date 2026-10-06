@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import Button from '../ui/Button';
@@ -8,13 +9,20 @@ import { MapLayerData, MapLayerDefinition, SatelliteDate } from '../../services/
 import { MapLayerType } from '../../utils/mapLayers';
 import { typography, spacing } from '../../theme';
 
-/**
- * Opacity presets, used instead of a slider so the app avoids another native
- * dependency for a control that only needs a few useful positions.
- */
 const OPACITY_STEPS = [0.35, 0.55, 0.75, 1];
-
 const BASE_OPTIONS: MapLayerType[] = ['satellite', 'standard'];
+const PRIMARY_IDS = ['truecolor', 'ndvi', 'ndmi', 'ndwi', 'savi'];
+const MORE_IDS = ['ndvi-change', 'ndre'];
+
+const LAYER_ICON: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
+  truecolor: 'image-outline',
+  ndvi: 'leaf-outline',
+  ndmi: 'water-outline',
+  ndwi: 'rainy-outline',
+  savi: 'flower-outline',
+  'ndvi-change': 'git-compare-outline',
+  ndre: 'color-filter-outline',
+};
 
 interface Props {
   visible: boolean;
@@ -56,27 +64,77 @@ const MapLayerSheet: React.FC<Props> = ({
 }) => {
   const { colors } = useTheme();
   const { t, i18n } = useTranslation(['fields', 'common']);
+  const [showMore, setShowMore] = useState(false);
 
   const formatDate = (value: string) =>
     new Date(value).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short' });
 
   const layerName = (definition: MapLayerDefinition) =>
-    t(`fields:mapLayers.names.${definition.id}`, { defaultValue: definition.name });
+    t(`fields:mapLayers.looks.${definition.id}`, {
+      defaultValue: t(`fields:mapLayers.names.${definition.id}`, { defaultValue: definition.name }),
+    });
 
   const activeDefinition = overlays.find((o) => o.id === activeLayerId);
   const legend = activeLayer?.legend;
+
+  const { primary, more } = useMemo(() => {
+    const byId = new Map(overlays.map((layer) => [layer.id, layer]));
+    const primaryLayers = PRIMARY_IDS.map((id) => byId.get(id)).filter(
+      (layer): layer is MapLayerDefinition => Boolean(layer)
+    );
+    const moreLayers = [
+      ...MORE_IDS.map((id) => byId.get(id)).filter((layer): layer is MapLayerDefinition => Boolean(layer)),
+      ...overlays.filter((layer) => !PRIMARY_IDS.includes(layer.id) && !MORE_IDS.includes(layer.id)),
+    ];
+    return { primary: primaryLayers, more: moreLayers };
+  }, [overlays]);
 
   const softChip = (active: boolean) => ({
     borderColor: active ? colors.oliveBorder : colors.border,
     backgroundColor: active ? colors.primaryLight : colors.surface,
   });
 
+  const renderLayer = (definition: MapLayerDefinition | undefined, id: string) => {
+    const active = definition ? activeLayerId === definition.id : !activeLayerId;
+    const label = definition
+      ? layerName(definition)
+      : t('fields:mapLayers.looks.none', { defaultValue: t('fields:mapLayers.none') });
+    const icon = definition ? LAYER_ICON[definition.id] || 'layers-outline' : 'map-outline';
+    return (
+      <Pressable
+        key={id}
+        style={[
+          styles.option,
+          {
+            borderColor: active ? colors.oliveBorder : colors.border,
+            backgroundColor: active ? colors.primaryLight : colors.surface,
+          },
+        ]}
+        onPress={() => onActiveLayerChange(definition?.id)}
+        accessibilityRole="button"
+        accessibilityState={{ selected: active }}
+      >
+        <View style={styles.optionText}>
+          <View style={styles.optionRow}>
+            <Text style={{ color: active ? colors.primary : colors.textSecondary, width: 16 }}>
+              {active ? '●' : '○'}
+            </Text>
+            <Ionicons name={icon} size={16} color={active ? colors.primary : colors.textSecondary} />
+            <Text style={{ color: active ? colors.primary : colors.textPrimary, fontWeight: active ? '700' : '500' }}>
+              {label}
+            </Text>
+          </View>
+        </View>
+      </Pressable>
+    );
+  };
+
   return (
     <Sheet
       open={visible}
       onClose={onClose}
       edge="end"
-      title={t('fields:mapLayers.title')}
+      title={t('fields:mapWorkspace.whatToSee', { defaultValue: t('fields:mapLayers.title') })}
       footer={<Button title={t('common:close')} onPress={onClose} />}
     >
       <Text style={[styles.section, { color: colors.textSecondary }]}>
@@ -104,59 +162,19 @@ const MapLayerSheet: React.FC<Props> = ({
       </View>
 
       <Text style={[styles.section, { color: colors.textSecondary, marginTop: spacing.md }]}>
-        {t('fields:mapLayers.dataOverlay')}
+        {t('fields:mapWorkspace.layers', { defaultValue: 'Επίπεδα' })}
       </Text>
 
-      <Pressable
-        style={[
-          styles.option,
-          {
-            borderColor: !activeLayerId ? colors.oliveBorder : colors.border,
-            backgroundColor: !activeLayerId ? colors.primaryLight : colors.surface,
-          },
-        ]}
-        onPress={() => onActiveLayerChange(undefined)}
-        accessibilityRole="button"
-        accessibilityState={{ selected: !activeLayerId }}
-      >
-        <Text style={{ color: !activeLayerId ? colors.primary : colors.textPrimary }}>
-          {t('fields:mapLayers.none')}
-        </Text>
-        <Text style={{ color: !activeLayerId ? colors.primary : colors.textSecondary }}>
-          {!activeLayerId ? '✓' : ''}
-        </Text>
-      </Pressable>
-
-      {overlays.map((definition) => {
-        const active = activeLayerId === definition.id;
-        return (
-          <Pressable
-            key={definition.id}
-            style={[
-              styles.option,
-              {
-                borderColor: active ? colors.oliveBorder : colors.border,
-                backgroundColor: active ? colors.primaryLight : colors.surface,
-              },
-            ]}
-            onPress={() => onActiveLayerChange(definition.id)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-          >
-            <View style={styles.optionText}>
-              <Text style={{ color: active ? colors.primary : colors.textPrimary }}>{layerName(definition)}</Text>
-              {definition.spatialResolution ? (
-                <Text style={[styles.optionMeta, { color: colors.textSecondary }]}>
-                  {definition.spatialResolution} · {definition.provider}
-                </Text>
-              ) : null}
-            </View>
-            <Text style={{ color: active ? colors.primary : colors.textSecondary }}>
-              {active ? '✓' : ''}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {renderLayer(undefined, 'none')}
+      {primary.map((definition) => renderLayer(definition, definition.id))}
+      {showMore ? more.map((definition) => renderLayer(definition, definition.id)) : null}
+      {!showMore && more.length > 0 ? (
+        <Pressable onPress={() => setShowMore(true)} style={styles.moreBtn} accessibilityRole="button">
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>
+            {t('fields:mapWorkspace.moreLayers', { defaultValue: 'Περισσότερα' })}
+          </Text>
+        </Pressable>
+      ) : null}
 
       {overlays.length === 0 ? (
         <Text style={[styles.note, { color: colors.textSecondary }]}>
@@ -306,7 +324,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   optionText: { flex: 1 },
+  optionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   optionMeta: { ...typography.styles.caption, fontSize: 11 },
+  moreBtn: { paddingVertical: spacing.sm, paddingHorizontal: 4 },
   note: { ...typography.styles.caption, marginTop: spacing.sm, lineHeight: 16 },
   legend: { marginTop: spacing.sm },
   legendRamp: { flexDirection: 'row', height: 10, borderRadius: 999, overflow: 'hidden' },

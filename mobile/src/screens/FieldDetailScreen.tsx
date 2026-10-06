@@ -39,7 +39,7 @@ import HeaderIconButton from '../components/layout/HeaderIconButton';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
-import FieldIdentity from '../components/fields/FieldIdentity';
+import FieldGroveSwitcher from '../components/fields/FieldGroveSwitcher';
 import FieldMoreMenu from '../components/fields/FieldMoreMenu';
 import FieldWeatherSection from '../components/fields/FieldWeatherSection';
 import FieldFacts from '../components/fields/FieldFacts';
@@ -48,24 +48,19 @@ import FieldDetailMap from '../components/domain/FieldDetailMap';
 import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
 import FieldWeatherVegetationCharts from '../components/fields/FieldWeatherVegetationCharts';
 import FieldLocalNavigation, { FIELD_PAGE_TABS, FieldTab } from '../components/fields/FieldLocalNavigation';
-import FieldHarvestYearsCard from '../components/fields/FieldHarvestYearsCard';
-import FieldYearGlance from '../components/fields/FieldYearGlance';
+import FieldOverviewHome from '../components/fields/FieldOverviewHome';
 import { fieldOverviewService, type FieldOverviewDto } from '../services/fieldOverviewService';
-import FieldNextTasks from '../components/fields/FieldNextTasks';
-import FieldQuickLinks from '../components/fields/FieldQuickLinks';
 import FieldPageErrorBoundary from '../components/fields/FieldPageErrorBoundary';
 import GroveWeatherCard from '../components/weather/GroveWeatherCard';
 import GroveWeekForecast from '../components/weather/GroveWeekForecast';
 import WeatherPeekSheet from '../components/weather/WeatherPeekSheet';
 import { resolveFieldGates } from '../utils/fieldGates';
-import { resolveFieldColor } from '../utils/fieldColors';
 import { spacing } from '../theme';
 import {
   formatRelativeTime,
   isFieldSetupIncomplete,
   numberLocaleFor,
 } from '../utils/fieldDisplay';
-import { friendlyFieldLabel } from '../utils/fieldLabels';
 import {
   chronologioAttentionFallback,
   resolveFieldAttention,
@@ -288,19 +283,10 @@ const FieldDetailScreen = () => {
     workProfile !== undefined &&
     (workProfile == null || workProfile.status === 'draft');
 
-  const historyDetail = useMemo(() => {
-    const latest = recentEntries[0];
-    if (!latest) return undefined;
-    const locale = numberLocaleFor(i18n.language);
-    return `${latest.title} · ${formatRelativeTime(latest.occurredAt, locale)}`;
-  }, [recentEntries, i18n.language]);
-
   useEffect(() => {
     if (!field) return;
-    const title = friendlyFieldLabel(field.name);
-    const accent = resolveFieldColor(field.color, field.id);
     navigation.setOptions({
-      title,
+      headerTitle: () => <FieldGroveSwitcher field={field} />,
       headerLeft: () => (
         <View style={styles.headerLeading}>
           <HeaderIconButton
@@ -309,10 +295,6 @@ const FieldDetailScreen = () => {
             compact
             accessibilityLabel={t('common:back')}
             onPress={() => navigation.goBack()}
-          />
-          <View
-            style={[styles.headerColorDot, { backgroundColor: accent, borderColor: colors.surface }]}
-            accessibilityElementsHidden
           />
         </View>
       ),
@@ -326,7 +308,7 @@ const FieldDetailScreen = () => {
         />
       ),
     });
-  }, [field, navigation, t, colors.surface]);
+  }, [field, navigation, t]);
 
   const setTab = (next: FieldTab) => {
     navigation.setParams({
@@ -441,86 +423,57 @@ const FieldDetailScreen = () => {
             />
           ) : null}
 
-          <FieldIdentity field={field} size="page" hideTitle showMeta />
-
-          {gates.canViewMap ? (
-            <FieldPageErrorBoundary label="Map">
-              <FieldDetailMap field={field} height={300} showDataLayers />
-            </FieldPageErrorBoundary>
-          ) : null}
-
-          {overview ? (
-            <FieldPageErrorBoundary label="YearGlance">
-              <FieldYearGlance
-                overview={overview}
-                canViewMoney={gates.canViewMoney}
-                onSeeFinance={() =>
-                  navigation.navigate('Main', {
-                    screen: 'Money',
-                    params: { fieldId: field.id, year: String(year) },
-                  })
-                }
-              />
-            </FieldPageErrorBoundary>
-          ) : null}
-
-          <FieldPageErrorBoundary label="Harvest">
-            <FieldHarvestYearsCard
-              fieldId={field.id}
-              onOpenHarvest={() => openHarvestCampaign(navigation, { fieldId: field.id })}
-            />
-          </FieldPageErrorBoundary>
-
-          <FieldPageErrorBoundary label="Tasks">
-            <FieldNextTasks
-              tasks={tasks}
-              fieldColor={field.color}
-              fieldId={field.id}
-              onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })}
-              onSeeAll={() =>
-                navigation.navigate('Main', {
-                  screen: 'Tasks',
-                  params: { fieldId: field.id, year: String(year) },
-                })
-              }
-            />
-          </FieldPageErrorBoundary>
-
-          <FieldPageErrorBoundary label="Shortcuts">
-            <FieldQuickLinks
-              attentionTitle={showAttentionNudge ? attention?.title : null}
-              onAttention={
-                showAttentionNudge
-                  ? () => {
-                      if (attention?.taskId) {
-                        navigation.navigate('TaskDetail', { taskId: attention.taskId });
-                        return;
-                      }
-                      if (attention?.kind === 'weatherReschedule') {
-                        setTab('weather');
-                        return;
-                      }
-                      navigation.navigate('Main', {
-                        screen: 'Tasks',
-                        params: { fieldId: field.id, year: String(year) },
-                      });
+          <FieldOverviewHome
+            field={field}
+            overview={overview}
+            weather={weather}
+            tasks={tasks}
+            recentEntries={recentEntries}
+            attention={attention}
+            canEdit={Boolean(canOwn)}
+            canViewMap={gates.canViewMap}
+            canViewMoney={gates.canViewMoney}
+            canViewChronologio={gates.canViewChronologio}
+            canManageAccess={gates.canManageAccess}
+            canOwn={Boolean(canOwn)}
+            year={year}
+            onOpenMap={() => setTab('weather')}
+            onOpenStatus={() => setTab('details')}
+            onOpenChronologio={() => openChronologioForField(navigation, field.id)}
+            onOpenTask={(taskId) => navigation.navigate('TaskDetail', { taskId })}
+            onSeeFinance={() => navigation.navigate('Money', { fieldId: field.id, year })}
+            onPeople={() => navigation.navigate('Partners', { fieldId: field.id })}
+            onMyOil={() => navigation.navigate('MyOil', { field: field.id })}
+            onAttention={
+              showAttentionNudge
+                ? () => {
+                    if (attention?.taskId) {
+                      navigation.navigate('TaskDetail', { taskId: attention.taskId });
+                      return;
                     }
-                  : undefined
-              }
-              canViewChronologio={gates.canViewChronologio}
-              historyDetail={historyDetail}
-              onHistory={() => openChronologioForField(navigation, field.id)}
-              canManageAccess={gates.canManageAccess}
-              onPeople={() => navigation.navigate('Partners', { fieldId: field.id })}
-              showMyOil={gates.canOwn}
-              onMyOil={() => navigation.navigate('MyOil', { field: field.id })}
-            />
-          </FieldPageErrorBoundary>
+                    if (attention?.kind === 'weatherReschedule') {
+                      setTab('weather');
+                      return;
+                    }
+                    navigation.navigate('Main', {
+                      screen: 'Tasks',
+                      params: { fieldId: field.id, year: String(year) },
+                    });
+                  }
+                : undefined
+            }
+          />
         </View>
       ) : null}
 
       {tab === 'weather' ? (
         <View style={styles.panel}>
+          {gates.canViewMap ? (
+            <FieldPageErrorBoundary label="Map">
+              <FieldDetailMap field={field} height={320} showDataLayers />
+            </FieldPageErrorBoundary>
+          ) : null}
+
           {gates.canViewEnvironmentalData ? (
             <View style={styles.heroWeather}>
               {weatherLoading && !weather ? (

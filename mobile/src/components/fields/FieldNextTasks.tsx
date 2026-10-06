@@ -90,7 +90,7 @@ const FieldNextTasks: React.FC<Props> = ({
       </View>
 
       {nextTasks.length === 0 ? (
-        <Text style={[styles.empty, { color: colors.textSecondary }]}>
+        <Text style={[styles.emptyLine, { color: colors.textTertiary }]}>
           {t('fields:page.nextTasks.empty', {
             defaultValue: t('fields:overview.noNextTask'),
           })}
@@ -190,6 +190,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     paddingVertical: spacing.xs,
+  },
+  emptyLine: {
+    fontSize: 13,
+    lineHeight: 18,
+    paddingVertical: 2,
   },
 });
 

@@ -10,9 +10,9 @@ export type FieldTab = 'field' | 'weather' | 'details';
 export const FIELD_PAGE_TABS: FieldTab[] = ['field', 'weather', 'details'];
 
 const TAB_ICONS: Record<FieldTab, React.ComponentProps<typeof Ionicons>['name']> = {
-  field: 'map-outline',
-  weather: 'partly-sunny-outline',
-  details: 'document-text-outline',
+  field: 'today-outline',
+  weather: 'map-outline',
+  details: 'leaf-outline',
 };
 
 type Props = {
@@ -21,17 +21,15 @@ type Props = {
   tabs?: FieldTab[];
 };
 
-/** Αποθήκη-style pill tabs for the field page. */
+/** Compact pill tabs — Σήμερα | Χάρτης | Κατάσταση. */
 const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange, tabs = FIELD_PAGE_TABS }) => {
   const { t } = useTranslation('fields');
   const { colors, tapMin } = useTheme();
 
   const labels: Record<FieldTab, string> = {
-    field: t('page.tabField', { defaultValue: t('page.mapData') }),
-    weather: t('page.tabWeatherVegetation', {
-      defaultValue: `${t('page.tabWeather')} & ${t('page.tabVegetation')}`,
-    }),
-    details: t('page.tabDetails', { defaultValue: t('page.details') }),
+    field: t('detail.overview', { defaultValue: 'Σήμερα' }),
+    weather: t('page.mapDataShort', { defaultValue: 'Χάρτης' }),
+    details: t('page.tabStatus', { defaultValue: 'Κατάσταση' }),
   };
 
   return (

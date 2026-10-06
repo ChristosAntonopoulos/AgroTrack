@@ -420,6 +420,7 @@ const FieldDetailPage: React.FC = () => {
                   });
                 }}
                 onOpenMap={() => setTab('map')}
+                onOpenStatus={() => setTab('details')}
               />
             )}
           </div>

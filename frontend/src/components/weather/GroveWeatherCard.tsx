@@ -114,8 +114,12 @@ const GroveWeatherCard: React.FC<Props> = ({
         <p className="grove-weather-reading">{t(`weatherCard.${view.readingKey}`)}</p>
       ) : null}
 
-      {!embedded && view.mood !== 'missing' ? (
-        <GroveWeekForecast fieldWeather={fieldWeather} variant={compact ? 'strip' : 'compact'} futureOnly={compact} />
+      {view.mood !== 'missing' ? (
+        <GroveWeekForecast
+          fieldWeather={fieldWeather}
+          variant={compact ? 'strip' : 'compact'}
+          futureOnly={Boolean(compact || embedded)}
+        />
       ) : null}
 
       {!compact && scopeNote ? <p className="grove-weather-meta">{scopeNote}</p> : null}

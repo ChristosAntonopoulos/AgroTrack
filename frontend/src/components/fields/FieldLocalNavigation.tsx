@@ -16,16 +16,16 @@ const FieldLocalNavigation: React.FC<Props> = ({ tab, onTabChange, capabilities 
 
   const labels: Record<FieldPageTab, string> = {
     overview: t('detail.overview'),
-    map: t('page.mapData'),
+    map: t('page.mapDataShort', { defaultValue: t('page.mapData') }),
     chronologio: t('detail.timeline'),
-    details: t('page.tabDetails'),
+    details: t('page.tabStatus', { defaultValue: t('page.tabDetails') }),
   };
 
   const titles: Record<FieldPageTab, string> = {
     overview: t('detail.overview'),
     map: t('page.mapDataFull'),
     chronologio: t('detail.timeline'),
-    details: t('page.details'),
+    details: t('page.tabStatus', { defaultValue: t('page.details') }),
   };
 
   const tabs = FIELD_PAGE_TABS.filter((id) => {

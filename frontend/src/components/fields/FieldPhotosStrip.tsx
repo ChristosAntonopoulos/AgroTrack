@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ChevronRight, Images } from 'lucide-react';
 import { resolvePublicAssetUrl } from '../../config/apiConfig';
 import { getPhotoService } from '../../services/serviceFactory';
 import type { Photo } from '../../services/photoService';
@@ -103,7 +104,10 @@ const FieldPhotosStrip: React.FC<Props> = ({ fieldId, photos: overviewPhotos }) 
     return (
       <section className="field-photos-strip" aria-label={t('fields:controlRoom.latestPhotos')}>
         <div className="field-photos-strip-head">
-          <h2>{t('fields:controlRoom.latestPhotos')}</h2>
+          <h2>
+            <Images size={18} strokeWidth={2} aria-hidden />
+            {t('fields:controlRoom.latestPhotos')}
+          </h2>
         </div>
         <p className="field-photos-empty">{t('fields:card.todayTasksLoading')}</p>
       </section>
@@ -114,9 +118,13 @@ const FieldPhotosStrip: React.FC<Props> = ({ fieldId, photos: overviewPhotos }) 
     return (
       <section className="field-photos-strip" aria-label={t('fields:controlRoom.latestPhotos')}>
         <div className="field-photos-strip-head">
-          <h2>{t('fields:controlRoom.latestPhotos')}</h2>
-          <Link to={photosPath({ fieldId })}>
+          <h2>
+            <Images size={18} strokeWidth={2} aria-hidden />
+            {t('fields:controlRoom.latestPhotos')}
+          </h2>
+          <Link className="field-overview-cta field-overview-cta--ghost" to={photosPath({ fieldId })}>
             {t('photos:openHub', { defaultValue: 'Open photos' })}
+            <ChevronRight size={15} aria-hidden />
           </Link>
         </div>
         <p className="field-photos-empty">{t('fields:controlRoom.noPhotos')}</p>
@@ -128,13 +136,17 @@ const FieldPhotosStrip: React.FC<Props> = ({ fieldId, photos: overviewPhotos }) 
     <section className="field-photos-strip" aria-label={t('fields:controlRoom.latestPhotos')}>
       <div className="field-photos-strip-head">
         <div>
-          <h2>{t('fields:controlRoom.latestPhotos')}</h2>
+          <h2>
+            <Images size={18} strokeWidth={2} aria-hidden />
+            {t('fields:controlRoom.latestPhotos')}
+          </h2>
           <p className="field-photos-meta">
             {t('fields:controlRoom.photosEvidenceHint')}
           </p>
         </div>
-        <Link to={photosPath({ fieldId })}>
+        <Link className="field-overview-cta field-overview-cta--ghost" to={photosPath({ fieldId })}>
           {t('photos:openHub', { defaultValue: 'Open photos' })}
+          <ChevronRight size={15} aria-hidden />
         </Link>
       </div>
       <div className="field-photos-row">

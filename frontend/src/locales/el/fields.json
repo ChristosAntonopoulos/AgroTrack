@@ -210,6 +210,7 @@
   "sortActivity": "Πρόσφατη δραστηριότητα",
   "sortDistance": "Απόσταση",
   "sortOverdue": "Εκπρόθεσμα πρώτα",
+  "sortAttention": "Χρειάζεται προσοχή",
   "emptySearchTitle": "Δεν βρέθηκαν ελαιώνες",
   "emptySearchDescription": "Δοκιμάστε άλλον όρο αναζήτησης ή καθαρίστε το φίλτρο.",
   "summary": {
@@ -218,6 +219,18 @@
     "overdue": "εκπρόθεσμες",
     "approvals": "σε αναμονή έγκρισης",
     "fieldsCount": "{{count}} ελαιώνες",
+    "activeCount_one": "{{count}} ενεργός ελαιώνας",
+    "activeCount_other": "{{count}} ενεργοί ελαιώνες",
+    "activeCount": "{{count}} ενεργοί ελαιώνες",
+    "archivedCount_one": "{{count}} αρχειοθετημένος",
+    "archivedCount_other": "{{count}} αρχειοθετημένοι",
+    "archivedCount": "{{count}} αρχειοθετημένοι",
+    "filtersAria": "Φίλτρο κατάστασης",
+    "filter": {
+      "all": "Όλοι",
+      "active": "Ενεργοί",
+      "archived": "Αρχειοθετημένοι"
+    },
     "tasksTodayCount_one": "{{count}} εργασία σήμερα",
     "tasksTodayCount_other": "{{count}} εργασίες σήμερα",
     "tasksTodayCount": "{{count}} εργασίες σήμερα",
@@ -233,12 +246,21 @@
     "monitoring": "Παρακολούθηση",
     "timeline": "Ιστορικό"
   },
+  "switcher": {
+    "title": "Αλλαγή ελαιώνα",
+    "search": "Αναζήτηση",
+    "loading": "Φόρτωση…",
+    "empty": "Δεν βρέθηκε ελαιώνας"
+  },
   "page": {
     "tabsAria": "Ενότητες ελαιώνα",
     "mapData": "Χάρτης & περιβάλλον",
+    "mapDataShort": "Χάρτης",
     "mapDataFull": "Χάρτης & περιβάλλον",
     "details": "Καρτέλα ελαιώνα",
     "tabDetails": "Καρτέλα",
+    "tabStatus": "Κατάσταση",
+    "editBoundary": "Αλλαγή ορίου",
     "yearAria": "Έτος αποτελέσματος",
     "prevYear": "Προηγούμενο έτος",
     "nextYear": "Επόμενο έτος",
@@ -267,7 +289,9 @@
   },
   "mapWorkspace": {
     "lead": "Διάλεξε τι κοιτάς στον ελαιώνα — όριο, φωτογραφία, πρασινάδα ή υγρασία.",
-    "whatToSee": "Εικόνες στον χάρτη",
+    "whatToSee": "Τι θέλεις να δεις;",
+    "layers": "Επίπεδα",
+    "moreLayers": "Περισσότερα",
     "terrain": "Ανάγλυφο",
     "recenter": "Κέντρο ελαιώνα",
     "openTab": "Άνοιγμα χάρτη",
@@ -499,6 +523,8 @@
     },
     "yearGlance": {
       "title": "Η χρονιά με μια ματιά",
+      "titleShort": "Η χρονιά",
+      "noHarvestShort": "—",
       "production": "Παραγωγή",
       "money": "Χρήματα",
       "plannedRemaining": "Προγραμματισμένες που απομένουν",
@@ -527,12 +553,33 @@
       "open": "Άνοιγμα"
     },
     "mapPeek": {
-      "title": "Ο ελαιώνας στον χάρτη",
+      "title": "Χάρτης",
       "areaBoundary": "{{area}} στρ. · {{boundary}}",
       "boundaryComplete": "Όριο ολοκληρωμένο",
       "boundaryMissing": "Όριο εκκρεμεί",
-      "openMap": "Άνοιγμα χάρτη"
+      "openMap": "Άνοιγμα χάρτη",
+      "layers": "Επίπεδα"
     },
+    "today": {
+      "noTask": "Καμία εργασία σήμερα",
+      "last": "Τελευταίο: {{title}} · {{when}}"
+    },
+    "statusCard": {
+      "title": "Κατάσταση",
+      "hint": "Πρασινάδα, υγρασία και δορυφορική εικόνα"
+    },
+    "people": {
+      "title": "Άτομα",
+      "manage": "Διαχείριση",
+      "seeAll": "Όλα · {{count}}",
+      "moreNames": "{{names}} +{{count}}"
+    },
+    "more": {
+      "aria": "Περισσότερα",
+      "title": "Περισσότερα",
+      "cellar": "Αποθήκη"
+    },
+    "seeAllChronologioShort": "Όλα",
     "weather": {
       "today": "Σήμερα",
       "seeEnvironment": "Καιρός & περιβάλλον",

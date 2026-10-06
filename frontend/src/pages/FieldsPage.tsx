@@ -152,10 +152,13 @@ const FieldsPage: React.FC = () => {
 
   const filteredFields = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let list =
-      statusFilter === 'archived'
-        ? fields.filter((f) => f.status === 'Archived')
-        : fields.filter(isVisibleOnFieldsList);
+    let list = fields.filter((f) => {
+      const named = Boolean((f.name || '').trim());
+      if (!named) return false;
+      if (statusFilter === 'archived') return f.status === 'Archived';
+      if (statusFilter === 'all') return true;
+      return isVisibleOnFieldsList(f);
+    });
     if (q) {
       list = list.filter((f) => {
         const short = getFieldShortLocation(f).toLowerCase();
@@ -164,6 +167,13 @@ const FieldsPage: React.FC = () => {
     }
     return sortFields(list);
   }, [fields, search, sortBy, userCoords, statusFilter, fieldTasks]);
+
+  const showCreateEmpty =
+    statusFilter === 'archived'
+      ? false
+      : statusFilter === 'all'
+        ? !fields.some((f) => Boolean((f.name || '').trim()))
+        : fields.filter(isVisibleOnFieldsList).length === 0;
 
   const listCounts = useMemo(
     () => countFieldListBuckets(filteredFields, user?.userId),
@@ -332,7 +342,7 @@ const FieldsPage: React.FC = () => {
               </div>
             ) : null}
 
-            {fields.filter(isVisibleOnFieldsList).length === 0 ? (
+            {showCreateEmpty ? (
               <EmptyState
                 icon={<Layers size={40} />}
                 title={t('fields:emptyTitle')}
@@ -354,39 +364,31 @@ const FieldsPage: React.FC = () => {
             ) : (
               <>
                 <div className="fields-toolbar">
-                  <div className="fields-search-wrap">
-                    <Search size={18} className="fields-search-icon" aria-hidden />
-                    <input
-                      type="search"
-                      className="fields-search-input"
-                      placeholder={t('fields:searchPlaceholder')}
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      aria-label={t('fields:searchPlaceholder')}
-                    />
-                  </div>
-                  <div className="fields-summary-strip" aria-live="polite">
-                    <span className="fields-summary-item">
-                      {t('fields:summary.activeCount', {
-                        count: listCounts.active,
-                        defaultValue: `${listCounts.active} ενεργοί ελαιώνες`,
-                      })}
-                    </span>
-                  </div>
-                  <div className="fields-status-filters" role="group" aria-label={t('fields:summary.filtersAria', { defaultValue: 'Φίλτρο κατάστασης' })}>
-                    {(['all', 'active', 'archived'] as StatusFilter[]).map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        className={`fields-status-filter${statusFilter === key ? ' fields-status-filter--on' : ''}`}
-                        onClick={() => setStatusFilter(key)}
-                      >
-                        {t(`fields:summary.filter.${key}`, {
-                          defaultValue:
-                            key === 'all' ? 'Όλοι' : key === 'active' ? 'Ενεργοί' : 'Αρχειοθετημένοι',
-                        })}
-                      </button>
-                    ))}
+                  <div className="fields-toolbar-primary">
+                    <div className="fields-search-wrap">
+                      <Search size={18} className="fields-search-icon" aria-hidden />
+                      <input
+                        type="search"
+                        className="fields-search-input"
+                        placeholder={t('fields:searchPlaceholder')}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        aria-label={t('fields:searchPlaceholder')}
+                      />
+                    </div>
+                    <p className="fields-count" aria-live="polite">
+                      {statusFilter === 'archived'
+                        ? t('fields:summary.archivedCount', {
+                            count: filteredFields.length,
+                          })
+                        : statusFilter === 'all'
+                          ? t('fields:summary.fieldsCount', {
+                              count: filteredFields.length,
+                            })
+                          : t('fields:summary.activeCount', {
+                              count: listCounts.active,
+                            })}
+                    </p>
                   </div>
                   <div className="fields-toolbar-right">
                     <label className="fields-sort">
@@ -394,7 +396,7 @@ const FieldsPage: React.FC = () => {
                       <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)}>
                         <option value="name">{t('fields:sortName')}</option>
                         <option value="activity">{t('fields:sortActivity')}</option>
-                        <option value="attention">{t('fields:sortAttention', { defaultValue: 'Χρειάζεται προσοχή' })}</option>
+                        <option value="attention">{t('fields:sortAttention')}</option>
                         <option value="area">{t('fields:sortArea')}</option>
                         {canSortByDistance ? (
                           <option value="distance">{t('fields:sortDistance')}</option>
@@ -427,6 +429,27 @@ const FieldsPage: React.FC = () => {
                       ]}
                     />
                   </div>
+                  <SegmentedControl
+                    className="fields-status-tabs"
+                    fullWidth
+                    ariaLabel={t('fields:summary.filtersAria')}
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    options={[
+                      {
+                        value: 'all',
+                        label: t('fields:summary.filter.all'),
+                      },
+                      {
+                        value: 'active',
+                        label: t('fields:summary.filter.active'),
+                      },
+                      {
+                        value: 'archived',
+                        label: t('fields:summary.filter.archived'),
+                      },
+                    ]}
+                  />
                 </div>
 
                 {filteredFields.length === 0 ? (

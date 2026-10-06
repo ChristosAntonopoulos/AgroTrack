@@ -21,7 +21,54 @@
   border-radius: 50%;
 }
 
+.field-poly-thumb--satellite {
+  background: #16140f;
+}
+
+.field-poly-thumb--sat-ready {
+  border-color: color-mix(in srgb, var(--field-accent) 55%, rgba(255, 255, 255, 0.22));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.field-poly-thumb-sat {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.field-poly-thumb-sat.is-loaded {
+  opacity: 1;
+}
+
+.field-poly-thumb--satellite::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 42%, rgba(0, 0, 0, 0.28) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, transparent 35%, rgba(0, 0, 0, 0.18) 100%);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.field-poly-thumb--sat-ready::after {
+  opacity: 1;
+}
+
 .field-poly-thumb-svg {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   display: block;
   width: 100%;
   height: 100%;
@@ -31,6 +78,11 @@
   display: grid;
   place-items: center;
   color: color-mix(in srgb, var(--field-accent) 82%, var(--color-text-muted));
+}
+
+.field-poly-thumb--empty .field-poly-thumb-svg,
+.field-poly-thumb--empty .field-poly-thumb-sat {
+  display: none;
 }
 
 @media (max-width: 640px) {

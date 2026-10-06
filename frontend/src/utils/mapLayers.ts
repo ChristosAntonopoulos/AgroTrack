@@ -18,6 +18,35 @@ export const SATELLITE_PLACES_TILE =
 export const SATELLITE_LABELS_TILE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}';
 
+const SATELLITE_EXPORT_BASE =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export';
+
+/**
+ * Single static Esri World Imagery snapshot for a WGS84 bbox.
+ * Prefer this over Leaflet for list-card previews (one image request, no map instance).
+ */
+export const buildSatellitePreviewUrl = (
+  west: number,
+  south: number,
+  east: number,
+  north: number,
+  sizePx = 256
+): string => {
+  const w = Math.min(west, east);
+  const e = Math.max(west, east);
+  const s = Math.min(south, north);
+  const n = Math.max(south, north);
+  const params = new URLSearchParams({
+    bbox: `${w},${s},${e},${n}`,
+    bboxSR: '4326',
+    imageSR: '4326',
+    size: `${sizePx},${sizePx}`,
+    format: 'jpg',
+    f: 'image',
+  });
+  return `${SATELLITE_EXPORT_BASE}?${params.toString()}`;
+};
+
 export const STREET_TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 /**

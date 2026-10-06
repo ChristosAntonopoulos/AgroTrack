@@ -326,40 +326,40 @@ html[data-large-controls='true'] .offline-banner-action {
    DARK THEME — warm green-charcoal, not pure black
    ============================================ */
 [data-theme='dark'] {
-  /* Foundations */
-  --bg-page: #141714;
-  --bg-sidebar: #1A1E1A;
-  --bg-header: #202320;
+  /* Foundations — deep green-black */
+  --bg-page: #151811;
+  --bg-sidebar: #12150f;
+  --bg-header: #1a1e16;
   --bg-canvas: url('../assets/images/app-canvas-dark.jpg');
 
-  /* Surfaces */
-  --surface-1: #202520;
-  --surface-2: #272D27;
-  --surface-3: #2E352E;
-  --surface-hover: #343C34;
-  --surface-selected: #29372B;
-  --surface-popover: #272D27;
-  --olive-pale: rgba(113, 132, 91, 0.12);
+  /* Surfaces — neutral dark green cards */
+  --surface-1: #20241c;
+  --surface-2: #272c21;
+  --surface-3: #2e3427;
+  --surface-hover: #343b2e;
+  --surface-selected: #2a3224;
+  --surface-popover: #272c21;
+  --olive-pale: rgba(166, 173, 99, 0.12);
 
-  /* Borders — light olive line on green-charcoal */
-  --border-subtle: rgba(235, 239, 230, 0.18);
-  --border-default: rgba(235, 239, 230, 0.28);
-  --border-strong: rgba(235, 239, 230, 0.42);
-  --card-edge: rgba(210, 220, 198, 0.4);
+  /* Borders */
+  --border-subtle: rgba(243, 240, 231, 0.1);
+  --border-default: rgba(243, 240, 231, 0.16);
+  --border-strong: rgba(243, 240, 231, 0.28);
+  --card-edge: rgba(210, 220, 198, 0.22);
 
   /* Typography */
-  --text-primary: #F3F4EF;
-  --text-secondary: #C5CBBF;
-  --text-muted: #9DA699;
-  --text-disabled: #717A70;
+  --text-primary: #f3f0e7;
+  --text-secondary: #aaa99e;
+  --text-muted: #8e8d84;
+  --text-disabled: #6a6962;
 
   /* Olive brand */
-  --olive-primary: #71845B;
-  --olive-hover: #82966A;
-  --olive-active: #60734C;
-  --olive-soft: rgba(113, 132, 91, 0.18);
-  --olive-border: rgba(139, 160, 112, 0.42);
-  --on-olive: #FFFFFF;
+  --olive-primary: #a6ad63;
+  --olive-hover: #b6bd74;
+  --olive-active: #91985a;
+  --olive-soft: rgba(166, 173, 99, 0.18);
+  --olive-border: rgba(166, 173, 99, 0.42);
+  --on-olive: #151811;
 
   /* Links */
   --link: #A9BE91;
@@ -380,8 +380,8 @@ html[data-large-controls='true'] .offline-banner-action {
   --event-expense-soft: rgba(210, 160, 100, 0.19);
   --event-income: #72AD85;
   --event-income-soft: rgba(114, 173, 133, 0.19);
-  --event-harvest: #B47870;
-  --event-harvest-soft: rgba(180, 120, 112, 0.20);
+  --event-harvest: #d0a43d;
+  --event-harvest-soft: rgba(208, 164, 61, 0.18);
   --event-weather: #70A9BA;
   --event-weather-soft: rgba(112, 169, 186, 0.20);
   --event-warning: #D77A68;

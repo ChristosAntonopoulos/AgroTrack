@@ -13,6 +13,7 @@ import {
 import { resolveFieldColor } from '../../utils/fieldColors';
 import FieldIdentity from '../fields/FieldIdentity';
 import FieldPolygonThumbnail from '../fields/FieldPolygonThumbnail';
+import FieldPeopleStrip from '../fields/FieldPeopleStrip';
 import { normalizeLocale } from '../../i18n/config';
 import './FieldCard.css';
 
@@ -113,6 +114,7 @@ const FieldCard: React.FC<FieldCardProps> = ({
           ) : null}
         </div>
         <FieldIdentity field={field} size="card" />
+        {!compact ? <FieldPeopleStrip fieldId={field.id} variant="card" /> : null}
         <div className="field-card-v2-footer">
           <div className="field-card-v2-meta">
             <p
@@ -149,7 +151,7 @@ const FieldCard: React.FC<FieldCardProps> = ({
           </span>
         </div>
       </div>
-      {compact ? null : <FieldPolygonThumbnail field={field} />}
+      {compact ? null : <FieldPolygonThumbnail field={field} circular={false} />}
     </article>
   );
 };

@@ -56,10 +56,12 @@
   background-repeat: no-repeat;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.14;
 }
 
 [data-theme='dark'] .app-canvas {
   background-image: var(--bg-canvas, url('../../assets/images/app-canvas-dark.jpg'));
+  opacity: 0.05;
 }
 
 .main-content > *:not(.app-canvas) {

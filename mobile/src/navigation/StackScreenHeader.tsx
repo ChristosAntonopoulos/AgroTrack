@@ -10,6 +10,7 @@ import { appFonts, spacing, touch } from '../theme';
 
 /**
  * Pushed-screen chrome. Title sits on the same row as the back control.
+ * Supports string titles and `headerTitle` render props (e.g. field switcher).
  */
 const StackScreenHeader = ({ back, options, route, navigation }: NativeStackHeaderProps) => {
   const insets = useSafeAreaInsets();
@@ -39,13 +40,23 @@ const StackScreenHeader = ({ back, options, route, navigation }: NativeStackHead
     ? options.headerRight({ tintColor: undefined, canGoBack })
     : null;
 
-  if (!title && !leading && !trailing) return null;
+  const customTitle =
+    typeof options.headerTitle === 'function'
+      ? options.headerTitle({
+          children: title,
+          tintColor: colors.textPrimary,
+        })
+      : null;
+
+  if (!title && !customTitle && !leading && !trailing) return null;
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.row}>
         {leading}
-        {title ? (
+        {customTitle ? (
+          <View style={styles.titleSlot}>{customTitle}</View>
+        ) : title ? (
           <Text
             style={[
               styles.title,
@@ -86,6 +97,11 @@ const styles = StyleSheet.create({
     fontFamily: appFonts.bold,
     fontWeight: '700',
     letterSpacing: -0.2,
+  },
+  titleSlot: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
   flex: {
     flex: 1,
