@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using OliveLifecycle.Application.Abstractions.Services;
+using OliveLifecycle.Application.Configuration;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Application.Services.Cadastre;
 using OliveLifecycle.Application.Services.Fields;
@@ -14,8 +15,11 @@ public static class DependencyInjection
     {
         services.AddValidatorsFromAssemblyContaining<RegisterDtoValidator>();
 
+        services.AddOptions<SubscriptionOptions>();
+
         services.AddScoped<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddScoped<IFieldAccessService, FieldAccessService>();
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<IFieldAccessScopeService, FieldAccessScopeService>();
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IAuthService, AuthService>();

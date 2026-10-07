@@ -159,6 +159,11 @@ public class ManageableFieldDto
     public string? OwnerEmail { get; set; }
 }
 
+public class TransferFieldOwnershipDto
+{
+    public string NewOwnerUserId { get; set; } = string.Empty;
+}
+
 public class CreateMultiFieldInviteDto
 {
     public List<string> FieldIds { get; set; } = new();
@@ -195,5 +200,11 @@ public class FieldCapabilitiesDto
     /// <summary>True only when the caller may delete and the field has no linked history.</summary>
     public bool CanPermanentlyDelete { get; set; }
     public bool CanDeleteField { get; set; }
+
+    /// <summary>
+    /// True when membership would allow writes but the billing owner's plan makes this grove read-only.
+    /// Data remains available; new records require Pro (or selecting this grove as the free writable one).
+    /// </summary>
+    public bool IsSubscriptionReadOnly { get; set; }
 }
 

@@ -68,6 +68,24 @@ export const getApiEnvironmentLabel = (): string => {
   return 'production';
 };
 
+const readPublicEnv = (value: string | undefined): string => (value ?? '').trim();
+
+/**
+ * RevenueCat public SDK keys (safe to ship in the app). Empty = purchases disabled for
+ * that platform; the paywall then shows a calm "unavailable" state. Secret keys and webhook
+ * secrets live only on the backend.
+ */
+export const getRevenueCatApiKey = (): string =>
+  Platform.OS === 'ios'
+    ? readPublicEnv(process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY)
+    : Platform.OS === 'android'
+      ? readPublicEnv(process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY)
+      : '';
+
+/** Entitlement id that unlocks Pro. Must match backend `Subscription:ProEntitlementId`. */
+export const getRevenueCatEntitlementId = (): string =>
+  readPublicEnv(process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID) || 'pro';
+
 /** Overlay rasters live on the API host; relative /uploads paths 404 on the website. */
 export const resolvePublicAssetUrl = (path?: string | null): string | undefined => {
   if (!path) return undefined;

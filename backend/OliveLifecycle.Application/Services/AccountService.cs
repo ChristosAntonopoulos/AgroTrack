@@ -8,6 +8,7 @@ using OliveLifecycle.Application.DTOs.User;
 using OliveLifecycle.Application.Extensions;
 using OliveLifecycle.Application.Mappings;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
 
 namespace OliveLifecycle.Application.Services;
@@ -15,6 +16,10 @@ namespace OliveLifecycle.Application.Services;
 public class AccountService : IAccountService
 {
     public const string DefaultSupportEmail = "support@theolivelot.com";
+    /// <summary>Target window to permanently purge archived grove residuals after account closure.</summary>
+    public const int AccountDataPurgeDays = 30;
+    /// <summary>Encrypted backups may retain residual copies up to this many days.</summary>
+    public const int BackupRetentionDays = 90;
     private const int MinimumPasswordLength = 8;
     private const int EmailCodeHours = 1;
     private const int MaxNameLength = 80;
@@ -22,6 +27,8 @@ public class AccountService : IAccountService
     private readonly IUserRepository _users;
     private readonly IFieldRepository _fields;
     private readonly IUserNotificationRepository _notifications;
+    private readonly IDevicePushTokenRepository? _pushTokens;
+    private readonly ISavedContactRepository? _savedContacts;
     private readonly IDateTimeProvider _clock;
     private readonly IConfiguration _configuration;
     private readonly IEmailSender? _emailSender;
@@ -32,11 +39,15 @@ public class AccountService : IAccountService
         IUserNotificationRepository notifications,
         IDateTimeProvider clock,
         IConfiguration configuration,
-        IEmailSender? emailSender = null)
+        IEmailSender? emailSender = null,
+        IDevicePushTokenRepository? pushTokens = null,
+        ISavedContactRepository? savedContacts = null)
     {
         _users = users;
         _fields = fields;
         _notifications = notifications;
+        _pushTokens = pushTokens;
+        _savedContacts = savedContacts;
         _clock = clock;
         _configuration = configuration;
         _emailSender = emailSender;
@@ -246,6 +257,58 @@ public class AccountService : IAccountService
         }
 
         var now = _clock.UtcNow;
+
+        if (_pushTokens != null)
+        {
+            await _pushTokens.DeleteByUserIdAsync(userId, cancellationToken);
+        }
+
+        if (_savedContacts != null)
+        {
+            var contacts = await _savedContacts.GetByOwnerUserIdAsync(userId, cancellationToken);
+            foreach (var contact in contacts)
+            {
+                await _savedContacts.DeleteAsync(contact.Id, cancellationToken);
+            }
+        }
+
+        var notifications = await _notifications.GetByUserIdAsync(userId, 500, cancellationToken);
+        foreach (var notification in notifications)
+        {
+            await _notifications.DeleteAsync(notification.Id, cancellationToken);
+        }
+
+        var ownedFields = (await _fields.GetByOwnerIdAsync(userId, cancellationToken)).ToList();
+        var ownedIds = ownedFields.Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var field in ownedFields)
+        {
+            field.Status = FieldStatus.Archived;
+            field.People.RemoveAll(person =>
+                string.Equals(person.UserId, userId, StringComparison.Ordinal));
+            field.UpdatedAt = now;
+            await _fields.UpdateAsync(field, cancellationToken);
+        }
+
+        var memberFields = await _fields.GetByMemberUserIdAsync(userId, cancellationToken);
+        foreach (var field in memberFields)
+        {
+            if (ownedIds.Contains(field.Id))
+            {
+                continue;
+            }
+
+            var before = field.People.Count;
+            field.People.RemoveAll(person =>
+                string.Equals(person.UserId, userId, StringComparison.Ordinal));
+            if (field.People.Count == before)
+            {
+                continue;
+            }
+
+            field.UpdatedAt = now;
+            await _fields.UpdateAsync(field, cancellationToken);
+        }
+
         user.Email = $"deleted.{user.Id}@deleted.theolivelot.invalid";
         user.FirstName = null;
         user.LastName = null;
@@ -254,6 +317,7 @@ public class AccountService : IAccountService
         user.EmailChangeExpiresAt = null;
         user.PasswordResetTokenHash = null;
         user.PasswordResetExpiresAt = null;
+        user.Preferences = new UserExperiencePreferences();
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N"));
         user.DeletedAt = now;
         user.UpdatedAt = now;

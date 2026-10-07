@@ -123,14 +123,14 @@ export function generateDemoDataset(referenceDate = new Date()): DemoDataset {
   const users: User[] = [
     {
       id: DEMO_OWNER_ID,
-      email: 'owner@olivefarm.com',
+      email: 'review.admin@theolivelot.com',
       firstName: 'Γιώργος',
       lastName: 'Παπαδάκης',
       role: 'FieldOwner',
     },
     {
       id: DEMO_PRODUCER_ID,
-      email: 'producer1@olivefarm.com',
+      email: 'review.collaborator@theolivelot.com',
       firstName: 'Κώστας',
       lastName: 'Μανούσακης',
       role: 'Producer',

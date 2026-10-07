@@ -25,4 +25,11 @@ public interface IFieldPeopleService
     Task<FieldPeopleStatsDto> GetPeopleStatsAsync(string fieldId, string userId, string userRole, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FieldAccessSnapshotDto>> GetMyFieldAccessAsync(string userId, CancellationToken cancellationToken = default);
     Task EnsureAdminSeatOnCreateAsync(Field field, string adminUserId, CancellationToken cancellationToken = default);
+
+    /// <summary>Transfer billing ownership (Admin seat + OwnerId) to another user. Enforces plan limits.</summary>
+    Task<FieldMembershipDto> TransferOwnershipAsync(
+        string fieldId,
+        string actorUserId,
+        string newOwnerUserId,
+        CancellationToken cancellationToken = default);
 }

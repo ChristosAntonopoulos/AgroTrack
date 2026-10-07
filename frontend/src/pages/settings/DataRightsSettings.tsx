@@ -88,6 +88,11 @@ const DataRightsSettings: React.FC = () => {
           {t('sections.danger')}
         </h2>
         <p className="settings-help">{t('danger.deleteHelp')}</p>
+        <p className="settings-help">
+          <a className="settings-text-link" href="/delete-account/">
+            theolivelot.com/delete-account
+          </a>
+        </p>
         {confirming ? (
           <form className="settings-form" onSubmit={closeAccount}>
             <h3 className="settings-subtitle">{t('danger.confirmTitle')}</h3>

@@ -47,7 +47,7 @@ public class FeedbackServiceTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Feedback:InboxEmail"] = "product@theolivelot.com",
-                ["Email:FromAddress"] = "hello@theolivelot.com"
+                ["Email:FromAddress"] = "support@theolivelot.com"
             })
             .Build();
 

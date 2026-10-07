@@ -33,6 +33,7 @@ public class FieldService : IFieldService
     private readonly ILifecycleRepository _lifecycleRepository;
     private readonly IGeospatialJobQueue _geospatialJobQueue;
     private readonly IFieldDeletionGuard _deletionGuard;
+    private readonly ISubscriptionService _subscriptionService;
     private readonly ILogger<FieldService> _logger;
 
     public FieldService(
@@ -51,6 +52,7 @@ public class FieldService : IFieldService
         ILifecycleRepository lifecycleRepository,
         IGeospatialJobQueue geospatialJobQueue,
         IFieldDeletionGuard deletionGuard,
+        ISubscriptionService subscriptionService,
         ILogger<FieldService> logger)
     {
         _fieldRepository = fieldRepository;
@@ -68,10 +70,26 @@ public class FieldService : IFieldService
         _lifecycleRepository = lifecycleRepository;
         _geospatialJobQueue = geospatialJobQueue;
         _deletionGuard = deletionGuard;
+        _subscriptionService = subscriptionService;
         _logger = logger;
     }
 
     public async Task<FieldDto> CreateFieldAsync(string ownerId, CreateFieldDto createFieldDto, CancellationToken cancellationToken = default)
+    {
+        await _subscriptionService.AssertCanCreateOwnedFieldAsync(ownerId, cancellationToken);
+        try
+        {
+            var created = await CreateFieldCoreAsync(ownerId, createFieldDto, cancellationToken);
+            await VerifyOwnedFieldQuotaOrRollbackAsync(ownerId, created.Id, cancellationToken);
+            return created;
+        }
+        finally
+        {
+            await _subscriptionService.ReleaseFieldCreationLockAsync(ownerId, cancellationToken);
+        }
+    }
+
+    private async Task<FieldDto> CreateFieldCoreAsync(string ownerId, CreateFieldDto createFieldDto, CancellationToken cancellationToken)
     {
         var now = _dateTimeProvider.UtcNow;
         var status = FieldMapper.ParseStatus(createFieldDto.Status);
@@ -189,7 +207,25 @@ public class FieldService : IFieldService
             await QueueFieldIntelligenceAsync(createdField.Id, cancellationToken);
             await QueueFieldHistoryBackfillAsync(createdField.Id, cancellationToken);
         }
-        return ToDtoForUser(createdField, ownerId);
+        return await ToDtoForUserAsync(createdField, ownerId, cancellationToken: cancellationToken);
+    }
+
+    private async Task VerifyOwnedFieldQuotaOrRollbackAsync(
+        string ownerId,
+        string createdFieldId,
+        CancellationToken cancellationToken)
+    {
+        var owned = await _subscriptionService.CountOwnedFieldsAsync(ownerId, cancellationToken);
+        var limit = await _subscriptionService.GetOwnedFieldLimitAsync(ownerId, cancellationToken);
+        if (owned <= limit)
+        {
+            return;
+        }
+
+        await _fieldRepository.DeleteAsync(createdFieldId, cancellationToken);
+        throw new ConflictException(
+            $"Your plan allows up to {limit} owned grove(s). Upgrade to Pro to add more.",
+            SubscriptionService.FieldLimitErrorCode);
     }
 
     public async Task<FieldDto?> GetFieldByIdAsync(string id, string userId, string userRole, CancellationToken cancellationToken = default)
@@ -212,7 +248,13 @@ public class FieldService : IFieldService
     public async Task<IEnumerable<FieldDto>> GetFieldsByOwnerAsync(string ownerId, CancellationToken cancellationToken = default)
     {
         var fields = await _fieldRepository.GetByOwnerIdAsync(ownerId, cancellationToken);
-        return fields.Select(f => ToDtoForUser(f, ownerId));
+        var result = new List<FieldDto>();
+        foreach (var field in fields)
+        {
+            result.Add(await ToDtoForUserAsync(field, ownerId, cancellationToken: cancellationToken));
+        }
+
+        return result;
     }
 
     public async Task<IEnumerable<FieldDto>> GetFieldsForUserAsync(
@@ -237,7 +279,13 @@ public class FieldService : IFieldService
         var fields = await _fieldAccessScope.ResolveAccessibleFieldsAsync(
             userId, userRole, requiredModule, cancellationToken);
         var filtered = FilterByStatus(fields, status);
-        return filtered.Select(f => ToDtoForUser(f, userId, userRole));
+        var result = new List<FieldDto>();
+        foreach (var field in filtered)
+        {
+            result.Add(await ToDtoForUserAsync(field, userId, userRole, cancellationToken: cancellationToken));
+        }
+
+        return result;
     }
 
     public async Task<FieldDto> UpdateFieldAsync(string id, string userId, UpdateFieldDto updateFieldDto, CancellationToken cancellationToken = default)
@@ -268,7 +316,7 @@ public class FieldService : IFieldService
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
 
-        if (!await _fieldAccessService.CanUserModifyFieldAsync(id, userId, cancellationToken))
+        if (!await _fieldAccessService.CanUserAdministerFieldAsync(id, userId, cancellationToken))
         {
             throw new ForbiddenException("You do not have permission to archive this field.");
         }
@@ -295,7 +343,7 @@ public class FieldService : IFieldService
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
 
-        if (!await _fieldAccessService.CanUserModifyFieldAsync(id, userId, cancellationToken))
+        if (!await _fieldAccessService.CanUserAdministerFieldAsync(id, userId, cancellationToken))
         {
             throw new ForbiddenException("You do not have permission to restore this field.");
         }
@@ -320,7 +368,7 @@ public class FieldService : IFieldService
             return false;
         }
 
-        if (!await _fieldAccessService.CanUserModifyFieldAsync(id, userId, cancellationToken))
+        if (!await _fieldAccessService.CanUserAdministerFieldAsync(id, userId, cancellationToken))
         {
             throw new ForbiddenException("You do not have permission to delete this field.");
         }
@@ -332,7 +380,13 @@ public class FieldService : IFieldService
                 "This grove cannot be permanently deleted because it has history. Archive it instead.");
         }
 
-        return await _fieldRepository.DeleteAsync(id, cancellationToken);
+        var deleted = await _fieldRepository.DeleteAsync(id, cancellationToken);
+        if (deleted)
+        {
+            await _subscriptionService.OnOwnedFieldDeletedAsync(field.OwnerId, id, cancellationToken);
+        }
+
+        return deleted;
     }
 
     public async Task<ImportGreekCadastreFieldResponse> ImportGreekCadastreAsync(
@@ -349,6 +403,25 @@ public class FieldService : IFieldService
             throw new ValidationException("Both KD and KF files must be PDF documents.");
         }
 
+        await _subscriptionService.AssertCanCreateOwnedFieldAsync(ownerId, cancellationToken);
+        try
+        {
+            return await ImportGreekCadastreCoreAsync(ownerId, kdFile, kdFileName, kfFile, kfFileName, cancellationToken);
+        }
+        finally
+        {
+            await _subscriptionService.ReleaseFieldCreationLockAsync(ownerId, cancellationToken);
+        }
+    }
+
+    private async Task<ImportGreekCadastreFieldResponse> ImportGreekCadastreCoreAsync(
+        string ownerId,
+        Stream kdFile,
+        string kdFileName,
+        Stream kfFile,
+        string kfFileName,
+        CancellationToken cancellationToken)
+    {
         var parseResult = await _greekCadastrePdfParser.ParseAsync(kdFile, kfFile, cancellationToken);
         var now = _dateTimeProvider.UtcNow;
 
@@ -392,7 +465,17 @@ public class FieldService : IFieldService
             field.SetFromSquareMetres(parseResult.OfficialAreaSqm.Value);
         }
 
+        FieldPeopleRules.AddOrReplaceSeat(
+            field,
+            FieldPersonRole.Admin,
+            ownerId,
+            FamilyModules.All,
+            FamilyAccessLevels.Work,
+            ownerId,
+            status: FamilyMemberStatuses.Active);
+
         var created = await _fieldRepository.CreateAsync(field, cancellationToken);
+        await VerifyOwnedFieldQuotaOrRollbackAsync(ownerId, created.Id, cancellationToken);
 
         if (kdFile.CanSeek)
         {
@@ -662,6 +745,12 @@ public class FieldService : IFieldService
         CancellationToken cancellationToken = default)
     {
         var dto = ToDtoForUser(field, userId, userRole);
+        if (!string.IsNullOrWhiteSpace(field.OwnerId) &&
+            !await _subscriptionService.IsOwnedFieldWritableAsync(field.OwnerId, field.Id, cancellationToken))
+        {
+            FieldCapabilitiesResolver.ApplySubscriptionReadOnly(dto.Capabilities);
+        }
+
         if (enrichDeletion && dto.Capabilities.CanDeleteField)
         {
             var hasLinks = await _deletionGuard.HasLinkedRecordsAsync(field.Id, field.OwnerId, cancellationToken);

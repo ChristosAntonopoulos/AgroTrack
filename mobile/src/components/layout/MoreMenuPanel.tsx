@@ -9,10 +9,11 @@ import { useTheme } from '../../context/ThemeContext';
 import { usePreferences } from '../../context/PreferencesContext';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import { useFamilyCollaboratorOwnerLabel } from '../../hooks/useFamilyMembershipModules';
+import { usePlanSummary } from '../../hooks/usePlanSummary';
 import { typography, spacing, radii, motion } from '../../theme';
 import { RootStackParamList } from '../../navigation/types';
 import { openHarvestCampaign } from '../../navigation/intents';
-import { getPartnerService } from '../../services/serviceFactory';
+import { getPartnerService, isMockMode } from '../../services/serviceFactory';
 import { inAppMessageService } from '../../services/inAppCampaignService';
 import { useInAppMessagesOptional } from '../../context/InAppMessageContext';
 import BrandLogo from '../ui/BrandLogo';
@@ -28,6 +29,8 @@ interface MenuItem {
   label: string;
   onPress: () => void;
   badge?: number;
+  /** Quiet trailing text (e.g. plan + usage). */
+  secondary?: string | null;
   showArrow?: boolean;
 }
 
@@ -42,12 +45,15 @@ const MoreMenuPanel: React.FC = () => {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { tapMin, fontScaleMultiplier } = usePreferences();
-  const { t } = useTranslation(['settings', 'common', 'nav', 'fields', 'partners', 'chronologio']);
+  const { t } = useTranslation(['settings', 'common', 'nav', 'fields', 'partners', 'chronologio', 'subscription']);
   const navigation = useNavigation<Nav>();
   const harvest = useHarvestCampaignOptional();
   const collaboratorOwnerLabel = useFamilyCollaboratorOwnerLabel();
   const inApp = useInAppMessagesOptional();
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const planSummary = usePlanSummary();
+  // Plans live on the backend; the offline mock data set has no subscription to show.
+  const canManageSubscription = !isMockMode();
   const rowHeight = Math.max(tapMin, 52);
   const role = user?.role || '';
   const canMoney = ['FieldOwner', 'Producer', 'Agronomist', 'Administrator'].includes(role);
@@ -132,6 +138,18 @@ const MoreMenuPanel: React.FC = () => {
   );
 
   const accountItems: MenuItem[] = [
+    ...(canManageSubscription
+      ? [
+          {
+            id: 'subscription',
+            icon: 'ribbon-outline' as const,
+            label: t('subscription:billing.menuRow'),
+            secondary: planSummary,
+            onPress: () => navigation.navigate('Subscription'),
+            showArrow: true,
+          },
+        ]
+      : []),
     {
       id: 'feedback',
       icon: 'heart-outline',
@@ -228,6 +246,14 @@ const MoreMenuPanel: React.FC = () => {
                   </Text>
                 </View>
                 <View style={styles.menuItemRight}>
+                  {item.secondary ? (
+                    <Text
+                      style={{ color: colors.textTertiary, fontSize: 13 * fontScaleMultiplier }}
+                      numberOfLines={1}
+                    >
+                      {item.secondary}
+                    </Text>
+                  ) : null}
                   {item.badge ? (
                     <View style={[styles.badge, { backgroundColor: colors.error }]}>
                       <Text

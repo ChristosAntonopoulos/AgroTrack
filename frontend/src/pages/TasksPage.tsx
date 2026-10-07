@@ -15,6 +15,7 @@ import type { ProposalTemplateGroup } from '../utils/proposalPresentation';
 import LearningPromptSheet from '../components/FieldWork/LearningPromptSheet';
 import { useDrawerPresence } from '../hooks/useDrawerPresence';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
+import { useActiveFieldAccess } from '../hooks/useActiveFieldAccess';
 import {
   buildTaskSearchParams,
   parseTaskAssigneeId,
@@ -64,6 +65,12 @@ const TasksPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const pageGuard = useModulePageGuard({ module: 'tasks' });
+  const { capabilities, accessLevel, isAdminOnActive, isCollaboratorOnActive } =
+    useActiveFieldAccess();
+  const canCreateTasks =
+    isAdminOnActive ||
+    !isCollaboratorOnActive ||
+    Boolean(capabilities?.canManageTasks && accessLevel === 'work');
 
   const defaultYear = athensCalendarYear(new Date());
   const view = parseTaskView(searchParams.get('view'));
@@ -576,6 +583,7 @@ const TasksPage: React.FC = () => {
           subtitle={t('fieldWork.pageSubtitle')}
           newTaskLabel={t('fieldWork.addTask')}
           newTaskTo="/tasks/new"
+          canCreateTasks={canCreateTasks}
         />
 
         <TaskViewTabs

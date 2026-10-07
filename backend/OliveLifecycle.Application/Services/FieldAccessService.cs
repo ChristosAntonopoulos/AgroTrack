@@ -9,10 +9,12 @@ namespace OliveLifecycle.Application.Services;
 public class FieldAccessService : IFieldAccessService
 {
     private readonly IFieldRepository _fieldRepository;
+    private readonly ISubscriptionService _subscriptionService;
 
-    public FieldAccessService(IFieldRepository fieldRepository)
+    public FieldAccessService(IFieldRepository fieldRepository, ISubscriptionService subscriptionService)
     {
         _fieldRepository = fieldRepository;
+        _subscriptionService = subscriptionService;
     }
 
     public async Task<bool> CanUserAccessFieldAsync(
@@ -42,6 +44,26 @@ public class FieldAccessService : IFieldAccessService
     }
 
     public async Task<bool> CanUserModifyFieldAsync(
+        string fieldId,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken);
+        if (field == null)
+        {
+            return false;
+        }
+
+        FieldPeopleRules.EnsureNormalized(field);
+        if (!FieldPeopleRules.IsAdmin(field, userId))
+        {
+            return false;
+        }
+
+        return await IsFieldWritableUnderSubscriptionAsync(field, cancellationToken);
+    }
+
+    public async Task<bool> CanUserAdministerFieldAsync(
         string fieldId,
         string userId,
         CancellationToken cancellationToken = default)
@@ -118,6 +140,24 @@ public class FieldAccessService : IFieldAccessService
         }
 
         FieldPeopleRules.EnsureNormalized(field);
+        if (!await IsFieldWritableUnderSubscriptionAsync(field, cancellationToken))
+        {
+            return false;
+        }
+
         return FieldPeopleRules.CanWriteModule(field, userId, module, requireCreateLevel);
+    }
+
+    /// <summary>Whether the billing owner's plan currently allows writes on this grove.</summary>
+    public async Task<bool> IsFieldWritableUnderSubscriptionAsync(
+        Field field,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(field.OwnerId))
+        {
+            return true;
+        }
+
+        return await _subscriptionService.IsOwnedFieldWritableAsync(field.OwnerId, field.Id, cancellationToken);
     }
 }

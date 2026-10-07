@@ -39,6 +39,21 @@
     "advanced": "Advanced",
     "technical": "Technical details"
   },
+  "danger": {
+    "deleteHelp": "Delete your account permanently. Your login closes immediately; grove residuals you own are purged within 30 days.",
+    "deleteButton": "Delete account",
+    "confirmTitle": "Delete this account?",
+    "confirmBody": "Enter your password and type your email to confirm. You will be signed out.",
+    "confirmEmail": "Type your email",
+    "deletePassword": "Password",
+    "deleteAction": "Delete account permanently",
+    "deleting": "Deleting…",
+    "cancel": "Cancel",
+    "emailMismatch": "That does not match your email.",
+    "deleteFailed": "Could not delete the account.",
+    "demoBlocked": "Demo accounts cannot be deleted from this build.",
+    "webHelp": "Or delete via theolivelot.com/delete-account"
+  },
   "roles": {
     "account": "Account",
     "FieldOwner": "Owner account",

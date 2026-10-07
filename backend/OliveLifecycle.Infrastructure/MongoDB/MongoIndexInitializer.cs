@@ -79,6 +79,16 @@ public class MongoIndexInitializer : IHostedService
                 Builders<FieldDocument>.IndexKeys.Ascending("memberships.role"),
                 new CreateIndexOptions { Name = "ix_fields_memberships_role", Sparse = true }));
 
+            var billingProfiles = _context.GetCollection<BillingProfileDocument>("billing_profiles");
+            billingProfiles.Indexes.CreateOne(new CreateIndexModel<BillingProfileDocument>(
+                Builders<BillingProfileDocument>.IndexKeys.Ascending(p => p.UserId),
+                new CreateIndexOptions { Unique = true, Name = "ix_billing_profiles_userId" }));
+
+            var processedBillingEvents = _context.GetCollection<ProcessedBillingEventDocument>("processed_billing_events");
+            processedBillingEvents.Indexes.CreateOne(new CreateIndexModel<ProcessedBillingEventDocument>(
+                Builders<ProcessedBillingEventDocument>.IndexKeys.Ascending(e => e.ProviderEventId),
+                new CreateIndexOptions { Unique = true, Name = "ix_processed_billing_events_providerEventId" }));
+
             var invites = _context.GetCollection<FieldInviteDocument>("field_invites");
             invites.Indexes.CreateOne(new CreateIndexModel<FieldInviteDocument>(
                 Builders<FieldInviteDocument>.IndexKeys.Ascending(i => i.Token),

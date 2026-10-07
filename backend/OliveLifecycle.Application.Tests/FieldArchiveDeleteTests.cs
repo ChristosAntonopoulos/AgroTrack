@@ -53,6 +53,15 @@ public class FieldArchiveDeleteTests
 
         SetupEmptyLinks();
 
+        var subscriptions = new Mock<ISubscriptionService>();
+        subscriptions.Setup(s => s.IsOwnedFieldWritableAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        subscriptions.Setup(s => s.OnOwnedFieldDeletedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _access.Setup(a => a.CanUserAdministerFieldAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
         _fieldService = new FieldService(
             _fields.Object,
             Mock.Of<IUserRepository>(),
@@ -69,6 +78,7 @@ public class FieldArchiveDeleteTests
             _lifecycles.Object,
             Mock.Of<OliveLifecycle.Application.Abstractions.Geospatial.IGeospatialJobQueue>(),
             _deletionGuard,
+            subscriptions.Object,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<FieldService>.Instance);
     }
 

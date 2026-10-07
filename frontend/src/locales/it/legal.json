@@ -1,23 +1,113 @@
 {
-  "disclaimer": "Testo provvisorio per l’alpha. La versione finale sarà verificata legalmente.",
-  "contact": "Contatto:",
+  "disclaimer": "",
+  "contact": "Contatto privacy:",
   "back": "Torna alla home",
+  "viewOnline": "Apri su theolivelot.com",
+  "deleteAccountOnline": "Guida all’eliminazione account",
   "privacy": {
     "title": "Informativa sulla privacy",
-    "points": [
-      "The Olive Lot memorizza il tuo account, i campi, le registrazioni e le foto che carichi.",
-      "Foto e dati del campo sono visibili solo a chi ha accesso a quel campo.",
-      "Non vendiamo i tuoi dati.",
-      "Puoi chiedere accesso o cancellazione a hello@theolivelot.com."
+    "updated": "Ultimo aggiornamento: 7 ottobre 2026",
+    "intro": "Questa Informativa spiega come The Olive Lot (“noi”) raccoglie, usa, conserva e condivide le informazioni su theolivelot.com e nelle app mobili, incluso il pacchetto Android com.theolivelot.app (insieme, il “Servizio”).",
+    "sections": [
+      {
+        "heading": "1. Chi siamo (titolare del trattamento)",
+        "paragraphs": [
+          "Titolare: gli operatori di The Olive Lot, con marchio The Olive Lot. Paese: Grecia. Privacy e supporto: support@theolivelot.com.",
+          "Quando sarà costituita una società greca registrata, questa sezione indicherà la ragione sociale esatta. Fino ad allora le richieste privacy sono gestite dagli operatori di The Olive Lot. L’identità sviluppatore su Google Play per The Olive Lot / com.theolivelot.app corrisponde a questa identità di prodotto."
+        ]
+      },
+      {
+        "heading": "2. Dati che raccogliamo",
+        "paragraphs": [
+          "Account: nome, email, password hashata, lingua/preferenze, ruolo.",
+          "Dati oliveto e lavoro: nomi, dimensioni, posizioni/coordinate, note, attività, osservazioni, raccolto, spese/entrate, timestamp.",
+          "Foto che scatti o selezioni. Sul dispositivo possiamo leggere metadati (inclusa posizione) per abbinarle; niente viene caricato finché non confermi.",
+          "Posizione del dispositivo solo quando scegli esplicitamente “Usa la mia posizione” per collocare un campo. Nessuna localizzazione in background. Dopo il salvataggio delle coordinate, il meteo usa quelle.",
+          "Opzionale: un contatto tramite il selettore di sistema. Non chiediamo l’accesso ampio alla rubrica e non importiamo tutto il telefono.",
+          "Token di notifica; IP, versione dispositivo/app e log di sicurezza di base; messaggi che ci invii.",
+          "Non vendiamo dati personali. Non usiamo reti pubblicitarie, data broker o SDK pubblicitari/di tracciamento. Non raccogliamo numeri di carta nell’app. Il Servizio non è rivolto a minori di 16 anni."
+        ]
+      },
+      {
+        "heading": "3. Finalità e basi giuridiche GDPR",
+        "paragraphs": [
+          "Account/login: contratto. Registrazioni oliveto, attività, raccolto, foto: contratto. Collaborazione/inviti: contratto. Supporto: contratto o interessi legittimi. Sicurezza e log operativi: interessi legittimi. Notifiche opzionali: consenso / permesso dispositivo. Posizione e selettore di un contatto: funzionalità richiesta dall’utente + permesso dispositivo ove richiesto."
+        ]
+      },
+      {
+        "heading": "4. Condivisione",
+        "paragraphs": [
+          "Le persone che inviti vedono i dati secondo i loro permessi.",
+          "La nostra infrastruttura (server, MongoDB nella nostra deployment, storage locale upload) per theolivelot.com / api.theolivelot.com.",
+          "Email transazionali via SMTP che gestiamo; push via Expo per le notifiche che attivi.",
+          "Fornitori geospaziali/meteo come Open-Meteo, Earth Search / satellite, SoilGrids, Terrascope e NASA FIRMS ricevono coordinate o aree mappa necessarie. Il dispositivo può caricare tile mappa e Nominatim per la ricerca.",
+          "Possiamo divulgare dati se richiesto dalla legge. Non li condividiamo con reti pubblicitarie né li vendiamo."
+        ]
+      },
+      {
+        "heading": "5. Conservazione e trasferimenti internazionali",
+        "paragraphs": [
+          "L’intento produttivo primario è tenere database e upload in UE/SEE. Alcuni fornitori di funzioni (meteo, satellite, mappe, push) possono trattare dati tecnici o di posizione limitati fuori dallo SEE con i meccanismi di trasferimento applicabili ove richiesto."
+        ]
+      },
+      {
+        "heading": "6. Conservazione ed eliminazione account",
+        "paragraphs": [
+          "Mentre l’account è attivo conserviamo i dati necessari.",
+          "Alla cancellazione: l’accesso si chiude subito; nome/email sono rimossi; token, notifiche e contatti salvati sono eliminati; sei rimosso dai campi condivisi; i campi di tua proprietà sono archiviati subito e non sono più utilizzabili nel prodotto.",
+          "Criterio di cancellazione definitiva dei residui archiviati (foto e registrazioni): entro 30 giorni dal timestamp di cancellazione. I backup possono trattenere copie residue fino a 90 giorni dopo. Archivi legali/di sicurezza limitati possono restare ove richiesto.",
+          "In-app: Impostazioni → Account → Elimina account. Fuori dall’app: https://theolivelot.com/delete-account/ oppure email a support@theolivelot.com dall’email dell’account."
+        ]
+      },
+      {
+        "heading": "7. I tuoi diritti",
+        "paragraphs": [
+          "Accesso; portabilità (esportazione); rettifica; cancellazione; opposizione/limitazione; revoca dei permessi opzionali del dispositivo; reclamo all’autorità di controllo — in Grecia, l’Autorità ellenica per la protezione dei dati (dpa.gr).",
+          "Usa Impostazioni per esportare ed Elimina account, oppure scrivi a support@theolivelot.com."
+        ]
+      },
+      {
+        "heading": "8. Permessi del dispositivo",
+        "paragraphs": [
+          "Posizione solo in uso, su azioni esplicite come collocare un campo. Fotocamera/foto per evidenze (caricamento dopo conferma). Selettore di sistema per una persona. Notifiche opzionali."
+        ]
+      },
+      {
+        "heading": "9. Cookie",
+        "paragraphs": [
+          "Cookie/archiviazione locale necessari per accesso e preferenze. Nessun cookie pubblicitario di terze parti."
+        ]
+      },
+      {
+        "heading": "10. Minori",
+        "paragraphs": [
+          "Il Servizio è per adulti. Non raccogliamo consapevolmente dati di minori."
+        ]
+      },
+      {
+        "heading": "11. Modifiche",
+        "paragraphs": [
+          "Gli aggiornamenti sono pubblicati su https://theolivelot.com/privacy/ con nuova data."
+        ]
+      },
+      {
+        "heading": "12. Contatto",
+        "paragraphs": [
+          "Privacy e supporto: support@theolivelot.com. Eliminazione: https://theolivelot.com/delete-account/"
+        ]
+      }
     ]
   },
   "terms": {
     "title": "Termini di utilizzo",
+    "updated": "",
+    "intro": "",
+    "sections": [],
     "points": [
-      "The Olive Lot è in alpha. Funzioni e limiti possono cambiare.",
+      "The Olive Lot è in sviluppo attivo. Funzioni e limiti possono cambiare.",
       "Sei responsabile di ciò che registri e di chi inviti sul campo.",
       "Non condividere l’account. Se perdi l’accesso, contattaci.",
-      "L’uso del servizio implica l’accettazione di questi termini."
+      "L’uso del servizio implica l’accettazione di questi termini e dell’Informativa sulla privacy su https://theolivelot.com/privacy/."
     ]
   }
 }

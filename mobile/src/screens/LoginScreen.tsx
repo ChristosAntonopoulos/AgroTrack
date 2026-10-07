@@ -4,15 +4,12 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { showDemoLogin } from '../config/env';
-import { TestUser } from '../services/mockUsers';
 import { rememberInviteIntent } from '../utils/inviteIntent';
 import AuthScreen, { authLinkStyles } from '../components/auth/AuthScreen';
 import AuthTextField from '../components/auth/AuthTextField';
 import AuthButton from '../components/auth/AuthButton';
 import AuthAlert from '../components/auth/AuthAlert';
 import AuthSocialButtons from '../components/auth/AuthSocialButtons';
-import AuthDemoPicker from '../components/auth/AuthDemoPicker';
 import { AuthStackParamList } from '../navigation/types';
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -81,14 +78,6 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     if (!validate()) return;
     await runLogin(email, password);
-  };
-
-  const handleDemoLogin = async (user: TestUser) => {
-    setEmail(user.email);
-    setPassword(user.password);
-    setEmailError(undefined);
-    setPasswordError(undefined);
-    await runLogin(user.email, user.password);
   };
 
   return (
@@ -161,8 +150,6 @@ const LoginScreen = () => {
           {t('auth:login.noAccount')} <Text style={authLinkStyles.accent}>{t('auth:login.registerLink')}</Text>
         </Text>
       </TouchableOpacity>
-
-      {showDemoLogin() ? <AuthDemoPicker loading={loading} onSelect={(user) => void handleDemoLogin(user)} /> : null}
 
       <Text style={authLinkStyles.legal}>
         <Text onPress={() => navigation.navigate('Legal', { kind: 'privacy' })} style={authLinkStyles.accent}>

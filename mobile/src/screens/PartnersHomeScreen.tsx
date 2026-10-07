@@ -24,7 +24,6 @@ import PartnersFieldPicker from '../components/partners/PartnersFieldPicker';
 import TeamAccessSection from '../components/partners/TeamAccessSection';
 import SavedContactSheet from '../components/partners/SavedContactSheet';
 import SeatInviteSheet from '../components/partners/SeatInviteSheet';
-import ImportPhoneContactsSheet from '../components/partners/ImportPhoneContactsSheet';
 import PersonCard from '../components/partners/PersonCard';
 import PersonDetailSheet from '../components/partners/PersonDetailSheet';
 import { RootStackParamList } from '../navigation/types';
@@ -54,7 +53,6 @@ const PartnersHomeScreen = () => {
   const [selected, setSelected] = useState<GrovePerson | null>(null);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<SavedContact | null>(null);
-  const [importing, setImporting] = useState(false);
   const [section, setSection] = useState<'people' | 'invites' | 'contacts'>('people');
   const [addingFamily, setAddingFamily] = useState(false);
   const [addingPartner, setAddingPartner] = useState(false);
@@ -382,9 +380,9 @@ const PartnersHomeScreen = () => {
           <View style={styles.actions}>
             {canPickPhone ? (
               <Button
-                title={t('partners:importPhone.openPhone')}
+                title={t('partners:fromPhone')}
                 variant="outline"
-                onPress={() => setImporting(true)}
+                onPress={() => setAdding(true)}
               />
             ) : null}
             <Button title={t('partners:addContact')} onPress={() => setAdding(true)} />
@@ -472,14 +470,6 @@ const PartnersHomeScreen = () => {
               }
             : undefined
         }
-      />
-
-      <ImportPhoneContactsSheet
-        visible={importing}
-        fields={fields}
-        categories={categories}
-        onClose={() => setImporting(false)}
-        onImported={() => setPeopleTick((n) => n + 1)}
       />
 
       <SavedContactSheet

@@ -138,6 +138,67 @@ public static class FieldPeopleRules
         SyncDerivedIds(field);
     }
 
+    /// <summary>
+    /// Moves the Admin seat to <paramref name="newOwnerUserId"/> and demotes the previous admin
+    /// to Partner. Used for billing-ownership transfer.
+    /// </summary>
+    public static FieldPerson TransferAdmin(
+        Field field,
+        string newOwnerUserId,
+        string? newOwnerDisplayName,
+        string? newOwnerEmail,
+        string? transferredByUserId)
+    {
+        if (string.IsNullOrWhiteSpace(newOwnerUserId))
+        {
+            throw new InvalidOperationException("New owner user id is required.");
+        }
+
+        EnsureNormalized(field);
+        var admin = GetAdmin(field) ?? throw new InvalidOperationException("Field has no admin seat.");
+        var previousUserId = admin.UserId;
+        var previousDisplayName = admin.DisplayName;
+        var previousEmail = admin.Email;
+
+        if (string.Equals(previousUserId, newOwnerUserId, StringComparison.Ordinal))
+        {
+            return admin;
+        }
+
+        // Remove any existing non-admin seat for the new owner before promoting them.
+        var existingNewOwnerSeat = field.People.FirstOrDefault(p =>
+            string.Equals(p.UserId, newOwnerUserId, StringComparison.Ordinal) &&
+            !string.Equals(p.Status, FamilyMemberStatuses.Revoked, StringComparison.OrdinalIgnoreCase));
+        if (existingNewOwnerSeat != null && existingNewOwnerSeat.Role != FieldPersonRole.Admin)
+        {
+            field.People.Remove(existingNewOwnerSeat);
+        }
+
+        admin.UserId = newOwnerUserId;
+        admin.DisplayName = newOwnerDisplayName?.Trim() ?? admin.DisplayName;
+        admin.Email = newOwnerEmail?.Trim() ?? admin.Email;
+        admin.Status = FamilyMemberStatuses.Active;
+        admin.Modules = FamilyModules.All.ToList();
+        admin.AccessLevel = FamilyAccessLevels.Work;
+
+        if (!string.IsNullOrWhiteSpace(previousUserId))
+        {
+            AddOrReplaceSeat(
+                field,
+                FieldPersonRole.Partner,
+                previousUserId,
+                FamilyModules.All,
+                FamilyAccessLevels.Work,
+                invitedBy: transferredByUserId,
+                displayName: previousDisplayName,
+                email: previousEmail,
+                status: FamilyMemberStatuses.Active);
+        }
+
+        SyncDerivedIds(field);
+        return admin;
+    }
+
     public static void RemoveSeat(Field field, string userId)
     {
         EnsureNormalized(field);

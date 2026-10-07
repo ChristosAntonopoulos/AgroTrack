@@ -7,6 +7,8 @@ import {
   Switch,
   Pressable,
   Modal,
+  TextInput,
+  Linking,
 } from 'react-native';
 import { useLayoutEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -29,8 +31,12 @@ import { typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { changeAppLanguage } from '../i18n';
 import { isMockMode } from '../services/serviceFactory';
+import { accountService } from '../services/accountService';
 import { NOTIFICATION_PREF_KEYS } from '../services/userPreferencesService';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
+import { usePlanSummary } from '../hooks/usePlanSummary';
+
+const PUBLIC_DELETE_ACCOUNT_URL = 'https://theolivelot.com/delete-account/';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -66,7 +72,8 @@ type SheetOption = { value: string; label: string };
 const SettingsScreen = () => {
   const { user, logout, isFieldOwner } = useAuth();
   const { colors, brightFieldAvailable } = useTheme();
-  const { t } = useTranslation(['settings', 'common', 'nav', 'onboarding', 'auth']);
+  const { t } = useTranslation(['settings', 'common', 'nav', 'onboarding', 'auth', 'subscription']);
+  const planSummary = usePlanSummary();
   const activation = useOwnerActivationOptional();
   const {
     language,
@@ -92,6 +99,10 @@ const SettingsScreen = () => {
   const [savedFlash, setSavedFlash] = useState(false);
   const [techOpen, setTechOpen] = useState(false);
   const [sheet, setSheet] = useState<'language' | 'date' | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteEmail, setDeleteEmail] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controlH = largeControls ? Math.max(50, tapMin) : 42;
 
@@ -119,6 +130,42 @@ const SettingsScreen = () => {
       { text: t('common:cancel'), style: 'cancel' },
       { text: t('settings:logout'), style: 'destructive', onPress: () => logout() },
     ]);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleting) return;
+    setDeleteOpen(false);
+    setDeletePassword('');
+    setDeleteEmail('');
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!user?.email || !user.id) return;
+    if (deleteEmail.trim().toLowerCase() !== user.email.trim().toLowerCase()) {
+      Alert.alert(t('settings:danger.emailMismatch'));
+      return;
+    }
+    if (isMockMode()) {
+      Alert.alert(t('settings:danger.demoBlocked'));
+      return;
+    }
+    setDeleting(true);
+    try {
+      await accountService.deleteAccount({ userId: user.id, email: user.email }, deletePassword);
+      setDeleteOpen(false);
+      setDeletePassword('');
+      setDeleteEmail('');
+      await logout();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data
+          ?.message ||
+        (err as { message?: string })?.message ||
+        t('settings:danger.deleteFailed');
+      Alert.alert(t('settings:danger.deleteFailed'), String(message));
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleLanguage = async (lang: AppLanguage) => {
@@ -281,6 +328,21 @@ const SettingsScreen = () => {
             </Text>
           </View>
         </View>
+        <View style={[styles.divider, { backgroundColor: colors.gray200 }]} />
+        <Text style={[styles.hint, { color: colors.textTertiary, fontSize: 13 * fontScaleMultiplier }]}>
+          {t('settings:danger.deleteHelp')}
+        </Text>
+        <Button
+          title={t('settings:danger.deleteButton')}
+          variant="outline"
+          onPress={() => setDeleteOpen(true)}
+          fullWidth
+        />
+        <Pressable onPress={() => void Linking.openURL(PUBLIC_DELETE_ACCOUNT_URL)} style={{ marginTop: spacing.sm }}>
+          <Text style={{ color: colors.link, fontSize: 13 * fontScaleMultiplier }}>
+            {t('settings:danger.webHelp')}
+          </Text>
+        </Pressable>
       </Group>
 
       <Group title={t('settings:sections.notifications')}>
@@ -459,6 +521,16 @@ const SettingsScreen = () => {
         ) : null}
       </Group>
 
+      {!isMockMode() ? (
+        <Group title={t('subscription:billing.menuRow')}>
+          <SelectRow
+            title={t('subscription:billing.menuRow')}
+            valueLabel={planSummary ?? ''}
+            onPress={() => navigation.navigate('Subscription')}
+          />
+        </Group>
+      ) : null}
+
       <Group title={t('nav:help', { defaultValue: 'Help' })}>
         <SelectRow
           title={t('nav:help', { defaultValue: 'Help' })}
@@ -529,6 +601,69 @@ const SettingsScreen = () => {
         style={{ marginTop: spacing.md }}
         icon={<Ionicons name="log-out-outline" size={18} color={colors.error} />}
       />
+
+      <Modal visible={deleteOpen} transparent animationType="slide" onRequestClose={closeDeleteModal}>
+        <Pressable style={styles.sheetOverlay} onPress={closeDeleteModal} />
+        <View style={[styles.sheet, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+          <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+          <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>
+            {t('settings:danger.confirmTitle')}
+          </Text>
+          <Text style={[styles.hint, { color: colors.textSecondary, fontSize: 14 * fontScaleMultiplier }]}>
+            {t('settings:danger.confirmBody')}
+          </Text>
+          <Text style={[styles.rowTitle, { color: colors.textPrimary, marginBottom: spacing.xs }]}>
+            {t('settings:danger.deletePassword')}
+          </Text>
+          <TextInput
+            value={deletePassword}
+            onChangeText={setDeletePassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!deleting}
+            style={[
+              styles.deleteInput,
+              {
+                borderColor: colors.gray200,
+                color: colors.textPrimary,
+                backgroundColor: colors.background,
+                minHeight: controlH,
+              },
+            ]}
+          />
+          <Text style={[styles.rowTitle, { color: colors.textPrimary, marginBottom: spacing.xs, marginTop: spacing.sm }]}>
+            {t('settings:danger.confirmEmail')}
+          </Text>
+          <TextInput
+            value={deleteEmail}
+            onChangeText={setDeleteEmail}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            editable={!deleting}
+            style={[
+              styles.deleteInput,
+              {
+                borderColor: colors.gray200,
+                color: colors.textPrimary,
+                backgroundColor: colors.background,
+                minHeight: controlH,
+              },
+            ]}
+          />
+          <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+            <Button
+              title={deleting ? t('settings:danger.deleting') : t('settings:danger.deleteAction')}
+              variant="outline"
+              onPress={() => void confirmDeleteAccount()}
+              fullWidth
+              disabled={deleting}
+            />
+            <Button title={t('settings:danger.cancel')} variant="ghost" onPress={closeDeleteModal} fullWidth />
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
         <Pressable style={styles.sheetOverlay} onPress={() => setSheet(null)} />
@@ -659,6 +794,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
+  },
+  deleteInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
 });
 

@@ -127,14 +127,23 @@ public class AccountServiceTests
     public async Task DeleteAsync_ClosesLogin_AndKeepsSupportPathInExport()
     {
         var stored = CreateUser();
+        var ownedField = new Field
+        {
+            Id = "field-1",
+            OwnerId = "user-1",
+            Name = "North",
+            Area = 1.2,
+            Status = FieldStatus.Active
+        };
         var fields = new Mock<IFieldRepository>();
         fields.Setup(r => r.GetByOwnerIdAsync("user-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[]
-            {
-                new Field { Id = "field-1", Name = "North", Area = 1.2, Status = FieldStatus.Active }
-            });
+            .ReturnsAsync(new[] { ownedField });
+        fields.Setup(r => r.GetByMemberUserIdAsync("user-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Field>());
+        fields.Setup(r => r.UpdateAsync(It.IsAny<Field>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Field f, CancellationToken _) => f);
         var notifications = new Mock<IUserNotificationRepository>();
-        notifications.Setup(r => r.GetByUserIdAsync("user-1", 100, It.IsAny<CancellationToken>()))
+        notifications.Setup(r => r.GetByUserIdAsync("user-1", It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<UserNotification>
             {
                 new()
@@ -146,6 +155,7 @@ public class AccountServiceTests
                     UserId = "user-1"
                 }
             });
+        notifications.Setup(r => r.DeleteAsync("n1", It.IsAny<CancellationToken>())).ReturnsAsync(true);
         var users = new Mock<IUserRepository>();
         users.Setup(r => r.GetByIdAsync("user-1", It.IsAny<CancellationToken>())).ReturnsAsync(stored);
         users.Setup(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
@@ -164,6 +174,8 @@ public class AccountServiceTests
         Assert.Null(stored.FirstName);
         Assert.StartsWith("deleted.", stored.Email, StringComparison.Ordinal);
         Assert.False(BCrypt.Net.BCrypt.Verify("password123", stored.PasswordHash));
+        Assert.Equal(FieldStatus.Archived, ownedField.Status);
+        notifications.Verify(r => r.DeleteAsync("n1", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private static AccountService CreateService(

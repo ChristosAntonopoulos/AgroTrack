@@ -261,7 +261,7 @@ const RegisterPage: React.FC = () => {
     <p className="register-legal">
       {t('auth:register.legalPrefix')}{' '}
       <Link to="/terms">{t('auth:login.terms')}</Link> {t('auth:register.legalAnd')}{' '}
-      <Link to="/privacy">{t('auth:login.privacy')}</Link>.
+      <a href="/privacy/">{t('auth:login.privacy')}</a>.
     </p>
   );
 

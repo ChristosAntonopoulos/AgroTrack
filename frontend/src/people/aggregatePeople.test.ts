@@ -1,4 +1,8 @@
-import { aggregateManagedPeople, presetLabelKey } from './aggregatePeople';
+import {
+  aggregateManagedPeople,
+  modulesForRelationship,
+  presetLabelKey,
+} from './aggregatePeople';
 import { FieldInvite, FieldMembership } from '../services/fieldPeopleService';
 import { SavedContact } from '../services/partnerService';
 
@@ -100,5 +104,20 @@ describe('aggregateManagedPeople', () => {
     expect(presetLabelKey('work', ['chronologio', 'photos'])).toBe('record');
     expect(presetLabelKey('work', ['chronologio', 'tasks'])).toBe('work');
     expect(presetLabelKey('help', ['tasks'])).toBe('help');
+  });
+
+  it('maps relationship presets to the agreed module sets', () => {
+    expect(modulesForRelationship('Collaborator')).toEqual([
+      'fields',
+      'chronologio',
+      'photos',
+      'tasks',
+    ]);
+    expect(modulesForRelationship('Family')).toEqual([
+      'fields',
+      'chronologio',
+      'harvest',
+      'money',
+    ]);
   });
 });

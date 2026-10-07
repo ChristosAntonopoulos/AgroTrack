@@ -33,9 +33,23 @@
 
 ## Monitoring (ελαφρύ, προς το παρόν)
 
-- Ξέρουμε αν ο ιστότοπος είναι up ή down.
+- Ξέρουμε αν ο ιστότοπος είναι up ή down (`GET /health`).
 - Ειδοποιούμαστε για κρίσιμα σφάλματα.
-- Δεν έχουμε ακόμα βαριά εργαλεία monitoring (προστίθενται όταν το δικαιολογεί η κλίμακα πελατών).
+- Δεν έχουμε ακόμα βαριά εργαλεία monitoring / APM (π.χ. Sentry) — προστίθενται όταν το δικαιολογεί η κλίμακα πελατών.
+
+### Admin ops overview (in-app)
+
+Platform `Administrator` console at web `/admin` (API under `api/v1/admin/*`):
+
+| Signal | Definition |
+|---|---|
+| Total users | Non-deleted accounts |
+| Active 24h / 7d / 30d (DAU / WAU / MAU) | Distinct users with `LastSeenAt` in that window |
+| New users | Accounts with `CreatedAt` in the window |
+| Unseen feedback | `user_feedback` rows with null `SeenAt` |
+| API errors (24h) | Unexpected 500s persisted to `api_error_events` (30-day TTL) |
+
+`LastLoginAt` is stamped on successful password login; `LastSeenAt` is stamped on login and lightly refreshed from authenticated API traffic (≈15-minute throttle).
 
 ## Τι ΔΕΝ είναι στο scope προς το παρόν
 

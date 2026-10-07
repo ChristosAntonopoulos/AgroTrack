@@ -59,6 +59,20 @@ public class FieldPeopleController : BaseApiController
         return NoContent();
     }
 
+    [HttpPost("transfer-ownership")]
+    public async Task<ActionResult<FieldMembershipDto>> TransferOwnership(
+        string fieldId,
+        [FromBody] TransferFieldOwnershipDto dto,
+        CancellationToken cancellationToken)
+    {
+        var membership = await _peopleService.TransferOwnershipAsync(
+            fieldId,
+            UserContext.UserId,
+            dto.NewOwnerUserId,
+            cancellationToken);
+        return OkResult(membership);
+    }
+
     [HttpPost("invites")]
     public async Task<ActionResult<FieldInviteDto>> CreateInvite(
         string fieldId,

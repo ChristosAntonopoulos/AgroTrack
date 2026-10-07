@@ -18,7 +18,6 @@ import ThemeModeToggle from '../components/Common/ThemeModeToggle';
 import {
   ALPHA_APK_URL,
   ALPHA_APK_FILENAME,
-  LANDING_CONTACT_EMAIL,
   LANDING_SUPPORT_EMAIL,
   LANDING_NAV,
 } from '../config/landingConfig';
@@ -35,6 +34,7 @@ import {
   OilTinCluster,
   YearFlow,
 } from './landing/LandingStages';
+import { LandingFaq, LandingPricing } from './landing/LandingPricing';
 import './LandingPage.css';
 import './landing/LandingStory.css';
 
@@ -345,7 +345,10 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="pricing" className="lp-killer" aria-labelledby="killer-title">
+        <LandingPricing />
+        <LandingFaq />
+
+        <section className="lp-killer" aria-labelledby="killer-title">
           <div className="landing-container">
             <h2 id="killer-title">
               {t('killer.line1')}
@@ -387,10 +390,6 @@ const LandingPage: React.FC = () => {
           </div>
           <div>
             <h4>{t('footer.contact')}</h4>
-            <a href={`mailto:${LANDING_CONTACT_EMAIL}`}>
-              <Mail size={14} aria-hidden />
-              {LANDING_CONTACT_EMAIL}
-            </a>
             <a href={`mailto:${LANDING_SUPPORT_EMAIL}`}>
               <Mail size={14} aria-hidden />
               {LANDING_SUPPORT_EMAIL}
@@ -460,7 +459,7 @@ const LandingPage: React.FC = () => {
           </details>
         </div>
         <div className="landing-container landing-footer-bottom">
-          <Link to="/privacy">{t('footer.privacy')}</Link>
+          <a href="/privacy/">{t('footer.privacy')}</a>
           <Link to="/terms">{t('footer.terms')}</Link>
         </div>
       </footer>

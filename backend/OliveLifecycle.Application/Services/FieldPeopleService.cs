@@ -22,6 +22,7 @@ public class FieldPeopleService : IFieldPeopleService
     private readonly IActivityRepository _activityRepository;
     private readonly IFieldInviteRepository _inviteRepository;
     private readonly IFieldAccessService _fieldAccessService;
+    private readonly ISubscriptionService _subscriptionService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISavedContactService _savedContacts;
     private readonly IUserNotificationService _notifications;
@@ -36,6 +37,7 @@ public class FieldPeopleService : IFieldPeopleService
         IActivityRepository activityRepository,
         IFieldInviteRepository inviteRepository,
         IFieldAccessService fieldAccessService,
+        ISubscriptionService subscriptionService,
         IDateTimeProvider dateTimeProvider,
         ISavedContactService savedContacts,
         IUserNotificationService notifications,
@@ -49,6 +51,7 @@ public class FieldPeopleService : IFieldPeopleService
         _activityRepository = activityRepository;
         _inviteRepository = inviteRepository;
         _fieldAccessService = fieldAccessService;
+        _subscriptionService = subscriptionService;
         _dateTimeProvider = dateTimeProvider;
         _savedContacts = savedContacts;
         _notifications = notifications;
@@ -71,6 +74,57 @@ public class FieldPeopleService : IFieldPeopleService
             email: user?.Email,
             status: FamilyMemberStatuses.Active);
         await Task.CompletedTask;
+    }
+
+    public async Task<FieldMembershipDto> TransferOwnershipAsync(
+        string fieldId,
+        string actorUserId,
+        string newOwnerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(newOwnerUserId))
+        {
+            throw new ValidationException("New owner user id is required.");
+        }
+
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
+            ?? throw new NotFoundException("Field not found.");
+
+        if (!await _fieldAccessService.CanUserAdministerFieldAsync(fieldId, actorUserId, cancellationToken))
+        {
+            throw new ForbiddenException("Only the current owner can transfer this grove.");
+        }
+
+        if (string.Equals(actorUserId, newOwnerUserId, StringComparison.Ordinal))
+        {
+            throw new ValidationException("You already own this grove.");
+        }
+
+        var newOwner = await _userRepository.GetByIdAsync(newOwnerUserId, cancellationToken)
+            ?? throw new NotFoundException("New owner was not found.");
+
+        await _subscriptionService.AssertCanTransferOwnershipAsync(newOwnerUserId, cancellationToken);
+
+        FieldPeopleRules.TransferAdmin(
+            field,
+            newOwnerUserId,
+            DisplayName(newOwner),
+            newOwner.Email,
+            actorUserId);
+
+        field.UpdatedAt = _dateTimeProvider.UtcNow;
+        await _fieldRepository.UpdateAsync(field, cancellationToken);
+
+        await _subscriptionService.OnOwnedFieldDeletedAsync(actorUserId, fieldId, cancellationToken);
+
+        _logger.LogInformation(
+            "Transferred ownership of field {FieldId} from {FromUserId} to {ToUserId}",
+            fieldId,
+            actorUserId,
+            newOwnerUserId);
+
+        var admin = FieldPeopleRules.GetAdmin(field)!;
+        return FieldMapper.ToMembershipDto(admin);
     }
 
     public async Task<IEnumerable<FieldMembershipDto>> GetPeopleAsync(
@@ -269,6 +323,11 @@ public class FieldPeopleService : IFieldPeopleService
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
         var code = await AllocateInviteCodeAsync(cancellationToken);
         var inviteEmail = dto.Email?.Trim().ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(inviteEmail) && !EmailAddresses.IsDeliverable(inviteEmail))
+        {
+            throw new ValidationException("Enter a valid email address.");
+        }
+
         string? targetUserId = null;
         if (!string.IsNullOrWhiteSpace(inviteEmail))
         {
@@ -827,6 +886,13 @@ public class FieldPeopleService : IFieldPeopleService
 
             var role = seat?.Role ?? FieldPersonRole.Admin;
             var admin = FieldPeopleRules.GetAdmin(field);
+            var capabilities = FieldCapabilitiesResolver.Resolve(field, userId);
+            if (!string.IsNullOrWhiteSpace(field.OwnerId) &&
+                !await _subscriptionService.IsOwnedFieldWritableAsync(field.OwnerId, field.Id, cancellationToken))
+            {
+                FieldCapabilitiesResolver.ApplySubscriptionReadOnly(capabilities);
+            }
+
             result.Add(new FieldAccessSnapshotDto
             {
                 FieldId = field.Id,
@@ -837,7 +903,7 @@ public class FieldPeopleService : IFieldPeopleService
                     : seat!.Modules.ToList(),
                 AccessLevel = seat?.AccessLevel ?? FamilyAccessLevels.Work,
                 AdminUserId = admin?.UserId ?? field.OwnerId,
-                Capabilities = FieldCapabilitiesResolver.Resolve(field, userId)
+                Capabilities = capabilities
             });
         }
 

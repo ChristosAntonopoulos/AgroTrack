@@ -5,11 +5,11 @@ import Button from '../Common/Button';
 import PartnersSheet from '../Partners/PartnersSheet';
 import { FieldModule, ManagedContact, fieldPeopleService } from '../../services/fieldPeopleService';
 import { getApiErrorMessage } from '../../utils/translateApiError';
+import { isDeliverableEmail } from '../../utils/emailValidation';
 import {
-  AccessChoice,
-  defaultPresetForRelationship,
-  levelForChoice,
-  modulesForChoice,
+  SUMMARY_MODULES,
+  levelForModules,
+  modulesForRelationship,
 } from '../../people/aggregatePeople';
 import FieldPermissionPanel from './FieldPermissionPanel';
 
@@ -22,6 +22,15 @@ type KnownPerson = {
   memberships: { fieldId: string }[];
 };
 
+export type InviteSentOutcome = {
+  /** True when at least one invite email left the server. */
+  emailSent: boolean;
+  /** True when an existing user was notified in-app. */
+  notified: boolean;
+  /** Human-readable status for the people page banner. */
+  notice: string;
+};
+
 type Props = {
   open?: boolean;
   fields: { id: string; name: string }[];
@@ -32,7 +41,7 @@ type Props = {
   initialEmail?: string;
   initialPhone?: string;
   onClose: () => void;
-  onSent: () => void;
+  onSent: (outcome: InviteSentOutcome) => void;
 };
 
 const looksLikeEmail = (value: string) => value.includes('@');
@@ -54,7 +63,7 @@ const InvitePersonSheet: React.FC<Props> = ({
   onClose,
   onSent,
 }) => {
-  const { t } = useTranslation(['partners', 'common']);
+  const { t } = useTranslation(['partners', 'common', 'errors', 'auth']);
   const knownPerson = Boolean(initialEmail || initialPhone);
   const multiGrove = fields.length > 1;
   const stepOrder = [1, 2, 3];
@@ -76,9 +85,7 @@ const InvitePersonSheet: React.FC<Props> = ({
     return fields[0] ? [fields[0].id] : [];
   });
   const [relationship, setRelationship] = useState<Relationship>('Collaborator');
-  const [choice, setChoice] = useState<AccessChoice>('record');
-  const [choiceTouched, setChoiceTouched] = useState(false);
-  const [modules, setModules] = useState<FieldModule[]>(modulesForChoice('record'));
+  const [modules, setModules] = useState<FieldModule[]>(modulesForRelationship('Collaborator'));
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [successHint, setSuccessHint] = useState('');
@@ -100,6 +107,8 @@ const InvitePersonSheet: React.FC<Props> = ({
     phone.trim() ||
     (looksLikePhone(reach) ? reach.trim() : '') ||
     (looksLikePhone(query) ? query.trim() : '');
+
+  const emailInvalid = Boolean(typedEmail) && !isDeliverableEmail(typedEmail);
 
   const matches = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -167,16 +176,7 @@ const InvitePersonSheet: React.FC<Props> = ({
 
   const pickRelationship = (next: Relationship) => {
     setRelationship(next);
-    if (!choiceTouched) {
-      const nextChoice = defaultPresetForRelationship(next);
-      setChoice(nextChoice);
-      setModules(modulesForChoice(nextChoice));
-    }
-  };
-
-  const pickChoice = (next: AccessChoice) => {
-    setChoiceTouched(true);
-    setChoice(next);
+    setModules(modulesForRelationship(next));
   };
 
   const toggleField = (id: string) => {
@@ -185,7 +185,11 @@ const InvitePersonSheet: React.FC<Props> = ({
   };
 
   const canLeaveStep = () => {
-    if (step === 1) return Boolean(typedEmail || typedPhone);
+    if (step === 1) {
+      if (!typedEmail && !typedPhone) return false;
+      if (typedEmail && !isDeliverableEmail(typedEmail)) return false;
+      return true;
+    }
     if (step === 2) return fieldIds.some((id) => !takenFieldIds.has(id));
     return true;
   };
@@ -217,35 +221,75 @@ const InvitePersonSheet: React.FC<Props> = ({
     if (prev) setStep(prev);
   };
 
+  const summaryModuleLabels = useMemo(() => {
+    const labels = SUMMARY_MODULES.filter((module) => modules.includes(module)).map((module) =>
+      t(`partners:peoplePage.modules.${module}`)
+    );
+    if (modules.includes('harvest')) {
+      labels.push(t('partners:peoplePage.modules.oilStore', { defaultValue: 'Αποθήκη' }));
+    }
+    return labels;
+  }, [modules, t]);
+
   const send = async () => {
     const targets = fieldIds.filter((id) => !takenFieldIds.has(id));
     if (targets.length === 0) return;
+    const inviteEmail = (email.trim() || typedEmail) || undefined;
+    if (inviteEmail && !isDeliverableEmail(inviteEmail)) {
+      setAttempted(true);
+      setError(t('errors:emailInvalid', { defaultValue: t('auth:login.emailInvalid') }));
+      setStep(1);
+      return;
+    }
     setSending(true);
     setError('');
     try {
       const created = await fieldPeopleService.createInvites({
         fieldIds: targets,
         relationship,
-        accessPreset: levelForChoice(choice),
-        modules: modules.length > 0 ? modules : modulesForChoice(choice),
-        email: (email.trim() || typedEmail) || undefined,
+        accessPreset: levelForModules(modules, relationship),
+        modules: modules.length > 0 ? modules : modulesForRelationship(relationship),
+        email: inviteEmail,
         phone: (phone.trim() || typedPhone) || undefined,
         displayName: name.trim() || undefined,
       });
       const anyExisting = created.some((invite) => invite.inviteeHasAccount);
       const anyNotified = created.some((invite) => invite.notificationQueued);
-      setSuccessHint(
-        anyExisting
-          ? t('partners:peoplePage.inviteSentExisting', {
-              defaultValue: anyNotified
-                ? 'They already use The Olive Lot — notified in the app and by email.'
-                : 'They already use The Olive Lot — invite email sent.',
-            })
-          : t('partners:peoplePage.inviteSentNew', {
-              defaultValue: 'Invite email sent. They can register with the link or code.',
-            })
-      );
-      onSent();
+      const anyEmailSent = created.some((invite) => invite.emailSent);
+      const wantedEmail = Boolean(inviteEmail);
+
+      let hint: string;
+      let notice: string;
+      if (wantedEmail && !anyEmailSent && !anyNotified) {
+        hint = t('partners:peoplePage.inviteEmailFailed', {
+          defaultValue:
+            'Η πρόσκληση αποθηκεύτηκε, αλλά το email δεν στάλθηκε. Έλεγξε τη διεύθυνση ή στείλε τον σύνδεσμο χειροκίνητα.',
+        });
+        notice = hint;
+      } else if (wantedEmail && !anyEmailSent && anyNotified) {
+        hint = t('partners:peoplePage.inviteSentExistingAppOnly', {
+          defaultValue: 'Έχουν ήδη The Olive Lot — ειδοποιήθηκαν στην εφαρμογή. Το email δεν στάλθηκε.',
+        });
+        notice = hint;
+      } else if (anyExisting) {
+        hint = t('partners:peoplePage.inviteSentExisting', {
+          defaultValue: anyNotified
+            ? 'They already use The Olive Lot — notified in the app and by email.'
+            : 'They already use The Olive Lot — invite email sent.',
+        });
+        notice = t('partners:peoplePage.invitedNotice');
+      } else if (anyEmailSent) {
+        hint = t('partners:peoplePage.inviteSentNew', {
+          defaultValue: 'Invite email sent. They can register with the link or code.',
+        });
+        notice = t('partners:peoplePage.invitedNotice');
+      } else {
+        hint = t('partners:inviteEmailSkipped');
+        notice = hint;
+      }
+
+      setSuccessHint(hint);
+      onSent({ emailSent: anyEmailSent, notified: anyNotified, notice });
     } catch (err) {
       setError(getApiErrorMessage(err, t));
     } finally {
@@ -272,7 +316,7 @@ const InvitePersonSheet: React.FC<Props> = ({
           <div className="invite-footer">
             <span className="invite-footer-spacer" />
             <Button variant="primary" onClick={onClose}>
-              {t('common:done', { defaultValue: 'Done' })}
+              {t('common:done')}
             </Button>
           </div>
         ) : (
@@ -503,9 +547,12 @@ const InvitePersonSheet: React.FC<Props> = ({
                     </span>
                   </label>
 
-                  {reachReady ? (
+                  {reachReady && !emailInvalid ? (
                     <p className="invite-confirm">
-                      {t('partners:peoplePage.willRegister', { contact: typedEmail || typedPhone })}
+                      {t('partners:peoplePage.willInvite', {
+                        contact: typedEmail || typedPhone,
+                        defaultValue: 'Θα σταλεί πρόσκληση στο {{contact}}.',
+                      })}
                     </p>
                   ) : null}
 
@@ -524,9 +571,14 @@ const InvitePersonSheet: React.FC<Props> = ({
                 </div>
               )}
 
-              {attempted && !canLeaveStep() ? (
+              {attempted && !typedEmail && !typedPhone ? (
                 <p className="people-error" role="alert">
                   {t('partners:peoplePage.needReach')}
+                </p>
+              ) : null}
+              {attempted && emailInvalid ? (
+                <p className="people-error" role="alert">
+                  {t('errors:emailInvalid', { defaultValue: t('auth:login.emailInvalid') })}
                 </p>
               ) : null}
             </div>
@@ -590,7 +642,7 @@ const InvitePersonSheet: React.FC<Props> = ({
                   role="radiogroup"
                   aria-labelledby="invite-relationship-label"
                 >
-                  {(['Family', 'Collaborator'] as Relationship[]).map((option) => {
+                  {(['Collaborator', 'Family'] as Relationship[]).map((option) => {
                     const selected = relationship === option;
                     return (
                       <button
@@ -613,15 +665,9 @@ const InvitePersonSheet: React.FC<Props> = ({
               </section>
 
               <FieldPermissionPanel
-                choice={choice}
+                relationship={relationship}
                 modules={modules}
-                role={relationship === 'Collaborator' ? 'Partner' : 'Family'}
-                previewMode="invite"
-                onPickChoice={pickChoice}
-                onChangeModules={(next) => {
-                  setChoiceTouched(true);
-                  setModules(next);
-                }}
+                onChangeModules={setModules}
               />
             </div>
           ) : null}
@@ -640,14 +686,11 @@ const InvitePersonSheet: React.FC<Props> = ({
                 {selectedFields.map((field) => (
                   <section key={field.id} className="invite-preview-grove">
                     <h3>{field.name}</h3>
-                    <p>
-                      {t(`partners:peoplePage.relationship.${relationship}`)} ·{' '}
-                      {t(`partners:peoplePage.preset.${choice}`)}
-                    </p>
+                    <p>{t(`partners:peoplePage.relationship.${relationship}`)}</p>
                     <ul>
-                      <li>{t(`partners:peoplePage.capability.${choice}`)}</li>
-                      <li>{t(`partners:peoplePage.presetSummary.${choice}.areas`)}</li>
-                      <li>{t(`partners:peoplePage.presetSummary.${choice}.limits`)}</li>
+                      {summaryModuleLabels.map((label) => (
+                        <li key={label}>{label}</li>
+                      ))}
                     </ul>
                   </section>
                 ))}

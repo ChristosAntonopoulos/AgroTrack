@@ -28,6 +28,9 @@ import { resolveFieldColor } from '../utils/fieldColors';
 import { validateBoundaryPolygon } from '../utils/boundaryValidation';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import { ONBOARDING_TARGETS } from '../onboarding/steps';
+import { useSubscription } from '../context/SubscriptionContext';
+import { isAtProLimit, isFieldLimitError, mustUpgradeToAddField } from '../billing/subscriptionModel';
+import { trackBillingEvent } from '../billing/billingAnalytics';
 import './FieldFormPage.css';
 import '../components/fields/AddFieldWizard.css';
 
@@ -42,6 +45,7 @@ const FieldFormPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const activation = useOwnerActivationOptional();
+  const { ensureFresh, refresh: refreshSubscription, showUpgradePaywall } = useSubscription();
   const isEdit = !!id;
 
   const focusParam = searchParams.get('focus');
@@ -82,6 +86,46 @@ const FieldFormPage: React.FC = () => {
     else void loadGroveCount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEdit]);
+
+  // Backstop for deep links to /fields/new: gate on the plan before the form is usable.
+  // The primary gate is useAddFieldAction, which shows the paywall before navigating here.
+  useEffect(() => {
+    if (isEdit) return undefined;
+    let cancelled = false;
+    void ensureFresh().then((snapshot) => {
+      if (cancelled) return;
+      const upgrade = mustUpgradeToAddField(snapshot);
+      if (!upgrade && !isAtProLimit(snapshot)) return;
+      trackBillingEvent('field_limit_reached', { source: 'add_field', plan: upgrade ? 'free' : 'pro' });
+      showUpgradePaywall({
+        source: 'add_field',
+        intent: upgrade ? 'add_field' : 'pro_limit',
+        returnAction: upgrade ? () => navigate('/fields/new') : undefined,
+      });
+      navigate('/fields', { replace: true });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit]);
+
+  /** The server rejected creation because of the plan limit: show the paywall, not a red error. */
+  const handleFieldLimitError = (err: unknown): boolean => {
+    if (!isFieldLimitError(err)) return false;
+    trackBillingEvent('field_limit_reached', { source: 'field_limit_error' });
+    setError(null);
+    void refreshSubscription();
+    showUpgradePaywall({
+      source: 'field_limit_error',
+      intent: 'add_field',
+      returnAction: () => navigate('/fields/new'),
+    });
+    allowLeaveRef.current = true;
+    setDirty(false);
+    navigate('/fields', { replace: true });
+    return true;
+  };
 
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -273,6 +317,7 @@ const FieldFormPage: React.FC = () => {
       setCreateScreen('boundary');
       navigate(`/fields/${fieldId}/edit?focus=boundary`, { replace: true });
     } catch (err: unknown) {
+      if (handleFieldLimitError(err)) return;
       setError(getApiErrorMessage(err, t) || t('fields:form.failedSave'));
     } finally {
       setLoading(false);

@@ -123,6 +123,8 @@ export interface FieldCapabilities {
   canRestoreField: boolean;
   canPermanentlyDelete: boolean;
   canDeleteField: boolean;
+  /** Grove is view-only because the owner's plan only allows editing a limited number of groves. */
+  isSubscriptionReadOnly?: boolean;
 }
 
 export interface FieldAccessSnapshot {

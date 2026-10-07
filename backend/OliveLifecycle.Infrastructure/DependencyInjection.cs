@@ -27,6 +27,8 @@ public static class DependencyInjection
         services.AddHostedService<FieldTaskWeatherEvaluationHost>();
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IBillingProfileRepository, BillingProfileRepository>();
+        services.AddScoped<IProcessedBillingEventRepository, ProcessedBillingEventRepository>();
         services.AddScoped<IFieldRepository, FieldRepository>();
         services.AddScoped<IFieldInviteRepository, FieldInviteRepository>();
         services.AddScoped<ILifecycleRepository, LifecycleRepository>();

@@ -29,6 +29,12 @@ public class FieldPeopleInviteIdentityTests
         _clock.Setup(c => c.UtcNow).Returns(new DateTime(2026, 9, 30, 8, 0, 0, DateTimeKind.Utc));
         _access.Setup(a => a.CanUserModifyFieldAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
+        _access.Setup(a => a.CanUserAdministerFieldAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var subscriptions = new Mock<ISubscriptionService>();
+        subscriptions.Setup(s => s.IsOwnedFieldWritableAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         _service = new FieldPeopleService(
             _fields.Object,
@@ -37,6 +43,7 @@ public class FieldPeopleInviteIdentityTests
             Mock.Of<IActivityRepository>(),
             _invites.Object,
             _access.Object,
+            subscriptions.Object,
             _clock.Object,
             _contacts.Object,
             _notifications.Object,
@@ -89,6 +96,30 @@ public class FieldPeopleInviteIdentityTests
         _notifications.Verify(n => n.NotifyAsync(
             It.Is<UserNotification>(x => x.UserId == "user-elena" && x.Type == "field_invite"),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateInvite_NonDeliverableEmail_ThrowsValidation()
+    {
+        var field = AdminField();
+        _fields.Setup(r => r.GetByIdAsync("field-1", It.IsAny<CancellationToken>())).ReturnsAsync(field);
+
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
+            _service.CreateInviteAsync(
+                "field-1",
+                "admin-1",
+                new CreateFieldInviteDto
+                {
+                    Role = "Family",
+                    Email = "qa-olive-test@example.invalid",
+                    DisplayName = "QA",
+                    Modules = ["chronologio", "harvest", "money"],
+                    AccessLevel = "view"
+                },
+                "https://theolivelot.com"));
+
+        Assert.Contains("valid email", ex.Message, StringComparison.OrdinalIgnoreCase);
+        _invites.Verify(r => r.CreateAsync(It.IsAny<FieldInvite>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

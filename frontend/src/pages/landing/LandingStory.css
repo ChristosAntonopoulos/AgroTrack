@@ -1230,18 +1230,25 @@
   .lp-hero-grid,
   .lp-centre,
   .lp-split {
-    grid-template-columns: minmax(420px, 0.82fr) minmax(520px, 1.18fr);
+    /* minmax(0, …) so columns can shrink below content mins and avoid page overflow */
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
     gap: 2.75rem;
     align-items: center;
   }
 
   .lp-hero-grid {
-    grid-template-columns: minmax(480px, 1.08fr) minmax(440px, 0.92fr);
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
     align-items: center;
   }
 
+  .lp-hero-grid > *,
+  .lp-centre > *,
+  .lp-split > * {
+    min-width: 0;
+  }
+
   .lp-editorial {
-    grid-template-columns: 1.05fr 0.95fr;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   }
 
   .lp-editorial-photo {
@@ -1249,12 +1256,12 @@
   }
 
   .lp-timeline-body {
-    grid-template-columns: 0.9fr 1.1fr;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     align-items: start;
   }
 
   .lp-bento {
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .lp-cap--lead {
@@ -1267,10 +1274,13 @@
   }
 
   .lp-steps {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: start;
   }
+}
 
+/* Match base landing: full nav needs room; keep hamburger until wide desktop */
+@media (min-width: 1280px) {
   .landing--archive .landing-nav {
     display: flex;
   }
@@ -1600,12 +1610,13 @@
 .lp-flow {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.65rem;
-  min-height: 200px;
+  /* Stack by default; horizontal year rail only when width can fit 7 marks */
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
   margin: 0;
-  padding: 1.65rem 0.75rem 1.1rem;
+  padding: 0.5rem 0;
   list-style: none;
   border-radius: 28px;
   background: rgba(255, 253, 248, 0.38);
@@ -1615,10 +1626,12 @@
 .lp-flow::before {
   content: '';
   position: absolute;
-  top: calc(1.65rem + 48px);
-  left: 8%;
-  right: 8%;
-  height: 4px;
+  top: 1rem;
+  bottom: 1rem;
+  left: 38px;
+  right: auto;
+  width: 4px;
+  height: auto;
   background: #3f5234;
 }
 
@@ -1626,23 +1639,58 @@
   position: relative;
   z-index: 1;
   display: grid;
-  justify-items: center;
-  align-content: start;
+  grid-template-columns: 80px minmax(0, 1fr);
+  justify-items: start;
+  align-items: center;
   gap: 0.85rem;
   margin: 0;
-  text-align: center;
+  min-width: 0;
+  text-align: left;
 }
 
 .lp-flow-mark {
   display: grid;
   place-items: center;
-  width: 96px;
-  height: 96px;
-  border-radius: 24px;
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
   background: #fff;
   color: var(--lp-olive-deep);
   border: 2px solid #3f5234;
   box-shadow: 0 12px 28px rgba(36, 48, 40, 0.16);
+}
+
+@media (min-width: 1100px) {
+  .lp-flow {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.65rem;
+    min-height: 200px;
+    padding: 1.65rem 0.75rem 1.1rem;
+  }
+
+  .lp-flow::before {
+    top: calc(1.65rem + 48px);
+    bottom: auto;
+    left: 8%;
+    right: 8%;
+    width: auto;
+    height: 4px;
+  }
+
+  .lp-flow li {
+    grid-template-columns: none;
+    justify-items: center;
+    align-content: start;
+    align-items: start;
+    text-align: center;
+  }
+
+  .lp-flow-mark {
+    width: 96px;
+    height: 96px;
+    border-radius: 24px;
+  }
 }
 
 .lp-flow-mark.is-harvest,
@@ -1661,6 +1709,7 @@
   font-size: 0.9375rem;
   line-height: 1.25;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .lp-flow-line {
@@ -2284,7 +2333,7 @@
   }
 
   .lp-oil-overlay {
-    grid-template-columns: minmax(280px, 0.95fr) minmax(300px, 0.9fr);
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 0.9fr);
     align-items: end;
     justify-content: space-between;
     padding: 2.4rem 2.1rem 2rem;
@@ -2347,11 +2396,11 @@
   }
 
   .lp-questions {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .lp-journey {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
     gap: 1.4rem;
   }
@@ -2376,7 +2425,7 @@
   }
 
   .lp-memory-years {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 1.25rem;
   }
 
@@ -2396,30 +2445,6 @@
   .lp-store {
     width: 100%;
     margin-left: 0;
-  }
-
-  .lp-flow {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    gap: 1rem;
-    padding: 0.5rem 0;
-  }
-
-  .lp-flow::before {
-    top: 1rem;
-    bottom: 1rem;
-    left: 42px;
-    right: auto;
-    width: 4px;
-    height: auto;
-  }
-
-  .lp-flow li {
-    grid-template-columns: 88px 1fr;
-    justify-items: start;
-    align-items: center;
-    text-align: left;
   }
 
   .lp-journey-arrow {

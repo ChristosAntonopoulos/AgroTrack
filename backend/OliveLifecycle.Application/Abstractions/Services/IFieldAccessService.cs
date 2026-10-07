@@ -8,7 +8,11 @@ public interface IFieldAccessService
     /// </summary>
     Task<bool> CanUserAccessFieldAsync(string fieldId, string userId, string userRole, CancellationToken cancellationToken = default);
 
+    /// <summary>Admin may edit grove content. False when subscription makes the grove read-only.</summary>
     Task<bool> CanUserModifyFieldAsync(string fieldId, string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Admin seat only — archive/restore/delete/transfer even when subscription read-only.</summary>
+    Task<bool> CanUserAdministerFieldAsync(string fieldId, string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Seat module (or field admin / platform admin). Task assignment is never enough.

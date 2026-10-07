@@ -24,6 +24,8 @@ const AdminErrorsPage: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [unackedOnly, setUnackedOnly] = useState(true);
+  const [pathPrefix, setPathPrefix] = useState('');
+  const [sinceHours, setSinceHours] = useState('168');
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [selected, setSelected] = useState<AdminErrorDetail | null>(null);
@@ -35,10 +37,17 @@ const AdminErrorsPage: React.FC = () => {
       setLoading(true);
       setFailed(false);
       try {
+        const hours = Number(sinceHours);
+        const since =
+          Number.isFinite(hours) && hours > 0
+            ? new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
+            : undefined;
         const data = await adminOpsService.listErrors({
           page: p,
           pageSize: 30,
           unacknowledgedOnly: unackedOnly || undefined,
+          pathPrefix: pathPrefix.trim() || undefined,
+          since,
         });
         setItems(data.items);
         setTotal(data.total);
@@ -49,7 +58,7 @@ const AdminErrorsPage: React.FC = () => {
         setLoading(false);
       }
     },
-    [page, unackedOnly]
+    [page, pathPrefix, sinceHours, unackedOnly]
   );
 
   useEffect(() => {
@@ -103,7 +112,31 @@ const AdminErrorsPage: React.FC = () => {
         />
         <AdminTabs />
 
-        <div className="admin-filters">
+        <form
+          className="admin-filters"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setPage(1);
+            void load(1);
+          }}
+        >
+          <input
+            type="search"
+            value={pathPrefix}
+            onChange={(e) => setPathPrefix(e.target.value)}
+            placeholder={t('admin:errors.pathPrefixPlaceholder')}
+            aria-label={t('admin:errors.pathPrefixPlaceholder')}
+          />
+          <select
+            value={sinceHours}
+            onChange={(e) => setSinceHours(e.target.value)}
+            aria-label={t('admin:errors.since')}
+          >
+            <option value="24">{t('admin:errors.since24h')}</option>
+            <option value="168">{t('admin:errors.since7d')}</option>
+            <option value="720">{t('admin:errors.since30d')}</option>
+            <option value="">{t('admin:errors.sinceAll')}</option>
+          </select>
           <label className="admin-check">
             <input
               type="checkbox"
@@ -115,7 +148,10 @@ const AdminErrorsPage: React.FC = () => {
             />
             {t('admin:errors.unackedOnly')}
           </label>
-        </div>
+          <Button type="submit" variant="outline">
+            {t('common:actions.apply', { defaultValue: 'Apply' })}
+          </Button>
+        </form>
 
         {loading ? (
           <LoadingSpinner />

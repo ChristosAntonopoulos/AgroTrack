@@ -38,6 +38,9 @@ import TaskFormPage from './pages/TaskFormPage';
 import TaskCompletionPage from './pages/TaskCompletionPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
+import PlanBillingPage from './pages/PlanBillingPage';
+import { SubscriptionProvider } from './context/SubscriptionContext';
+import PaywallHost from './components/Subscription/PaywallHost';
 import DataSourcesPage from './pages/DataSourcesPage';
 import MinistryNotificationsPage from './pages/MinistryNotificationsPage';
 import CampaignsPage from './pages/admin/CampaignsPage';
@@ -106,11 +109,14 @@ const router = createBrowserRouter(
       <Route
         element={
           <ProtectedRoute>
-            <InAppMessageProvider>
-              <NotificationProvider>
-                <MainLayout />
-              </NotificationProvider>
-            </InAppMessageProvider>
+            <SubscriptionProvider>
+              <InAppMessageProvider>
+                <NotificationProvider>
+                  <MainLayout />
+                </NotificationProvider>
+              </InAppMessageProvider>
+              <PaywallHost />
+            </SubscriptionProvider>
           </ProtectedRoute>
         }
       >
@@ -155,6 +161,7 @@ const router = createBrowserRouter(
         <Route path="notes" element={<Navigate to={CHRONOLOGIO_HOME} replace />} />
         <Route path="ministry" element={<MinistryNotificationsPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="settings/plan" element={<PlanBillingPage />} />
         <Route path="data-sources" element={<DataSourcesPage />} />
         <Route path="admin" element={<AdminOverviewPage />} />
         <Route path="admin/users" element={<AdminUsersPage />} />

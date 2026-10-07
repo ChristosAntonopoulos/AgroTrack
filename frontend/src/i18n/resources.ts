@@ -24,6 +24,7 @@ import enMyOil from '../locales/en/myOil.json';
 import enFeedback from '../locales/en/feedback.json';
 import enPhotos from '../locales/en/photos.json';
 import enOnboarding from '../locales/en/onboarding.json';
+import enSubscription from '../locales/en/subscription.json';
 
 import elCommon from '../locales/el/common.json';
 import elNav from '../locales/el/nav.json';
@@ -49,6 +50,7 @@ import elMyOil from '../locales/el/myOil.json';
 import elFeedback from '../locales/el/feedback.json';
 import elPhotos from '../locales/el/photos.json';
 import elOnboarding from '../locales/el/onboarding.json';
+import elSubscription from '../locales/el/subscription.json';
 
 import itCommon from '../locales/it/common.json';
 import itNav from '../locales/it/nav.json';
@@ -72,6 +74,7 @@ import itMyOil from '../locales/it/myOil.json';
 import itFeedback from '../locales/it/feedback.json';
 import itPhotos from '../locales/it/photos.json';
 import itOnboarding from '../locales/it/onboarding.json';
+import itSubscription from '../locales/it/subscription.json';
 
 const bundle = (
   common: object,
@@ -143,6 +146,7 @@ export const resources: Record<
     feedback: enFeedback,
     photos: enPhotos,
     onboarding: enOnboarding,
+    subscription: enSubscription,
     legal: enLegal,
   },
   el: {
@@ -171,6 +175,7 @@ export const resources: Record<
     feedback: elFeedback,
     photos: elPhotos,
     onboarding: elOnboarding,
+    subscription: elSubscription,
     legal: elLegal,
   },
   it: {
@@ -199,6 +204,7 @@ export const resources: Record<
     feedback: itFeedback,
     photos: itPhotos,
     onboarding: itOnboarding,
+    subscription: itSubscription,
     legal: itLegal,
   },
 };

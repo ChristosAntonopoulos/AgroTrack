@@ -70,52 +70,17 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const mockUsers: User[] = [
   {
     id: '675555555555555555555501',
-    email: 'owner@olivefarm.com',
+    email: 'review.admin@theolivelot.com',
     firstName: 'Γιώργος',
     lastName: 'Παπαδάκης',
     role: 'FieldOwner',
   },
   {
     id: '675555555555555555555502',
-    email: 'producer1@olivefarm.com',
+    email: 'review.collaborator@theolivelot.com',
     firstName: 'Κώστας',
     lastName: 'Μανούσακης',
     role: 'Producer',
-  },
-  {
-    id: 'user3',
-    email: 'producer2@olivefarm.com',
-    firstName: 'Ahmed',
-    lastName: 'Hassan',
-    role: 'Producer',
-  },
-  {
-    id: 'user4',
-    email: 'producer3@olivefarm.com',
-    firstName: 'Sophie',
-    lastName: 'Martin',
-    role: 'Producer',
-  },
-  {
-    id: 'user5',
-    email: 'agronomist@olivefarm.com',
-    firstName: 'Dr. James',
-    lastName: 'Wilson',
-    role: 'Agronomist',
-  },
-  {
-    id: 'user6',
-    email: 'admin@olivefarm.com',
-    firstName: 'Admin',
-    lastName: 'User',
-    role: 'Administrator',
-  },
-  {
-    id: 'user7',
-    email: 'service@olivefarm.com',
-    firstName: 'Service',
-    lastName: 'Provider',
-    role: 'ServiceProvider',
   },
 ];
 

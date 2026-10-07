@@ -166,13 +166,13 @@
     "thisDeviceHint": "The Olive Lot traccia solo la sessione in questo browser. Esci per terminarla."
   },
   "danger": {
-    "deleteHelp": "Chiudere l'account ti disconnette e toglie nome ed email dall'accesso. I dati dell'oliveto restano finché il supporto non conferma la cancellazione.",
-    "deleteButton": "Chiudi account",
-    "confirmTitle": "Chiudere questo account?",
+    "deleteHelp": "Elimina l'account in modo permanente. L'accesso si chiude subito; token e contatti salvati vengono rimossi; i campi di tua proprietà sono archiviati e cancellati entro 30 giorni. Fuori dall'app: theolivelot.com/delete-account",
+    "deleteButton": "Elimina account",
+    "confirmTitle": "Eliminare questo account?",
     "confirmBody": "Inserisci la password e digita l'email per confermare. Verrai disconnesso.",
     "confirmEmail": "Digita la tua email",
     "deletePassword": "Password",
-    "deleteAction": "Chiudi account in modo permanente",
+    "deleteAction": "Elimina account in modo permanente",
     "cancel": "Annulla",
     "emailMismatch": "Non corrisponde alla tua email."
   },

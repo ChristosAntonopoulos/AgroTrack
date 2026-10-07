@@ -51,6 +51,7 @@ import FieldLocalNavigation, { FIELD_PAGE_TABS, FieldTab } from '../components/f
 import FieldOverviewHome from '../components/fields/FieldOverviewHome';
 import { fieldOverviewService, type FieldOverviewDto } from '../services/fieldOverviewService';
 import FieldPageErrorBoundary from '../components/fields/FieldPageErrorBoundary';
+import ReadOnlyNotice from '../components/subscription/ReadOnlyNotice';
 import GroveWeatherCard from '../components/weather/GroveWeatherCard';
 import GroveWeekForecast from '../components/weather/GroveWeekForecast';
 import WeatherPeekSheet from '../components/weather/WeatherPeekSheet';
@@ -360,6 +361,7 @@ const FieldDetailScreen = () => {
   return (
     <ScreenLayout scroll contentContainerStyle={styles.scrollBody}>
       <FieldPageErrorBoundary label="Field page">
+      {field.capabilities?.isSubscriptionReadOnly ? <ReadOnlyNotice /> : null}
       <FieldLocalNavigation tab={tab} tabs={visibleTabs} onTabChange={setTab} />
 
       {tab === 'field' ? (

@@ -22,6 +22,8 @@ import { athensCalendarYear } from '../utils/athensDate';
 import { parseFieldPageTab, parseFieldResultYear, type FieldPageTab } from '../utils/fieldPageQuery';
 import { writeFieldViewPreferences } from '../utils/fieldViewPreferences';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
+import ReadOnlyNotice from '../components/Subscription/ReadOnlyNotice';
+import { useSubscription } from '../context/SubscriptionContext';
 import PageContainer from '../components/Common/PageContainer';
 import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
@@ -72,6 +74,11 @@ const FieldDetailPage: React.FC = () => {
   const [overviewError, setOverviewError] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Capabilities (e.g. isSubscriptionReadOnly) change when the plan or writable grove changes.
+  const { snapshot: subscription } = useSubscription();
+  const subscriptionKey = subscription
+    ? `${subscription.plan}:${subscription.selectedWritableFieldId ?? ''}:${subscription.needsWritableFieldSelection}`
+    : '';
   const [weatherTick, setWeatherTick] = useState(0);
   const [overviewTick, setOverviewTick] = useState(0);
 
@@ -129,7 +136,7 @@ const FieldDetailPage: React.FC = () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, refreshGeneration]);
+  }, [id, refreshGeneration, subscriptionKey]);
 
   // Overview / weather / money / work — tab-local loading, does not blank the whole page.
   useEffect(() => {
@@ -327,6 +334,8 @@ const FieldDetailPage: React.FC = () => {
           onArchive={field.capabilities?.canArchiveField ? handleArchive : undefined}
           onRestore={field.capabilities?.canRestoreField ? handleRestore : undefined}
         />
+
+        {capabilities?.isSubscriptionReadOnly ? <ReadOnlyNotice /> : null}
 
         {activation?.eligible &&
         activation.completion.drawBoundary &&

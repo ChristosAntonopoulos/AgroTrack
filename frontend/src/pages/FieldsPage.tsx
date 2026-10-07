@@ -32,6 +32,8 @@ import FieldCard, { FieldCardStats } from '../components/Field/FieldCard';
 import { Plus, Layers, Map as MapIcon, List as ListIcon, Search } from 'lucide-react';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
+import { useAddFieldAction } from '../hooks/useAddFieldAction';
+import SubscriptionNoticeCard from '../components/Subscription/SubscriptionNoticeCard';
 import './FieldsPage.css';
 
 type SortKey = 'name' | 'area' | 'activity' | 'attention' | 'distance';
@@ -45,6 +47,8 @@ const FieldsPage: React.FC = () => {
   const pageGuard = useModulePageGuard({ module: 'fields' });
   const { refreshGeneration, setShowingCachedData } = useOfflineMode();
   const navigate = useNavigate();
+  // Free users at their limit see the paywall BEFORE the add-grove form opens.
+  const addField = useAddFieldAction();
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldTasks, setFieldTasks] = useState<Map<string, FieldTask[]>>(new Map());
   const [tasksReady, setTasksReady] = useState(false);
@@ -297,7 +301,7 @@ const FieldsPage: React.FC = () => {
             <div className="fields-page-header-actions">
               <span className="fields-add-btn" data-guide-target="createField">
                 <Button
-                  to="/fields/new"
+                  onClick={() => void addField('add_field')}
                   icon={<Plus size={20} strokeWidth={2.5} />}
                   size="md"
                 >
@@ -307,6 +311,8 @@ const FieldsPage: React.FC = () => {
             </div>
           ) : null}
         </header>
+
+        <SubscriptionNoticeCard only={['billing_issue', 'needs_writable_selection']} />
 
         {loading ? (
           <LoadingSpinner className="page-inline-loading" />
@@ -353,7 +359,7 @@ const FieldsPage: React.FC = () => {
                       icon={<Plus />}
                       onClick={() => {
                         if (activation?.eligible) activation.goToStep('createGrove');
-                        else navigate('/fields/new');
+                        else void addField('add_field');
                       }}
                     >
                       {t('fields:addFieldCta')}

@@ -1,58 +1,66 @@
 # Privacy Policy Notes
 
-**Κατάσταση:** Πρόχειρα σημειώματα — όχι η τελική πολιτική
+**Κατάσταση:** v1.1 για Play submission (νομική ανασκόπηση συνιστάται· νομική επωνυμία TBD)
 **Υπεύθυνος:** TBD
-**Τελευταία ενημέρωση:** TBD
+**Τελευταία ενημέρωση:** 2026-10-07
 
-## Σκοπός
+## Δημόσιες URLs
 
-Εργαζόμενα σημειώματα για την Privacy Policy του Oleachron. Η τελική, δημοσιευμένη πολιτική πρέπει να ελεγχθεί από δικηγόρο και βρίσκεται στον δημόσιο ιστότοπό μας.
+| Χρήση | URL |
+|---|---|
+| Privacy Policy (Play listing) | https://theolivelot.com/privacy/ |
+| Account deletion (Play Console) | https://theolivelot.com/delete-account/ |
 
-## Τι πρέπει να καλύπτει η Privacy Policy
+Static HTML:
 
-- Ποιοι είμαστε (νομική οντότητα, επικοινωνία).
-- Ποια δεδομένα συλλέγουμε.
-- Γιατί συλλέγουμε κάθε στοιχείο δεδομένων.
-- Πόσο καιρό τα κρατάμε.
-- Με ποιους τα μοιραζόμαστε (υπο-επεξεργαστές, πάροχοι πληρωμών).
-- Πού αποθηκεύονται (γεωγραφία).
-- Τα δικαιώματα του χρήστη (πρόσβαση, διόρθωση, διαγραφή κ.λπ.).
-- Πώς να επικοινωνήσετε μαζί μας για privacy.
-- Χρήση cookies στον δημόσιο ιστότοπο.
-- Πώς και πότε μπορεί να ενημερωθεί η πολιτική.
+- `frontend/public/privacy/index.html`
+- `frontend/public/delete-account/index.html`
 
-## Τόνος
+In-app: Settings → Legal → Privacy, και Settings → Account → Delete account.
 
-- Απλή γλώσσα.
-- Σύντομες προτάσεις.
-- Χωρίς νομικίστικη ορολογία όπου μπορούμε να την αποφύγουμε.
-- «Εσείς» και «εμείς», όχι «το υποκείμενο δεδομένων» και «ο υπεύθυνος επεξεργασίας».
+Data Safety: [Play-Data-Safety-Checklist.md](./Play-Data-Safety-Checklist.md)
 
-## Ενότητες (πρόχειρη δομή)
+## Υπεύθυνος επεξεργασίας (ενδιάμεσο)
 
-1. Ποιοι είμαστε.
-2. Τα δεδομένα που συλλέγουμε — με παραδείγματα.
-3. Γιατί τα συλλέγουμε.
-4. Πόσο καιρό τα κρατάμε.
-5. Με ποιους τα μοιραζόμαστε.
-6. Πού αποθηκεύονται.
-7. Τα δικαιώματά σας.
-8. Cookies και παρακολούθηση.
-9. Αλλαγές σε αυτή την πολιτική.
-10. Επικοινωνήστε μαζί μας.
+Μέχρι σύσταση εταιρείας, η πολιτική δηλώνει:
 
-## Τι ΔΕΝ θα κάνουμε
+> The Olive Lot operators, trading as The Olive Lot, Greece — support@theolivelot.com
 
-- Πώληση δεδομένων.
-- Χρήση δεδομένων πελατών για εκπαίδευση εξωτερικών μοντέλων AI χωρίς ρητή συγκατάθεση.
-- Κοινοποίηση δεδομένων σε συνεργάτες marketing.
+**TODO:** αντικατάσταση με ακριβή νομική επωνυμία / ΑΦΜ / διεύθυνση μόλις υπάρχει, και ευθυγράμμιση με το όνομα developer στο Play Console.
 
-## Ανοιχτά ερωτήματα
+## Διαγραφή λογαριασμού (συμπεριφορά backend)
 
-- Δημοσιεύουμε ξεχωριστή πολιτική cookies ή την ενσωματώνουμε στην Privacy Policy;
-- Ποια είναι η πολιτική διατήρησης για κλειστούς λογαριασμούς (30 ημέρες; 90 ημέρες;);
+Άμεσα:
+
+- Κλείσιμο login / ανωνυμοποίηση email-ονόματος
+- Διαγραφή push tokens, in-app notifications, saved contacts
+- Αφαίρεση από shared fields
+- Archive owned fields
+
+Κριτήριο οριστικής εκκαθάρισης archived grove residuals: εντός 30 ημερών από `DeletedAt`.  
+Backups έως 90 ημέρες (rotation).
+
+Κώδικας άμεσης διαγραφής: `AccountService.DeleteAsync` (`AccountDataPurgeDays` / `BackupRetentionDays`).
+
+**TODO (follow-up):** automated purge job που hard-delete archived owned fields + media όταν `DeletedAt + 30d` — μέχρι τότε η ομάδα τηρεί το κριτήριο operationally.
+
+## Operational activity timestamps (admin ops)
+
+For platform reliability the API stores:
+
+- `LastLoginAt` / `LastSeenAt` on user accounts (login + throttled authenticated activity)
+- Recent unexpected API failure summaries in `api_error_events` (exception type/message/path, optional user id; 30-day retention; no request bodies / Authorization headers)
+
+These are operational metadata for Administrator ops overview, not marketing analytics. Treat them as account/security-related processing in the privacy policy when listing data categories.
+
+## Permissions alignment
+
+- Contacts: system picker only (`pickDeviceContact` / `presentContactPickerAsync`) — όχι `READ_CONTACTS`, όχι bulk import sheet
+- Location: when-in-use / one-shot μόνο — όχι background / Always strings
 
 ## Επόμενες ενέργειες
 
-- Συνεργασία με δικηγόρο για σχέδιο v1 της Privacy Policy
-- Δημοσίευση της πολιτικής πριν από πραγματικές εγγραφές
+- Deploy frontend (privacy + delete-account static pages)
+- Rebuild mobile release APK/AAB
+- Επικόλληση URLs + Data safety στο Play Console
+- Συμπλήρωση νομικής επωνυμίας όταν υπάρχει εταιρεία

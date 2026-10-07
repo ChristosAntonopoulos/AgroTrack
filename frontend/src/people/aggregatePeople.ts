@@ -117,11 +117,47 @@ export const VISIBLE_MODULES: FieldModule[] = [
   'harvest',
 ];
 
+/**
+ * Modules shown in invite/edit summaries (excludes the always-on grove shell).
+ * Αποθήκη is not a seat module — shown alongside harvest in the UI.
+ */
+export const SUMMARY_MODULES: FieldModule[] = [
+  'chronologio',
+  'photos',
+  'tasks',
+  'harvest',
+  'money',
+];
+
 /** What the farmer picks. Stored access is view, or work. Recording without tasks omits the tasks module. */
 export type AccessChoice = 'view' | 'record' | 'work';
 
+/**
+ * Clear relationship presets (shown before send):
+ * - Collaborator: History, Photos, Tasks
+ * - Family: History, Harvest, Money (Αποθήκη follows harvest in the UI)
+ */
+export const modulesForRelationship = (
+  relationship: 'Family' | 'Collaborator'
+): FieldModule[] =>
+  relationship === 'Family'
+    ? ['fields', 'chronologio', 'harvest', 'money']
+    : ['fields', 'chronologio', 'photos', 'tasks'];
+
+export const levelForRelationship = (
+  relationship: 'Family' | 'Collaborator'
+): FieldAccessLevel => (relationship === 'Family' ? 'view' : 'work');
+
+/** Tasks force work-level create; otherwise follow the relationship default. */
+export const levelForModules = (
+  modules: FieldModule[],
+  relationship: 'Family' | 'Collaborator'
+): FieldAccessLevel =>
+  modules.includes('tasks') ? 'work' : levelForRelationship(relationship);
+
 export const modulesForChoice = (choice: AccessChoice): FieldModule[] => {
-  if (choice === 'work') return ['fields', 'chronologio', 'photos', 'tasks', 'harvest'];
+  if (choice === 'work') return modulesForRelationship('Collaborator');
+  if (choice === 'record') return ['fields', 'chronologio', 'photos'];
   return ['fields', 'chronologio', 'photos'];
 };
 
@@ -156,3 +192,18 @@ export const capabilitySummaryKey = (
 export const defaultPresetForRelationship = (
   relationship: 'Family' | 'Collaborator'
 ): AccessChoice => (relationship === 'Family' ? 'view' : 'work');
+
+export const modulesMatchRelationship = (
+  relationship: 'Family' | 'Collaborator',
+  modules: FieldModule[]
+) => {
+  const expected = modulesForRelationship(relationship)
+    .filter((module) => SUMMARY_MODULES.includes(module))
+    .sort()
+    .join(',');
+  const actual = modules
+    .filter((module) => SUMMARY_MODULES.includes(module))
+    .sort()
+    .join(',');
+  return expected === actual;
+};

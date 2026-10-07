@@ -18,9 +18,13 @@ public static class FamilyModules
         Fields, Tasks, Photos, Documents, Money, Chronologio, Harvest
     ];
 
+    /// <summary>
+    /// Fallback when an invite omits modules. Prefer relationship presets from the client.
+    /// Does not include Tasks — Family must not get task create by default.
+    /// </summary>
     public static readonly string[] DefaultOnInvite =
     [
-        Fields, Tasks, Photos, Chronologio
+        Fields, Photos, Chronologio
     ];
 
     public static bool IsKnown(string module) =>

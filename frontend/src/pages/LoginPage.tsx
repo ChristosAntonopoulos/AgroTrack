@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
-import { demoAccounts } from '../services/demoAccounts';
-import { showDemoLogin } from '../config/apiConfig';
 import { AppRole } from '../navigation/navConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { resolvePostAuthPath } from '../utils/firstGroveDestination';
@@ -15,7 +13,6 @@ import {
   readInviteIntent,
   rememberInviteIntent,
 } from '../utils/inviteIntent';
-import LoginDemoPicker from '../components/Auth/LoginDemoPicker';
 import AuthSocialButtons from '../components/Auth/AuthSocialButtons';
 import Button from '../components/Common/Button';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -99,26 +96,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleQuickLogin = async (demoUser: (typeof demoAccounts)[0]) => {
-    setFormError(null);
-    setFieldErrors({});
-    setLoading(true);
-    setEmail(demoUser.email);
-    setPassword(demoUser.password);
-
-    try {
-      await login(demoUser.email, demoUser.password);
-      const stored = authService.getStoredUser();
-      await navigateAfterLogin(stored?.role || demoUser.role);
-    } catch (err: unknown) {
-      setFormError(getApiErrorMessage(err, t) || t('auth:login.failed'));
-      requestAnimationFrame(() => summaryRef.current?.focus());
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const showQuickLogin = showDemoLogin();
   const errorEntries = (['email', 'password'] as FieldKey[])
     .filter((key) => fieldErrors[key])
     .map((key) => ({ key, message: fieldErrors[key] as string }));
@@ -261,15 +238,8 @@ const LoginPage: React.FC = () => {
         <Link to={registerHref}>{t('auth:login.registerLink')}</Link>
       </p>
 
-      {showQuickLogin && (
-        <>
-          <LoginDemoPicker loading={loading} onSelect={handleQuickLogin} />
-          <p className="login-demo-note">{t('auth:login.demoDataNote')}</p>
-        </>
-      )}
-
       <p className="login-legal">
-        <Link to="/privacy">{t('auth:login.privacy')}</Link>
+        <a href="/privacy/">{t('auth:login.privacy')}</a>
         <span aria-hidden="true"> · </span>
         <Link to="/terms">{t('auth:login.terms')}</Link>
       </p>

@@ -43,6 +43,7 @@ import ServiceProfileScreen from '../screens/ServiceProfileScreen';
 import ServiceRequestsScreen from '../screens/ServiceRequestsScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import SubscriptionScreen from '../screens/SubscriptionScreen';
 import HelpScreen from '../screens/HelpScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
 import LegacyHomeRedirect from '../screens/LegacyHomeRedirect';
@@ -71,7 +72,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const RootNavigator = () => {
   const { isAuthenticated, isLoading, logout } = useAuth();
   const { colors, isDark } = useTheme();
-  const { t } = useTranslation(['nav', 'fields', 'partners', 'chronologio', 'settings', 'help', 'feedback', 'common', 'photos', 'legal']);
+  const { t } = useTranslation(['nav', 'fields', 'partners', 'chronologio', 'settings', 'help', 'feedback', 'common', 'photos', 'legal', 'subscription']);
   const [sessionExpired, setSessionExpired] = useState(false);
   const navRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [focusedRoute, setFocusedRoute] = useState<FocusedRoute>({ name: '' });
@@ -208,6 +209,7 @@ const RootNavigator = () => {
             NotesList: 'notes',
             Calendar: 'calendar',
             Settings: 'settings',
+            Subscription: 'subscription',
             Help: 'help',
             Feedback: 'feedback',
             Dashboard: 'dashboard',
@@ -389,6 +391,11 @@ const RootNavigator = () => {
                 name="Settings"
                 component={SettingsScreen}
                 options={{ title: t('settings:title', { defaultValue: t('settings') }) }}
+              />
+              <Stack.Screen
+                name="Subscription"
+                component={SubscriptionScreen}
+                options={{ title: t('subscription:billing.title') }}
               />
               <Stack.Screen
                 name="Help"

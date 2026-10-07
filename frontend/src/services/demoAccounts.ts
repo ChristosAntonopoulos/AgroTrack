@@ -1,62 +1,40 @@
-import { Home, Handshake, Sprout } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-
-export interface DemoAccount {
-  id: 'grove' | 'partner' | 'family';
+/** Review accounts seeded by the backend (DemoAccounts:Seed). Not shown on the login UI. */
+export interface ReviewAccount {
+  id: 'admin' | 'collaborator';
   email: string;
   password: string;
   role: string;
-  /** @deprecated Prefer i18n keys via `id` */
   displayName: string;
   userId: string;
-  nameKey: string;
-  subtitleKey: string;
 }
 
-/** Demo accounts seeded by the backend (DemoAccounts:Seed in Development). */
-export const demoAccounts: DemoAccount[] = [
+export const reviewAccounts: ReviewAccount[] = [
   {
-    id: 'grove',
-    email: 'owner@olivefarm.com',
-    password: 'password123',
+    id: 'admin',
+    email: 'review.admin@theolivelot.com',
+    password: 'Filiatra#Harvest26',
     role: 'FieldOwner',
     displayName: 'Γιώργος Παπαδάκης',
     userId: '675555555555555555555501',
-    nameKey: 'login.demoGroveName',
-    subtitleKey: 'login.demoGroveSubtitle',
   },
   {
-    id: 'partner',
-    email: 'producer1@olivefarm.com',
-    password: 'password123',
+    id: 'collaborator',
+    email: 'review.collaborator@theolivelot.com',
+    password: 'Kostas#Partner26',
     role: 'Producer',
     displayName: 'Κώστας Μανούσακης',
     userId: '675555555555555555555502',
-    nameKey: 'login.demoServicesName',
-    subtitleKey: 'login.demoServicesSubtitle',
-  },
-  {
-    id: 'family',
-    email: 'family@olivefarm.com',
-    password: 'password123',
-    role: 'FieldOwner',
-    displayName: 'Ελένη Παπαδάκη',
-    userId: '675555555555555555555503',
-    nameKey: 'login.demoFamilyName',
-    subtitleKey: 'login.demoFamilyNameSubtitle',
   },
 ];
 
-export const demoAccountIcons: Record<DemoAccount['id'], LucideIcon> = {
-  grove: Sprout,
-  partner: Handshake,
-  family: Home,
-};
+/** @deprecated Use reviewAccounts */
+export type DemoAccount = ReviewAccount;
+/** @deprecated Use reviewAccounts */
+export const demoAccounts = reviewAccounts;
+/** @deprecated Use reviewAccounts */
+export const testUsers = reviewAccounts;
 
-/** @deprecated Use demoAccounts — kept for mock mode compatibility */
-export const testUsers = demoAccounts;
-
-export const getTestUsersByRole = (role?: string): DemoAccount[] => {
-  if (!role) return demoAccounts;
-  return demoAccounts.filter((user) => user.role === role);
+export const getTestUsersByRole = (role?: string): ReviewAccount[] => {
+  if (!role) return reviewAccounts;
+  return reviewAccounts.filter((user) => user.role === role);
 };

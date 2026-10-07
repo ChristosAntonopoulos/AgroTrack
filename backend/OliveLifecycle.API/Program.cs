@@ -6,6 +6,7 @@ using OliveLifecycle.API.Infrastructure;
 using OliveLifecycle.API.Middleware;
 using OliveLifecycle.Application;
 using OliveLifecycle.Application.Abstractions.Services;
+using OliveLifecycle.Application.Configuration;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Infrastructure;
 using OliveLifecycle.Infrastructure.MongoDB;
@@ -56,6 +57,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddApplication();
+builder.Services.Configure<SubscriptionOptions>(
+    builder.Configuration.GetSection(SubscriptionOptions.SectionName));
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 

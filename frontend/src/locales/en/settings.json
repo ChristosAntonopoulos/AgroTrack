@@ -166,13 +166,13 @@
     "thisDeviceHint": "The Olive Lot only tracks the session on this browser. Sign out to end it."
   },
   "danger": {
-    "deleteHelp": "Closing your account signs you out and removes your name and email from the login. Grove records stay until support confirms they were deleted.",
-    "deleteButton": "Close account",
-    "confirmTitle": "Close this account?",
+    "deleteHelp": "Delete your account permanently. Login closes immediately; push tokens and contacts you saved are removed; fields you own are archived and purged within 30 days. Outside the app: theolivelot.com/delete-account",
+    "deleteButton": "Delete account",
+    "confirmTitle": "Delete this account?",
     "confirmBody": "Enter your password and type your email to confirm. You will be signed out.",
     "confirmEmail": "Type your email",
     "deletePassword": "Password",
-    "deleteAction": "Close account permanently",
+    "deleteAction": "Delete account permanently",
     "cancel": "Cancel",
     "emailMismatch": "That does not match your email."
   },

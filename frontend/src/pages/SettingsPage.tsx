@@ -16,6 +16,7 @@ import { isMockMode } from '../services/serviceFactory';
 import { accountService } from '../services/accountService';
 import AccountSettings from './settings/AccountSettings';
 import DataRightsSettings from './settings/DataRightsSettings';
+import PlanSettingsRow from '../components/Subscription/PlanSettingsRow';
 import { demoStore } from '../services/demo/demoStore';
 import { SUPPORTED_LOCALES, SupportedLocale } from '../i18n/config';
 import type { FontScale } from '../experience/types';
@@ -272,6 +273,8 @@ const SettingsPage: React.FC = () => {
 
         <div className="settings-column">
           <AccountSettings />
+
+          <PlanSettingsRow />
 
           <section className="settings-block" aria-labelledby="settings-notifications">
             <h2 id="settings-notifications" className="settings-block-title">

@@ -44,15 +44,15 @@ public class DataSeeder : IHostedService
             return;
         }
 
-        // Users are upserted every start so logins stay valid.
-        await SeedOwnerAndAdminAsync(cancellationToken);
-        await SeedPartnerAndFamilyAsync(cancellationToken);
+        // Review users are upserted every start so store-review logins stay valid.
+        await SeedReviewUsersAsync(cancellationToken);
+        await RemoveRetiredDemoUsersAsync(cancellationToken);
 
         var farmPresent = await DemoFieldsPresentAsync(cancellationToken);
         if (farmPresent && !reseedFarm)
         {
             _logger.LogInformation(
-                "Demo farm already present ({Upper}, {Lower}) — skipping wipe/reseed. Set DemoAccounts:ReseedFarmData=true to rebuild.",
+                "Review farm already present ({Upper}, {Lower}) — skipping wipe/reseed. Set DemoAccounts:ReseedFarmData=true to rebuild.",
                 DemoFarmDataSeeder.FieldName,
                 DemoFarmDataSeeder.FieldNameLower);
             return;
@@ -62,8 +62,7 @@ public class DataSeeder : IHostedService
         {
             // Explicit rebuild: drop every collection, then seed fresh.
             await WipeDatabaseAsync(cancellationToken);
-            await SeedOwnerAndAdminAsync(cancellationToken);
-            await SeedPartnerAndFamilyAsync(cancellationToken);
+            await SeedReviewUsersAsync(cancellationToken);
             await FieldWorkCatalogueSeeder.SeedAsync(_context, _logger, cancellationToken);
             await ServiceCategorySeeder.SeedAsync(_context, _logger, cancellationToken);
         }
@@ -71,12 +70,13 @@ public class DataSeeder : IHostedService
         await DemoFarmDataSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
         await SimpleFarmerStorySeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
         await OwnerPartnerDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
-        await FamilyDemoSeeder.SeedAsync(_context, _configuration, _logger, cancellationToken);
 
         _logger.LogInformation(
-            "Simple farmer demo seeded: {Upper} + {Lower} with owner + συνεργάτης + family.",
+            "Review farm seeded: {Upper} + {Lower} with admin ({Admin}) + collaborator ({Partner}).",
             DemoFarmDataSeeder.FieldName,
-            DemoFarmDataSeeder.FieldNameLower);
+            DemoFarmDataSeeder.FieldNameLower,
+            DemoFarmDataSeeder.OwnerEmail,
+            DemoFarmDataSeeder.PartnerEmail);
     }
 
     private async Task<bool> DemoFieldsPresentAsync(CancellationToken cancellationToken)
@@ -112,22 +112,31 @@ public class DataSeeder : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) OwnerUser =
-        ("675555555555555555555501", "owner@olivefarm.com", "password123", Roles.FieldOwner, "Γιώργος", "Παπαδάκης");
-
-    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) PartnerUser =
-        ("675555555555555555555502", "producer1@olivefarm.com", "password123", Roles.Producer, "Κώστας", "Μανούσακης");
-
-    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) FamilyUser =
-        ("675555555555555555555503", "family@olivefarm.com", "password123", Roles.FieldOwner, "Ελένη", "Παπαδάκη");
-
     /// <summary>
-    /// Private operator. Not shown on the demo login picker — type the email and password on the normal form.
+    /// App Store / Play review accounts. Credentials go in store review notes — not on the login UI.
+    /// Admin = grove owner (FieldOwner). Collaborator = partner with work seat on both ελαιώνες.
     /// </summary>
-    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) HiddenOperator =
-        ("675555555555555555555599", "admin@olivefarm.com", "admin123", Roles.Administrator, "Olea", "Admin");
+    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) ReviewAdmin =
+        (DemoFarmDataSeeder.OwnerId, DemoFarmDataSeeder.OwnerEmail, DemoFarmDataSeeder.OwnerPassword, Roles.FieldOwner, "Γιώργος", "Παπαδάκης");
 
-    private async Task SeedOwnerAndAdminAsync(CancellationToken cancellationToken)
+    private static readonly (string Id, string Email, string Password, string Role, string FirstName, string LastName) ReviewCollaborator =
+        (DemoFarmDataSeeder.ProducerId, DemoFarmDataSeeder.PartnerEmail, DemoFarmDataSeeder.PartnerPassword, Roles.Producer, "Κώστας", "Μανούσακης");
+
+    private static readonly string[] RetiredDemoEmails =
+    [
+        "owner@olivefarm.com",
+        "producer1@olivefarm.com",
+        "family@olivefarm.com",
+        "admin@olivefarm.com",
+    ];
+
+    private static readonly string[] RetiredDemoUserIds =
+    [
+        "675555555555555555555503",
+        "675555555555555555555599",
+    ];
+
+    private async Task SeedReviewUsersAsync(CancellationToken cancellationToken)
     {
         if (!string.Equals(_configuration["DemoAccounts:Seed"], "true", StringComparison.OrdinalIgnoreCase))
         {
@@ -137,11 +146,11 @@ public class DataSeeder : IHostedService
         var collection = _context.GetCollection<UserDocument>("users");
         var now = DateTime.UtcNow;
 
-        await UpsertDemoUserAsync(collection, OwnerUser, now, operatorAccount: false, cancellationToken);
-        await UpsertDemoUserAsync(collection, HiddenOperator, now, operatorAccount: true, cancellationToken);
+        await UpsertReviewUserAsync(collection, ReviewAdmin, now, cancellationToken);
+        await UpsertReviewUserAsync(collection, ReviewCollaborator, now, cancellationToken);
     }
 
-    private async Task SeedPartnerAndFamilyAsync(CancellationToken cancellationToken)
+    private async Task RemoveRetiredDemoUsersAsync(CancellationToken cancellationToken)
     {
         if (!string.Equals(_configuration["DemoAccounts:Seed"], "true", StringComparison.OrdinalIgnoreCase))
         {
@@ -149,115 +158,114 @@ public class DataSeeder : IHostedService
         }
 
         var collection = _context.GetCollection<UserDocument>("users");
-        var now = DateTime.UtcNow;
+        var emailFilters = RetiredDemoEmails.Select(email =>
+            Builders<UserDocument>.Filter.Regex(
+                u => u.Email,
+                new BsonRegularExpression($"^{Regex.Escape(email)}$", "i")));
+        var filter = Builders<UserDocument>.Filter.Or(
+            Builders<UserDocument>.Filter.Or(emailFilters),
+            Builders<UserDocument>.Filter.In(u => u.Id, RetiredDemoUserIds));
 
-        await UpsertDemoUserAsync(collection, PartnerUser, now, operatorAccount: false, cancellationToken);
-        await UpsertDemoUserAsync(collection, FamilyUser, now, operatorAccount: false, cancellationToken);
+        var result = await collection.DeleteManyAsync(filter, cancellationToken);
+        if (result.DeletedCount > 0)
+        {
+            _logger.LogInformation("Removed {Count} retired demo user(s).", result.DeletedCount);
+        }
     }
 
-    private async Task UpsertDemoUserAsync(
+    private async Task UpsertReviewUserAsync(
         IMongoCollection<UserDocument> collection,
-        (string Id, string Email, string Password, string Role, string FirstName, string LastName) demo,
+        (string Id, string Email, string Password, string Role, string FirstName, string LastName) review,
         DateTime now,
-        bool operatorAccount,
         CancellationToken cancellationToken)
     {
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(demo.Password);
-        var existing = await FindDemoUserAsync(collection, demo, cancellationToken);
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(review.Password);
+        var existing = await FindReviewUserAsync(collection, review, cancellationToken);
 
         if (existing == null)
         {
             try
             {
                 await collection.InsertOneAsync(
-                    NewDemoUser(demo, passwordHash, now, operatorAccount),
+                    NewReviewUser(review, passwordHash, now),
                     cancellationToken: cancellationToken);
 
-                _logger.LogInformation("Seeded demo account {Email} ({Role}).", demo.Email, demo.Role);
+                _logger.LogInformation("Seeded review account {Email} ({Role}).", review.Email, review.Role);
             }
             catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
             {
                 _logger.LogWarning(
-                    "Demo user {Email} insert conflict on id {Id}; syncing existing document.",
-                    demo.Email,
-                    demo.Id);
-                await SyncDemoUserAsync(collection, demo, passwordHash, now, demo.Id, operatorAccount, cancellationToken);
+                    "Review user {Email} insert conflict on id {Id}; syncing existing document.",
+                    review.Email,
+                    review.Id);
+                await SyncReviewUserAsync(collection, review, passwordHash, now, review.Id, cancellationToken);
             }
 
             return;
         }
 
-        await SyncDemoUserAsync(collection, demo, passwordHash, now, existing.Id, operatorAccount, cancellationToken);
+        await SyncReviewUserAsync(collection, review, passwordHash, now, existing.Id, cancellationToken);
     }
 
-    private static UserDocument NewDemoUser(
-        (string Id, string Email, string Password, string Role, string FirstName, string LastName) demo,
+    private static UserDocument NewReviewUser(
+        (string Id, string Email, string Password, string Role, string FirstName, string LastName) review,
         string passwordHash,
-        DateTime now,
-        bool operatorAccount) =>
+        DateTime now) =>
         new()
         {
-            Id = demo.Id,
-            Email = demo.Email,
+            Id = review.Id,
+            Email = review.Email,
             PasswordHash = passwordHash,
-            Role = demo.Role,
-            FirstName = demo.FirstName,
-            LastName = demo.LastName,
-            Preferences = operatorAccount
-                ? new UserExperiencePreferencesDocument
-                {
-                    ExperienceMode = "full",
-                    ExperienceModeChosen = true,
-                }
-                : new UserExperiencePreferencesDocument(),
+            Role = review.Role,
+            FirstName = review.FirstName,
+            LastName = review.LastName,
+            Preferences = new UserExperiencePreferencesDocument
+            {
+                ExperienceMode = "full",
+                ExperienceModeChosen = true,
+            },
             CreatedAt = now,
             UpdatedAt = now,
         };
 
-    private static async Task<UserDocument?> FindDemoUserAsync(
+    private static async Task<UserDocument?> FindReviewUserAsync(
         IMongoCollection<UserDocument> collection,
-        (string Id, string Email, string Password, string Role, string FirstName, string LastName) demo,
+        (string Id, string Email, string Password, string Role, string FirstName, string LastName) review,
         CancellationToken cancellationToken)
     {
         var emailFilter = Builders<UserDocument>.Filter.Regex(
             u => u.Email,
-            new BsonRegularExpression($"^{Regex.Escape(demo.Email)}$", "i"));
-        var idFilter = Builders<UserDocument>.Filter.Eq(u => u.Id, demo.Id);
+            new BsonRegularExpression($"^{Regex.Escape(review.Email)}$", "i"));
+        var idFilter = Builders<UserDocument>.Filter.Eq(u => u.Id, review.Id);
 
         return await collection
             .Find(Builders<UserDocument>.Filter.Or(emailFilter, idFilter))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    private async Task SyncDemoUserAsync(
+    private async Task SyncReviewUserAsync(
         IMongoCollection<UserDocument> collection,
-        (string Id, string Email, string Password, string Role, string FirstName, string LastName) demo,
+        (string Id, string Email, string Password, string Role, string FirstName, string LastName) review,
         string passwordHash,
         DateTime now,
         string documentId,
-        bool operatorAccount,
         CancellationToken cancellationToken)
     {
         var update = Builders<UserDocument>.Update
-            .Set(u => u.Email, demo.Email)
+            .Set(u => u.Email, review.Email)
             .Set(u => u.PasswordHash, passwordHash)
-            .Set(u => u.Role, demo.Role)
-            .Set(u => u.FirstName, demo.FirstName)
-            .Set(u => u.LastName, demo.LastName)
+            .Set(u => u.Role, review.Role)
+            .Set(u => u.FirstName, review.FirstName)
+            .Set(u => u.LastName, review.LastName)
+            .Set(u => u.Preferences.ExperienceMode, "full")
+            .Set(u => u.Preferences.ExperienceModeChosen, true)
             .Set(u => u.UpdatedAt, now);
-
-        if (operatorAccount)
-        {
-            update = update
-                .Set(u => u.Preferences.ExperienceMode, "full")
-                .Set(u => u.Preferences.ExperienceModeChosen, true);
-        }
 
         await collection.UpdateOneAsync(
             u => u.Id == documentId,
             update,
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation("Synced demo account {Email} ({Role}).", demo.Email, demo.Role);
+        _logger.LogInformation("Synced review account {Email} ({Role}).", review.Email, review.Role);
     }
 }

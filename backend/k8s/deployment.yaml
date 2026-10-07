@@ -49,6 +49,12 @@ spec:
               name: backend-secrets
               key: Geospatial__Fires__MapKey
               optional: true
+        - name: Email__SmtpPassword
+          valueFrom:
+            secretKeyRef:
+              name: backend-secrets
+              key: Email__SmtpPassword
+              optional: true
         resources:
           requests:
             memory: "512Mi"

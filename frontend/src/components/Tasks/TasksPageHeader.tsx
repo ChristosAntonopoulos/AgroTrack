@@ -7,6 +7,8 @@ interface TasksPageHeaderProps {
   subtitle: string;
   newTaskLabel: string;
   newTaskTo: string;
+  /** When false, hide create — Family/view seats must not start new tasks. */
+  canCreateTasks?: boolean;
 }
 
 const TasksPageHeader: React.FC<TasksPageHeaderProps> = ({
@@ -14,17 +16,20 @@ const TasksPageHeader: React.FC<TasksPageHeaderProps> = ({
   subtitle,
   newTaskLabel,
   newTaskTo,
+  canCreateTasks = true,
 }) => (
   <header className="tasks-shell-header">
     <div className="tasks-shell-header-text">
       <h1 className="tasks-shell-title">{title}</h1>
       <p className="tasks-shell-subtitle">{subtitle}</p>
     </div>
-    <div className="tasks-shell-header-actions">
-      <Button to={newTaskTo} icon={<Plus />} variant="primary" size="lg">
-        {newTaskLabel}
-      </Button>
-    </div>
+    {canCreateTasks ? (
+      <div className="tasks-shell-header-actions">
+        <Button to={newTaskTo} icon={<Plus />} variant="primary" size="lg">
+          {newTaskLabel}
+        </Button>
+      </div>
+    ) : null}
   </header>
 );
 

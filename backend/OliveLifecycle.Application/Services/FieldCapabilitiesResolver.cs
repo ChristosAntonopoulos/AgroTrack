@@ -77,6 +77,20 @@ public static class FieldCapabilitiesResolver
         };
     }
 
+    /// <summary>Clears write capabilities when the grove is subscription read-only. View stays intact.</summary>
+    public static void ApplySubscriptionReadOnly(FieldCapabilitiesDto capabilities)
+    {
+        capabilities.IsSubscriptionReadOnly = true;
+        capabilities.CanCreateRecords = false;
+        capabilities.CanManageTasks = false;
+        capabilities.CanUploadPhotos = false;
+        capabilities.CanManageDocuments = false;
+        capabilities.CanManageAccess = false;
+        capabilities.CanEditField = false;
+        capabilities.CanArchiveField = false;
+        // Restore/delete remain admin tools so Free users can manage quota after downgrade.
+    }
+
     private static bool HasModule(FieldPerson? seat, string module) =>
         seat?.Modules.Any(value =>
             string.Equals(FamilyModules.Normalize(value), module, StringComparison.OrdinalIgnoreCase)) == true;

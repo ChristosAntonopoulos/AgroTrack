@@ -1,0 +1,203 @@
+{
+  "plan": {
+    "free": "Free",
+    "pro": "Pro",
+    "freeName": "Free plan",
+    "proName": "The Olive Lot Pro"
+  },
+  "providers": {
+    "google_play": "Google Play",
+    "app_store": "App Store",
+    "web": "Web"
+  },
+  "paywall": {
+    "kicker": "The Olive Lot Pro",
+    "title": {
+      "add_field": "Add another grove",
+      "upgrade": "Pro for more groves",
+      "pro_limit": "You've reached the Pro limit"
+    },
+    "intro": {
+      "add_field_one": "The free plan includes {{count}} grove. With Pro, you keep all your groves in one place.",
+      "add_field_other": "The free plan includes {{count}} groves. With Pro, you keep all your groves in one place.",
+      "upgrade": "Keep all your groves in one place — each with its own separate history.",
+      "pro_limit_one": "Your plan includes up to {{count}} grove and you're already using it.",
+      "pro_limit_other": "Your plan includes up to {{count}} groves and you're already using them.",
+      "pro_limit_hint": "If you need more, write to us and we'll sort it out together."
+    },
+    "benefits": [
+      "More groves in the same account",
+      "Work, costs, harvest and oil for each grove separately",
+      "If you ever stop, your data stays and you can always view it"
+    ],
+    "plans": {
+      "label": "Choose a billing period",
+      "monthly": "Monthly",
+      "annual": "Yearly",
+      "perMonth": "/ month",
+      "perYear": "/ year",
+      "bestValue": "Best value",
+      "save": "Save {{percent}}%",
+      "perMonthEquivalent": "≈ {{price}} / month"
+    },
+    "cta": {
+      "subscribe": "Continue with Pro",
+      "notNow": "Not now",
+      "restore": "Restore purchases",
+      "retry": "Try again",
+      "continueAddField": "Add a grove",
+      "done": "Done",
+      "recheck": "Check again",
+      "close": "Close",
+      "manage": "Manage subscription"
+    },
+    "finePrint": "Your subscription renews automatically until you cancel. You can cancel any time from subscription management.",
+    "loadingPlan": "Loading your plan…",
+    "loadingOfferings": "Loading plans…",
+    "purchasing": "Completing your purchase…",
+    "unavailable": {
+      "title": "We can't show the plans right now",
+      "network": "Check your connection and try again. You haven't been charged.",
+      "empty": "Plans aren't available at the moment. Please try again shortly.",
+      "not_configured": "Buying from a computer isn't available yet. You can try from the mobile app."
+    },
+    "cancelled": "Nothing changed. You can continue whenever you like.",
+    "failed": "The purchase didn't complete. Try again — if you were charged, Pro will activate automatically.",
+    "restore": {
+      "success": "Your purchases were restored. Welcome back to Pro.",
+      "none": "No active subscription was found on this store account.",
+      "failed": "Restore didn't complete. Please try again shortly."
+    },
+    "success": {
+      "title": "Welcome to Pro",
+      "body": "Your plan is active. You can now add more groves.",
+      "bodyGeneric": "Your plan is active. Thank you for supporting The Olive Lot."
+    },
+    "pending": {
+      "title": "Almost ready",
+      "body": "Your payment went through and we're activating Pro. It can take a few minutes — you don't need to pay again."
+    },
+    "billedElsewhere": "You already have a subscription through {{provider}}. Manage it there."
+  },
+  "billing": {
+    "title": "Plan & billing",
+    "subtitle": "See which plan you're on and how many groves it includes.",
+    "settingsRow": "Plan & billing",
+    "settingsHint": "Your plan and the groves it includes.",
+    "settingsOpen": "Open",
+    "loading": "Loading your plan…",
+    "loadError": {
+      "title": "We couldn't load your plan",
+      "body": "Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "stale": "Showing the last information we loaded. It will update when you're back online.",
+    "usage": "Groves you manage: {{used}} of {{limit}}",
+    "via": "Subscription through {{provider}}",
+    "renewsOn": "Renews on {{date}}",
+    "endsOn": "Pro is active until {{date}} and will not renew.",
+    "expiredOn": "Pro ended on {{date}}.",
+    "upgrade": "See Pro",
+    "manage": {
+      "cta": "Manage subscription",
+      "google_play": "Opens Google Play, where you can change or cancel your subscription.",
+      "app_store": "Opens the App Store, where you can change or cancel your subscription.",
+      "web": "Opens your subscription management page.",
+      "loading": "Opening…",
+      "unavailable": "We couldn't find a management link. Write to {{email}} and we'll help."
+    },
+    "notice": {
+      "billing_issue": {
+        "title": "There's a problem with your payment",
+        "body": "Update your payment method so Pro isn't interrupted.",
+        "cta": "Update payment"
+      },
+      "cancel_at_period_end": {
+        "title": "Your subscription won't renew",
+        "body": "Pro stays active until the end of the period. After that, extra groves become view-only — nothing is lost."
+      },
+      "expired_over_limit": {
+        "title": "You have more groves than the free plan includes",
+        "body": "You have {{used}} groves, and the free plan allows editing {{limit}}. The others are view-only and their data stays."
+      },
+      "needs_writable_selection": {
+        "title": "Choose the grove you'll edit",
+        "body": "The free plan allows editing one grove. The others stay view-only.",
+        "cta": "Choose a grove"
+      }
+    }
+  },
+  "readOnly": {
+    "title": "This grove is view-only",
+    "body_one": "On the free plan you edit {{count}} grove. Here you can see everything, but you can't add new records.",
+    "body_other": "On the free plan you edit {{count}} groves. Here you can see everything, but you can't add new records.",
+    "bodyShort": "Here you can see everything, but you can't add new records.",
+    "upgrade": "See Pro",
+    "choose": "Choose a grove to edit"
+  },
+  "writable": {
+    "title": "Which grove do you want to edit?",
+    "body_one": "The free plan allows editing {{count}} grove. The others stay view-only — nothing is lost. You can change your choice later.",
+    "body_other": "The free plan allows editing {{count}} groves. The others stay view-only — nothing is lost. You can change your choice later.",
+    "current": "Editing now",
+    "confirm": "Confirm choice",
+    "saved": "Your choice was saved.",
+    "error": "We couldn't save your choice. Please try again.",
+    "loadError": "We couldn't load your groves. Please try again.",
+    "empty": "No groves found.",
+    "orUpgrade": "Or see Pro to edit all your groves."
+  },
+  "landing": {
+    "pricing": {
+      "title": "Start free. Grow when you need to.",
+      "sub": "One grove free. When you add more, choose Pro.",
+      "free": {
+        "name": "Free",
+        "tagline": "To start with your first grove",
+        "items": [
+          "1 grove",
+          "Work, costs, harvest and oil",
+          "From phone and computer"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "For anyone with more than one grove",
+        "badge": "More groves",
+        "items": [
+          "More groves in the same account",
+          "A separate history for each one",
+          "Monthly or yearly subscription"
+        ]
+      },
+      "priceNote": "The price is shown inside the app before you confirm anything.",
+      "trust": "No card needed to start · Cancel any time",
+      "cta": "Start free"
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": [
+        {
+          "q": "Is the first grove really free?",
+          "a": "Yes. You start with 1 grove free, no card needed."
+        },
+        {
+          "q": "What if I have more than one grove?",
+          "a": "With Pro you add more groves to the same account, each with its own history."
+        },
+        {
+          "q": "Do I lose my data if I stop Pro?",
+          "a": "No. Your records stay and you can always view them. On the free plan you edit one grove of your choice."
+        },
+        {
+          "q": "How do I cancel?",
+          "a": "From subscription management: in Google Play, the App Store or your web account — depending on where you subscribed."
+        },
+        {
+          "q": "How much does Pro cost?",
+          "a": "The price is shown inside the app, monthly or yearly, before you confirm anything."
+        }
+      ]
+    }
+  }
+}

@@ -14,9 +14,16 @@ public class AdminOverviewKpisDto
     public int TotalUsers { get; set; }
     public int NewUsers24h { get; set; }
     public int NewUsers7d { get; set; }
+
+    /// <summary>DAU — users with <c>LastSeenAt</c> in the last 24 hours (non-deleted).</summary>
     public int ActiveUsers24h { get; set; }
+
+    /// <summary>WAU — users with <c>LastSeenAt</c> in the last 7 days (non-deleted).</summary>
     public int ActiveUsers7d { get; set; }
+
+    /// <summary>MAU — users with <c>LastSeenAt</c> in the last 30 days (non-deleted).</summary>
     public int ActiveUsers30d { get; set; }
+
     public int UnseenFeedback { get; set; }
     public int Errors24h { get; set; }
     public int UnacknowledgedErrors { get; set; }

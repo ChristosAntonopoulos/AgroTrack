@@ -492,20 +492,25 @@
     "name": "Name",
     "email": "Email",
     "phone": "Phone",
-    "customize": "Customize",
+    "customize": "Custom access",
     "resetPreset": "Reset role",
     "accessSummary": "What this role gives",
-    "customizedHint": "You changed area exceptions. The simple role stays as the base.",
+    "customizedHint": "Custom access — the summary follows the checked permissions.",
     "customizedShort": "customized",
+    "noModulesSelected": "No areas open yet.",
     "baselineLimitsShort": "They cannot invite others, change the grove, or become the owner.",
     "relationshipTitle": "Relationship",
-    "relationshipPickHint": "Choose one.",
+    "relationshipPickHint": "Choose Collaborator or Family. Modules are shown before you send.",
+    "relationshipPresetHint": {
+      "Collaborator": "Collaborator: History, Photos, Tasks.",
+      "Family": "Family: History, Harvest, Oil store, Money."
+    },
     "actionTitle": "What they can do",
     "actionHint": "Pick one simple role. Customize only if you need an exception.",
     "areasTitle": "Grove areas",
-    "areasHint": "Open or close areas only when you need an exception.",
+    "areasHint": "Open or close areas. The summary updates from the checked ones.",
     "moduleClosed": "Closed — they cannot open this part.",
-    "oilNote": "Oil follows the grove and harvest. It has no separate permission.",
+    "oilNote": "Oil store follows Harvest. It has no separate permission.",
     "capability": {
       "view": "Can view",
       "record": "Can view and record",
@@ -514,15 +519,15 @@
     },
     "presetSummary": {
       "view": {
-        "areas": "Sees History, tasks, photos, and harvest.",
+        "areas": "Sees History, Harvest, Oil store, and Money.",
         "limits": "Does not add records or manage tasks."
       },
       "record": {
-        "areas": "Sees and records in History, photos, and harvest.",
+        "areas": "Sees and records in History and photos.",
         "limits": "Does not manage tasks."
       },
       "work": {
-        "areas": "Records and works with tasks, History, photos, and harvest.",
+        "areas": "History, Photos, and Tasks.",
         "limits": "Cannot invite others or change the grove."
       }
     },
@@ -560,7 +565,9 @@
     },
     "sendInvite": "Send invitation",
     "inviteSentExisting": "They already use The Olive Lot — notified in the app and by email.",
+    "inviteSentExistingAppOnly": "They already use The Olive Lot — notified in the app. The email was not sent.",
     "inviteSentNew": "Invite email sent. They can register with the link or code.",
+    "inviteEmailFailed": "The invitation was saved, but the email was not sent. Check the address or share the link yourself.",
     "editTitle": "{{name}}",
     "editHint": "This change applies only to this grove.",
     "inviteStep": "Step {{step}} of {{total}}",
@@ -589,9 +596,10 @@
     "noContactsYet": "You have no saved contacts yet.",
     "switchToNew": "Invite someone new",
     "switchToContacts": "Choose from your contacts",
-    "willRegister": "They will register on The Olive Lot with {{contact}}.",
-    "registerAccount": "They will create an account with {{email}} and return to this invitation.",
-    "registerAccountPhone": "They will get the link at {{phone}} and create an account to accept it.",
+    "willRegister": "An invitation will be sent to {{contact}}.",
+    "willInvite": "An invitation will be sent to {{contact}}.",
+    "registerAccount": "An invitation will be sent to {{email}}. The account is created when they accept it.",
+    "registerAccountPhone": "An invitation will be sent to {{phone}}. The account is created when they accept it.",
     "changePerson": "Change",
     "groveSelected": "Selected",
     "groveAdd": "Add",
@@ -608,8 +616,8 @@
       "Partner": "Collaborator"
     },
     "relationshipHint": {
-      "Family": "A family member, or someone you want kept up to date on the grove.",
-      "Collaborator": "Someone who works or helps on the grove."
+      "Family": "History, Harvest, Oil store, and Money — no Tasks.",
+      "Collaborator": "History, Photos, and Tasks."
     },
     "preset": {
       "view": "View only",
@@ -629,6 +637,7 @@
       "photos": "Photos",
       "money": "Money",
       "harvest": "Harvest",
+      "oilStore": "Oil store",
       "fields": "Groves",
       "documents": "Documents"
     },

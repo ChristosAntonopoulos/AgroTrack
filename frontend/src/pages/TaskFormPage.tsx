@@ -21,6 +21,7 @@ import PageContainer from '../components/Common/PageContainer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import TaskComposer, { type ComposerPayload } from '../components/Tasks/form/TaskComposer';
 import type { AssigneeOption } from '../components/Tasks/form/AssigneeSelector';
+import { useActiveFieldAccess } from '../hooks/useActiveFieldAccess';
 import '../components/Tasks/form/TaskForm.css';
 
 const TaskFormPage: React.FC = () => {
@@ -28,9 +29,21 @@ const TaskFormPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { capabilities, accessLevel, isAdminOnActive, isCollaboratorOnActive } =
+    useActiveFieldAccess();
+  const canCreateTasks =
+    isAdminOnActive ||
+    !isCollaboratorOnActive ||
+    Boolean(capabilities?.canManageTasks && accessLevel === 'work');
   const fieldIdParam = searchParams.get('fieldId') || '';
   const proposalIdParam = searchParams.get('proposalId') || '';
   const templateCodeParam = searchParams.get('templateCode') || '';
+
+  useEffect(() => {
+    if (!canCreateTasks) {
+      navigate('/access-denied?module=tasks', { replace: true });
+    }
+  }, [canCreateTasks, navigate]);
 
   const stashed = proposalIdParam ? readStashedProposal() : null;
   const proposal: TaskProposal | null =

@@ -7,7 +7,6 @@ import PartnersSheet from './PartnersSheet';
 import InviteSharePanel from './InviteSharePanel';
 import AccessFields from './AccessFields';
 import {
-  DEFAULT_FIELD_MODULES,
   FieldAccessLevel,
   FieldInvite,
   FieldModule,
@@ -28,8 +27,26 @@ type Props = {
   onCreated?: (invite: FieldInvite) => void;
 };
 
-const RELATIONSHIP_OPTIONS: FieldPersonRole[] = ['Family', 'Partner'];
-const ACCESS_PRESETS = ['view', 'record', 'work'] as const;
+const RELATIONSHIP_OPTIONS: FieldPersonRole[] = ['Partner', 'Family'];
+
+const modulesForRelationship = (relationship: FieldPersonRole): FieldModule[] =>
+  relationship === 'Family'
+    ? ['fields', 'chronologio', 'harvest', 'money']
+    : ['fields', 'chronologio', 'photos', 'tasks'];
+
+const levelForRelationship = (relationship: FieldPersonRole): FieldAccessLevel =>
+  relationship === 'Family' ? 'view' : 'work';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NON_DELIVERABLE = new Set(['invalid', 'test', 'localhost', 'example']);
+
+const isDeliverableEmail = (value: string) => {
+  const email = value.trim().toLowerCase();
+  if (!EMAIL_RE.test(email) || email.length > 200) return false;
+  const domain = email.split('@')[1] || '';
+  const tld = domain.split('.').pop() || '';
+  return Boolean(tld) && !NON_DELIVERABLE.has(tld);
+};
 
 const SeatInviteSheet: React.FC<Props> = ({
   visible,
@@ -41,25 +58,29 @@ const SeatInviteSheet: React.FC<Props> = ({
   onClose,
   onCreated,
 }) => {
-  const { t } = useTranslation(['partners', 'common', 'fields']);
+  const { t } = useTranslation(['partners', 'common', 'fields', 'errors']);
   const { colors } = useTheme();
   const [relationship, setRelationship] = useState<FieldPersonRole>(role === 'Admin' ? 'Family' : role);
   const isPartner = relationship === 'Partner';
   const ns = isPartner ? 'ownerPartner' : 'family';
   const [name, setName] = useState(initialName);
   const [email, setEmail] = useState(initialEmail);
-  const [choice, setChoice] = useState<'view' | 'record' | 'work'>(role === 'Partner' ? 'work' : 'view');
-  const [modules, setModules] = useState<FieldModule[]>(
-    role === 'Partner' ? [...DEFAULT_FIELD_MODULES] : ['chronologio', 'photos']
-  );
-  const [accessLevel, setAccessLevel] = useState<FieldAccessLevel>(role === 'Partner' ? 'work' : 'view');
+  const [modules, setModules] = useState<FieldModule[]>(modulesForRelationship(relationship));
+  const [accessLevel, setAccessLevel] = useState<FieldAccessLevel>(levelForRelationship(relationship));
   const [step, setStep] = useState<'who' | 'access'>('who');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invite, setInvite] = useState<FieldInvite | null>(null);
 
-  const whoReady = Boolean(name.trim() && email.trim());
+  const emailOk = isDeliverableEmail(email);
+  const whoReady = Boolean(name.trim() && emailOk);
   const canSubmit = Boolean(fieldId && whoReady && modules.length > 0);
+
+  const pickRelationship = (next: FieldPersonRole) => {
+    setRelationship(next);
+    setModules(modulesForRelationship(next));
+    setAccessLevel(levelForRelationship(next));
+  };
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -71,7 +92,7 @@ const SeatInviteSheet: React.FC<Props> = ({
         displayName: name.trim(),
         email: email.trim(),
         modules,
-        accessLevel: choice === 'view' ? 'view' : 'work',
+        accessLevel: modules.includes('tasks') ? 'work' : accessLevel,
       });
       setInvite(created);
       onCreated?.(created);
@@ -85,7 +106,7 @@ const SeatInviteSheet: React.FC<Props> = ({
   const accessStep = (
     <>
       <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 8 }}>
-        {t('partners:peoplePage.steps.3.title', { defaultValue: 'Relationship' })}
+        {t('partners:peoplePage.relationshipTitle', { defaultValue: 'Relationship' })}
       </Text>
       {RELATIONSHIP_OPTIONS.map((option) => (
         <Button
@@ -94,28 +115,17 @@ const SeatInviteSheet: React.FC<Props> = ({
             defaultValue: option,
           })}
           variant={relationship === option ? 'primary' : 'outline'}
-          onPress={() => setRelationship(option)}
+          onPress={() => pickRelationship(option)}
         />
       ))}
-      <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: 12, marginBottom: 8 }}>
-        {t('partners:peoplePage.steps.4.title', { defaultValue: 'Access' })}
+      <Text style={{ color: colors.textSecondary, marginTop: 12, marginBottom: 8 }}>
+        {t(`partners:peoplePage.relationshipPresetHint.${optionKey(relationship)}`, {
+          defaultValue:
+            relationship === 'Family'
+              ? 'Family: History, Harvest, Oil store, Money.'
+              : 'Collaborator: History, Photos, Tasks.',
+        })}
       </Text>
-      {ACCESS_PRESETS.map((option) => (
-        <Button
-          key={option}
-          title={t(`partners:peoplePage.preset.${option}`, { defaultValue: option })}
-          variant={choice === option ? 'primary' : 'outline'}
-          onPress={() => {
-            setChoice(option);
-            setAccessLevel(option === 'view' ? 'view' : 'work');
-            setModules(
-              option === 'work'
-                ? ['chronologio', 'photos', 'tasks', 'harvest']
-                : ['chronologio', 'photos']
-            );
-          }}
-        />
-      ))}
       <AccessFields
         modules={modules}
         accessLevel={accessLevel}
@@ -169,14 +179,17 @@ const SeatInviteSheet: React.FC<Props> = ({
       {invite ? (
         <>
           <Text style={{ color: colors.textSecondary, marginBottom: 8 }}>
-            {invite.inviteeHasAccount
-              ? t('fields:people.inviteSentExisting', {
-                  defaultValue: invite.notificationQueued
-                    ? 'They already use The Olive Lot — notified in the app and by email.'
-                    : 'They already use The Olive Lot — invite email sent.',
-                })
-              : t('fields:people.inviteSentNew', {
-                  defaultValue: 'Invite email sent. They can register with the link or code.',
+            {invite.emailSent
+              ? invite.inviteeHasAccount
+                ? t('fields:people.inviteSentExisting', {
+                    defaultValue: 'They already use The Olive Lot — notified in the app and by email.',
+                  })
+                : t('fields:people.inviteSentNew', {
+                    defaultValue: 'Invite email sent. They can register with the link or code.',
+                  })
+              : t('partners:peoplePage.inviteEmailFailed', {
+                  defaultValue:
+                    'The invitation was saved, but the email was not sent. Check the address or share the link yourself.',
                 })}
           </Text>
           <InviteSharePanel invite={invite} copyNs={ns} onDone={onClose} />
@@ -200,6 +213,11 @@ const SeatInviteSheet: React.FC<Props> = ({
                 autoCapitalize="none"
                 autoComplete="email"
               />
+              {email.trim() && !emailOk ? (
+                <Text style={{ color: colors.error }}>
+                  {t('errors:emailInvalid', { defaultValue: 'Enter a valid email address.' })}
+                </Text>
+              ) : null}
             </>
           ) : (
             accessStep
@@ -209,5 +227,8 @@ const SeatInviteSheet: React.FC<Props> = ({
     </PartnersSheet>
   );
 };
+
+const optionKey = (relationship: FieldPersonRole) =>
+  relationship === 'Family' ? 'Family' : 'Collaborator';
 
 export default SeatInviteSheet;

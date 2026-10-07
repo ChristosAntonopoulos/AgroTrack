@@ -1,0 +1,160 @@
+{
+  "plan": {
+    "free": "Gratuito",
+    "pro": "Pro",
+    "freeName": "Piano gratuito",
+    "proName": "The Olive Lot Pro"
+  },
+  "providers": {
+    "google_play": "Google Play",
+    "app_store": "App Store",
+    "web": "Web"
+  },
+  "paywall": {
+    "kicker": "The Olive Lot Pro",
+    "title": {
+      "add_field": "Aggiungi un altro oliveto",
+      "upgrade": "Pro per più oliveti",
+      "pro_limit": "Hai raggiunto il limite del Pro"
+    },
+    "intro": {
+      "add_field_one": "Il piano gratuito include {{count}} oliveto. Con Pro tieni tutti i tuoi oliveti nello stesso posto.",
+      "add_field_many": "Il piano gratuito include {{count}} oliveti. Con Pro tieni tutti i tuoi oliveti nello stesso posto.",
+      "add_field_other": "Il piano gratuito include {{count}} oliveti. Con Pro tieni tutti i tuoi oliveti nello stesso posto.",
+      "upgrade": "Tieni tutti i tuoi oliveti nello stesso posto, ciascuno con il proprio storico.",
+      "pro_limit_one": "Il tuo piano include fino a {{count}} oliveto e lo stai già usando.",
+      "pro_limit_many": "Il tuo piano include fino a {{count}} oliveti e li stai già usando.",
+      "pro_limit_other": "Il tuo piano include fino a {{count}} oliveti e li stai già usando.",
+      "pro_limit_hint": "Se te ne servono di più, scrivici e lo risolviamo insieme."
+    },
+    "benefits": [
+      "Più oliveti nello stesso account",
+      "Lavori, costi, raccolta e olio per ogni oliveto separatamente",
+      "Se un giorno smetti, i tuoi dati restano e puoi sempre consultarli"
+    ],
+    "plans": {
+      "label": "Scegli la durata",
+      "monthly": "Mensile",
+      "annual": "Annuale",
+      "perMonth": "/ mese",
+      "perYear": "/ anno",
+      "bestValue": "Miglior valore",
+      "save": "Risparmi il {{percent}}%",
+      "perMonthEquivalent": "≈ {{price}} / mese"
+    },
+    "cta": {
+      "subscribe": "Continua con Pro",
+      "notNow": "Non ora",
+      "restore": "Ripristina acquisti",
+      "retry": "Riprova",
+      "continueAddField": "Aggiungi un oliveto",
+      "done": "Fatto",
+      "recheck": "Controlla di nuovo",
+      "close": "Chiudi",
+      "manage": "Gestisci abbonamento"
+    },
+    "finePrint": "L'abbonamento si rinnova automaticamente finché non lo annulli. Puoi annullarlo in qualsiasi momento dalla gestione dell'abbonamento.",
+    "loadingPlan": "Caricamento del tuo piano…",
+    "loadingOfferings": "Caricamento dei piani…",
+    "purchasing": "Acquisto in corso…",
+    "unavailable": {
+      "title": "Al momento non possiamo mostrare i piani",
+      "network": "Controlla la connessione e riprova. Non è stato addebitato nulla.",
+      "empty": "I piani non sono disponibili al momento. Riprova tra poco.",
+      "not_configured": "Gli acquisti non sono disponibili in questa versione dell'app. Aggiorna l'app e riprova."
+    },
+    "cancelled": "Non è cambiato nulla. Puoi continuare quando vuoi.",
+    "failed": "L'acquisto non è stato completato. Riprova — se hai ricevuto un addebito, Pro si attiverà automaticamente.",
+    "restore": {
+      "success": "I tuoi acquisti sono stati ripristinati. Bentornato in Pro.",
+      "none": "Nessun abbonamento attivo trovato su questo account dello store.",
+      "failed": "Il ripristino non è stato completato. Riprova tra poco."
+    },
+    "success": {
+      "title": "Benvenuto in Pro",
+      "body": "Il tuo piano è attivo. Ora puoi aggiungere altri oliveti.",
+      "bodyGeneric": "Il tuo piano è attivo. Grazie per sostenere The Olive Lot."
+    },
+    "pending": {
+      "title": "Quasi pronto",
+      "body": "Il pagamento è andato a buon fine e stiamo attivando Pro. Può volerci qualche minuto — non devi pagare di nuovo."
+    },
+    "billedElsewhere": "Hai già un abbonamento tramite {{provider}}. Gestiscilo da lì.",
+    "legal": {
+      "terms": "Termini",
+      "privacy": "Privacy"
+    },
+    "restoreBusy": "Ripristino…"
+  },
+  "billing": {
+    "title": "Piano e abbonamento",
+    "subtitle": "Vedi quale piano hai e quanti oliveti include.",
+    "settingsRow": "Piano e abbonamento",
+    "settingsHint": "Il tuo piano e gli oliveti che include.",
+    "settingsOpen": "Apri",
+    "loading": "Caricamento del tuo piano…",
+    "loadError": {
+      "title": "Non siamo riusciti a caricare il tuo piano",
+      "body": "Controlla la connessione e riprova.",
+      "retry": "Riprova"
+    },
+    "stale": "Mostriamo le ultime informazioni caricate. Si aggiorneranno quando tornerai online.",
+    "usage": "Oliveti che gestisci: {{used}} su {{limit}}",
+    "via": "Abbonamento tramite {{provider}}",
+    "renewsOn": "Si rinnova il {{date}}",
+    "endsOn": "Pro è attivo fino al {{date}} e non si rinnoverà.",
+    "expiredOn": "Pro è terminato il {{date}}.",
+    "upgrade": "Scopri Pro",
+    "manage": {
+      "cta": "Gestisci abbonamento",
+      "google_play": "Si apre Google Play, dove puoi modificare o annullare l'abbonamento.",
+      "app_store": "Si apre l'App Store, dove puoi modificare o annullare l'abbonamento.",
+      "web": "Si apre la pagina di gestione del tuo abbonamento.",
+      "loading": "Apertura…",
+      "unavailable": "Non abbiamo trovato un link di gestione. Scrivici a {{email}} e ti aiuteremo."
+    },
+    "notice": {
+      "billing_issue": {
+        "title": "C'è un problema con il pagamento",
+        "body": "Aggiorna il metodo di pagamento per non interrompere Pro.",
+        "cta": "Aggiorna il pagamento"
+      },
+      "cancel_at_period_end": {
+        "title": "L'abbonamento non si rinnoverà",
+        "body": "Pro resta attivo fino alla fine del periodo. Dopo, gli oliveti in più restano in sola lettura — non si perde nulla."
+      },
+      "expired_over_limit": {
+        "title": "Hai più oliveti di quelli inclusi nel piano gratuito",
+        "body": "Hai {{used}} oliveti e il piano gratuito ne permette la modifica di {{limit}}. Gli altri sono in sola lettura e i loro dati restano."
+      },
+      "needs_writable_selection": {
+        "title": "Scegli l'oliveto da modificare",
+        "body": "Il piano gratuito permette di modificare un oliveto. Gli altri restano in sola lettura.",
+        "cta": "Scegli un oliveto"
+      }
+    },
+    "menuRow": "Abbonamento"
+  },
+  "readOnly": {
+    "title": "Questo oliveto è in sola lettura",
+    "body_one": "Nel piano gratuito modifichi {{count}} oliveto. Qui vedi tutto, ma non puoi aggiungere nuovi dati.",
+    "body_many": "Nel piano gratuito modifichi {{count}} oliveti. Qui vedi tutto, ma non puoi aggiungere nuovi dati.",
+    "body_other": "Nel piano gratuito modifichi {{count}} oliveti. Qui vedi tutto, ma non puoi aggiungere nuovi dati.",
+    "bodyShort": "Qui vedi tutto, ma non puoi aggiungere nuovi dati.",
+    "upgrade": "Scopri Pro",
+    "choose": "Scegli un oliveto da modificare"
+  },
+  "writable": {
+    "title": "Quale oliveto vuoi modificare?",
+    "body_one": "Il piano gratuito permette di modificare {{count}} oliveto. Gli altri restano in sola lettura — non si perde nulla. Puoi cambiare scelta più avanti.",
+    "body_many": "Il piano gratuito permette di modificare {{count}} oliveti. Gli altri restano in sola lettura — non si perde nulla. Puoi cambiare scelta più avanti.",
+    "body_other": "Il piano gratuito permette di modificare {{count}} oliveti. Gli altri restano in sola lettura — non si perde nulla. Puoi cambiare scelta più avanti.",
+    "current": "In modifica ora",
+    "confirm": "Conferma la scelta",
+    "saved": "La tua scelta è stata salvata.",
+    "error": "Non siamo riusciti a salvare la scelta. Riprova.",
+    "loadError": "Non siamo riusciti a caricare i tuoi oliveti. Riprova.",
+    "empty": "Nessun oliveto trovato.",
+    "orUpgrade": "Oppure scopri Pro per modificarli tutti."
+  }
+}

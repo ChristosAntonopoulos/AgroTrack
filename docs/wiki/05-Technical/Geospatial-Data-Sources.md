@@ -163,6 +163,7 @@ Client-only (not API):
 | `MongoDB__ConnectionString` | yes | `MONGODB_CONNECTION_STRING` | API will not start usefully |
 | `JWT__SecretKey` | yes | `JWT_SECRET_KEY` | auth broken |
 | `Geospatial__Fires__MapKey` | **optional** | `FIRMS_MAP_KEY` | Fire job logs “map key is not configured”, stores **zero** detections, UI looks like “no fires” |
+| `Email__SmtpPassword` | **optional** (needed for invite / reset mail) | `EMAIL_SMTP_PASSWORD` | Invites stay `emailSent: false`; SMTP skipped until set |
 
 Pipeline: `azure-pipelines.yml` adds the FIRMS key only when `FIRMS_MAP_KEY` is non-empty and not the unexpanded `$(FIRMS_MAP_KEY)` placeholder. Deployment mounts it `optional: true`.
 

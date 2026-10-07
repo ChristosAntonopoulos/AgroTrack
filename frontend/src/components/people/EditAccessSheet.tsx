@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Button from '../Common/Button';
 import PartnersSheet from '../Partners/PartnersSheet';
-import FieldPermissionPanel, { modulesMatchPreset } from './FieldPermissionPanel';
+import FieldPermissionPanel from './FieldPermissionPanel';
 import {
   FieldAccessLevel,
   FieldModule,
@@ -11,10 +11,9 @@ import {
 } from '../../services/fieldPeopleService';
 import { getApiErrorMessage } from '../../utils/translateApiError';
 import {
-  AccessChoice,
-  choiceFromAccess,
-  levelForChoice,
-  modulesForChoice,
+  levelForModules,
+  modulesForRelationship,
+  modulesMatchRelationship,
 } from '../../people/aggregatePeople';
 
 export type EditableMembership = {
@@ -53,14 +52,10 @@ const EditAccessSheet: React.FC<Props> = ({
   const [role, setRole] = useState<'Family' | 'Collaborator'>(
     current.relationship === 'Partner' ? 'Collaborator' : 'Family'
   );
-  const [choice, setChoice] = useState<AccessChoice | null>(
-    choiceFromAccess(current.accessLevel, current.modules)
-  );
-  const [pickedPreset, setPickedPreset] = useState(
-    choiceFromAccess(current.accessLevel, current.modules) != null
-  );
   const [selected, setSelected] = useState<FieldModule[]>(
-    current.modules.length > 0 ? current.modules : modulesForChoice('view')
+    current.modules.length > 0
+      ? current.modules
+      : modulesForRelationship(current.relationship === 'Partner' ? 'Collaborator' : 'Family')
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -69,30 +64,26 @@ const EditAccessSheet: React.FC<Props> = ({
     const next = memberships.find((row) => row.fieldId === nextId);
     if (!next) return;
     setFieldId(next.fieldId);
-    setRole(next.relationship === 'Partner' ? 'Collaborator' : 'Family');
-    const nextChoice = choiceFromAccess(next.accessLevel, next.modules);
-    setChoice(nextChoice);
-    setPickedPreset(nextChoice != null);
-    setSelected(next.modules.length > 0 ? next.modules : modulesForChoice(nextChoice || 'view'));
+    const nextRole = next.relationship === 'Partner' ? 'Collaborator' : 'Family';
+    setRole(nextRole);
+    setSelected(
+      next.modules.length > 0 ? next.modules : modulesForRelationship(nextRole)
+    );
     setError('');
   };
 
-  const pickChoice = (next: AccessChoice) => {
-    setPickedPreset(true);
-    setChoice(next);
+  const pickRole = (next: 'Family' | 'Collaborator') => {
+    setRole(next);
+    setSelected(modulesForRelationship(next));
   };
 
   const save = async () => {
     if (!userId) return;
     setSaving(true);
     setError('');
-    const keepLegacy = current.accessLevel === 'help' && !pickedPreset;
-    const accessLevel = keepLegacy ? 'help' : levelForChoice(choice || 'view');
-    const modules = keepLegacy
-      ? current.modules
-      : selected.length > 0
-        ? selected
-        : modulesForChoice(choice || 'view');
+    const modules =
+      selected.length > 0 ? selected : modulesForRelationship(role);
+    const accessLevel = levelForModules(modules, role);
     try {
       await fieldPeopleService.updatePerson(fieldId, userId, {
         role,
@@ -135,7 +126,7 @@ const EditAccessSheet: React.FC<Props> = ({
           <ul className="invite-option-list" role="radiogroup" aria-label={t('partners:peoplePage.grovesWithAccess')}>
             {memberships.map((row) => {
               const on = row.fieldId === fieldId;
-              const rowChoice = choiceFromAccess(row.accessLevel, row.modules);
+              const rowRole = row.relationship === 'Partner' ? 'Collaborator' : 'Family';
               return (
                 <li key={row.fieldId}>
                   <button
@@ -149,8 +140,8 @@ const EditAccessSheet: React.FC<Props> = ({
                     <span className="invite-option-copy">
                       <strong>{row.fieldName}</strong>
                       <span>
-                        {t(`partners:peoplePage.capability.${rowChoice || 'help'}`)}
-                        {rowChoice && !modulesMatchPreset(rowChoice, row.modules)
+                        {t(`partners:peoplePage.relationship.${rowRole}`)}
+                        {!modulesMatchRelationship(rowRole, row.modules)
                           ? ` · ${t('partners:peoplePage.customizedShort')}`
                           : ''}
                       </span>
@@ -175,7 +166,7 @@ const EditAccessSheet: React.FC<Props> = ({
           role="radiogroup"
           aria-labelledby="edit-relationship-label"
         >
-          {(['Family', 'Collaborator'] as const).map((option) => {
+          {(['Collaborator', 'Family'] as const).map((option) => {
             const selectedRole = role === option;
             return (
               <button
@@ -184,7 +175,7 @@ const EditAccessSheet: React.FC<Props> = ({
                 role="radio"
                 aria-checked={selectedRole}
                 className={`perm-choice${selectedRole ? ' is-on' : ''}`}
-                onClick={() => setRole(option)}
+                onClick={() => pickRole(option)}
               >
                 <span className={`perm-radio-dot${selectedRole ? ' is-on' : ''}`} aria-hidden />
                 <span className="perm-choice-copy">
@@ -198,13 +189,10 @@ const EditAccessSheet: React.FC<Props> = ({
       </section>
 
       <FieldPermissionPanel
-        key={`${fieldId}-${current.accessLevel}-${pickedPreset ? 'picked' : 'legacy'}`}
-        choice={choice}
+        key={`${fieldId}-${role}`}
+        relationship={role}
         modules={selected}
-        role={role === 'Collaborator' ? 'Partner' : 'Family'}
-        legacyHelp={current.accessLevel === 'help' && !pickedPreset}
-        previewMode="edit"
-        onPickChoice={pickChoice}
+        legacyHelp={current.accessLevel === 'help'}
         onChangeModules={setSelected}
       />
 

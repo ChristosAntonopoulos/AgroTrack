@@ -17,7 +17,14 @@ public static class DemoFarmDataSeeder
 {
     public const string OwnerId = "675555555555555555555501";
     public const string ProducerId = "675555555555555555555502";
+
+    /// <summary>Retired family review seat — kept only for wipe filters.</summary>
     public const string FamilyUserId = "675555555555555555555503";
+
+    public const string OwnerEmail = "review.admin@theolivelot.com";
+    public const string PartnerEmail = "review.collaborator@theolivelot.com";
+    public const string OwnerPassword = "Filiatra#Harvest26";
+    public const string PartnerPassword = "Kostas#Partner26";
 
     public static readonly string[] FieldIds =
     [
@@ -39,19 +46,8 @@ public static class DemoFarmDataSeeder
         FamilyModules.Chronologio,
     ];
 
-    public static readonly string[] FamilySeatModules =
-    [
-        FamilyModules.Fields,
-        FamilyModules.Photos,
-        FamilyModules.Documents,
-        FamilyModules.Money,
-        FamilyModules.Harvest,
-        FamilyModules.Chronologio,
-    ];
-
     public const string OwnerDisplayName = "Γιώργος Παπαδάκης";
     public const string PartnerDisplayName = "Κώστας Μανούσακης";
-    public const string FamilyDisplayName = "Ελένη Παπαδάκη";
 
     public const string FieldName = "Επάνω ελαιώνας";
     public const string FieldNameLower = "Κάτω ελαιώνας";
@@ -242,7 +238,7 @@ public static class DemoFarmDataSeeder
             AccessLevel = "work",
             Status = "active",
             DisplayName = OwnerDisplayName,
-            Email = "owner@olivefarm.com",
+            Email = OwnerEmail,
             CreatedAt = created,
         },
     ];

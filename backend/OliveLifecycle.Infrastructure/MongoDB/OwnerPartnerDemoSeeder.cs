@@ -56,7 +56,7 @@ public static class OwnerPartnerDemoSeeder
                     Status = FamilyMemberStatuses.Active,
                     InvitedBy = DemoFarmDataSeeder.OwnerId,
                     DisplayName = DemoFarmDataSeeder.PartnerDisplayName,
-                    Email = "producer1@olivefarm.com",
+                    Email = DemoFarmDataSeeder.PartnerEmail,
                     CreatedAt = acceptedAt,
                 });
             }
@@ -67,7 +67,7 @@ public static class OwnerPartnerDemoSeeder
                 seat.AccessLevel = FamilyAccessLevels.Work;
                 seat.Status = FamilyMemberStatuses.Active;
                 seat.DisplayName = DemoFarmDataSeeder.PartnerDisplayName;
-                seat.Email = "producer1@olivefarm.com";
+                seat.Email = DemoFarmDataSeeder.PartnerEmail;
             }
 
             await fields.ReplaceOneAsync(f => f.Id == fieldId, field, cancellationToken: cancellationToken);
@@ -94,7 +94,7 @@ public static class OwnerPartnerDemoSeeder
 
         logger.LogInformation(
             "Phase 4: partner seat for {Email} (work) on {Count} ελαιώνες.",
-            "producer1@olivefarm.com",
+            DemoFarmDataSeeder.PartnerEmail,
             seated);
     }
 }

@@ -21,6 +21,13 @@ import { RootStackParamList } from '../navigation/types';
 import { useAuth } from '../context/AuthContext';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 import GuideTarget from '../components/onboarding/GuideTarget';
+import { PaywallSource, useSubscription } from '../context/SubscriptionContext';
+import {
+  isAtProLimit,
+  isFieldLimitError,
+  mustUpgradeToAddField,
+} from '../billing/subscriptionModel';
+import { trackBillingEvent } from '../billing/billingAnalytics';
 
 type Route = RouteProp<RootStackParamList, 'FieldForm'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'FieldForm'>;
@@ -58,6 +65,8 @@ const FieldFormScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const { ensureFresh, refresh, showUpgradePaywall } = useSubscription();
+  const [createGateReady, setCreateGateReady] = useState(isEdit);
 
   const isActiveEdit = isEdit && loadedField?.status === 'Active';
   const nameValid = formData.name.trim().length >= 2;
@@ -105,6 +114,49 @@ const FieldFormScreen = () => {
       .catch(() => setError(t('fields:form.failedLoad')))
       .finally(() => setLoading(false));
   }, [fieldId, t, user?.id, user?.role]);
+
+  /** Leave the (modal) form first, then paywall — a Modal can't present over a native modal screen. */
+  const leaveForPaywall = (intent: 'add_field' | 'pro_limit', source: PaywallSource) => {
+    if (navigation.canGoBack()) navigation.goBack();
+    else navigation.replace('Main', { screen: 'Fields' });
+    setTimeout(() => showUpgradePaywall({ source, intent }), 350);
+  };
+
+  // Create mode is gated before the form is ever shown. A snapshot we can't load (offline)
+  // lets the form open — the backend still enforces the limit on save.
+  useEffect(() => {
+    if (isEdit) return undefined;
+    let cancelled = false;
+    void ensureFresh().then((snapshot) => {
+      if (cancelled) return;
+      if (mustUpgradeToAddField(snapshot)) {
+        trackBillingEvent('field_limit_reached', { source: 'add_field', plan: 'free' });
+        leaveForPaywall('add_field', 'add_field');
+        return;
+      }
+      if (isAtProLimit(snapshot)) {
+        trackBillingEvent('field_limit_reached', { source: 'add_field', plan: 'pro' });
+        leaveForPaywall('pro_limit', 'add_field');
+        return;
+      }
+      setCreateGateReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit]);
+
+  /** Backend said the plan is full (race with another device / stale snapshot): same paywall. */
+  const handleSaveError = (e: unknown) => {
+    if (isFieldLimitError(e)) {
+      trackBillingEvent('field_limit_reached', { source: 'field_limit_error' });
+      void refresh();
+      leaveForPaywall('add_field', 'field_limit_error');
+      return;
+    }
+    setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
+  };
 
   const patchForm = (patch: Partial<CreateFieldDto>) => {
     setFormData((prev) => ({ ...prev, ...patch }));
@@ -160,7 +212,7 @@ const FieldFormScreen = () => {
       activation?.markFieldsDirty({ groveCreatedFieldId: id });
       navigation.replace('FieldMapBoundary', { fieldId: id });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t('fields:form.failedSave'));
+      handleSaveError(e);
     } finally {
       setSaving(false);
     }
@@ -276,7 +328,11 @@ const FieldFormScreen = () => {
     return undefined;
   }, [setSpotlightScreen, releaseSpotlightScreen, isActiveEdit, createScreen]);
 
-  if (loading || (!isActiveEdit && activation != null && !activation.ready)) {
+  if (
+    loading ||
+    !createGateReady ||
+    (!isActiveEdit && activation != null && !activation.ready)
+  ) {
     return <LoadingSpinner fullScreen />;
   }
 

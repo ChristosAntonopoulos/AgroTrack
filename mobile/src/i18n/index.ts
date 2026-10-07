@@ -22,6 +22,7 @@ import enFeedback from '../locales/en/feedback.json';
 import enHelp from '../locales/en/help.json';
 import enLegal from '../locales/en/legal.json';
 import enOnboarding from '../locales/en/onboarding.json';
+import enSubscription from '../locales/en/subscription.json';
 
 import elAuth from '../locales/el/auth.json';
 import elCommon from '../locales/el/common.json';
@@ -44,12 +45,15 @@ import elFeedback from '../locales/el/feedback.json';
 import elHelp from '../locales/el/help.json';
 import elLegal from '../locales/el/legal.json';
 import elOnboarding from '../locales/el/onboarding.json';
+import elSubscription from '../locales/el/subscription.json';
 
 import itFields from '../locales/it/fields.json';
+import itSubscription from '../locales/it/subscription.json';
 import itOnboarding from '../locales/it/onboarding.json';
 import itPhotos from '../locales/it/photos.json';
 import itMyOil from '../locales/it/myOil.json';
 import itCapture from '../locales/it/capture.json';
+import itLegal from '../locales/it/legal.json';
 
 /** Greek is the product default for Oleachron. */
 const defaultLng = 'el';
@@ -79,6 +83,7 @@ i18n.use(initReactI18next).init({
       help: enHelp,
       legal: enLegal,
       onboarding: enOnboarding,
+      subscription: enSubscription,
     },
     el: {
       auth: elAuth,
@@ -102,14 +107,17 @@ i18n.use(initReactI18next).init({
       help: elHelp,
       legal: elLegal,
       onboarding: elOnboarding,
+      subscription: elSubscription,
     },
     it: {
       // Harvest campaign Italian from FE; other namespaces fall back to English/Greek.
       fields: itFields,
       onboarding: itOnboarding,
+      subscription: itSubscription,
       photos: itPhotos,
       myOil: itMyOil,
       capture: itCapture,
+      legal: itLegal,
     },
   },
   lng: defaultLng,

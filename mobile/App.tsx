@@ -15,6 +15,8 @@ import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { OfflineProvider } from './src/context/OfflineContext';
 import { HarvestCampaignProvider } from './src/context/HarvestCampaignContext';
+import { SubscriptionProvider } from './src/context/SubscriptionContext';
+import SubscriptionHost from './src/components/subscription/SubscriptionHost';
 import RootNavigator from './src/navigation/RootNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import i18n, { changeAppLanguage } from './src/i18n';
@@ -91,7 +93,10 @@ export default function App() {
                 <ThemeProvider>
                   <I18nSync>
                     <OfflineProvider>
-                      <AppInner />
+                      <SubscriptionProvider>
+                        <AppInner />
+                        <SubscriptionHost />
+                      </SubscriptionProvider>
                     </OfflineProvider>
                   </I18nSync>
                 </ThemeProvider>

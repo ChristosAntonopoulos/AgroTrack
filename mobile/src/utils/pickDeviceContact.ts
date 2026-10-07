@@ -11,20 +11,16 @@ export function canPickDeviceContact(): boolean {
   return Platform.OS === 'ios' || Platform.OS === 'android';
 }
 
+/**
+ * System contact picker only — one contact the farmer chooses.
+ * Does not request READ_CONTACTS / full address-book access.
+ */
 export async function pickDeviceContact(): Promise<PickedDeviceContact | null> {
   if (!canPickDeviceContact()) {
     return null;
   }
 
   try {
-    // iOS picker does not need the full address-book permission. Android does.
-    if (Platform.OS === 'android') {
-      const permission = await Contacts.requestPermissionsAsync();
-      if (permission.status !== 'granted') {
-        return null;
-      }
-    }
-
     const picked = await Contacts.presentContactPickerAsync();
     if (!picked) {
       return null;

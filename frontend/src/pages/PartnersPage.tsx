@@ -455,8 +455,8 @@ const PartnersPage: React.FC = () => {
             initialEmail={inviteSeed.email}
             initialPhone={inviteSeed.phone}
             onClose={() => setInviting(false)}
-            onSent={() => {
-              setNotice(t('partners:peoplePage.invitedNotice'));
+            onSent={(outcome) => {
+              setNotice(outcome.notice);
               refresh();
             }}
           />

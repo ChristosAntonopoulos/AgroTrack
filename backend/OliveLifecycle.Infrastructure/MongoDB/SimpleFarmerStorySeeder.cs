@@ -17,7 +17,6 @@ public static class SimpleFarmerStorySeeder
 {
     private const string OwnerId = DemoFarmDataSeeder.OwnerId;
     private const string ProducerId = DemoFarmDataSeeder.ProducerId;
-    private const string FamilyUserId = DemoFarmDataSeeder.FamilyUserId;
     private const string MillName = "Ελαιουργείο Φιλιατρών";
     private const decimal OilKgPerLitre = 0.916m;
 
@@ -670,8 +669,11 @@ public static class SimpleFarmerStorySeeder
                 relatedHarvestId: _harvestLastId,
                 notes: $"{totalOlive:0} κιλά · {_grove.OilLitres:0} λίτρα. Κρατήσαμε λίγο για το σπίτι.");
 
-            // Eleni's house-oil note is added in phase 4 (FamilyDemoSeeder) after her user exists.
-            // Partner-accepted activity also lands in phase 4.
+            Notes.Add(Note(
+                $"675555555555555555557e{_n:00}",
+                OwnerId,
+                "Κρατήσαμε λάδι για το σπίτι. Όπως κάθε χρόνο.",
+                _c.DaysAgo(2, 16)));
 
             AddCompletedTask(
                 taskId: $"67555555555555555556{y % 10}{_n}19",

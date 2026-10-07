@@ -91,6 +91,8 @@ export type RootStackParamList = {
   /** Secondary destinations previously hidden tabs — now root stack. */
   Calendar: { date?: string; fieldId?: string } | undefined;
   Settings: undefined;
+  /** Plan, usage, manage / restore. Opened from More and Settings. */
+  Subscription: undefined;
   Help: undefined;
   Legal: { kind: 'privacy' | 'terms' };
   Feedback: undefined;

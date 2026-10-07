@@ -13,7 +13,7 @@ import {
 } from '../services/partnerService';
 import { useAccessContext } from './useAccessContext';
 import { useAuth } from '../context/AuthContext';
-import { demoAccounts } from '../services/demoAccounts';
+import { reviewAccounts } from '../services/demoAccounts';
 
 export type ActiveFieldAccess = {
   fieldId: string | null;
@@ -103,7 +103,7 @@ export const useActiveFieldAccess = (): ActiveFieldAccess => {
 };
 
 const DEMO_ADMIN_GENITIVE_EL: Record<string, string> = {
-  [demoAccounts[0].userId]: 'Γιώργου Παπαδάκη',
+  [reviewAccounts[0].userId]: 'Γιώργου Παπαδάκη',
 };
 
 /**

@@ -20,7 +20,10 @@ public class FieldAccessServiceTests
 
     public FieldAccessServiceTests()
     {
-        _service = new FieldAccessService(_fieldRepository.Object);
+        var subscriptions = new Mock<ISubscriptionService>();
+        subscriptions.Setup(s => s.IsOwnedFieldWritableAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _service = new FieldAccessService(_fieldRepository.Object, subscriptions.Object);
     }
 
     [Fact]
@@ -299,6 +302,57 @@ public class AuthServiceTests
 
         Assert.Equal(UserRole.FieldOwner, created!.Role);
         Assert.Equal(Roles.FieldOwner, response.Role);
+    }
+
+    [Fact]
+    public async Task LoginAsync_StampsLastLoginAndLastSeen()
+    {
+        var now = new DateTime(2026, 10, 7, 12, 0, 0, DateTimeKind.Utc);
+        var clock = new Mock<IDateTimeProvider>();
+        clock.Setup(c => c.UtcNow).Returns(now);
+
+        var password = "password123";
+        var user = new User
+        {
+            Id = "507f1f77bcf86cd799439020",
+            Email = "grower@test.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            Role = UserRole.FieldOwner,
+            FirstName = "Maria",
+            LastName = "Grower"
+        };
+
+        User? updated = null;
+        var userRepository = new Mock<IUserRepository>();
+        userRepository
+            .Setup(r => r.GetByEmailAsync("grower@test.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        userRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .Callback<User, CancellationToken>((u, _) => updated = u)
+            .ReturnsAsync((User u, CancellationToken _) => u);
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JWT:SecretKey"] = "test-secret-key-at-least-32-characters-long",
+                ["JWT:Issuer"] = "test",
+                ["JWT:Audience"] = "test",
+                ["JWT:ExpirationMinutes"] = "60"
+            })
+            .Build();
+
+        var service = new AuthService(userRepository.Object, configuration, clock.Object);
+        var response = await service.LoginAsync(new LoginDto
+        {
+            Email = "grower@test.com",
+            Password = password
+        });
+
+        Assert.False(string.IsNullOrWhiteSpace(response.Token));
+        Assert.NotNull(updated);
+        Assert.Equal(now, updated!.LastLoginAt);
+        Assert.Equal(now, updated.LastSeenAt);
     }
 
     [Fact]

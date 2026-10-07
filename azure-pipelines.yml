@@ -391,6 +391,9 @@ stages:
                 if [ -n "${FIRMS_MAP_KEY:-}" ] && [ "${FIRMS_MAP_KEY}" != '$(FIRMS_MAP_KEY)' ]; then
                   SECRET_ARGS+=(--from-literal=Geospatial__Fires__MapKey="${FIRMS_MAP_KEY}")
                 fi
+                if [ -n "${EMAIL_SMTP_PASSWORD:-}" ] && [ "${EMAIL_SMTP_PASSWORD}" != '$(EMAIL_SMTP_PASSWORD)' ]; then
+                  SECRET_ARGS+=(--from-literal=Email__SmtpPassword="${EMAIL_SMTP_PASSWORD}")
+                fi
 
                 echo "Creating Kubernetes secret 'backend-secrets' from Library group 'Agrotrack-Secrets'..."
                 kubectl create secret generic backend-secrets \
@@ -410,6 +413,7 @@ stages:
               MONGODB_CONNECTION_STRING: $(MONGODB_CONNECTION_STRING)
               JWT_SECRET_KEY: $(JWT_SECRET_KEY)
               FIRMS_MAP_KEY: $(FIRMS_MAP_KEY)
+              EMAIL_SMTP_PASSWORD: $(EMAIL_SMTP_PASSWORD)
 
           - script: |
               sed -i "s|PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG|$(fullImageName):$(imageTag)|g" backend/k8s/deployment.yaml

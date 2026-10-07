@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useFields } from '../hooks/useFields';
 import { useRefresh } from '../hooks/useRefresh';
+import { useAddFieldAction } from '../hooks/useAddFieldAction';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import FieldCard from '../components/domain/FieldCard';
@@ -66,6 +67,7 @@ const FieldsListScreen = () => {
   const { refreshing, onRefresh } = useRefresh(refresh);
   const tasksReady = !loading || fields.length > 0;
   const canCreate = isFieldOwner();
+  const addFieldAction = useAddFieldAction();
 
   useEffect(() => {
     let cancelled = false;
@@ -181,7 +183,10 @@ const FieldsListScreen = () => {
     navigation.navigate('FieldDetail', { fieldId: field.id });
   };
 
-  const goCreateField = () => navigation.navigate('FieldForm', {});
+  // Free users at their limit see the paywall BEFORE the form opens.
+  const goCreateField = () => {
+    void addFieldAction('add_field');
+  };
 
   const getStats = (fieldId: string) => ({
     todayTaskCount: fieldTodayTaskCounts[fieldId] ?? 0,

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "TheOliveLot",
-    "slug": "theolivelot",
+    "slug": "olive-lifecycle",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,9 +21,7 @@
         "applinks:www.theolivelot.com"
       ],
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show field locations on the map and provide weather information.",
-        "NSLocationAlwaysUsageDescription": "This app needs access to your location to show field locations on the map and provide weather information.",
-        "NSContactsUsageDescription": "The Olive Lot uses one contact you pick so you can save the pruner or mill in Οι άνθρωποί μου. We never import your whole phone book.",
+        "NSLocationWhenInUseUsageDescription": "The Olive Lot uses your location only when you choose Use my location to place a field on the map.",
         "NSPhotoLibraryUsageDescription": "The Olive Lot looks through your photos for shots taken on your fields so they can appear in Photo Hub and Chronologio. Nothing is uploaded until you confirm.",
         "NSPhotoLibraryAddUsageDescription": "The Olive Lot may save photos you take for field records."
       }
@@ -81,10 +79,12 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_MEDIA_LOCATION",
-        "android.permission.READ_CONTACTS",
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.ACTIVITY_RECOGNITION"
       ]
     },
     "web": {
@@ -102,7 +102,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow The Olive Lot to use your location to show field locations and weather information."
+          "locationWhenInUsePermission": "The Olive Lot uses your location only when you choose Use my location to place a field on the map.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
         }
       ],
       [
@@ -129,12 +131,7 @@
         }
       ],
       "expo-document-picker",
-      [
-        "expo-contacts",
-        {
-          "contactsPermission": "The Olive Lot uses one contact you pick so you can save the pruner or mill in Οι άνθρωποί μου. We never import your whole phone book."
-        }
-      ],
+      "expo-contacts",
       "expo-localization",
       "expo-font",
       "expo-dev-client",

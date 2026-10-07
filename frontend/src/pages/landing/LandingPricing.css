@@ -1,0 +1,160 @@
+/* Landing pricing + FAQ — olive / paper palette, no fintech chrome. */
+
+.lp-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+.lp-plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.6rem 1.5rem;
+  border-radius: var(--lp-radius-lg, 20px);
+  background: #fffdf8;
+  border: 1px solid var(--lp-border);
+  box-shadow: var(--lp-shadow);
+}
+
+.lp-plan h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: var(--lp-ink, var(--lp-text));
+}
+
+.lp-plan-tagline {
+  margin: 0 0 0.4rem;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--lp-muted, var(--lp-text-muted));
+}
+
+.lp-plan ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.lp-plan li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--lp-text);
+}
+
+.lp-plan li svg {
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+  color: var(--lp-primary);
+}
+
+.lp-plan--pro {
+  border-color: color-mix(in srgb, var(--lp-primary) 55%, transparent);
+  background: linear-gradient(165deg, #f4f7ec 0%, #fffdf8 70%);
+}
+
+.lp-plan-badge {
+  align-self: flex-start;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--lp-accent) 24%, transparent);
+  color: #6b5a2c;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.lp-pricing-note {
+  max-width: 34rem;
+  margin: 1.5rem auto 0;
+  text-align: center;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--lp-muted, var(--lp-text-muted));
+}
+
+.lp-pricing-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.lp-pricing-trust {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--lp-muted, var(--lp-text-muted));
+}
+
+/* FAQ */
+.lp-faq {
+  background: var(--lp-paper, #fffdf8);
+}
+
+.lp-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.lp-faq-item {
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius, 12px);
+  background: #fffdf8;
+  overflow: hidden;
+}
+
+.lp-faq-item summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 1rem 1.2rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--lp-ink, var(--lp-text));
+}
+
+.lp-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.lp-faq-item summary::after {
+  content: '+';
+  float: right;
+  font-weight: 500;
+  color: var(--lp-primary);
+}
+
+.lp-faq-item[open] summary::after {
+  content: '–';
+}
+
+.lp-faq-item summary:focus-visible {
+  outline: 2px solid var(--lp-primary);
+  outline-offset: -2px;
+}
+
+.lp-faq-item p {
+  margin: 0;
+  padding: 0 1.2rem 1.1rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--lp-muted, var(--lp-text-muted));
+}
+
+@media (max-width: 720px) {
+  .lp-pricing-grid {
+    grid-template-columns: 1fr;
+  }
+}
