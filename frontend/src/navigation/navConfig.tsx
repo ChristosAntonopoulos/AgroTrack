@@ -16,6 +16,7 @@ import {
   Megaphone,
   MessageSquareHeart,
   Warehouse,
+  LayoutDashboard,
 } from 'lucide-react';
 import { settingsService, pathForDefaultView } from '../services/settingsService';
 import { CHRONOLOGIO_HOME } from './homePath';
@@ -127,6 +128,13 @@ export const navItems: NavItem[] = [
     path: '/data-sources',
     labelKey: 'items.dataSources',
     icon: <Database />,
+    roles: ['Administrator'],
+    section: 'account',
+  },
+  {
+    path: '/admin',
+    labelKey: 'items.opsOverview',
+    icon: <LayoutDashboard />,
     roles: ['Administrator'],
     section: 'account',
   },
@@ -243,7 +251,7 @@ export const resolveParentPath = (pathname: string): string | null => {
 
   if (path === '/this-harvest/review' || path.startsWith('/harvest/')) return '/harvest';
   if (path.startsWith('/admin/campaigns/')) return '/admin/campaigns';
-  if (path.startsWith('/admin/')) return '/admin/campaigns';
+  if (path.startsWith('/admin/') && path !== '/admin') return '/admin';
 
   if (path.startsWith('/partners/')) return '/partners';
   if (path.startsWith('/tasks/')) return '/tasks';

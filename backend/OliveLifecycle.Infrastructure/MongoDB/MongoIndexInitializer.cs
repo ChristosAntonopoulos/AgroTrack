@@ -33,6 +33,37 @@ public class MongoIndexInitializer : IHostedService
                 new CreateIndexModel<UserDocument>(
                     Builders<UserDocument>.IndexKeys.Ascending(u => u.PasswordResetTokenHash),
                     new CreateIndexOptions { Sparse = true, Name = "ix_users_passwordResetTokenHash" }));
+            users.Indexes.CreateOne(
+                new CreateIndexModel<UserDocument>(
+                    Builders<UserDocument>.IndexKeys.Descending(u => u.LastSeenAt),
+                    new CreateIndexOptions { Name = "ix_users_lastSeenAt", Sparse = true }));
+            users.Indexes.CreateOne(
+                new CreateIndexModel<UserDocument>(
+                    Builders<UserDocument>.IndexKeys.Descending(u => u.CreatedAt),
+                    new CreateIndexOptions { Name = "ix_users_createdAt" }));
+            users.Indexes.CreateOne(
+                new CreateIndexModel<UserDocument>(
+                    Builders<UserDocument>.IndexKeys
+                        .Ascending(u => u.DeletedAt)
+                        .Ascending(u => u.Role),
+                    new CreateIndexOptions { Name = "ix_users_deletedAt_role" }));
+
+            var apiErrors = _context.GetCollection<ApiErrorEventDocument>("api_error_events");
+            apiErrors.Indexes.CreateOne(new CreateIndexModel<ApiErrorEventDocument>(
+                Builders<ApiErrorEventDocument>.IndexKeys.Ascending(e => e.OccurredAt),
+                new CreateIndexOptions
+                {
+                    Name = "ix_api_error_events_occurredAt_ttl",
+                    ExpireAfter = TimeSpan.FromDays(30)
+                }));
+            apiErrors.Indexes.CreateOne(new CreateIndexModel<ApiErrorEventDocument>(
+                Builders<ApiErrorEventDocument>.IndexKeys
+                    .Ascending(e => e.AcknowledgedAt)
+                    .Descending(e => e.OccurredAt),
+                new CreateIndexOptions { Name = "ix_api_error_events_ack_occurredAt" }));
+            apiErrors.Indexes.CreateOne(new CreateIndexModel<ApiErrorEventDocument>(
+                Builders<ApiErrorEventDocument>.IndexKeys.Ascending(e => e.Path),
+                new CreateIndexOptions { Name = "ix_api_error_events_path" }));
 
             var fields = _context.GetCollection<FieldDocument>("fields");
             fields.Indexes.CreateOne(new CreateIndexModel<FieldDocument>(

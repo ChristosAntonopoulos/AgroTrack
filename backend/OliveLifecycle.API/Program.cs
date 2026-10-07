@@ -186,6 +186,7 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseAuthentication();
 app.UseMiddleware<AnonymousAuthBypassMiddleware>();
 app.UseAuthorization();
+app.UseMiddleware<UserActivityMiddleware>();
 app.MapControllers();
 app.MapHealthChecks("/health");
 

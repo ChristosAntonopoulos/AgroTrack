@@ -45,6 +45,12 @@ public class UserDocument
     [BsonElement("deletedAt")]
     public DateTime? DeletedAt { get; set; }
 
+    [BsonElement("lastLoginAt")]
+    public DateTime? LastLoginAt { get; set; }
+
+    [BsonElement("lastSeenAt")]
+    public DateTime? LastSeenAt { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

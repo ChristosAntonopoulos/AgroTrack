@@ -33,6 +33,8 @@ public static class UserMapper
         EmailChangeTokenHash = document.EmailChangeTokenHash,
         EmailChangeExpiresAt = document.EmailChangeExpiresAt,
         DeletedAt = document.DeletedAt,
+        LastLoginAt = document.LastLoginAt,
+        LastSeenAt = document.LastSeenAt,
         CreatedAt = document.CreatedAt,
         UpdatedAt = document.UpdatedAt
     };
@@ -52,6 +54,8 @@ public static class UserMapper
         EmailChangeTokenHash = entity.EmailChangeTokenHash,
         EmailChangeExpiresAt = entity.EmailChangeExpiresAt,
         DeletedAt = entity.DeletedAt,
+        LastLoginAt = entity.LastLoginAt,
+        LastSeenAt = entity.LastSeenAt,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };

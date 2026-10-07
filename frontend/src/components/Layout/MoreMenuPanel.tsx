@@ -51,6 +51,7 @@ const HINT_BY_PATH: Record<string, string> = {
   '/help': 'hints.help',
   '__feedback__': 'hints.feedback',
   '/data-sources': 'hints.dataSources',
+  '/admin': 'hints.opsOverview',
   '/admin/campaigns': 'hints.campaigns',
   '/admin/feedback': 'hints.userFeedback',
 };

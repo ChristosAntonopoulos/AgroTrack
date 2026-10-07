@@ -89,6 +89,8 @@ public class AuthService : IAuthService
             Role = UserRole.FieldOwner,
             FirstName = registerDto.FirstName,
             LastName = registerDto.LastName,
+            LastLoginAt = now,
+            LastSeenAt = now,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -111,6 +113,12 @@ public class AuthService : IAuthService
         {
             throw new ForbiddenException("Invalid email or password.");
         }
+
+        var now = _dateTimeProvider.UtcNow;
+        user.LastLoginAt = now;
+        user.LastSeenAt = now;
+        user.UpdatedAt = now;
+        await _userRepository.UpdateAsync(user, cancellationToken);
 
         return GenerateAuthResponse(user);
     }

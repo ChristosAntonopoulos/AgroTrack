@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Megaphone, MessageSquareHeart } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
   adminFeedbackService,
@@ -16,6 +14,7 @@ import PageContainer from '../../components/Common/PageContainer';
 import PageHeader from '../../components/Common/PageHeader';
 import Button from '../../components/Common/Button';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
+import AdminTabs from './AdminTabs';
 import './AdminPages.css';
 
 const mediaUrl = (path?: string | null) => {
@@ -96,22 +95,9 @@ const FeedbackInboxPage: React.FC = () => {
         <PageHeader
           title={t('admin:feedback.title')}
           subtitle={t('admin:feedback.subtitle', { count: unseenCount })}
-          actions={
-            <Button to="/admin/campaigns" variant="outline" icon={<Megaphone size={16} />}>
-              {t('admin:campaigns.nav')}
-            </Button>
-          }
         />
 
-        <div className="admin-tabs">
-          <Link to="/admin/campaigns" className="admin-tab">
-            <Megaphone size={16} /> {t('admin:campaigns.nav')}
-          </Link>
-          <Link to="/admin/feedback" className="admin-tab is-active">
-            <MessageSquareHeart size={16} /> {t('admin:feedback.nav')}
-            {unseenCount > 0 ? ` (${unseenCount})` : ''}
-          </Link>
-        </div>
+        <AdminTabs />
 
         {loading ? (
           <LoadingSpinner />

@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<INoteRepository, NoteRepository>();
         services.AddScoped<IMediaAttachmentRepository, MediaAttachmentRepository>();
         services.AddScoped<IUserFeedbackRepository, UserFeedbackRepository>();
+        services.AddScoped<IApiErrorEventRepository, ApiErrorEventRepository>();
         services.AddScoped<IInAppCampaignRepository, InAppCampaignRepository>();
         services.AddScoped<ICampaignEngagementRepository, CampaignEngagementRepository>();
         services.AddScoped<ICampaignAnswerRepository, CampaignAnswerRepository>();

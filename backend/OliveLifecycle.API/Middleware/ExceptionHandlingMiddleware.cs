@@ -1,5 +1,7 @@
 using System.Net;
+using System.Security.Claims;
 using System.Text.Json;
+using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Api;
 using OliveLifecycle.Core.Exceptions;
 
@@ -34,7 +36,7 @@ public class ExceptionHandlingMiddleware
         {
             NotFoundException notFound => (HttpStatusCode.NotFound, new ApiError { Message = notFound.Message, Code = "not_found" }),
             ForbiddenException forbidden => (HttpStatusCode.Forbidden, new ApiError { Message = forbidden.Message, Code = forbidden.Code }),
-            ConflictException conflict => (HttpStatusCode.Conflict, new ApiError { Message = conflict.Message, Code = "conflict" }),
+            ConflictException conflict => (HttpStatusCode.Conflict, new ApiError { Message = conflict.Message, Code = conflict.Code }),
             ValidationException validation => (HttpStatusCode.BadRequest, new ApiError
             {
                 Message = validation.Message,
@@ -49,6 +51,26 @@ public class ExceptionHandlingMiddleware
         if (statusCode == HttpStatusCode.InternalServerError)
         {
             _logger.LogError(exception, "Unhandled exception for {Method} {Path}", context.Request.Method, context.Request.Path);
+
+            try
+            {
+                var recorder = context.RequestServices.GetService<IApiErrorRecorder>();
+                if (recorder != null)
+                {
+                    var userId = context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+                    await recorder.RecordUnhandledAsync(
+                        context.Request.Method,
+                        context.Request.Path.Value ?? "/",
+                        userId,
+                        context.TraceIdentifier,
+                        exception,
+                        context.RequestAborted);
+                }
+            }
+            catch (Exception persistEx)
+            {
+                _logger.LogWarning(persistEx, "API error persistence failed");
+            }
         }
 
         context.Response.ContentType = "application/json";

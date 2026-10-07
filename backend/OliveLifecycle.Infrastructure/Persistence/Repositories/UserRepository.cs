@@ -79,4 +79,116 @@ public class UserRepository : MongoRepositoryBase<UserDocument, User>, IUserRepo
         var documents = await Collection.Find(filter).ToListAsync(cancellationToken);
         return documents.Select(ToEntity);
     }
+
+    public async Task<int> CountActiveAsync(CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<UserDocument>.Filter.Eq(u => u.DeletedAt, null);
+        return (int)await Collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+    }
+
+    public async Task<int> CountCreatedSinceAsync(DateTime sinceUtc, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<UserDocument>.Filter.And(
+            Builders<UserDocument>.Filter.Eq(u => u.DeletedAt, null),
+            Builders<UserDocument>.Filter.Gte(u => u.CreatedAt, sinceUtc));
+        return (int)await Collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+    }
+
+    public async Task<int> CountSeenSinceAsync(DateTime sinceUtc, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<UserDocument>.Filter.And(
+            Builders<UserDocument>.Filter.Eq(u => u.DeletedAt, null),
+            Builders<UserDocument>.Filter.Gte(u => u.LastSeenAt, sinceUtc));
+        return (int)await Collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<User> Items, int Total)> SearchPageAsync(
+        string? search,
+        string? role,
+        int page,
+        int pageSize,
+        string sortBy,
+        CancellationToken cancellationToken = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var filter = BuildSearchFilter(search, role);
+        var total = (int)await Collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+
+        var sort = string.Equals(sortBy, "lastSeenAt", StringComparison.OrdinalIgnoreCase)
+            ? Builders<UserDocument>.Sort.Descending(u => u.LastSeenAt).Descending(u => u.CreatedAt)
+            : Builders<UserDocument>.Sort.Descending(u => u.CreatedAt);
+
+        var documents = await Collection
+            .Find(filter)
+            .Sort(sort)
+            .Skip((page - 1) * pageSize)
+            .Limit(pageSize)
+            .ToListAsync(cancellationToken);
+        return (documents.Select(ToEntity).ToList(), total);
+    }
+
+    public async Task<IReadOnlyList<User>> GetNewestAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        limit = Math.Clamp(limit, 1, 50);
+        var filter = Builders<UserDocument>.Filter.Eq(u => u.DeletedAt, null);
+        var documents = await Collection
+            .Find(filter)
+            .SortByDescending(u => u.CreatedAt)
+            .Limit(limit)
+            .ToListAsync(cancellationToken);
+        return documents.Select(ToEntity).ToList();
+    }
+
+    public async Task<bool> TouchLastSeenAsync(
+        string userId,
+        DateTime nowUtc,
+        TimeSpan minAge,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId) || !ObjectId.TryParse(userId, out _))
+        {
+            return false;
+        }
+
+        var staleBefore = nowUtc - minAge;
+        var filter = Builders<UserDocument>.Filter.And(
+            Builders<UserDocument>.Filter.Eq(u => u.Id, userId),
+            Builders<UserDocument>.Filter.Or(
+                Builders<UserDocument>.Filter.Eq(u => u.LastSeenAt, null),
+                Builders<UserDocument>.Filter.Lt(u => u.LastSeenAt, staleBefore)));
+
+        var update = Builders<UserDocument>.Update
+            .Set(u => u.LastSeenAt, nowUtc)
+            .Set(u => u.UpdatedAt, nowUtc);
+
+        var result = await Collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+        return result.ModifiedCount > 0;
+    }
+
+    private static FilterDefinition<UserDocument> BuildSearchFilter(string? search, string? role)
+    {
+        var filters = new List<FilterDefinition<UserDocument>>
+        {
+            Builders<UserDocument>.Filter.Eq(u => u.DeletedAt, null)
+        };
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            filters.Add(Builders<UserDocument>.Filter.Eq(u => u.Role, role.Trim()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            var escaped = Regex.Escape(term);
+            var regex = new BsonRegularExpression(escaped, "i");
+            filters.Add(Builders<UserDocument>.Filter.Or(
+                Builders<UserDocument>.Filter.Regex(u => u.Email, regex),
+                Builders<UserDocument>.Filter.Regex(u => u.FirstName!, regex),
+                Builders<UserDocument>.Filter.Regex(u => u.LastName!, regex)));
+        }
+
+        return Builders<UserDocument>.Filter.And(filters);
+    }
 }

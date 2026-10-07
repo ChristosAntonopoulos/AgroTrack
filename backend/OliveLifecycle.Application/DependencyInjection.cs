@@ -51,6 +51,8 @@ public static class DependencyInjection
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<IAdminFeedbackService, AdminFeedbackService>();
         services.AddScoped<IAdminCampaignService, AdminCampaignService>();
+        services.AddScoped<IAdminOpsService, AdminOpsService>();
+        services.AddScoped<IApiErrorRecorder, ApiErrorRecorder>();
         services.AddScoped<IInAppMessageService, InAppMessageService>();
         services.AddScoped<IChronologioService, ChronologioService>();
         services.AddScoped<IFieldWorkAuthorizationService, FieldWorkAuthorizationService>();

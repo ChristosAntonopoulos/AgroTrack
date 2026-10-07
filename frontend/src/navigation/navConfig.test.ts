@@ -67,6 +67,9 @@ describe('top-level app chrome', () => {
     expect(resolveParentPath('/partners/me')).toBe('/partners');
     expect(resolveParentPath('/this-harvest/review')).toBe('/harvest');
     expect(resolveParentPath('/admin/campaigns/x')).toBe('/admin/campaigns');
+    expect(resolveParentPath('/admin/users')).toBe('/admin');
+    expect(resolveParentPath('/admin/errors')).toBe('/admin');
+    expect(resolveParentPath('/admin')).toBeNull();
   });
 });
 

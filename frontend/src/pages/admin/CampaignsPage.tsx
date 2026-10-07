@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Megaphone, MessageSquareHeart, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { adminCampaignService, InAppCampaign } from '../../services/inAppCampaignService';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
@@ -10,6 +10,7 @@ import PageContainer from '../../components/Common/PageContainer';
 import PageHeader from '../../components/Common/PageHeader';
 import Button from '../../components/Common/Button';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
+import AdminTabs from './AdminTabs';
 import './AdminPages.css';
 
 const CampaignsPage: React.FC = () => {
@@ -59,9 +60,6 @@ const CampaignsPage: React.FC = () => {
           subtitle={t('admin:campaigns.subtitle')}
           actions={
             <div className="admin-header-actions">
-              <Button to="/admin/feedback" variant="outline" icon={<MessageSquareHeart size={16} />}>
-                {t('admin:feedback.nav')}
-              </Button>
               <Button to="/admin/campaigns/new" variant="primary" icon={<Plus size={16} />}>
                 {t('admin:campaigns.new')}
               </Button>
@@ -69,14 +67,7 @@ const CampaignsPage: React.FC = () => {
           }
         />
 
-        <div className="admin-tabs">
-          <Link to="/admin/campaigns" className="admin-tab is-active">
-            <Megaphone size={16} /> {t('admin:campaigns.nav')}
-          </Link>
-          <Link to="/admin/feedback" className="admin-tab">
-            <MessageSquareHeart size={16} /> {t('admin:feedback.nav')}
-          </Link>
-        </div>
+        <AdminTabs />
 
         {loading ? (
           <LoadingSpinner />

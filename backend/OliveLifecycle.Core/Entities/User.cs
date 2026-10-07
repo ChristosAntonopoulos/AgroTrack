@@ -17,4 +17,10 @@ public class User : BaseEntity
     public string? EmailChangeTokenHash { get; set; }
     public DateTime? EmailChangeExpiresAt { get; set; }
     public DateTime? DeletedAt { get; set; }
+
+    /// <summary>UTC time of the last successful password login.</summary>
+    public DateTime? LastLoginAt { get; set; }
+
+    /// <summary>UTC time of the last authenticated API activity (throttled).</summary>
+    public DateTime? LastSeenAt { get; set; }
 }

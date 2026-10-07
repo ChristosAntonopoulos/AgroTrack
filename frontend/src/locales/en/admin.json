@@ -101,5 +101,76 @@
       "when": "When",
       "media": "Media"
     }
+  },
+  "overview": {
+    "nav": "Overview",
+    "title": "Ops overview",
+    "subtitle": "Users, activity, feedback, and recent API failures.",
+    "forbidden": "You do not have permission to view the ops overview.",
+    "loadFailed": "Could not load the ops overview.",
+    "viewAll": "View all",
+    "kpis": {
+      "totalUsers": "Total users",
+      "active24h": "Active (24h)",
+      "active7d": "7d",
+      "active30d": "30d",
+      "newUsers": "New (24h)",
+      "newUsers7d": "7d",
+      "unseenFeedback": "Unseen feedback",
+      "errors24h": "API errors (24h)",
+      "unackedErrors": "Open",
+      "health": "API health"
+    },
+    "panels": {
+      "feedback": "Needs attention — feedback",
+      "errors": "Needs attention — errors",
+      "users": "Newest users"
+    }
+  },
+  "users": {
+    "nav": "Users",
+    "title": "Users",
+    "subtitle": "{{count}} accounts",
+    "forbidden": "You do not have permission to view users.",
+    "loadFailed": "Could not load users.",
+    "empty": "No users match these filters.",
+    "select": "Select a row to view account details.",
+    "searchPlaceholder": "Search email or name",
+    "role": "Role",
+    "allRoles": "All roles",
+    "sort": "Sort",
+    "sortCreated": "Newest created",
+    "sortLastSeen": "Recently active",
+    "language": "Language",
+    "experienceMode": "Experience mode",
+    "columns": {
+      "user": "User",
+      "email": "Email",
+      "role": "Role",
+      "created": "Created",
+      "lastLogin": "Last login",
+      "lastSeen": "Last seen"
+    }
+  },
+  "errors": {
+    "nav": "Errors",
+    "title": "API errors",
+    "subtitle": "{{count}} events",
+    "forbidden": "You do not have permission to view errors.",
+    "loadFailed": "Could not load errors.",
+    "empty": "No matching API errors.",
+    "select": "Select a row to inspect the failure.",
+    "unackedOnly": "Open only",
+    "acknowledge": "Acknowledge",
+    "acknowledged": "Acked",
+    "open": "Open",
+    "requestId": "Request id",
+    "userId": "User id",
+    "columns": {
+      "when": "When",
+      "request": "Request",
+      "type": "Exception",
+      "status": "Status"
+    }
   }
 }

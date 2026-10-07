@@ -43,6 +43,9 @@ import MinistryNotificationsPage from './pages/MinistryNotificationsPage';
 import CampaignsPage from './pages/admin/CampaignsPage';
 import CampaignEditorPage from './pages/admin/CampaignEditorPage';
 import FeedbackInboxPage from './pages/admin/FeedbackInboxPage';
+import AdminOverviewPage from './pages/admin/AdminOverviewPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminErrorsPage from './pages/admin/AdminErrorsPage';
 import { CHRONOLOGIO_HOME, migrateLegacyHomePath } from './navigation/homePath';
 import PartnersPage from './pages/PartnersPage';
 import PartnerSearchPage from './pages/PartnerSearchPage';
@@ -153,6 +156,9 @@ const router = createBrowserRouter(
         <Route path="ministry" element={<MinistryNotificationsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="data-sources" element={<DataSourcesPage />} />
+        <Route path="admin" element={<AdminOverviewPage />} />
+        <Route path="admin/users" element={<AdminUsersPage />} />
+        <Route path="admin/errors" element={<AdminErrorsPage />} />
         <Route path="admin/campaigns" element={<CampaignsPage />} />
         <Route path="admin/campaigns/new" element={<CampaignEditorPage />} />
         <Route path="admin/campaigns/:id" element={<CampaignEditorPage />} />
