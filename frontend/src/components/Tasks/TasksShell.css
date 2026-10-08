@@ -13,6 +13,46 @@
   overflow-x: clip;
 }
 
+.tasks-page-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.tasks-skeleton-section,
+.tasks-skeleton-card {
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-2, #f0efeb) 0%,
+    color-mix(in srgb, var(--surface-2, #f0efeb) 55%, #fff) 45%,
+    var(--surface-2, #f0efeb) 100%
+  );
+  background-size: 200% 100%;
+  animation: tasks-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.tasks-skeleton-section {
+  height: 1.25rem;
+  width: 8rem;
+  border-radius: 8px;
+}
+
+.tasks-skeleton-card {
+  height: 5.5rem;
+  border: 1px solid var(--border-subtle, transparent);
+}
+
+@keyframes tasks-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 .tasks-shell-header {
   display: flex;
   justify-content: space-between;

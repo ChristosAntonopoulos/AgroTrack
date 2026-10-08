@@ -127,7 +127,20 @@
     "markDone": "Mark done",
     "skipReason": "Why skip?",
     "skipReasonPlaceholder": "Optional reason",
-    "confirmSkip": "Skip"
+    "confirmSkip": "Skip",
+    "moreMenu": "More",
+    "delete": "Delete",
+    "deleteConfirmTitle": "Delete this task?",
+    "deleteConfirmBody": "The task will be removed permanently from the list.",
+    "failedDelete": "Could not delete the task.",
+    "failedReopen": "Could not restore the task.",
+    "restoreToTasks": "Restore to tasks",
+    "doneOutcome": "Done",
+    "doneBody": "This task is complete.",
+    "doneOn": "Completed {{date}}",
+    "skippedOutcome": "Skipped",
+    "skippedBody": "This task was skipped.",
+    "saveNote": "Save note"
   },
   "evidence": {
     "add": "Add photo",

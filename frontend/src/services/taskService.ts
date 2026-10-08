@@ -195,6 +195,15 @@ export const taskService = {
     return response.data;
   },
 
+  reopenTask: async (id: string): Promise<Task> => {
+    const response = await api.post<Task>(`/api/v1/tasks/${id}/reopen`);
+    return response.data;
+  },
+
+  deleteTask: async (id: string): Promise<void> => {
+    await api.delete(`/api/v1/tasks/${id}`);
+  },
+
   listSuggestions: async (params: {
     fieldId: string;
     date?: string;

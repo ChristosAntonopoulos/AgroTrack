@@ -222,7 +222,7 @@ describe('TasksPage Phase 2 shell', () => {
     renderTasks();
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Ελαιώνας')).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Κάτω ελαιώνας' })).toBeInTheDocument();
     });
     await userEvent.selectOptions(screen.getByLabelText('Ελαιώνας'), 'field-2');
     expect(mockSearchState.current.get('fieldId')).toBe('field-2');

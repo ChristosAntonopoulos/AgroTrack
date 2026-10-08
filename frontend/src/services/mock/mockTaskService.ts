@@ -151,7 +151,9 @@ export const mockTaskService = {
     return { ...next };
   },
 
-  undoComplete: async (id: string): Promise<Task> => {
+  undoComplete: async (id: string): Promise<Task> => mockTaskService.reopenTask(id),
+
+  reopenTask: async (id: string): Promise<Task> => {
     const index = mockTasks.findIndex((item) => item.id === id);
     if (index < 0) throw new Error('Task not found');
     const next = {
@@ -160,11 +162,17 @@ export const mockTaskService = {
       statusLabel: 'Προγραμματισμένη',
       completedAt: undefined,
       completedByUserId: undefined,
+      skippedAt: undefined,
+      skippedReason: undefined,
       linkedWorkRecordId: undefined,
       updatedAt: nowIso(),
     };
     mockTasks[index] = next;
     return { ...next };
+  },
+
+  deleteTask: async (id: string): Promise<void> => {
+    mockTasks = mockTasks.filter((item) => item.id !== id);
   },
 
   listSuggestions: async (params: {

@@ -73,6 +73,20 @@ public interface ITaskService
         string userRole,
         string language = "el",
         CancellationToken cancellationToken = default);
+
+    /// <summary>Reopen a done or skipped task back to planned.</summary>
+    Task<TaskDto> ReopenAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(
+        string id,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken = default);
 }
 
 public class TaskService : ITaskService
@@ -450,24 +464,45 @@ public class TaskService : ITaskService
         string userId,
         string userRole,
         string language = "el",
+        CancellationToken cancellationToken = default) =>
+        await ReopenAsync(id, userId, userRole, language, cancellationToken);
+
+    public async Task<TaskDto> ReopenAsync(
+        string id,
+        string userId,
+        string userRole,
+        string language = "el",
         CancellationToken cancellationToken = default)
     {
         var task = await RequireTaskAsync(id, cancellationToken);
         await _auth.EnsureCanCreateOrEditTaskAsync(task.FieldId, userId, userRole, cancellationToken);
 
-        if (task.Status != FieldTaskStatus.Done)
+        if (task.Status is not (FieldTaskStatus.Done or FieldTaskStatus.Skipped))
         {
-            throw new ValidationException("Only done tasks can be undone.");
+            throw new ValidationException("Only done or skipped tasks can be reopened.");
         }
 
         var now = _clock.UtcNow;
         task.Status = FieldTaskStatus.Planned;
         task.CompletedAt = null;
         task.CompletedByUserId = null;
+        task.SkippedAt = null;
+        task.SkippedReason = null;
         task.UpdatedAt = now;
         Record(task, "reopened", userId, now);
         var updated = await _tasks.UpdateAsync(task, cancellationToken);
         return FieldWorkMapper.ToTaskDto(updated, language);
+    }
+
+    public async Task DeleteAsync(
+        string id,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken = default)
+    {
+        var task = await RequireTaskAsync(id, cancellationToken);
+        await _auth.EnsureCanCreateOrEditTaskAsync(task.FieldId, userId, userRole, cancellationToken);
+        await _tasks.DeleteAsync(id, cancellationToken);
     }
 
     private async Task<FieldTask> RequireTaskAsync(string id, CancellationToken cancellationToken)

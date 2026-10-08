@@ -127,7 +127,20 @@
     "markDone": "Segna come fatto",
     "skipReason": "Perché saltarlo?",
     "skipReasonPlaceholder": "Motivo opzionale",
-    "confirmSkip": "Salta"
+    "confirmSkip": "Salta",
+    "moreMenu": "Altro",
+    "delete": "Elimina",
+    "deleteConfirmTitle": "Eliminare il lavoro?",
+    "deleteConfirmBody": "Il lavoro verrà rimosso definitivamente dall'elenco.",
+    "failedDelete": "Impossibile eliminare.",
+    "failedReopen": "Impossibile ripristinare.",
+    "restoreToTasks": "Ripristina nelle attività",
+    "doneOutcome": "Fatto",
+    "doneBody": "Il lavoro è completato.",
+    "doneOn": "Completato il {{date}}",
+    "skippedOutcome": "Saltato",
+    "skippedBody": "Il lavoro è stato saltato.",
+    "saveNote": "Salva nota"
   },
   "form": {
     "newTitle": "Programma un lavoro",

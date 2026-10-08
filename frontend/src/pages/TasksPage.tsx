@@ -28,7 +28,6 @@ import { readFieldId } from '../navigation/intents';
 import { useRegisterCapturePage } from '../context/CapturePageContext';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import PageContainer from '../components/Common/PageContainer';
-import LoadingSpinner from '../components/Common/LoadingSpinner';
 import TasksPageHeader from '../components/Tasks/TasksPageHeader';
 import TaskViewTabs from '../components/Tasks/TaskViewTabs';
 import HistoryTaskView from '../components/Tasks/HistoryTaskView';
@@ -73,6 +72,7 @@ const TasksPage: React.FC = () => {
     fieldId: fieldFilter || undefined,
   });
 
+  const [bannerTaskId, setBannerTaskId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
@@ -235,6 +235,30 @@ const TasksPage: React.FC = () => {
     }
   }, [scheduleOpen, schedulePrefill, fieldFilter, templateCodeParam, i18n.language]);
 
+  // Capture created= once into local banner state, then strip it from the URL
+  // so a refresh does not keep showing “Η εργασία προγραμματίστηκε”.
+  useEffect(() => {
+    if (!createdId) return;
+    setBannerTaskId(createdId);
+    const params = buildTaskSearchParams({
+      view,
+      fieldId: fieldFilter || undefined,
+      taskId: selectedTaskId || undefined,
+      schedule: scheduleOpen,
+      templateCode: templateCodeParam || undefined,
+      created: undefined,
+    });
+    setSearchParams(params, { replace: true });
+  }, [
+    createdId,
+    fieldFilter,
+    scheduleOpen,
+    selectedTaskId,
+    setSearchParams,
+    templateCodeParam,
+    view,
+  ]);
+
   const peopleFieldKey = useMemo(
     () =>
       [...new Set(tasks.map((task) => task.fieldId).filter(Boolean))]
@@ -393,10 +417,11 @@ const TasksPage: React.FC = () => {
       setScheduleError(null);
       const created = await getTaskService().createTask(input);
       closeSchedule();
+      setBannerTaskId(created.id);
       writeParams({
         view: 'today',
         fieldId: created.fieldId,
-        created: created.id,
+        created: null,
         schedule: null,
         templateCode: null,
       });
@@ -469,17 +494,20 @@ const TasksPage: React.FC = () => {
   };
 
   const createdTask = useMemo(
-    () => tasks.find((task) => task.id === createdId),
-    [tasks, createdId]
+    () => (bannerTaskId ? tasks.find((task) => task.id === bannerTaskId) : undefined),
+    [tasks, bannerTaskId]
   );
 
-  const clearCreated = () => writeParams({ created: null });
+  const clearCreated = () => {
+    setBannerTaskId(null);
+    writeParams({ created: null });
+  };
 
   const handleUndoCreated = async () => {
-    if (!createdId) return;
+    if (!bannerTaskId) return;
     try {
-      setBusyId(createdId);
-      await getTaskService().skipTask(createdId, 'undo_create');
+      setBusyId(bannerTaskId);
+      await getTaskService().skipTask(bannerTaskId, 'undo_create');
       clearCreated();
       await loadData();
     } catch (err: unknown) {
@@ -496,23 +524,16 @@ const TasksPage: React.FC = () => {
     return { today: tasks.length, upcoming: 0, done: 0 };
   }, [tasks, view]);
 
-  if (pageGuard.loading || loading) {
-    return (
-      <PageContainer className="tasks-page-container">
-        <Breadcrumbs />
-        <LoadingSpinner />
-      </PageContainer>
-    );
-  }
+  const showSkeleton = pageGuard.loading || loading;
 
   return (
     <PageContainer className="tasks-page-container">
       <Breadcrumbs />
-      <div className="tasks-page">
+      <div className="tasks-page" aria-busy={showSkeleton || undefined}>
         <TasksPageHeader
           title={t('page.title')}
           newTaskLabel={t('page.scheduleCta')}
-          canCreateTasks={canCreateTasks}
+          canCreateTasks={canCreateTasks && !showSkeleton}
           onNewTask={() => openSchedule({ fieldId: fieldFilter || undefined })}
           fieldLabel={t('page.fieldFilter')}
           allFieldsLabel={t('page.allFields')}
@@ -526,15 +547,24 @@ const TasksPage: React.FC = () => {
           activeView={view}
           onChange={(next) => writeParams({ view: next, taskId: null })}
           views={[
-            { id: 'today', label: t('page.tabs.today'), count: taskCounts.today },
-            { id: 'upcoming', label: t('page.tabs.upcoming'), count: taskCounts.upcoming },
-            { id: 'done', label: t('page.tabs.done'), count: taskCounts.done },
+            { id: 'today', label: t('page.tabs.today'), count: showSkeleton ? 0 : taskCounts.today },
+            { id: 'upcoming', label: t('page.tabs.upcoming'), count: showSkeleton ? 0 : taskCounts.upcoming },
+            { id: 'done', label: t('page.tabs.done'), count: showSkeleton ? 0 : taskCounts.done },
           ]}
         />
 
-        {error && <div className="tasks-error">{error}</div>}
+        {showSkeleton ? (
+          <div className="tasks-page-skeleton" aria-hidden>
+            <div className="tasks-skeleton-section" />
+            <div className="tasks-skeleton-card" />
+            <div className="tasks-skeleton-card" />
+            <div className="tasks-skeleton-card" />
+          </div>
+        ) : null}
 
-        {undoCompleteId ? (
+        {!showSkeleton && error ? <div className="tasks-error">{error}</div> : null}
+
+        {!showSkeleton && undoCompleteId ? (
           <div className="tasks-undo-toast" role="status">
             <span>{t('complete.undoMessage')}</span>
             <button type="button" onClick={() => void handleUndoComplete()}>
@@ -543,7 +573,7 @@ const TasksPage: React.FC = () => {
           </div>
         ) : null}
 
-        {createdTask ? (
+        {!showSkeleton && createdTask ? (
           <CreatedTaskBanner
             title={taskDisplayTitle(createdTask.title, createdTask.templateCode, i18n.language)}
             fieldName={fieldNames[createdTask.fieldId] || t('fieldWork.unknownField')}
@@ -551,13 +581,19 @@ const TasksPage: React.FC = () => {
               createdTask.scheduledFor || createdTask.plannedStart,
               i18n.language
             )}
-            onView={() => openTask(createdTask)}
-            onCreateAnother={() => openSchedule({ fieldId: createdTask.fieldId })}
+            onView={() => {
+              clearCreated();
+              openTask(createdTask);
+            }}
+            onCreateAnother={() => {
+              clearCreated();
+              openSchedule({ fieldId: createdTask.fieldId });
+            }}
             onUndo={() => void handleUndoCreated()}
           />
         ) : null}
 
-        {view === 'done' ? (
+        {!showSkeleton && view === 'done' ? (
           <section
             className="tasks-view-panel"
             role="tabpanel"
@@ -576,7 +612,9 @@ const TasksPage: React.FC = () => {
               onMenu={(task, action) => void handleMenu(task, action)}
             />
           </section>
-        ) : (
+        ) : null}
+
+        {!showSkeleton && view !== 'done' ? (
           <section
             className="tasks-view-panel"
             role="tabpanel"
@@ -605,7 +643,7 @@ const TasksPage: React.FC = () => {
               onDismissSuggestion={(suggestion) => void handleDismissSuggestion(suggestion)}
             />
           </section>
-        )}
+        ) : null}
       </div>
 
       <RescheduleTaskSheet

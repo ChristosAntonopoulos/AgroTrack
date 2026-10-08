@@ -127,7 +127,20 @@
     "markDone": "Σήμανε έτοιμη",
     "skipReason": "Γιατί να παραλειφθεί;",
     "skipReasonPlaceholder": "Προαιρετικός λόγος",
-    "confirmSkip": "Παράλειψη"
+    "confirmSkip": "Παράλειψη",
+    "moreMenu": "Περισσότερα",
+    "delete": "Διαγραφή",
+    "deleteConfirmTitle": "Διαγραφή εργασίας;",
+    "deleteConfirmBody": "Η εργασία θα αφαιρεθεί οριστικά από τη λίστα.",
+    "failedDelete": "Αποτυχία διαγραφής.",
+    "failedReopen": "Αποτυχία επαναφοράς.",
+    "restoreToTasks": "Επαναφορά στις εργασίες",
+    "doneOutcome": "Έγινε",
+    "doneBody": "Η εργασία ολοκληρώθηκε.",
+    "doneOn": "Ολοκληρώθηκε {{date}}",
+    "skippedOutcome": "Παραλείφθηκε",
+    "skippedBody": "Η εργασία παραλείφθηκε.",
+    "saveNote": "Αποθήκευση σημείωσης"
   },
   "evidence": {
     "add": "Πρόσθεσε φωτογραφία",

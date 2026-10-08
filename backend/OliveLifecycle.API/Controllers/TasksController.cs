@@ -137,6 +137,29 @@ public class TasksController : BaseApiController
         return OkResult(task);
     }
 
+    [HttpPost("{id}/reopen")]
+    public async Task<ActionResult<TaskDto>> Reopen(string id, CancellationToken cancellationToken)
+    {
+        var task = await _tasks.ReopenAsync(
+            id,
+            UserContext.UserId,
+            UserContext.Role,
+            ResolveLanguage(),
+            cancellationToken);
+        return OkResult(task);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
+    {
+        await _tasks.DeleteAsync(
+            id,
+            UserContext.UserId,
+            UserContext.Role,
+            cancellationToken);
+        return NoContent();
+    }
+
     private string ResolveLanguage()
     {
         var header = Request.Headers.AcceptLanguage.FirstOrDefault();
