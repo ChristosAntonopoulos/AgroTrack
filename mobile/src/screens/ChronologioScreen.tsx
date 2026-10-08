@@ -279,8 +279,16 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     return named[0] ?? null;
   }, [fields, fieldId]);
   const starterNeedsBoundary = Boolean(starterGrove && !fieldHasBoundary(starterGrove));
+  const coachingFirstObservation =
+    Boolean(activation?.awaitingFirstObservation) && !activation?.completion.firstObservation;
+  // During the first-note lesson the dock + owns the path — hide the competing CTA card.
   const showStarter =
-    booted && !loading && years.length === 0 && !filtersDirty && Boolean(starterGrove);
+    booted &&
+    !loading &&
+    years.length === 0 &&
+    !filtersDirty &&
+    Boolean(starterGrove) &&
+    !coachingFirstObservation;
 
   const journalFilterParams = useMemo(
     () => ({

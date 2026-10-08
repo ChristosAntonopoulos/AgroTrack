@@ -33,13 +33,15 @@ const GuideTarget: React.FC<Props> = ({ id, children, style }) => {
   useEffect(() => {
     if (!active) return;
     // Scroll offsets and header transitions move the control without firing
-    // onLayout, so re-read while the lesson is on screen.
+    // onLayout. Remeasure sparingly — frequent polls made the History ring walk.
     const frame = requestAnimationFrame(publish);
     const settle = setTimeout(publish, 120);
-    const interval = setInterval(publish, 300);
+    const settle2 = setTimeout(publish, 400);
+    const interval = setInterval(publish, 1200);
     return () => {
       cancelAnimationFrame(frame);
       clearTimeout(settle);
+      clearTimeout(settle2);
       clearInterval(interval);
     };
   }, [active, publish]);

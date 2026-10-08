@@ -73,4 +73,6 @@ export type CaptureSavedOptions = {
   transactionId?: string;
   status?: 'draft' | 'posted';
   reopen?: CaptureContext;
+  /** Skip the generic saved toast — used when onboarding shows its own celebration. */
+  skipDialog?: boolean;
 };

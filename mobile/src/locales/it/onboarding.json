@@ -65,7 +65,7 @@
     "title": "Scrivi la prima nota",
     "body": "Una nota breve avvia la Cronologia di questo oliveto.",
     "cta": "Scrivi la nota",
-    "prefill": "La mia prima osservazione nell'oliveto — qui inizia la Cronologia."
+    "prefill": "🌱 Il mio primo sguardo all’oliveto — qui inizia la Cronologia."
   },
   "spatial": {
     "kicker": "Poco prima della Cronologia",
@@ -116,18 +116,25 @@
   "welcome": {
     "kicker": "Benvenuto",
     "groveFallback": "il tuo oliveto",
-    "title": "“{{grove}}” è pronto",
-    "titleNamed": "{{name}}, “{{grove}}” è pronto",
-    "body": "Dai un’occhiata sulla mappa. Quando sei pronto, apriamo la Cronologia.",
+    "title": "“{{grove}}” è pronto 🌿",
+    "titleNamed": "{{name}}, “{{grove}}” è pronto 🌿",
+    "body": "Poi torniamo all’inizio, apriamo la Cronologia e lasciamo la prima nota — lì inizia la storia di questo oliveto.",
     "pointWeather": "Il suo meteo è già qui",
     "pointSatellite": "Gli alberi si vedono a cielo sereno",
     "pointMap": "Quello che scrivi resta nella sua storia",
-    "openMap": "Apri la mappa",
-    "openGrove": "Apri la mappa"
+    "openMap": "Continua",
+    "openGrove": "Continua"
   },
   "mapExplore": {
-    "caption": "Questo è il tuo oliveto sulla mappa. Prova un’immagine sotto, poi continua verso la Cronologia.",
-    "cta": "Continua"
+    "caption": "Questo è il tuo oliveto sulla mappa. Quando sei pronto, torna all’inizio per la Cronologia.",
+    "cta": "Avanti"
+  },
+  "finished": {
+    "kicker": "Ci sei",
+    "title": "La storia del tuo campo inizia qui 🌿",
+    "body": "Quella prima nota è l’inizio della storia di questo oliveto. Sei libero di esplorare — benvenuto in The Olive Lot.",
+    "cta": "Inizia a esplorare",
+    "savedToast": "Prima nota salvata — la Cronologia è iniziata."
   },
   "coach": {
     "kicker": "Tocca a te",
@@ -145,27 +152,27 @@
     "homeButton": {
       "title": "Questo ti riporta a casa",
       "body": "Il simbolo apre il launcher. Toccalo — poi è il turno della Cronologia.",
-      "cue": "Questo simbolo ti riporta all’inizio."
+      "cue": "Tocca il simbolo home — poi la Cronologia 🏠"
     },
     "historyCard": {
       "title": "Apri la Cronologia",
       "body": "Tocca Cronologia — poi lascia la prima nota.",
-      "cue": "Tocca Cronologia — poi lascia la prima nota."
+      "cue": "Tocca Cronologia (Chronologio) 📖"
     },
     "addButton": {
       "title": "Aggiungi una nota",
       "body": "Tocca + per aprire cosa puoi registrare.",
-      "cue": "Tocca + per la prima nota."
+      "cue": "Tocca + per la prima nota ✨"
     },
     "observationType": {
-      "title": "Scegli Osservazione",
-      "body": "Tocca Osservazione — è la prima nota della Cronologia.",
-      "cue": "Tocca Osservazione."
+      "title": "Scegli Osservazione 👁️",
+      "body": "È la prima pagina della Cronologia di questo oliveto — toccala.",
+      "cue": "Tocca Osservazione 👁️"
     },
     "saveObservation": {
       "title": "Salva la nota",
       "body": "Tieni o modifica il testo, poi tocca Salva.",
-      "cue": "Tocca Salva per completare."
+      "cue": "Tocca Salva — qui inizia la Cronologia 🌱"
     }
   },
   "settings": {

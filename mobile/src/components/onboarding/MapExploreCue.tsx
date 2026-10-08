@@ -6,8 +6,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { radii, spacing } from '../../theme';
 
 /**
- * Quiet top-left caption while the grower looks at the map on their own.
- * CTA advances to home coaching (launcher mark) — never navigates for them.
+ * Legacy linger caption (older installs may still hold navCoachPhase=linger).
+ * Fresh runs skip linger and coach the home mark directly after spatial welcome.
  */
 const MapExploreCue: React.FC = () => {
   const { t } = useTranslation('onboarding');

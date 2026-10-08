@@ -85,6 +85,9 @@ const AppDock: React.FC<Props> = ({ route }) => {
             accessibilityRole="button"
             accessibilityLabel={t('log', { defaultValue: 'Add' })}
             onPress={() => {
+              // Keep the home → History lesson on rails; + opens after Chronologio.
+              const beat = activation?.guideBeat;
+              if (beat === 'homeButton' || beat === 'historyCard') return;
               if (dockAdd?.onAdd) dockAdd.onAdd();
               else capture?.openCapture();
             }}

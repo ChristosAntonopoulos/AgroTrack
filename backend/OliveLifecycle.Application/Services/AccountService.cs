@@ -20,7 +20,6 @@ public class AccountService : IAccountService
     public const int AccountDataPurgeDays = 30;
     /// <summary>Encrypted backups may retain residual copies up to this many days.</summary>
     public const int BackupRetentionDays = 90;
-    private const int MinimumPasswordLength = 8;
     private const int EmailCodeHours = 1;
     private const int MaxNameLength = 80;
 
@@ -29,6 +28,7 @@ public class AccountService : IAccountService
     private readonly IUserNotificationRepository _notifications;
     private readonly IDevicePushTokenRepository? _pushTokens;
     private readonly ISavedContactRepository? _savedContacts;
+    private readonly IRefreshTokenRepository? _refreshTokens;
     private readonly IDateTimeProvider _clock;
     private readonly IConfiguration _configuration;
     private readonly IEmailSender? _emailSender;
@@ -41,13 +41,15 @@ public class AccountService : IAccountService
         IConfiguration configuration,
         IEmailSender? emailSender = null,
         IDevicePushTokenRepository? pushTokens = null,
-        ISavedContactRepository? savedContacts = null)
+        ISavedContactRepository? savedContacts = null,
+        IRefreshTokenRepository? refreshTokens = null)
     {
         _users = users;
         _fields = fields;
         _notifications = notifications;
         _pushTokens = pushTokens;
         _savedContacts = savedContacts;
+        _refreshTokens = refreshTokens;
         _clock = clock;
         _configuration = configuration;
         _emailSender = emailSender;
@@ -90,10 +92,7 @@ public class AccountService : IAccountService
         }
 
         var next = dto.NewPassword ?? string.Empty;
-        if (next.Length < MinimumPasswordLength)
-        {
-            throw new ValidationException("Password must be at least 8 characters.");
-        }
+        await PasswordGuard.EnsureAsync(next, cancellationToken);
 
         if (PasswordMatches(next, user.PasswordHash))
         {
@@ -105,6 +104,11 @@ public class AccountService : IAccountService
         user.PasswordResetExpiresAt = null;
         user.UpdatedAt = _clock.UtcNow;
         await _users.UpdateAsync(user, cancellationToken);
+
+        if (_refreshTokens != null)
+        {
+            await _refreshTokens.RevokeAllForUserAsync(user.Id, cancellationToken);
+        }
     }
 
     public async Task<RequestEmailChangeResponseDto> RequestEmailChangeAsync(

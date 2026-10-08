@@ -48,7 +48,7 @@ public class AccountServiceTests
             service.ChangePasswordAsync("user-1", new ChangePasswordDto
             {
                 CurrentPassword = "nope",
-                NewPassword = "new-password-9"
+                NewPassword = "OliveTree9"
             }));
     }
 
@@ -62,11 +62,11 @@ public class AccountServiceTests
         await service.ChangePasswordAsync("user-1", new ChangePasswordDto
         {
             CurrentPassword = "password123",
-            NewPassword = "new-password-9"
+            NewPassword = "OliveTree9"
         });
 
         Assert.NotEqual(previous, stored.PasswordHash);
-        Assert.True(BCrypt.Net.BCrypt.Verify("new-password-9", stored.PasswordHash));
+        Assert.True(BCrypt.Net.BCrypt.Verify("OliveTree9", stored.PasswordHash));
     }
 
     [Fact]

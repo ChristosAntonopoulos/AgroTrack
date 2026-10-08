@@ -7,8 +7,8 @@ import { mockAuthService } from '../services/mock/mockAuthService';
 import { isMockDataEnabled } from '../config/apiConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import Button from '../components/Common/Button';
-
-const MIN_PASSWORD_LENGTH = 8;
+import PasswordStrength from '../components/Auth/PasswordStrength';
+import { getPasswordIssue, MIN_PASSWORD_LENGTH } from '../utils/passwordValidation';
 
 const ResetPasswordPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common', 'errors']);
@@ -33,8 +33,13 @@ const ResetPasswordPage: React.FC = () => {
       setError(t('auth:register.missingFields'));
       return;
     }
-    if (password.length < MIN_PASSWORD_LENGTH) {
+    const issue = getPasswordIssue(password);
+    if (issue === 'tooShort') {
       setError(t('auth:register.passwordTooShort'));
+      return;
+    }
+    if (issue === 'complexity') {
+      setError(t('auth:register.passwordComplexity'));
       return;
     }
     if (password !== confirmPassword) {
@@ -92,7 +97,7 @@ const ResetPasswordPage: React.FC = () => {
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-          <p className="login-hint">{t('auth:register.passwordHint')}</p>
+          <PasswordStrength password={password} />
         </div>
 
         <div className="login-field">

@@ -13,8 +13,9 @@ import AuthAlert from '../components/auth/AuthAlert';
 import AuthSocialButtons from '../components/auth/AuthSocialButtons';
 import AuthInviteOption from '../components/auth/AuthInviteOption';
 import { AuthStackParamList } from '../navigation/types';
+import PasswordStrength from '../components/auth/PasswordStrength';
+import { getPasswordIssue } from '../utils/passwordValidation';
 
-const MIN_PASSWORD_LENGTH = 8;
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
@@ -87,7 +88,11 @@ const RegisterScreen = () => {
     if (!email.trim()) next.email = t('auth:register.emailRequired');
     else if (!isValidEmail(email)) next.email = t('auth:register.emailInvalid');
     if (!password) next.password = t('auth:register.passwordRequired');
-    else if (password.length < MIN_PASSWORD_LENGTH) next.password = t('auth:register.passwordTooShort');
+    else {
+      const issue = getPasswordIssue(password);
+      if (issue === 'tooShort') next.password = t('auth:register.passwordTooShort');
+      else if (issue === 'complexity') next.password = t('auth:register.passwordComplexity');
+    }
     if (!confirmPassword) next.confirmPassword = t('auth:register.passwordRequired');
     else if (password !== confirmPassword) next.confirmPassword = t('auth:register.passwordMismatch');
     return next;
@@ -302,9 +307,9 @@ const RegisterScreen = () => {
             editable={!loading}
             leftIcon="lock-closed-outline"
             required
-            helperText={t('auth:register.passwordHint')}
             error={errors.password}
           />
+          <PasswordStrength password={password} />
           <AuthTextField
             label={t('auth:register.confirmPassword')}
             placeholder={t('auth:register.confirmPasswordPlaceholder')}

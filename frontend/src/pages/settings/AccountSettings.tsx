@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { accountService } from '../../services/accountService';
 import { getApiErrorMessage } from '../../utils/translateApiError';
+import { getPasswordIssue } from '../../utils/passwordValidation';
+import PasswordStrength from '../../components/Auth/PasswordStrength';
 import Button from '../../components/Common/Button';
 
 const AccountSettings: React.FC = () => {
@@ -114,8 +116,13 @@ const AccountSettings: React.FC = () => {
     event.preventDefault();
     setPasswordError(null);
     setPasswordStatus(null);
-    if (nextPassword.length < 8) {
+    const issue = getPasswordIssue(nextPassword);
+    if (issue === 'tooShort') {
       setPasswordError(t('account.passwordTooShort'));
+      return;
+    }
+    if (issue === 'complexity') {
+      setPasswordError(t('account.passwordComplexity'));
       return;
     }
     if (nextPassword !== confirmPassword) {
@@ -274,6 +281,7 @@ const AccountSettings: React.FC = () => {
             value={nextPassword}
             onChange={(event) => setNextPassword(event.target.value)}
           />
+          <PasswordStrength password={nextPassword} />
           <label className="settings-label" htmlFor="settings-confirm-password">
             {t('account.confirmPassword')}
           </label>

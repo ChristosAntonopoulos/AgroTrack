@@ -65,7 +65,7 @@
     "title": "Write the first note",
     "body": "One short note starts History for this grove.",
     "cta": "Write the note",
-    "prefill": "My first observation in the grove — History begins here."
+    "prefill": "🌱 My first look at the grove — History begins here."
   },
   "spatial": {
     "kicker": "Just before History",
@@ -116,18 +116,25 @@
   "welcome": {
     "kicker": "Welcome in",
     "groveFallback": "your grove",
-    "title": "“{{grove}}” is ready",
-    "titleNamed": "{{name}}, “{{grove}}” is ready",
-    "body": "Have a look on the map. When you’re ready, we open History.",
+    "title": "“{{grove}}” is ready 🌿",
+    "titleNamed": "{{name}}, “{{grove}}” is ready 🌿",
+    "body": "Next we’ll take you home, open History, and leave the first note — the story of this grove starts there.",
     "pointWeather": "Its weather is already here",
     "pointSatellite": "The trees show when the sky is clear",
     "pointMap": "What you write stays in its story",
-    "openMap": "Open the map",
-    "openGrove": "Open the map"
+    "openMap": "Continue",
+    "openGrove": "Continue"
   },
   "mapExplore": {
-    "caption": "This is your grove on the map. Try a picture below, then continue toward History.",
-    "cta": "Continue"
+    "caption": "This is your grove on the map. When you’re ready, head home for History.",
+    "cta": "Next"
+  },
+  "finished": {
+    "kicker": "You’re in",
+    "title": "Your field history starts here 🌿",
+    "body": "That first note is the beginning of this grove’s story. You’re free to roam — welcome to The Olive Lot.",
+    "cta": "Start exploring",
+    "savedToast": "First note saved — History has begun."
   },
   "coach": {
     "kicker": "Your move",
@@ -145,27 +152,27 @@
     "homeButton": {
       "title": "This brings you home",
       "body": "The mark opens the launcher. Tap it — History is the next stop.",
-      "cue": "This mark brings you home."
+      "cue": "Tap the home mark — History is next 🏠"
     },
     "historyCard": {
       "title": "Open History",
       "body": "Tap History — then leave the first note.",
-      "cue": "Tap History — then leave the first note."
+      "cue": "Tap History (Chronologio) 📖"
     },
     "addButton": {
       "title": "Add a note",
       "body": "Tap + to open what you can record.",
-      "cue": "Tap + to add your first note."
+      "cue": "Tap + for your first note ✨"
     },
     "observationType": {
-      "title": "Choose Observation",
-      "body": "Tap Observation — that is the first History note.",
-      "cue": "Tap Observation."
+      "title": "Choose Observation 👁️",
+      "body": "That’s the first page of this grove’s History — tap it.",
+      "cue": "Tap Observation 👁️"
     },
     "saveObservation": {
       "title": "Save the note",
       "body": "Keep or edit the text, then tap Save to finish.",
-      "cue": "Tap Save to finish the first note."
+      "cue": "Tap Save — History begins here 🌱"
     }
   },
   "settings": {

@@ -1,18 +1,28 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getApiEnvironmentLabel,
   isMockDataEnabled,
   resolveApiBaseUrl,
 } from '../config/env';
+import { clearSession, persistSession, type AuthResponse } from './authService';
 
 export const API_BASE_URL = resolveApiBaseUrl();
+const REFRESH_KEY = 'refreshToken';
 
 type SessionExpiredHandler = () => void;
+type SessionRefreshedHandler = (auth: AuthResponse) => void;
+
 let onSessionExpired: SessionExpiredHandler | null = null;
+let onSessionRefreshed: SessionRefreshedHandler | null = null;
+let refreshPromise: Promise<AuthResponse | null> | null = null;
 
 export const setSessionExpiredHandler = (handler: SessionExpiredHandler | null) => {
   onSessionExpired = handler;
+};
+
+export const setSessionRefreshedHandler = (handler: SessionRefreshedHandler | null) => {
+  onSessionRefreshed = handler;
 };
 
 const api = axios.create({
@@ -22,6 +32,47 @@ const api = axios.create({
   },
   timeout: 15000,
 });
+
+const requestUrl = (config?: InternalAxiosRequestConfig) =>
+  `${config?.baseURL || ''}${config?.url || ''}`;
+
+const isAuthEndpoint = (config?: InternalAxiosRequestConfig) =>
+  /\/api\/v1\/auth\/(login|register|refresh|forgot-password|reset-password)(?:\?|$)/i.test(
+    requestUrl(config)
+  );
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    _retryAfterRefresh?: boolean;
+  }
+}
+
+const tryRefreshSession = async (): Promise<AuthResponse | null> => {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const refreshToken = await AsyncStorage.getItem(REFRESH_KEY);
+      if (!refreshToken) return null;
+      try {
+        // Bare client avoids interceptor recursion / circular authService import.
+        const { data } = await axios.post<AuthResponse>(`${API_BASE_URL}/api/v1/auth/refresh`, {
+          refreshToken,
+        });
+        await persistSession(data);
+        onSessionRefreshed?.(data);
+        return data;
+      } catch {
+        return null;
+      } finally {
+        refreshPromise = null;
+      }
+    })();
+  }
+  return refreshPromise;
+};
+
+/** Used on cold start when the access JWT is expired but a refresh token remains. */
+export const refreshSessionIfPossible = async (): Promise<AuthResponse | null> =>
+  tryRefreshSession();
 
 api.interceptors.request.use(
   async (config) => {
@@ -36,12 +87,22 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
+  async (error: AxiosError) => {
+    const status = error.response?.status;
+    const config = error.config as InternalAxiosRequestConfig | undefined;
+
+    if (status === 401 && config && !isAuthEndpoint(config) && !config._retryAfterRefresh) {
+      const refreshed = await tryRefreshSession();
+      if (refreshed?.token) {
+        config._retryAfterRefresh = true;
+        config.headers = config.headers ?? {};
+        config.headers.Authorization = `Bearer ${refreshed.token}`;
+        return api.request(config);
+      }
+      await clearSession();
       onSessionExpired?.();
     }
+
     return Promise.reject(error);
   }
 );

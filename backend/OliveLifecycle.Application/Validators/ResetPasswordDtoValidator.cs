@@ -1,5 +1,6 @@
 using FluentValidation;
 using OliveLifecycle.Application.DTOs.Auth;
+using OliveLifecycle.Core.Security;
 
 namespace OliveLifecycle.Application.Validators;
 
@@ -9,8 +10,9 @@ public class ResetPasswordDtoValidator : AbstractValidator<ResetPasswordDto>
     {
         RuleFor(x => x.Token).NotEmpty();
         RuleFor(x => x.Password)
+            .Cascade(CascadeMode.Stop)
             .NotEmpty()
-            .MinimumLength(8)
-            .WithMessage("Password must be at least 8 characters.");
+            .Must(PasswordPolicy.MeetsComplexity)
+            .WithMessage(PasswordPolicy.ComplexityMessage);
     }
 }

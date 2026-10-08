@@ -177,8 +177,11 @@ export const mockAuthService = {
     if (!entry || entry.expiresAt < Date.now()) {
       throw new Error('This reset link is invalid or has expired.');
     }
-    if (!data.password || data.password.length < 8) {
-      throw new Error('Password must be at least 8 characters.');
+    if (!data.password || data.password.length < 8
+      || !/[A-Z]/.test(data.password)
+      || !/[a-z]/.test(data.password)
+      || !/[0-9]/.test(data.password)) {
+      throw new Error('Password must be at least 8 characters and include upper and lower case letters and a number.');
     }
     passwordOverrides.set(entry.email, data.password);
     const renamed = accountOverrides.findByEmail(entry.email);

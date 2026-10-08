@@ -33,6 +33,14 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponseDto>> Refresh([FromBody] RefreshTokenDto dto, CancellationToken cancellationToken)
+    {
+        var response = await _authService.RefreshAsync(dto, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost("forgot-password")]
     [AllowAnonymous]
     public async Task<ActionResult<ForgotPasswordResponseDto>> ForgotPassword(

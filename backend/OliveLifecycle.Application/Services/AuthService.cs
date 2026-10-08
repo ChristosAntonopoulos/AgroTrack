@@ -20,9 +20,11 @@ namespace OliveLifecycle.Application.Services;
 public class AuthService : IAuthService
 {
     private const int PasswordResetHours = 1;
-    private const int MinimumPasswordLength = 8;
+    private const int DefaultAccessMinutes = 60;
+    private const int DefaultRefreshDays = 90;
 
     private readonly IUserRepository _userRepository;
+    private readonly IRefreshTokenRepository? _refreshTokens;
     private readonly IConfiguration _configuration;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IFieldPeopleService? _fieldPeople;
@@ -33,18 +35,21 @@ public class AuthService : IAuthService
         IConfiguration configuration,
         IDateTimeProvider dateTimeProvider,
         IFieldPeopleService? fieldPeople = null,
-        IEmailSender? emailSender = null)
+        IEmailSender? emailSender = null,
+        IRefreshTokenRepository? refreshTokens = null)
     {
         _userRepository = userRepository;
         _configuration = configuration;
         _dateTimeProvider = dateTimeProvider;
         _fieldPeople = fieldPeople;
         _emailSender = emailSender;
+        _refreshTokens = refreshTokens;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
     {
         registerDto.Email = NormalizeEmail(registerDto.Email);
+        await PasswordGuard.EnsureAsync(registerDto.Password, cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(registerDto.Role) &&
             !Roles.IsPublicRegistrationRole(registerDto.Role))
@@ -102,7 +107,7 @@ public class AuthService : IAuthService
             await _fieldPeople.AcceptInviteAsync(inviteCode, created.Id, cancellationToken);
         }
 
-        return GenerateAuthResponse(created);
+        return await GenerateAuthResponseAsync(created, cancellationToken);
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
@@ -120,7 +125,50 @@ public class AuthService : IAuthService
         user.UpdatedAt = now;
         await _userRepository.UpdateAsync(user, cancellationToken);
 
-        return GenerateAuthResponse(user);
+        return await GenerateAuthResponseAsync(user, cancellationToken);
+    }
+
+    public async Task<AuthResponseDto> RefreshAsync(RefreshTokenDto dto, CancellationToken cancellationToken = default)
+    {
+        if (_refreshTokens == null)
+        {
+            throw new ForbiddenException("Refresh tokens are not available.");
+        }
+
+        var raw = dto.RefreshToken?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(raw))
+        {
+            throw new ForbiddenException("Invalid refresh token.");
+        }
+
+        var hash = HashToken(raw);
+        var existing = await _refreshTokens.GetByTokenHashAsync(hash, cancellationToken);
+        if (existing == null || existing.RevokedAt != null || existing.ExpiresAt <= _dateTimeProvider.UtcNow)
+        {
+            throw new ForbiddenException("Invalid refresh token.");
+        }
+
+        var user = await _userRepository.GetByIdAsync(existing.UserId, cancellationToken);
+        if (user == null || user.DeletedAt != null)
+        {
+            existing.RevokedAt = _dateTimeProvider.UtcNow;
+            await _refreshTokens.UpdateAsync(existing, cancellationToken);
+            throw new ForbiddenException("Invalid refresh token.");
+        }
+
+        // Rotate: revoke the presented token, then issue a fresh pair.
+        var response = await GenerateAuthResponseAsync(user, cancellationToken);
+        existing.RevokedAt = _dateTimeProvider.UtcNow;
+        existing.ReplacedByTokenHash = string.IsNullOrEmpty(response.RefreshToken)
+            ? null
+            : HashToken(response.RefreshToken);
+        await _refreshTokens.UpdateAsync(existing, cancellationToken);
+
+        user.LastSeenAt = _dateTimeProvider.UtcNow;
+        user.UpdatedAt = _dateTimeProvider.UtcNow;
+        await _userRepository.UpdateAsync(user, cancellationToken);
+
+        return response;
     }
 
     public async Task<ForgotPasswordResponseDto> ForgotPasswordAsync(
@@ -135,8 +183,8 @@ public class AuthService : IAuthService
             return response;
         }
 
-        var token = CreateResetToken();
-        user.PasswordResetTokenHash = HashResetToken(token);
+        var token = CreateOpaqueToken();
+        user.PasswordResetTokenHash = HashToken(token);
         user.PasswordResetExpiresAt = _dateTimeProvider.UtcNow.AddHours(PasswordResetHours);
         user.UpdatedAt = _dateTimeProvider.UtcNow;
         await _userRepository.UpdateAsync(user, cancellationToken);
@@ -172,10 +220,7 @@ public class AuthService : IAuthService
 
     public async Task ResetPasswordAsync(ResetPasswordDto dto, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < MinimumPasswordLength)
-        {
-            throw new ValidationException("Password must be at least 8 characters.");
-        }
+        await PasswordGuard.EnsureAsync(dto.Password, cancellationToken);
 
         var token = dto.Token?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(token))
@@ -184,7 +229,7 @@ public class AuthService : IAuthService
         }
 
         var user = await _userRepository.GetByPasswordResetTokenHashAsync(
-            HashResetToken(token),
+            HashToken(token),
             cancellationToken);
 
         if (user == null)
@@ -206,29 +251,35 @@ public class AuthService : IAuthService
         user.PasswordResetExpiresAt = null;
         user.UpdatedAt = _dateTimeProvider.UtcNow;
         await _userRepository.UpdateAsync(user, cancellationToken);
+
+        if (_refreshTokens != null)
+        {
+            await _refreshTokens.RevokeAllForUserAsync(user.Id, cancellationToken);
+        }
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
-    private static string CreateResetToken()
+    private static string CreateOpaqueToken()
     {
         Span<byte> bytes = stackalloc byte[32];
         RandomNumberGenerator.Fill(bytes);
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
-    private static string HashResetToken(string token)
+    private static string HashToken(string token)
     {
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(token.Trim()));
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    private AuthResponseDto GenerateAuthResponse(User user)
+    private async Task<AuthResponseDto> GenerateAuthResponseAsync(User user, CancellationToken cancellationToken)
     {
         var secretKey = _configuration["JWT:SecretKey"];
         var issuer = _configuration["JWT:Issuer"];
         var audience = _configuration["JWT:Audience"];
-        var expirationMinutes = int.Parse(_configuration["JWT:ExpirationMinutes"] ?? "60");
+        var expirationMinutes = int.Parse(_configuration["JWT:ExpirationMinutes"] ?? DefaultAccessMinutes.ToString());
+        var refreshDays = int.Parse(_configuration["JWT:RefreshTokenDays"] ?? DefaultRefreshDays.ToString());
 
         if (string.IsNullOrEmpty(secretKey))
         {
@@ -254,13 +305,33 @@ public class AuthService : IAuthService
             expires: expiresAt,
             signingCredentials: credentials);
 
+        string? refreshToken = null;
+        DateTime? refreshExpiresAt = null;
+
+        if (_refreshTokens != null && refreshDays > 0)
+        {
+            refreshToken = CreateOpaqueToken();
+            refreshExpiresAt = _dateTimeProvider.UtcNow.AddDays(refreshDays);
+            var now = _dateTimeProvider.UtcNow;
+            await _refreshTokens.CreateAsync(new RefreshToken
+            {
+                UserId = user.Id,
+                TokenHash = HashToken(refreshToken),
+                ExpiresAt = refreshExpiresAt.Value,
+                CreatedAt = now,
+                UpdatedAt = now
+            }, cancellationToken);
+        }
+
         return new AuthResponseDto
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
+            RefreshToken = refreshToken,
             UserId = user.Id,
             Email = user.Email,
             Role = user.Role.ToRoleName(),
             ExpiresAt = expiresAt,
+            RefreshExpiresAt = refreshExpiresAt,
             FirstName = user.FirstName,
             LastName = user.LastName,
             Preferences = UserPreferenceMapper.ToDto(user.Preferences)

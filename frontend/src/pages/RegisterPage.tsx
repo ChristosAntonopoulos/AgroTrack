@@ -16,11 +16,11 @@ import {
   rememberInviteIntent,
 } from '../utils/inviteIntent';
 import AuthSocialButtons from '../components/Auth/AuthSocialButtons';
+import PasswordStrength from '../components/Auth/PasswordStrength';
 import Button from '../components/Common/Button';
 import { Mail, Lock, User, Eye, EyeOff, Ticket } from 'lucide-react';
+import { getPasswordIssue } from '../utils/passwordValidation';
 import './RegisterPage.css';
-
-const MIN_PASSWORD_LENGTH = 8;
 
 type FieldKey = 'firstName' | 'lastName' | 'email' | 'password' | 'confirmPassword' | 'inviteCode';
 
@@ -159,7 +159,11 @@ const RegisterPage: React.FC = () => {
     if (!email.trim()) next.email = t('auth:register.emailRequired');
     else if (!isValidEmail(email)) next.email = t('auth:register.emailInvalid');
     if (!password) next.password = t('auth:register.passwordRequired');
-    else if (password.length < MIN_PASSWORD_LENGTH) next.password = t('auth:register.passwordTooShort');
+    else {
+      const issue = getPasswordIssue(password);
+      if (issue === 'tooShort') next.password = t('auth:register.passwordTooShort');
+      else if (issue === 'complexity') next.password = t('auth:register.passwordComplexity');
+    }
     if (!confirmPassword) next.confirmPassword = t('auth:register.passwordRequired');
     else if (password !== confirmPassword) next.confirmPassword = t('auth:register.passwordMismatch');
     return next;
@@ -457,7 +461,9 @@ const RegisterPage: React.FC = () => {
                   disabled={loading}
                   aria-required="true"
                   aria-invalid={Boolean(fieldErrors.password)}
-                  aria-describedby={fieldErrors.password ? 'password-error' : 'password-hint'}
+                  aria-describedby={
+                    fieldErrors.password ? 'password-error password-strength' : 'password-strength'
+                  }
                 />
                 <button
                   type="button"
@@ -468,9 +474,7 @@ const RegisterPage: React.FC = () => {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <p id="password-hint" className="register-hint">
-                {t('auth:register.passwordHint')}
-              </p>
+              <PasswordStrength password={password} />
               {capsLock ? <p className="register-hint">{t('auth:register.capsLock')}</p> : null}
               {fieldErrors.password ? (
                 <p id="password-error" className="login-field-error" role="alert">

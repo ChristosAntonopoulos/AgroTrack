@@ -131,7 +131,10 @@ const CaptureQuickAdd: React.FC<Props> = ({
         <View style={[styles.coachCard, { backgroundColor: colors.eventObservationSoft, borderColor: colors.eventObservation }]}>
           <OnboardingStepLabel id="observationType" />
           <Text style={[styles.coachTitle, { color: colors.textPrimary }]}>
-            {t('onboarding:coach.observationType.cue')}
+            {t('onboarding:coach.observationType.title')}
+          </Text>
+          <Text style={[styles.coachBody, { color: colors.textSecondary }]}>
+            {t('onboarding:coach.observationType.body')}
           </Text>
         </View>
       ) : null}
@@ -219,6 +222,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: -0.2,
+  },
+  coachBody: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '500',
   },
   prompt: {
     fontSize: 18,

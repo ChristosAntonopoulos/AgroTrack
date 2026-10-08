@@ -148,7 +148,7 @@ public class AuthServiceTests
         await Assert.ThrowsAsync<ValidationException>(() => service.RegisterAsync(new RegisterDto
         {
             Email = "admin@test.com",
-            Password = "password123",
+            Password = "OliveTree9",
             Role = Roles.Administrator,
             FirstName = "Admin",
             LastName = "User"
@@ -173,7 +173,7 @@ public class AuthServiceTests
         await Assert.ThrowsAsync<ValidationException>(() => service.RegisterAsync(new RegisterDto
         {
             Email = "agro@test.com",
-            Password = "password123",
+            Password = "OliveTree9",
             Role = Roles.Agronomist,
             FirstName = "Agro",
             LastName = "User"
@@ -215,7 +215,7 @@ public class AuthServiceTests
         var response = await service.RegisterAsync(new RegisterDto
         {
             Email = "grower@test.com",
-            Password = "password123",
+            Password = "OliveTree9",
             Role = Roles.FieldOwner,
             FirstName = "Maria",
             LastName = "Grower"
@@ -255,7 +255,7 @@ public class AuthServiceTests
         var response = await service.RegisterAsync(new RegisterDto
         {
             Email = "worker@test.com",
-            Password = "password123",
+            Password = "OliveTree9",
             Role = Roles.Producer,
             FirstName = "Kostas",
             LastName = "Worker"
@@ -295,7 +295,7 @@ public class AuthServiceTests
         var response = await service.RegisterAsync(new RegisterDto
         {
             Email = "user@test.com",
-            Password = "password123",
+            Password = "OliveTree9",
             FirstName = "Maria",
             LastName = "User"
         });
@@ -311,7 +311,7 @@ public class AuthServiceTests
         var clock = new Mock<IDateTimeProvider>();
         clock.Setup(c => c.UtcNow).Returns(now);
 
-        var password = "password123";
+        var password = "OliveTree9";
         var user = new User
         {
             Id = "507f1f77bcf86cd799439020",
@@ -407,7 +407,7 @@ public class AuthServiceTests
         var response = await service.RegisterAsync(new RegisterDto
         {
             Email = "family@test.com",
-            Password = "password123",
+            Password = "OliveTree9",
             FirstName = "Maria",
             LastName = "Member",
             InviteCode = "AB12-CD34"
@@ -446,7 +446,7 @@ public class AuthServiceTests
         await Assert.ThrowsAsync<ValidationException>(() => service.RegisterAsync(new RegisterDto
         {
             Email = "family@test.com",
-            Password = "password123",
+            Password = "OliveTree9",
             InviteCode = "ZZZZ-ZZZZ"
         }));
 
@@ -569,7 +569,7 @@ public class AuthServiceTests
         await service.ResetPasswordAsync(new ResetPasswordDto
         {
             Token = token,
-            Password = "new-password-9"
+            Password = "OliveTree9"
         });
 
         Assert.NotEqual(previousHash, stored.PasswordHash);
@@ -606,7 +606,7 @@ public class AuthServiceTests
         var ex = await Assert.ThrowsAsync<ValidationException>(() => service.ResetPasswordAsync(new ResetPasswordDto
         {
             Token = token,
-            Password = "new-password-9"
+            Password = "OliveTree9"
         }));
 
         Assert.Equal("This reset link is invalid or has expired.", ex.Message);
@@ -629,7 +629,7 @@ public class AuthServiceTests
         await Assert.ThrowsAsync<ValidationException>(() => service.ResetPasswordAsync(new ResetPasswordDto
         {
             Token = "missing-token",
-            Password = "new-password-9"
+            Password = "OliveTree9"
         }));
     }
 

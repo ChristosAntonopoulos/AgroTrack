@@ -18,10 +18,12 @@ export interface LoginDto {
 
 export interface AuthResponse {
   token: string;
+  refreshToken?: string | null;
   userId: string;
   email: string;
   role: string;
   expiresAt: string;
+  refreshExpiresAt?: string | null;
   firstName?: string;
   lastName?: string;
   preferences?: {
@@ -46,6 +48,24 @@ export interface ForgotPasswordResponse {
   devResetToken?: string | null;
 }
 
+const REFRESH_KEY = 'refreshToken';
+
+export const persistAuthSession = (response: AuthResponse) => {
+  localStorage.setItem('token', response.token);
+  localStorage.setItem('user', JSON.stringify(response));
+  if (response.refreshToken) {
+    localStorage.setItem(REFRESH_KEY, response.refreshToken);
+  } else {
+    localStorage.removeItem(REFRESH_KEY);
+  }
+};
+
+export const clearAuthSession = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem(REFRESH_KEY);
+};
+
 export const authService = {
   register: async (data: RegisterDto): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>('/api/v1/auth/register', data);
@@ -67,23 +87,23 @@ export const authService = {
   },
 
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearAuthSession();
   },
 
   getStoredToken: (): string | null => {
     const token = localStorage.getItem('token');
     if (!token) return null;
     if (!isRealSessionToken(token)) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      clearAuthSession();
       return null;
     }
     return token;
   },
 
-  getStoredUser: (): any | null => {
+  getStoredRefreshToken: (): string | null => localStorage.getItem(REFRESH_KEY),
+
+  getStoredUser: (): AuthResponse | null => {
     const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    return userStr ? (JSON.parse(userStr) as AuthResponse) : null;
   },
 };

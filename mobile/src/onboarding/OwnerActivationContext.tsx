@@ -67,21 +67,25 @@ type OwnerActivationContextValue = {
   setSpotlightScreen: (screen: SpotlightScreen | null) => void;
   /** Clears the screen only if it is still the one that asked — a replaced screen unmounts late. */
   releaseSpotlightScreen: (screen: SpotlightScreen) => void;
-  /** Soft post-spatial guide: free map look → home → History → first observation. */
+  /** Soft post-spatial guide: home → History → first observation. */
   awaitingFirstObservation: boolean;
   navCoachPhase: NavCoachPhase | null;
+  /** Full-screen thank-you after the first History note. */
+  journeyFinished: boolean;
   /** The control the grower should tap next. Null while a quiet pause owns the screen. */
   guideBeat: CoachTargetId | null;
   guideRect: GuideRect | null;
   reportGuideTarget: (id: CoachTargetId, rect: Omit<GuideRect, 'id'>) => void;
   /** Boundary screen tells the focus ring whether to frame search, the map, or save. */
   setBoundaryCoachPhase: (phase: BoundaryCoachPhase) => void;
-  /** After spatial welcome: free map look-around, then home → History. */
+  /** After spatial welcome: coach the home mark, then History. */
   beginDetailsLesson: () => void;
   /** Grower left the map — coach the launcher mark next. */
   continueToHome: () => void;
   /** Launcher reached — coach the History card. */
   continueToHistory: () => void;
+  /** Dismiss the post-onboarding welcome. */
+  dismissJourneyFinished: () => void;
   refresh: () => Promise<void>;
   skipStep: (step: OwnerActivationStepId) => void;
   dismiss: () => void;
@@ -125,6 +129,7 @@ export const OwnerActivationProvider: React.FC<{
   const [routeMode, setRouteMode] = useState('');
   const [guideRect, setGuideRect] = useState<GuideRect | null>(null);
   const [boundaryCoachPhase, setBoundaryCoachPhase] = useState<BoundaryCoachPhase>('locate');
+  const [journeyFinished, setJourneyFinished] = useState(false);
   const persistedRef = useRef(persisted);
   persistedRef.current = persisted;
   const wasUnlocked = useRef(false);
@@ -347,7 +352,9 @@ export const OwnerActivationProvider: React.FC<{
 
   const guideBeat = useMemo((): CoachTargetId | null => {
     if (!ready || !eligible || laterSnoozed || persisted.dismissedAt) return null;
-    if (persisted.firstObservationDoneAt) return null;
+    if (persisted.firstObservationDoneAt || journeyFinished) return null;
+    // Capture Modal owns the next lessons — never leave a dim overlay under/over it.
+    if (capture?.isOpen) return null;
 
     if (!completion.createGrove) {
       if (routeName === 'Launcher') return 'fieldsCard';
@@ -366,11 +373,7 @@ export const OwnerActivationProvider: React.FC<{
     if (persisted.navCoachPhase === 'history' && routeName === 'Launcher') return 'historyCard';
 
     // History is open: teach + → Observation → save. Capture sheet owns the later cues.
-    if (
-      persisted.awaitingFirstObservation &&
-      !persisted.firstObservationDoneAt &&
-      !capture?.isOpen
-    ) {
+    if (persisted.awaitingFirstObservation && !persisted.firstObservationDoneAt) {
       const onHistory =
         routeName === 'ChronologioTab' ||
         routeName === 'Chronologio' ||
@@ -387,6 +390,7 @@ export const OwnerActivationProvider: React.FC<{
     persisted.firstObservationDoneAt,
     persisted.awaitingFirstObservation,
     persisted.navCoachPhase,
+    journeyFinished,
     completion.createGrove,
     completion.drawBoundary,
     routeName,
@@ -399,9 +403,10 @@ export const OwnerActivationProvider: React.FC<{
   const beginDetailsLesson = useCallback(() => {
     const current = persistedRef.current;
     if (current.firstObservationDoneAt) return;
+    // Skip the free-map "Continue" popup — go straight to the home mark lesson.
     persist({
       ...current,
-      navCoachPhase: 'linger',
+      navCoachPhase: 'home',
       forceShow: false,
       laterSnoozedAt: null,
     });
@@ -425,9 +430,12 @@ export const OwnerActivationProvider: React.FC<{
     const current = persistedRef.current;
     if (current.firstObservationDoneAt) return;
     if (current.navCoachPhase === 'history') return;
+    // Arm observation coaching now so a fast + tap after History still gets the lesson
+    // even before arriveAtHistory runs on the Chronologio route.
     persist({
       ...current,
       navCoachPhase: 'history',
+      awaitingFirstObservation: true,
       forceShow: false,
       laterSnoozedAt: null,
     });
@@ -448,24 +456,11 @@ export const OwnerActivationProvider: React.FC<{
     setCelebrating(false);
   }, [persist]);
 
-  // If they leave the field during free map look-around, coach home → History.
+  // Legacy linger (older installs): advance to home coaching instead of the map popup.
   useEffect(() => {
     if (persisted.navCoachPhase !== 'linger') return;
-    if (routeName === 'FieldDetail' && routeMode !== 'chronologio') return;
-    if (
-      routeName === 'ChronologioTab' ||
-      routeName === 'Chronologio' ||
-      (routeName === 'FieldDetail' && routeMode === 'chronologio')
-    ) {
-      arriveAtHistory();
-      return;
-    }
-    if (routeName === 'Launcher') {
-      continueToHistory();
-      return;
-    }
     continueToHome();
-  }, [persisted.navCoachPhase, routeName, routeMode, continueToHome, continueToHistory, arriveAtHistory]);
+  }, [persisted.navCoachPhase, continueToHome]);
 
   // Launcher reached via the home mark — next pulse is History.
   useEffect(() => {
@@ -494,19 +489,28 @@ export const OwnerActivationProvider: React.FC<{
 
   const reportGuideTarget = useCallback((id: CoachTargetId, rect: Omit<GuideRect, 'id'>) => {
     setGuideRect((prev) => {
+      // Neighbour card height changes and sub-pixel measure noise used to make
+      // the History outline walk around the tile — ignore small jitter.
+      const slack = 6;
       if (
         prev &&
         prev.id === id &&
-        Math.abs(prev.x - rect.x) < 1 &&
-        Math.abs(prev.y - rect.y) < 1 &&
-        Math.abs(prev.width - rect.width) < 1 &&
-        Math.abs(prev.height - rect.height) < 1
+        Math.abs(prev.x - rect.x) < slack &&
+        Math.abs(prev.y - rect.y) < slack &&
+        Math.abs(prev.width - rect.width) < slack &&
+        Math.abs(prev.height - rect.height) < slack
       ) {
         return prev;
       }
       return { id, ...rect };
     });
   }, []);
+
+  // Drop a stale rect as soon as the lesson changes so the ring cannot slide
+  // from the previous control toward the new one.
+  useEffect(() => {
+    setGuideRect((prev) => (prev && guideBeat && prev.id === guideBeat ? prev : null));
+  }, [guideBeat]);
 
   const snoozeLater = useCallback(() => {
     persist({
@@ -649,7 +653,7 @@ export const OwnerActivationProvider: React.FC<{
 
   const completeFirstObservation = useCallback(() => {
     persist({
-      ...persisted,
+      ...persistedRef.current,
       firstObservationDoneAt: new Date().toISOString(),
       awaitingFirstObservation: false,
       dismissedAt: new Date().toISOString(),
@@ -658,7 +662,12 @@ export const OwnerActivationProvider: React.FC<{
       navCoachPhase: null,
     });
     setCelebrating(false);
-  }, [persist, persisted]);
+    setJourneyFinished(true);
+  }, [persist]);
+
+  const dismissJourneyFinished = useCallback(() => {
+    setJourneyFinished(false);
+  }, []);
 
   const markFieldsDirty = useCallback((opts?: { boundarySavedFieldId?: string; groveCreatedFieldId?: string }) => {
     if (opts?.boundarySavedFieldId) {
@@ -691,6 +700,7 @@ export const OwnerActivationProvider: React.FC<{
       releaseSpotlightScreen,
       awaitingFirstObservation: persisted.awaitingFirstObservation,
       navCoachPhase: persisted.navCoachPhase,
+      journeyFinished,
       guideBeat,
       guideRect: guideRect && guideBeat && guideRect.id === guideBeat ? guideRect : null,
       reportGuideTarget,
@@ -698,6 +708,7 @@ export const OwnerActivationProvider: React.FC<{
       beginDetailsLesson,
       continueToHome,
       continueToHistory,
+      dismissJourneyFinished,
       refresh,
       skipStep,
       dismiss,
@@ -723,6 +734,7 @@ export const OwnerActivationProvider: React.FC<{
       persisted.skippedSteps,
       persisted.awaitingFirstObservation,
       persisted.navCoachPhase,
+      journeyFinished,
       guideBeat,
       guideRect,
       primaryField,
@@ -746,6 +758,7 @@ export const OwnerActivationProvider: React.FC<{
       beginDetailsLesson,
       continueToHome,
       continueToHistory,
+      dismissJourneyFinished,
       reportGuideTarget,
       completeFirstObservation,
     ]

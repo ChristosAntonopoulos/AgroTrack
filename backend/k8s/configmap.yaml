@@ -10,6 +10,7 @@ data:
   JWT__Issuer: "OliveLifecycleAPI"
   JWT__Audience: "OliveLifecycleClients"
   JWT__ExpirationMinutes: "60"
+  JWT__RefreshTokenDays: "90"
   Storage__LocalPath: "uploads"
   Storage__PublicBasePath: "https://api.theolivelot.com/uploads"
   Cors__AllowedHost: "theolivelot.com"

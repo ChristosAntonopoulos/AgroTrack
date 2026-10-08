@@ -27,10 +27,10 @@ export const measureViewInWindow = (
   });
 };
 
-/** Measurements jitter by sub-pixel amounts; ignore noise to avoid render loops. */
-export const sameRect = (a: WindowRect | null, b: WindowRect): boolean =>
+/** Measurements jitter; ignore noise under `slack` px to avoid a walking spotlight. */
+export const sameRect = (a: WindowRect | null, b: WindowRect, slack = 3): boolean =>
   !!a &&
-  Math.abs(a.x - b.x) < 1 &&
-  Math.abs(a.y - b.y) < 1 &&
-  Math.abs(a.width - b.width) < 1 &&
-  Math.abs(a.height - b.height) < 1;
+  Math.abs(a.x - b.x) < slack &&
+  Math.abs(a.y - b.y) < slack &&
+  Math.abs(a.width - b.width) < slack &&
+  Math.abs(a.height - b.height) < slack;

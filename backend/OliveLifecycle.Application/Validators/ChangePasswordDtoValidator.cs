@@ -1,16 +1,15 @@
 using FluentValidation;
-using OliveLifecycle.Application.DTOs.Auth;
+using OliveLifecycle.Application.DTOs.User;
 using OliveLifecycle.Core.Security;
 
 namespace OliveLifecycle.Application.Validators;
 
-public class RegisterDtoValidator : AbstractValidator<RegisterDto>
+public class ChangePasswordDtoValidator : AbstractValidator<ChangePasswordDto>
 {
-    public RegisterDtoValidator()
+    public ChangePasswordDtoValidator()
     {
-        RuleFor(x => x.FirstName).NotEmpty().MaximumLength(80);
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.Password)
+        RuleFor(x => x.CurrentPassword).NotEmpty();
+        RuleFor(x => x.NewPassword)
             .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .Must(PasswordPolicy.MeetsComplexity)

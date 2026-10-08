@@ -419,8 +419,10 @@ const CaptureSheet: React.FC<Props> = ({
             description: body.trim() || undefined,
             harvestCampaignLink: context.harvestCampaignLink,
           },
-          t('capture:observation.saved'),
-          { reopen: reopenQuick() }
+          coachingFirstObservation
+            ? t('onboarding:finished.savedToast')
+            : t('capture:observation.saved'),
+          coachingFirstObservation ? { skipDialog: true } : { reopen: reopenQuick() }
         );
       } else if (step === 'work') {
         if (!workTemplate) {

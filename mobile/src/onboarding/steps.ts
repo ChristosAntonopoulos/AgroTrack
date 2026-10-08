@@ -25,7 +25,8 @@ export type OwnerActivationPersisted = {
   firstObservationDoneAt: string | null;
   /**
    * Soft navigation lesson after the grove exists.
-   * linger = free map look-around, home = pulse launcher mark, history = pulse Ιστορικό.
+   * linger = legacy free-map pause (auto-advanced to home), home = pulse launcher mark,
+   * history = pulse Ιστορικό / Chronologio.
    */
   navCoachPhase: NavCoachPhase | null;
 };

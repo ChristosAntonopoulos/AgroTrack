@@ -84,6 +84,7 @@ const CaptureProviderInner: React.FC<{ children: React.ReactNode }> = ({ childre
           },
         });
       }
+      if (options?.skipDialog) return;
       dialog.show({
         title: message,
         buttons: buttons.length

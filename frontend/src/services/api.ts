@@ -1,13 +1,18 @@
-import axios, { InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import i18n from '../i18n';
 import { getApiBaseUrl, isAuthDisabled } from '../config/apiConfig';
 import { isRealSessionToken } from './sessionToken';
-import { extractApiErrorMessage, extractApiErrorPayload, translateApiError } from '../utils/translateApiError';
+import { persistAuthSession, clearAuthSession, type AuthResponse } from './authService';
+import { extractApiErrorPayload, translateApiError } from '../utils/translateApiError';
+
+const REFRESH_KEY = 'refreshToken';
 
 declare module 'axios' {
   interface AxiosRequestConfig {
     /** Optional inbox/contacts GETs must not expire the session on 401. */
     skipUnauthorizedHandler?: boolean;
+    /** Internal: request already retried after a refresh. */
+    _retryAfterRefresh?: boolean;
   }
 }
 
@@ -19,20 +24,30 @@ const api = axios.create({
 });
 
 type UnauthorizedHandler = () => void;
+type SessionRefreshedHandler = (auth: AuthResponse) => void;
 
 let unauthorizedHandler: UnauthorizedHandler | null = null;
+let sessionRefreshedHandler: SessionRefreshedHandler | null = null;
 let handlingUnauthorized = false;
+let refreshPromise: Promise<AuthResponse | null> | null = null;
 
 /** AuthContext registers this so a 401 can log out without a full document reload. */
 export const setUnauthorizedHandler = (handler: UnauthorizedHandler | null) => {
   unauthorizedHandler = handler;
 };
 
+/** AuthContext updates in-memory user after a silent refresh. */
+export const setSessionRefreshedHandler = (handler: SessionRefreshedHandler | null) => {
+  sessionRefreshedHandler = handler;
+};
+
 const requestUrl = (config?: InternalAxiosRequestConfig) =>
   `${config?.baseURL || ''}${config?.url || ''}`;
 
 const isAuthEndpoint = (config?: InternalAxiosRequestConfig) =>
-  /\/api\/v1\/auth\/(login|register|forgot-password|reset-password)(?:\?|$)/i.test(requestUrl(config));
+  /\/api\/v1\/auth\/(login|register|refresh|forgot-password|reset-password)(?:\?|$)/i.test(
+    requestUrl(config)
+  );
 
 /** Saved contacts / inbox are optional; a missing or forbidden route is not a dead session. */
 const isOptionalUserGet = (config?: InternalAxiosRequestConfig) => {
@@ -49,7 +64,37 @@ const requestHadBearerToken = (config?: InternalAxiosRequestConfig) => {
   return typeof value === 'string' && value.length > 0;
 };
 
-// Request interceptor to add auth token
+const tryRefreshSession = async (): Promise<AuthResponse | null> => {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const refreshToken = localStorage.getItem(REFRESH_KEY);
+      if (!refreshToken) return null;
+      try {
+        // Bare client avoids interceptor recursion / circular authService import.
+        const { data } = await axios.post<AuthResponse>(
+          `${getApiBaseUrl()}/api/v1/auth/refresh`,
+          { refreshToken }
+        );
+        persistAuthSession(data);
+        sessionRefreshedHandler?.(data);
+        return data;
+      } catch {
+        return null;
+      } finally {
+        refreshPromise = null;
+      }
+    })();
+  }
+  return refreshPromise;
+};
+
+const expireSession = () => {
+  if (handlingUnauthorized) return;
+  handlingUnauthorized = true;
+  clearAuthSession();
+  unauthorizedHandler?.();
+};
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -57,26 +102,39 @@ api.interceptors.request.use(
       handlingUnauthorized = false;
       config.headers.Authorization = `Bearer ${token}`;
     } else if (token) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      clearAuthSession();
     }
     config.headers['Accept-Language'] = i18n.language || 'el';
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error: AxiosError) => {
     const status = error.response?.status;
     const config = error.config as InternalAxiosRequestConfig | undefined;
-    // Only expire an established session. Login 401s, anonymous calls, and optional
-    // contacts/inbox GETs must not wipe a token or trigger a document navigation.
+
     if (
+      status === 401 &&
+      !isAuthDisabled() &&
+      !isAuthEndpoint(config) &&
+      !config?.skipUnauthorizedHandler &&
+      !isOptionalUserGet(config) &&
+      requestHadBearerToken(config) &&
+      config &&
+      !config._retryAfterRefresh
+    ) {
+      const refreshed = await tryRefreshSession();
+      if (refreshed?.token) {
+        config._retryAfterRefresh = true;
+        config.headers = config.headers ?? {};
+        config.headers.Authorization = `Bearer ${refreshed.token}`;
+        return api.request(config);
+      }
+      expireSession();
+    } else if (
       status === 401 &&
       !isAuthDisabled() &&
       !isAuthEndpoint(config) &&
@@ -85,11 +143,9 @@ api.interceptors.response.use(
       requestHadBearerToken(config) &&
       !handlingUnauthorized
     ) {
-      handlingUnauthorized = true;
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      unauthorizedHandler?.();
+      expireSession();
     }
+
     const { message, code } = extractApiErrorPayload(error.response?.data);
     if (message && error.response?.data && typeof error.response.data === 'object') {
       const translated = translateApiError(i18n.t.bind(i18n), message);
@@ -104,7 +160,6 @@ api.interceptors.response.use(
       } else {
         data.message = translated;
       }
-      // Keep code available for callers that inspect the payload.
       if (code && !data.code && !data.Code) data.code = code;
     }
     return Promise.reject(error);

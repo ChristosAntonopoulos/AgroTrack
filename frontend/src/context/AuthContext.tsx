@@ -1,6 +1,11 @@
 import React, { createContext, useCallback, useContext, useState, useEffect, ReactNode } from 'react';
-import { authService, AuthResponse } from '../services/authService';
-import { setUnauthorizedHandler } from '../services/api';
+import {
+  authService,
+  AuthResponse,
+  persistAuthSession,
+  clearAuthSession,
+} from '../services/authService';
+import { setUnauthorizedHandler, setSessionRefreshedHandler } from '../services/api';
 import { EntityCache } from '../utils/entityCache';
 import { OfflineQueue } from '../utils/offlineQueue';
 
@@ -15,11 +20,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const persistSession = (response: AuthResponse) => {
-  localStorage.setItem('token', response.token);
-  localStorage.setItem('user', JSON.stringify(response));
-};
 
 const clearSessionCaches = () => {
   EntityCache.clearAll();
@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     const response = await authService.login({ email, password });
     clearSessionCaches();
-    persistSession(response);
+    persistAuthSession(response);
     setUser(response);
   };
 
@@ -62,13 +62,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       inviteCode: inviteCode?.trim() || undefined,
     });
     clearSessionCaches();
-    persistSession(response);
+    persistAuthSession(response);
     setUser(response);
   };
 
   const logout = useCallback(() => {
     clearSessionCaches();
-    authService.logout();
+    clearAuthSession();
     setUser(null);
   }, []);
 
@@ -83,7 +83,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     setUnauthorizedHandler(logout);
-    return () => setUnauthorizedHandler(null);
+    setSessionRefreshedHandler((auth) => setUser(auth));
+    return () => {
+      setUnauthorizedHandler(null);
+      setSessionRefreshedHandler(null);
+    };
   }, [logout]);
 
   return (

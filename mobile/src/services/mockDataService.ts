@@ -169,7 +169,12 @@ function generateMockTasks(): Task[] {
         actualEnd = new Date(scheduledEnd.getTime() - Math.random() * 86400000).toISOString();
       }
       
-      const assignedTo = Math.random() > 0.3 ? mockUsers[1 + Math.floor(Math.random() * 3)].id : undefined;
+      // Only two review users remain — never index past the array (was * 3 → crash on boot).
+      const assignee =
+        mockUsers.length > 0
+          ? mockUsers[Math.floor(Math.random() * mockUsers.length)]
+          : undefined;
+      const assignedTo = Math.random() > 0.3 ? assignee?.id : undefined;
       
       const task: Task = {
         id: `task${fieldIndex + 1}_${i + 1}`,

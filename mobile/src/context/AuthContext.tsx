@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mockUsers } from '../services/mockDataService';
 import { getAuthService, isMockMode } from '../services/serviceFactory';
 import { AuthResponse, authService } from '../services/authService';
+import { refreshSessionIfPossible, setSessionRefreshedHandler } from '../services/api';
 import { cleanupStorage } from '../utils/storageCleanup';
 import { User } from '../types/user';
 
@@ -59,21 +60,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    setSessionRefreshedHandler((auth) => {
+      if (!isMockMode()) setUser(authResponseToUser(auth));
+    });
+    return () => setSessionRefreshedHandler(null);
+  }, []);
+
   const checkAuth = async () => {
     try {
       await cleanupStorage();
       const service = getAuthService();
-      const storedUser = await service.getStoredUser();
-      const token = await service.getStoredToken();
+      let storedUser = await service.getStoredUser();
+      let token = await service.getStoredToken();
 
       if (storedUser && token) {
-        if (!isMockMode() && authService.isSessionExpired(storedUser)) {
-          await service.logout();
-          return;
+        if (!isMockMode() && authService.isAccessTokenExpired(storedUser)) {
+          const refreshed = await refreshSessionIfPossible();
+          if (!refreshed) {
+            await service.logout();
+            return;
+          }
+          storedUser = refreshed;
+          token = refreshed.token;
         }
 
         if (isMockMode()) {
-          const foundUser = mockUsers.find(u => u.id === storedUser.userId);
+          const foundUser = mockUsers.find(u => u.id === storedUser!.userId);
           if (foundUser) setUser(foundUser);
         } else {
           setUser(authResponseToUser(storedUser));
@@ -88,8 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error checking auth:', error);
       try {
-        await AsyncStorage.removeItem('user');
-        await AsyncStorage.removeItem('token');
+        await AsyncStorage.multiRemove(['user', 'token', 'refreshToken']);
       } catch (clearError) {
         console.error('Error clearing AsyncStorage:', clearError);
       }

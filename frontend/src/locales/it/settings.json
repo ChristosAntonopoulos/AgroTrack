@@ -41,13 +41,14 @@
     "emailUpdated": "Email aggiornata. Usala per accedere anche sugli altri dispositivi.",
     "devCode": "In questa build l'email non viene inviata. Il codice è {{code}}.",
     "passwordTitle": "Password",
-    "passwordHelp": "Scegli una nuova password. Resti connesso su questo dispositivo.",
+    "passwordHelp": "Almeno 8 caratteri, con maiuscole, minuscole e un numero. Resti connesso su questo dispositivo.",
     "newPassword": "Nuova password",
     "confirmPassword": "Conferma nuova password",
     "changePassword": "Cambia password",
     "passwordUpdated": "Password aggiornata.",
     "passwordMismatch": "Le due password nuove non coincidono.",
     "passwordTooShort": "Usa almeno 8 caratteri.",
+    "passwordComplexity": "Usa maiuscole, minuscole e almeno un numero.",
     "passwordResetLink": "Password dimenticata?"
   },
   "appearance": {

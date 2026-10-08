@@ -29,20 +29,33 @@ export interface ForgotPasswordResponse {
   devResetToken?: string | null;
 }
 
-/** Matches backend AuthResponseDto — JWT + user claims. */
+/** Matches backend AuthResponseDto — JWT + refresh + user claims. */
 export interface AuthResponse {
   token: string;
+  refreshToken?: string | null;
   userId: string;
   email: string;
   role: string;
   expiresAt: string;
+  refreshExpiresAt?: string | null;
   firstName?: string;
   lastName?: string;
 }
 
-const persistSession = async (auth: AuthResponse) => {
+const REFRESH_KEY = 'refreshToken';
+
+export const persistSession = async (auth: AuthResponse) => {
   await AsyncStorage.setItem('token', auth.token);
   await AsyncStorage.setItem('user', JSON.stringify(auth));
+  if (auth.refreshToken) {
+    await AsyncStorage.setItem(REFRESH_KEY, auth.refreshToken);
+  } else {
+    await AsyncStorage.removeItem(REFRESH_KEY);
+  }
+};
+
+export const clearSession = async () => {
+  await AsyncStorage.multiRemove(['token', 'user', REFRESH_KEY]);
 };
 
 export const authService = {
@@ -84,11 +97,12 @@ export const authService = {
   },
 
   logout: async () => {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
+    await clearSession();
   },
 
   getStoredToken: async (): Promise<string | null> => AsyncStorage.getItem('token'),
+
+  getStoredRefreshToken: async (): Promise<string | null> => AsyncStorage.getItem(REFRESH_KEY),
 
   getStoredUser: async (): Promise<AuthResponse | null> => {
     try {
@@ -98,18 +112,24 @@ export const authService = {
       if (userData && typeof userData === 'object' && userData.userId) {
         return userData as AuthResponse;
       }
-      await AsyncStorage.removeItem('user');
-      await AsyncStorage.removeItem('token');
+      await clearSession();
       return null;
     } catch {
-      await AsyncStorage.removeItem('user');
-      await AsyncStorage.removeItem('token');
+      await clearSession();
       return null;
     }
   },
 
-  isSessionExpired: (auth: AuthResponse): boolean => {
+  isAccessTokenExpired: (auth: AuthResponse): boolean => {
     if (!auth.expiresAt) return false;
     return new Date(auth.expiresAt).getTime() <= Date.now();
+  },
+
+  /** @deprecated Use isAccessTokenExpired — kept for older call sites. */
+  isSessionExpired: (auth: AuthResponse): boolean => authService.isAccessTokenExpired(auth),
+
+  isRefreshExpired: (auth: AuthResponse): boolean => {
+    if (!auth.refreshExpiresAt) return !auth.refreshToken;
+    return new Date(auth.refreshExpiresAt).getTime() <= Date.now();
   },
 };

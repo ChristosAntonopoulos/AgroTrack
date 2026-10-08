@@ -80,6 +80,17 @@ public class MongoIndexInitializer : IHostedService
                 new CreateIndexOptions { Name = "ix_fields_memberships_role", Sparse = true }));
 
             var billingProfiles = _context.GetCollection<BillingProfileDocument>("billing_profiles");
+            var refreshTokens = _context.GetCollection<RefreshTokenDocument>("refresh_tokens");
+            refreshTokens.Indexes.CreateOne(new CreateIndexModel<RefreshTokenDocument>(
+                Builders<RefreshTokenDocument>.IndexKeys.Ascending(t => t.TokenHash),
+                new CreateIndexOptions { Unique = true, Name = "ix_refresh_tokens_tokenHash" }));
+            refreshTokens.Indexes.CreateOne(new CreateIndexModel<RefreshTokenDocument>(
+                Builders<RefreshTokenDocument>.IndexKeys.Ascending(t => t.UserId).Ascending(t => t.RevokedAt),
+                new CreateIndexOptions { Name = "ix_refresh_tokens_userId_revokedAt" }));
+            refreshTokens.Indexes.CreateOne(new CreateIndexModel<RefreshTokenDocument>(
+                Builders<RefreshTokenDocument>.IndexKeys.Ascending(t => t.ExpiresAt),
+                new CreateIndexOptions { Name = "ix_refresh_tokens_expiresAt" }));
+
             billingProfiles.Indexes.CreateOne(new CreateIndexModel<BillingProfileDocument>(
                 Builders<BillingProfileDocument>.IndexKeys.Ascending(p => p.UserId),
                 new CreateIndexOptions { Unique = true, Name = "ix_billing_profiles_userId" }));

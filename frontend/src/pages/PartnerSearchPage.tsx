@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '../components/Common/PageContainer';
+import PageHeader from '../components/Common/PageHeader';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Card from '../components/Common/Card';
-import BackLink from '../components/Common/BackLink';
 import Button from '../components/Common/Button';
 import EmptyState from '../components/Common/EmptyState';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -94,11 +94,12 @@ const PartnerSearchPage: React.FC = () => {
     <PageContainer>
       <div className="partners-page">
         <Breadcrumbs />
-        <BackLink to="/partners">{t('common:back')}</BackLink>
-        <h1>{t('partners:resultsTitle')}</h1>
-        {data?.fieldApproximateArea && (
-          <p className="partners-lead">{data.fieldApproximateArea}</p>
-        )}
+        <PageHeader
+          title={t('partners:resultsTitle')}
+          subtitle={data?.fieldApproximateArea}
+          backTo="/partners"
+          backLabel={t('common:back')}
+        />
         {selectedCategory && (
           <div className="partner-chips">
             <span className="partner-chip partner-chip-job">

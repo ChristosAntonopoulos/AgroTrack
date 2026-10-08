@@ -10,6 +10,8 @@ import OnboardingStepLabel from './OnboardingStepLabel';
 const PAD = 8;
 /** Space the tip card needs below the hole before it flips above it. */
 const TIP_CLEARANCE = 120;
+/** Extra hysteresis so the tip does not flip-flop when the hole jitters. */
+const TIP_STICKY = 28;
 
 /**
  * Dims the screen around one control and names the tap.
@@ -24,6 +26,7 @@ const NavCoach: React.FC = () => {
   const { t } = useTranslation('onboarding');
   const hostRef = useRef<View>(null);
   const pulse = useRef(new Animated.Value(0)).current;
+  const tipBelowRef = useRef<boolean | null>(null);
   const [host, setHost] = useState<WindowRect | null>(null);
   const beat = activation?.guideBeat ?? null;
   const journeyId = beat ? journeyStep(beat) : null;
@@ -33,14 +36,19 @@ const NavCoach: React.FC = () => {
   const syncHost = useCallback(() => {
     measureViewInWindow(hostRef.current, (next) => {
       if (next.width < 1 || next.height < 1) return;
-      setHost((prev) => (sameRect(prev, next) ? prev : next));
+      setHost((prev) => (sameRect(prev, next, 3) ? prev : next));
     });
   }, []);
 
   useEffect(() => {
+    tipBelowRef.current = null;
+  }, [beat]);
+
+  useEffect(() => {
     if (!armed) return;
     const frame = requestAnimationFrame(syncHost);
-    const interval = setInterval(syncHost, 300);
+    // Remeasure rarely — status-row height changes used to walk the History ring.
+    const interval = setInterval(syncHost, 900);
     return () => {
       cancelAnimationFrame(frame);
       clearInterval(interval);
@@ -52,8 +60,8 @@ const NavCoach: React.FC = () => {
     pulse.setValue(0);
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 1100, useNativeDriver: true }),
       ])
     );
     loop.start();
@@ -67,7 +75,7 @@ const NavCoach: React.FC = () => {
 
   // Opacity only: a scaled ring would leave its border outside the cut-out edge
   // and read as a second, ghost outline.
-  const ringOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] });
+  const ringOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.55] });
 
   return (
     <View
@@ -107,7 +115,7 @@ const NavCoach: React.FC = () => {
             ]}
           />
 
-          <View pointerEvents="none" style={[styles.card, tipPlacement(hole, host)]}>
+          <View pointerEvents="none" style={[styles.card, tipPlacement(hole, host, tipBelowRef)]}>
             {journeyId ? <OnboardingStepLabel id={journeyId} /> : null}
             <Text style={styles.title}>{beat ? cueFor(beat, t) : ''}</Text>
           </View>
@@ -147,9 +155,25 @@ const journeyStep = (id: CoachTargetId): OnboardingJourneyId | null =>
 const cueFor = (beat: CoachTargetId, t: (key: string) => string): string =>
   FORM_CUES.has(beat) ? t(`spotlight.${beat}.cue`) : t(`coach.${beat}.cue`);
 
-const tipPlacement = (hole: Hole, host: WindowRect) => {
+const tipPlacement = (
+  hole: Hole,
+  host: WindowRect,
+  tipBelowRef: React.MutableRefObject<boolean | null>
+) => {
   const holeBottom = hole.top + hole.height;
-  const below = holeBottom + TIP_CLEARANCE <= host.height;
+  const roomBelow = host.height - holeBottom;
+  const roomAbove = hole.top;
+  let below = tipBelowRef.current;
+  if (below == null) {
+    below = roomBelow >= TIP_CLEARANCE || roomBelow >= roomAbove;
+    tipBelowRef.current = below;
+  } else if (below && roomBelow < TIP_CLEARANCE - TIP_STICKY && roomAbove > roomBelow) {
+    below = false;
+    tipBelowRef.current = false;
+  } else if (!below && roomAbove < TIP_CLEARANCE - TIP_STICKY && roomBelow > roomAbove) {
+    below = true;
+    tipBelowRef.current = true;
+  }
   return {
     left: 20,
     right: 20,

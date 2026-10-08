@@ -9,8 +9,8 @@ import AuthTextField from '../components/auth/AuthTextField';
 import AuthButton from '../components/auth/AuthButton';
 import AuthAlert from '../components/auth/AuthAlert';
 import { AuthStackParamList } from '../navigation/types';
-
-const MIN_PASSWORD_LENGTH = 8;
+import PasswordStrength from '../components/auth/PasswordStrength';
+import { getPasswordIssue } from '../utils/passwordValidation';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'ResetPassword'>;
 type Route = RouteProp<AuthStackParamList, 'ResetPassword'>;
@@ -35,8 +35,13 @@ const ResetPasswordScreen = () => {
       setError(t('auth:register.missingFields'));
       return;
     }
-    if (password.length < MIN_PASSWORD_LENGTH) {
+    const issue = getPasswordIssue(password);
+    if (issue === 'tooShort') {
       setError(t('auth:register.passwordTooShort'));
+      return;
+    }
+    if (issue === 'complexity') {
+      setError(t('auth:register.passwordComplexity'));
       return;
     }
     if (password !== confirmPassword) {
@@ -67,8 +72,8 @@ const ResetPasswordScreen = () => {
         autoComplete="password-new"
         editable={!loading && Boolean(token)}
         leftIcon="lock-closed-outline"
-        helperText={t('auth:register.passwordHint')}
       />
+      <PasswordStrength password={password} />
       <AuthTextField
         label={t('auth:register.confirmPassword')}
         placeholder={t('auth:register.confirmPasswordPlaceholder')}

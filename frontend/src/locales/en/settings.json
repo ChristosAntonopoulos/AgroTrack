@@ -41,13 +41,14 @@
     "emailUpdated": "Email updated. Sign in with it on your other devices.",
     "devCode": "Email delivery is not configured in this build. Your code is {{code}}.",
     "passwordTitle": "Password",
-    "passwordHelp": "Choose a new password. You stay signed in on this device.",
+    "passwordHelp": "At least 8 characters with upper, lower, and a number. You stay signed in on this device.",
     "newPassword": "New password",
     "confirmPassword": "Confirm new password",
     "changePassword": "Change password",
     "passwordUpdated": "Password updated.",
     "passwordMismatch": "The two new passwords do not match.",
     "passwordTooShort": "Use at least 8 characters.",
+    "passwordComplexity": "Use upper and lower case letters and at least one number.",
     "passwordResetLink": "Forgot your password?"
   },
   "appearance": {
