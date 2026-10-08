@@ -74,9 +74,9 @@
     "body": "Il confine c’è. Portiamo il meteo e come appaiono gli alberi.",
     "bodyNamed": "“{{name}}” è sulla mappa. Arrivano meteo, alberi dall’alto e il luogo stesso.",
     "firstDataHint": "Quando è pronto, scrivi una nota breve e la Cronologia inizia.",
-    "area": "Area",
+    "area": "Superficie",
     "slope": "Pendenza",
-    "satellite": "Satellite",
+    "satellite": "Immagine satellitare",
     "waiting": "In arrivo…",
     "stayHere": "Un momento — non toccare nulla ancora.",
     "retrying": "Qualcosa si è fermato. Riproviamo.",
@@ -120,7 +120,10 @@
     "titleNamed": "{{name}}, “{{grove}}” è pronto",
     "body": "Dai un’occhiata sulla mappa. Quando sei pronto, apriamo la Cronologia.",
     "openMap": "Apri la mappa",
-    "openGrove": "Apri la mappa"
+    "openGrove": "Apri la mappa",
+    "pointWeather": "Meteo sul campo",
+    "pointSatellite": "Immagine satellitare del tuo oliveto",
+    "pointMap": "Mappa e confine del campo"
   },
   "mapExplore": {
     "caption": "Questo è il tuo oliveto sulla mappa. Prova un’immagine sotto, poi apri la Cronologia.",
@@ -149,6 +152,13 @@
       "body": "Tocca Cronologia e lascia una nota breve. È la prima pagina dell’oliveto.",
       "cue": "Tocca Cronologia — poi lascia la prima nota."
     }
+  },
+  "skipConfirm": {
+    "label": "Salta",
+    "title": "Vuoi davvero saltare?",
+    "body": "Puoi finire l’oliveto quando vuoi. Quello che hai già salvato resta.",
+    "stay": "Continua",
+    "confirm": "Salta per ora"
   },
   "settings": {
     "showTips": "Mostra suggerimenti setup oliveto"

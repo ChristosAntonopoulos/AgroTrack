@@ -64,10 +64,10 @@ public static class FieldWorkMapper
         Description = task.Description,
         Status = task.Status.ToApiString(),
         StatusLabel = FieldWorkDisplayLabels.ForTaskStatus(task.Status, language),
-        PlannedStart = task.PlannedStart,
+        PlannedStart = task.PlannedStart ?? task.ScheduledFor,
         PlannedEnd = task.PlannedEnd,
         PreferredTimeWindow = task.PreferredTimeWindow,
-        AssignedUserId = task.AssignedUserId,
+        AssignedUserId = task.AssignedUserId ?? task.AssigneeId,
         AssignedCollaboratorId = task.AssignedCollaboratorId,
         ResponsibleUserId = task.ResponsibleUserId,
         AdditionalParticipantUserIds = task.AdditionalParticipantUserIds.ToList(),
@@ -79,12 +79,12 @@ public static class FieldWorkMapper
             .ToList(),
         EstimatedCost = task.EstimatedCost,
         EstimatedCostCurrency = task.EstimatedCostCurrency,
-        Notes = task.Notes,
+        Notes = task.Notes ?? task.Note,
         AttachmentIds = task.AttachmentIds.ToList(),
         RelatedHarvestId = task.RelatedHarvestId,
         WeatherSuitability = task.WeatherSuitability.ToApiString(),
         WeatherSuitabilityLabel = FieldWorkDisplayLabels.ForWeatherSuitability(task.WeatherSuitability, language),
-        LatestExecutionId = task.LatestExecutionId,
+        LatestExecutionId = task.LatestExecutionId ?? task.LinkedWorkRecordId,
         StartedAt = task.StartedAt,
         IsPaused = task.IsPaused,
         PauseReason = task.PauseReason,
@@ -103,10 +103,46 @@ public static class FieldWorkMapper
         UpdatedAt = task.UpdatedAt
     };
 
+    public static TaskDto ToTaskDto(FieldTask task, string language = "el") => new()
+    {
+        Id = task.Id,
+        FieldId = task.FieldId,
+        ResultYear = task.ResultYear,
+        OwnerId = string.IsNullOrWhiteSpace(task.OwnerId) ? task.CreatedByUserId : task.OwnerId,
+        Title = task.Title,
+        Description = task.Description,
+        Status = task.Status.ToApiString(),
+        StatusLabel = FieldWorkDisplayLabels.ForTaskStatus(task.Status, language),
+        Source = task.Source.ToApiString(),
+        TemplateCode = task.TemplateCode,
+        TimingBucket = task.TimingBucket.ToApiString(),
+        ScheduledFor = task.ScheduledFor ?? task.PlannedStart,
+        PlannedStart = task.PlannedStart ?? task.ScheduledFor,
+        PlannedEnd = task.PlannedEnd,
+        AssigneeId = task.EffectiveAssigneeId,
+        AssignedUserId = task.AssignedUserId ?? task.AssigneeId,
+        AssignedCollaboratorId = task.AssignedCollaboratorId,
+        Note = task.Note ?? task.Notes,
+        Notes = task.Notes ?? task.Note,
+        Recurrence = task.Recurrence,
+        Checklist = task.ChecklistSnapshot
+            .OrderBy(c => c.SortOrder)
+            .Select(c => ToChecklistDto(c, language))
+            .ToList(),
+        LinkedWorkRecordId = task.LinkedWorkRecordId ?? task.LatestExecutionId,
+        CompletedAt = task.CompletedAt,
+        CompletedByUserId = task.CompletedByUserId,
+        SkippedAt = task.SkippedAt,
+        SkippedReason = task.SkippedReason,
+        CreatedByUserId = task.CreatedByUserId,
+        CreatedAt = task.CreatedAt,
+        UpdatedAt = task.UpdatedAt
+    };
+
     public static TaskExecutionDto ToDto(TaskExecution execution, string language = "el") => new()
     {
         Id = execution.Id,
-        TaskId = execution.TaskId,
+        TaskId = execution.TaskId ?? string.Empty,
         FieldId = execution.FieldId,
         ResultYear = execution.ResultYear,
         StartedAt = execution.StartedAt,
@@ -118,6 +154,28 @@ public static class FieldWorkMapper
         AttachmentIds = execution.AttachmentIds.ToList(),
         FollowUpRequired = execution.FollowUpRequired,
         FollowUpTaskId = execution.FollowUpTaskId
+    };
+
+    public static WorkRecordDto ToWorkRecordDto(TaskExecution execution, string language = "el") => new()
+    {
+        Id = execution.Id,
+        LinkedTaskId = execution.LinkedTaskId,
+        TaskId = execution.TaskId,
+        FieldId = execution.FieldId,
+        ResultYear = execution.ResultYear,
+        OwnerId = execution.OwnerId,
+        Title = execution.Title,
+        TemplateCode = execution.TemplateCode,
+        StartedAt = execution.StartedAt,
+        CompletedAt = execution.CompletedAt,
+        Outcome = execution.Outcome.ToApiString(),
+        OutcomeLabel = FieldWorkDisplayLabels.ForExecutionOutcome(execution.Outcome, language),
+        CompletedByUserIds = execution.CompletedByUserIds.ToList(),
+        Notes = execution.Notes,
+        AttachmentIds = execution.AttachmentIds.ToList(),
+        RecordedByUserId = execution.RecordedByUserId,
+        CreatedAt = execution.CreatedAt,
+        UpdatedAt = execution.UpdatedAt
     };
 
     public static FieldPhenologyDto ToDto(string fieldId, FieldPhenologySnapshot snapshot, string language = "el") => new()

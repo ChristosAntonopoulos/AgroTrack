@@ -27,8 +27,7 @@ export function FillTinsDrawer({
   fieldNames = {},
   busy,
   onClose,
-  onSave,
-}: Props) {
+  onSave}: Props) {
   const { t, i18n } = useTranslation(['myOil', 'common']);
   const locale = i18n.language;
 
@@ -146,7 +145,7 @@ export function FillTinsDrawer({
       }
       icon={<Package size={18} strokeWidth={1.75} aria-hidden />}
       closeDisabled={busy}
-      closeLabel={t('common:close', { defaultValue: 'Κλείσιμο' })}
+      closeLabel={t('common:close')}
       footer={footer}
     >
       <div className="my-oil-flow">
@@ -191,8 +190,7 @@ export function FillTinsDrawer({
                             {where ? <em>{where}</em> : null}
                             <span className="my-oil-source-card__meta">
                               {t('fill.bulkChip', {
-                                amount: formatOilNumber(lot.packing.bulkLitres, locale),
-                              })}
+                                amount: formatOilNumber(lot.packing.bulkLitres, locale)})}
                               {' · '}
                               {t('fill.harvestLinked')}
                             </span>
@@ -226,8 +224,7 @@ export function FillTinsDrawer({
                             {where ? <em>{where}</em> : null}
                             <span className="my-oil-source-card__meta">
                               {t('fill.bulkChip', {
-                                amount: formatOilNumber(lot.packing.bulkLitres, locale),
-                              })}
+                                amount: formatOilNumber(lot.packing.bulkLitres, locale)})}
                             </span>
                           </span>
                         </button>
@@ -300,8 +297,7 @@ export function FillTinsDrawer({
                     {count > 0 ? (
                       <em>
                         {t('fill.tinSubtotal', {
-                          amount: formatOilNumber(count * size, locale),
-                        })}
+                          amount: formatOilNumber(count * size, locale)})}
                       </em>
                     ) : null}
                   </div>

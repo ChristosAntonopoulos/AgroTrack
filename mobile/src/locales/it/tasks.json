@@ -1,0 +1,89 @@
+{
+  "failedLoad": "Impossibile caricare i lavori",
+  "page": {
+    "title": "Lavori",
+    "scheduleCta": "+ Programma un lavoro",
+    "fieldFilter": "Oliveto",
+    "allFields": "Tutti gli oliveti",
+    "viewsAria": "Viste lavori",
+    "tabs": {
+      "today": "Oggi",
+      "upcoming": "Prossimi",
+      "done": "Fatti"
+    }
+  },
+  "schedule": {
+    "title": "Programma un lavoro",
+    "cancel": "Annulla",
+    "submit": "Programma",
+    "failedSave": "Impossibile programmare.",
+    "what": "Cosa bisogna fare?",
+    "whatPlaceholder": "es. Potatura, controllo trappole…",
+    "pickTemplate": "Modelli",
+    "field": "Nell'oliveto",
+    "noFields": "Crea prima un oliveto",
+    "when": {
+      "label": "Quando?",
+      "today": "Oggi",
+      "tomorrow": "Domani",
+      "thisWeek": "Questa settimana",
+      "otherDay": "Altro giorno",
+      "sometime": "Prima o poi"
+    },
+    "who": "Chi?",
+    "assigneeMe": "Io",
+    "decideLater": "Più tardi",
+    "moreDetails": "Altri dettagli",
+    "lessDetails": "Meno dettagli",
+    "note": "Nota",
+    "notePlaceholder": "Qualcosa di utile per il lavoro",
+    "repeat": "Ripeti",
+    "repeatPlaceholder": "es. Ogni settimana",
+    "checklist": "Elenco",
+    "checklistPlaceholder": "Un passo per riga",
+    "photoHint": "Puoi aggiungere foto quando il lavoro è finito.",
+    "templates": {
+      "title": "Scegli un modello",
+      "subtitle": "Il modello compila solo il titolo — non crea ancora il lavoro.",
+      "suggestedNow": "Consigliati ora",
+      "curated": "Tutti i modelli",
+      "categories": "Categorie",
+      "allCategories": "Tutte",
+      "alsoSuggested": "Consigliato ora",
+      "writeOwn": "Scrivi un lavoro tuo",
+      "category": {
+        "pruning": "Potatura",
+        "fertilisation": "Concimazione",
+        "ground": "Suolo",
+        "monitoring": "Monitoraggio",
+        "irrigation": "Irrigazione",
+        "harvest": "Raccolta",
+        "inspection": "Controllo",
+        "other": "Altro"
+      }
+    }
+  },
+  "suggestions": {
+    "schedule": "Programma",
+    "dismiss": "Non mi riguarda",
+    "dismissFailed": "Impossibile scartare il suggerimento."
+  },
+  "complete": {
+    "failed": "Impossibile segnare come fatto.",
+    "undoFailed": "Impossibile annullare.",
+    "undoMessage": "Segnato come fatto.",
+    "undo": "Annulla",
+    "followUpTitle": "Fatto. Vuoi tenere cosa è successo?",
+    "followUpBody": "Aggiungi nota, costo o foto — oppure lascia solo che è fatto.",
+    "addDetails": "Aggiungi nota / costo / foto",
+    "done": "Fatto"
+  },
+  "empty": {
+    "todayTitle": "Niente per oggi",
+    "todayDescription": "Programma un lavoro o controlla i suggerimenti.",
+    "upcomingTitle": "Niente in programma",
+    "upcomingDescription": "I lavori programmati appariranno qui.",
+    "doneTitle": "Ancora niente fatto",
+    "doneDescription": "Il lavoro completato appare qui."
+  }
+}

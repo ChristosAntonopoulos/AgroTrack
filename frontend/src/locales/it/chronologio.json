@@ -226,8 +226,15 @@
     "returnToday": "Torna a oggi",
     "emptyMonthTitle": "Non ci sono registrazioni in questo periodo.",
     "emptyMonthDescription": "Aggiungi lavoro, un’osservazione, una spesa o la raccolta.",
-    "photoCount": "{{count}} foto",
-    "jumpToDate": "Giorno"
+    "jumpToDate": "Giorno",
+    "historyStartsHereAll": "Qui inizia la storia registrata dei tuoi oliveti.",
+    "pinnedSection": "In evidenza · {{count}}",
+    "noRecordedTasks": "Nessuna attività registrata",
+    "typesHint": "Scegli cosa compare nella Cronologia.",
+    "quickViews": "Viste rapide",
+    "typesLabel": "Tipi",
+    "photoCount_one": "{{count}} foto",
+    "photoCount_other": "{{count}} foto"
   },
   "seasonRail": {
     "label": "Annate agricole",
@@ -259,12 +266,8 @@
     "noRecords": "Non ci sono registrazioni",
     "mainEvent": "Evento principale",
     "needsAttention": "1 richiede attenzione",
-    "workShort": "{{count}} lavori",
-    "notesShort": "{{count}} osservazioni",
     "expensesShort": "{{amount}} spese",
     "observationShortLabel": "Osservazioni",
-    "completedTasks": "{{count}} lavori completati",
-    "observations": "{{count}} osservazioni",
     "openTasks": "Apri i lavori",
     "postedExpenses": "{{count}} spese registrate",
     "noMoney": "Nessun movimento registrato",
@@ -283,7 +286,15 @@
       "money": "Movimenti",
       "harvest": "Raccolta",
       "observation": "Osservazioni"
-    }
+    },
+    "workShort_one": "{{count}} attività",
+    "workShort_other": "{{count}} attività",
+    "notesShort_one": "{{count}} osservazione",
+    "notesShort_other": "{{count}} osservazioni",
+    "completedTasks_one": "{{count}} attività completata",
+    "completedTasks_other": "{{count}} attività completate",
+    "observations_one": "{{count}} osservazione",
+    "observations_other": "{{count}} osservazioni"
   },
   "yearView": {
     "inProgress": "In corso",
@@ -306,7 +317,6 @@
     "viewYear": "Vedi l’annata",
     "mainResult": "Risultato principale",
     "records": "Registrazioni",
-    "recordsFact": "{{count}} registrazioni",
     "olivesFact": "{{kg}} kg di olive",
     "harvestNotStarted": "La raccolta non è iniziata",
     "harvestResult": "{{olives}} kg di olive · {{oil}} kg di olio",
@@ -328,21 +338,34 @@
       "fieldsOne": "Include {{field}}",
       "fieldsAll": "Include {{fields}}",
       "fieldsEvery": "Include tutti i campi",
-      "drivers": "Mesi che hanno fatto la differenza"
+      "drivers": "Mesi che hanno fatto la differenza",
+      "oilUp_ytd": "Finora · +{{pct}}% di olio in più rispetto alla stessa data del {{year}}",
+      "oilDown_ytd": "Finora · {{pct}}% di olio in meno rispetto alla stessa data del {{year}}",
+      "olivesUp_ytd": "Finora · +{{pct}}% di olive in più rispetto alla stessa data del {{year}}",
+      "olivesDown_ytd": "Finora · {{pct}}% di olive in meno rispetto alla stessa data del {{year}}",
+      "expensesUp_ytd": "Finora · +{{pct}}% di spese in più rispetto alla stessa data del {{year}}",
+      "expensesDown_ytd": "Finora · {{pct}}% di spese in meno rispetto alla stessa data del {{year}}"
     },
     "stages": {
       "afterHarvest": "Dopo la raccolta",
       "spring": "Primavera",
       "summer": "Estate",
       "harvest": "Raccolta"
-    }
+    },
+    "harvestingNow": "Raccolta in corso",
+    "awaitingMillOil": "{{count}} giorni di raccolta · chili del frantoio e olio ancora attesi",
+    "liveYearSoFar": "Finora",
+    "netFact": "Risultato {{amount}}",
+    "yieldFact": "Resa {{pct}}%",
+    "recordsFact_one": "{{count}} registrazione",
+    "recordsFact_other": "{{count}} registrazioni"
   },
   "drawer": {
     "warning": "Avviso",
     "dailyWeather": "Meteo del giorno",
     "agriYear": "Annata agricola {{year}}",
     "addNote": "Aggiungi nota",
-    "createTask": "Crea un lavoro da questa osservazione",
+    "createTask": "Programma un lavoro da questa osservazione",
     "pin": "Fissa",
     "pinned": "In evidenza",
     "unpin": "Togli il fissaggio",
@@ -399,7 +422,17 @@
     "dataType": "Tipo di dato",
     "measured": "Valori misurati",
     "affectedTasks": "Lavori del giorno",
-    "dayEvents": "Registri nelle stesse condizioni"
+    "dayEvents": "Registri nelle stesse condizioni",
+    "voidEntry": "Annulla registrazione",
+    "viewFullTask": "Vedi attività completa",
+    "correctRecord": "Correggi registrazione",
+    "recordedBy": "Registrato da",
+    "assignedTo": "Assegnato a",
+    "completedBy": "Completato da",
+    "personOnce": "Persona",
+    "advanced": "Avanzate",
+    "historicalData": "Dati storici",
+    "sharedWeatherGrid": "Stesso punto dati meteo · {{fields}}"
   },
   "weatherCard": {
     "label": "Meteo",
@@ -634,7 +667,14 @@
     "insightMoistureUp": "Foglie forse più umide (da umidità dell’aria, non da sensore fogliare)",
     "insightMoistureDown": "Foglie forse più asciutte (da umidità dell’aria, non da sensore fogliare)",
     "historyBoundary": "Dati fino al {{day}} {{month}} · dopo è previsione",
-    "sharedFields": "Meteo per {{names}}"
+    "sharedFields": "Meteo per {{names}}",
+    "rainfall": "Pioggia",
+    "fieldsCompare": "{{count}} oliveti — tocca uno per i dettagli",
+    "fieldsCompareNamed": "{{count}} oliveti · {{names}}",
+    "fieldNoWeather": "{{field}} · Nessun dato meteo",
+    "rainChip": "Pioggia {{mm}} mm",
+    "tempChip": "Temperatura {{min}}–{{max}}°C",
+    "balanceChip": "Bilancio {{mm}} mm"
   },
   "activeFilters": "Filtri attivi",
   "clearAllFilters": "Cancella tutti",

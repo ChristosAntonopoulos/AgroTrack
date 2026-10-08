@@ -1,10 +1,14 @@
 import {
   MapLayerType,
+  MAP_MAX_NATIVE_ZOOM,
   SATELLITE_LABELS_TILE_URL,
   SATELLITE_PLACES_TILE_URL,
   SATELLITE_TILE_URL,
   STREET_TILE_URL,
 } from './mapLayers';
+
+/** Hide road/place overlays before grove zoom so soft reference lines don't cover imagery. */
+const LABEL_LAYER_MAX_ZOOM = 15;
 
 const rasterStyle = (sourceId: string, tileUrl: string, attribution: string) => ({
   version: 8 as const,
@@ -15,7 +19,7 @@ const rasterStyle = (sourceId: string, tileUrl: string, attribution: string) => 
       type: 'raster' as const,
       tiles: [tileUrl],
       tileSize: 256,
-      maxzoom: 18,
+      maxzoom: MAP_MAX_NATIVE_ZOOM,
       attribution,
     },
   },
@@ -24,11 +28,12 @@ const rasterStyle = (sourceId: string, tileUrl: string, attribution: string) => 
       id: `${sourceId}-layer`,
       type: 'raster' as const,
       source: sourceId,
+      paint: { 'raster-resampling': 'linear' },
     },
   ],
 });
 
-/** Satellite imagery with Esri place names and road labels stacked on top. */
+/** Satellite imagery with Esri place names and road labels for context at mid zoom only. */
 const satelliteWithLabelsStyle = () => ({
   version: 8 as const,
   name: 'esri-satellite-labels',
@@ -38,20 +43,20 @@ const satelliteWithLabelsStyle = () => ({
       type: 'raster' as const,
       tiles: [SATELLITE_TILE_URL],
       tileSize: 256,
-      maxzoom: 18,
+      maxzoom: MAP_MAX_NATIVE_ZOOM,
       attribution: '© Esri',
     },
     'esri-places': {
       type: 'raster' as const,
       tiles: [SATELLITE_PLACES_TILE_URL],
       tileSize: 256,
-      maxzoom: 18,
+      maxzoom: LABEL_LAYER_MAX_ZOOM,
     },
     'esri-transportation': {
       type: 'raster' as const,
       tiles: [SATELLITE_LABELS_TILE_URL],
       tileSize: 256,
-      maxzoom: 18,
+      maxzoom: LABEL_LAYER_MAX_ZOOM,
     },
   },
   layers: [
@@ -59,18 +64,21 @@ const satelliteWithLabelsStyle = () => ({
       id: 'esri-satellite-layer',
       type: 'raster' as const,
       source: 'esri-satellite',
+      paint: { 'raster-resampling': 'linear' },
     },
     {
       id: 'esri-places-layer',
       type: 'raster' as const,
       source: 'esri-places',
-      paint: { 'raster-opacity': 0.92 },
+      maxzoom: LABEL_LAYER_MAX_ZOOM,
+      paint: { 'raster-opacity': 0.85 },
     },
     {
       id: 'esri-transportation-layer',
       type: 'raster' as const,
       source: 'esri-transportation',
-      paint: { 'raster-opacity': 0.6 },
+      maxzoom: LABEL_LAYER_MAX_ZOOM,
+      paint: { 'raster-opacity': 0.45 },
     },
   ],
 });

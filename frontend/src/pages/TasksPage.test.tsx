@@ -1,19 +1,21 @@
 import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../i18n';
 import TasksPage from './TasksPage';
 import type { Field } from '../services/fieldService';
-import type { FieldTask, TaskProposal } from '../services/fieldWorkService';
+import type { Task, TaskSuggestion } from '../services/taskService';
 
-const mockListProposals = jest.fn();
-const mockListFieldTasks = jest.fn();
+const mockListTasks = jest.fn();
+const mockListSuggestions = jest.fn();
 const mockGetFields = jest.fn();
 const mockNavigate = jest.fn();
 const mockSetShowingCachedData = jest.fn();
-const mockSnoozeProposal = jest.fn();
-const mockDismissProposal = jest.fn();
+const mockCompleteTask = jest.fn();
+const mockUndoComplete = jest.fn();
+const mockDismissSuggestion = jest.fn();
+const mockCreateTask = jest.fn();
 const mockGetPeople = jest.fn();
 const mockGetContacts = jest.fn();
 
@@ -53,25 +55,20 @@ jest.mock(
 jest.mock('../components/Layout/Breadcrumbs', () => () => null);
 
 jest.mock('../services/serviceFactory', () => ({
-  getFieldWorkService: () => ({
-    listProposals: (...args: unknown[]) => mockListProposals(...args),
-    listFieldTasks: (...args: unknown[]) => mockListFieldTasks(...args),
-    snoozeProposal: (...args: unknown[]) => mockSnoozeProposal(...args),
-    dismissProposal: (...args: unknown[]) => mockDismissProposal(...args),
-    acceptProposal: jest.fn().mockResolvedValue({ acceptedTaskId: 'new-1' }),
-    startFieldTask: jest.fn(),
-    undoStartFieldTask: jest.fn(),
-    pauseFieldTask: jest.fn(),
-    resumeFieldTask: jest.fn(),
-    rescheduleFieldTask: jest.fn(),
-    cancelFieldTask: jest.fn(),
-    getFieldTask: jest.fn(),
-    assignFieldTask: jest.fn(),
-    evaluateDismissalLearning: jest.fn().mockResolvedValue({ shouldPrompt: false }),
+  getTaskService: () => ({
+    listTasks: (...args: unknown[]) => mockListTasks(...args),
+    listSuggestions: (...args: unknown[]) => mockListSuggestions(...args),
+    completeTask: (...args: unknown[]) => mockCompleteTask(...args),
+    undoComplete: (...args: unknown[]) => mockUndoComplete(...args),
+    dismissSuggestion: (...args: unknown[]) => mockDismissSuggestion(...args),
+    createTask: (...args: unknown[]) => mockCreateTask(...args),
+    skipTask: jest.fn(),
+    patchTask: jest.fn(),
+    createWorkRecord: jest.fn(),
   }),
   getFieldService: () => ({ getFields: (...args: unknown[]) => mockGetFields(...args) }),
   getPartnerService: () => ({ getContacts: (...args: unknown[]) => mockGetContacts(...args) }),
-  getFinancialSummaryService: () => ({ getTaskSummary: jest.fn().mockResolvedValue(null) }),
+  getFieldWorkService: () => ({ getWorkProfile: jest.fn().mockResolvedValue(null) }),
 }));
 
 jest.mock('../services/fieldPeopleService', () => ({
@@ -88,10 +85,21 @@ jest.mock('../context/OfflineContext', () => ({
   useOfflineMode: () => ({ refreshGeneration: 0, setShowingCachedData: mockSetShowingCachedData }),
 }));
 
-jest.mock('../services/weatherService', () => ({
-  weatherService: {
-    getFieldWeather: jest.fn().mockRejectedValue(new Error('no weather in tests')),
-  },
+jest.mock('../hooks/useModulePageGuard', () => ({
+  useModulePageGuard: () => ({ allowed: true, loading: false }),
+}));
+
+jest.mock('../hooks/useActiveFieldAccess', () => ({
+  useActiveFieldAccess: () => ({
+    capabilities: { canManageTasks: true },
+    accessLevel: 'work',
+    isAdminOnActive: true,
+    isCollaboratorOnActive: false,
+  }),
+}));
+
+jest.mock('../context/CapturePageContext', () => ({
+  useRegisterCapturePage: () => undefined,
 }));
 
 const field = (id: string, name: string): Field => ({
@@ -106,42 +114,30 @@ const field = (id: string, name: string): Field => ({
   status: 'Active',
 });
 
-const proposal = (overrides: Partial<TaskProposal>): TaskProposal => ({
-  id: 'p-1',
+const suggestion = (overrides: Partial<TaskSuggestion> = {}): TaskSuggestion => ({
+  templateCode: 'T14',
+  title: 'Έλεγχος παγίδων δάκου',
   fieldId: 'field-1',
   resultYear: 2026,
-  templateCode: 'T14',
-  templateVersion: 1,
-  sourceType: 'seasonal_baseline',
-  sourceTypeLabel: 'Εποχική',
-  generatedAt: '2026-06-01T00:00:00Z',
-  confidence: 'worth_checking',
-  confidenceLabel: 'Χρειάζεται έλεγχο',
-  reasonCodes: ['olive_fly_weekly_check'],
-  explanation: 'Δεν έχει καταγραφεί έλεγχος παγίδων τις τελευταίες 7 ημέρες.',
-  greekExplanation: 'Δεν έχει καταγραφεί έλεγχος παγίδων τις τελευταίες 7 ημέρες.',
-  recommendedWindowStart: '2026-06-01',
-  recommendedWindowEnd: '2026-06-14',
-  status: 'active',
-  statusLabel: 'Πρόταση',
+  whyNow: 'Εποχική υπενθύμιση.',
+  category: 'monitoring',
+  confidence: 'seasonal_reminder',
   ...overrides,
 });
 
-const task = (overrides: Partial<FieldTask>): FieldTask => ({
+const task = (overrides: Partial<Task> = {}): Task => ({
   id: 't-1',
   fieldId: 'field-1',
   resultYear: 2026,
+  ownerId: 'owner-1',
   title: 'Προγραμματισμένη εργασία',
   status: 'planned',
   statusLabel: 'Προγραμματισμένη',
-  plannedStart: '2026-08-15',
-  plannedEnd: '2026-10-01',
+  source: 'custom',
+  timingBucket: 'today',
+  scheduledFor: '2026-10-08',
+  plannedStart: '2026-10-08',
   checklist: [],
-  additionalParticipantUserIds: [],
-  assignmentResponse: 'pending',
-  weatherSuitability: 'unknown',
-  weatherSuitabilityLabel: 'Καλή ημέρα',
-  attachmentIds: [],
   createdByUserId: 'owner-1',
   createdAt: '2026-06-01T00:00:00Z',
   updatedAt: '2026-06-01T00:00:00Z',
@@ -158,265 +154,99 @@ const renderTasks = (query = '') => {
   );
 };
 
-describe('TasksPage Phase 1 shell', () => {
+describe('TasksPage Phase 2 shell', () => {
   beforeEach(async () => {
     await i18n.changeLanguage('el');
     mockSearchState.initial = '';
     mockSearchState.current = new URLSearchParams();
-    mockSnoozeProposal.mockResolvedValue({});
-    mockDismissProposal.mockResolvedValue({});
     mockGetContacts.mockResolvedValue([]);
-    mockGetPeople.mockResolvedValue([
-      {
-        userId: 'u-kostas',
-        displayName: 'Κώστας',
-        role: 'Partner',
-        modules: ['fields', 'tasks', 'photos', 'chronologio'],
-        accessLevel: 'work',
-        status: 'active',
-        createdAt: '2026-01-01T00:00:00Z',
-      },
-    ]);
+    mockGetPeople.mockResolvedValue([]);
+    mockCompleteTask.mockImplementation(async (id: string) =>
+      task({ id, status: 'done', completedAt: '2026-10-08T12:00:00Z' })
+    );
+    mockDismissSuggestion.mockResolvedValue(undefined);
     sessionStorage.clear();
     mockGetFields.mockResolvedValue([
       field('field-1', 'Κτήμα Φιλιατρών'),
       field('field-2', 'Κάτω ελαιώνας'),
     ]);
-    mockListProposals.mockResolvedValue([
-      proposal({ id: 'p-1', fieldId: 'field-1' }),
-      proposal({ id: 'p-dup', fieldId: 'field-1' }),
-      proposal({
-        id: 'p-2',
-        fieldId: 'field-2',
-        explanation: 'Η συγκομιδή αναμένεται τον Νοέμβριο.',
-        greekExplanation: 'Η συγκομιδή αναμένεται τον Νοέμβριο.',
-      }),
-    ]);
-    mockListFieldTasks.mockResolvedValue([
+    mockListSuggestions.mockResolvedValue([suggestion()]);
+    mockListTasks.mockResolvedValue([
+      task({ id: 'today-1', title: 'Έλεγχος σήμερα' }),
       task({
-        id: 'planned-1',
-        title: 'Προκαταρκτική εκτίμηση συγκομιδής',
-        status: 'planned',
-        weatherSuitability: 'unknown',
-        weatherSuitabilityLabel: 'Καλή ημέρα',
-        assignedUserId: 'u-kostas',
-        checklist: [
-          {
-            key: 'a',
-            label: 'A',
-            greekLabel: 'A',
-            englishLabel: 'A',
-            itemType: 'bool',
-            requirement: 'required',
-            isEssential: true,
-            sortOrder: 1,
-            isAnswered: false,
-            attachmentIds: [],
-            choices: [],
-          },
-          {
-            key: 'b',
-            label: 'B',
-            greekLabel: 'B',
-            englishLabel: 'B',
-            itemType: 'bool',
-            requirement: 'required',
-            isEssential: true,
-            sortOrder: 2,
-            isAnswered: false,
-            attachmentIds: [],
-            choices: [],
-          },
-          {
-            key: 'c',
-            label: 'C',
-            greekLabel: 'C',
-            englishLabel: 'C',
-            itemType: 'bool',
-            requirement: 'required',
-            isEssential: true,
-            sortOrder: 3,
-            isAnswered: false,
-            attachmentIds: [],
-            choices: [],
-          },
-        ],
-      }),
-      task({
-        id: 'planned-later',
-        title: 'Κλάδεμα',
-        status: 'planned',
-        plannedStart: '2026-12-01',
-        plannedEnd: '2027-02-01',
-      }),
-      task({
-        id: 'planned-blocked',
-        title: 'Άρδευση',
-        status: 'blocked',
-        statusLabel: 'Μπλοκαρισμένη',
-        plannedStart: '2026-09-10',
-        plannedEnd: '2026-09-12',
-      }),
-      task({
-        id: 'active-1',
-        title: 'Κράτηση συνεργείου',
-        status: 'in_progress',
-        statusLabel: 'Σε εξέλιξη',
-        weatherSuitability: 'good',
-        weatherSuitabilityLabel: 'Καλή ημέρα',
-        assignedUserId: 'u-kostas',
-        startedAt: '2026-09-01T08:00:00Z',
-        updatedAt: '2026-09-08T10:00:00Z',
-        checklist: [
-          {
-            key: 'a',
-            label: 'A',
-            greekLabel: 'A',
-            englishLabel: 'A',
-            itemType: 'bool',
-            requirement: 'required',
-            isEssential: true,
-            sortOrder: 1,
-            isAnswered: true,
-            attachmentIds: [],
-            choices: [],
-          },
-          {
-            key: 'b',
-            label: 'B',
-            greekLabel: 'B',
-            englishLabel: 'B',
-            itemType: 'bool',
-            requirement: 'required',
-            isEssential: true,
-            sortOrder: 2,
-            isAnswered: true,
-            attachmentIds: [],
-            choices: [],
-          },
-          {
-            key: 'c',
-            label: 'C',
-            greekLabel: 'C',
-            englishLabel: 'C',
-            itemType: 'bool',
-            requirement: 'required',
-            isEssential: true,
-            sortOrder: 3,
-            isAnswered: true,
-            attachmentIds: [],
-            choices: [],
-          },
-          {
-            key: 'd',
-            label: 'D',
-            greekLabel: 'D',
-            englishLabel: 'D',
-            itemType: 'bool',
-            requirement: 'required',
-            isEssential: true,
-            sortOrder: 4,
-            isAnswered: false,
-            attachmentIds: [],
-            choices: [],
-          },
-          {
-            key: 'e',
-            label: 'E',
-            greekLabel: 'E',
-            englishLabel: 'E',
-            itemType: 'bool',
-            requirement: 'required',
-            isEssential: true,
-            sortOrder: 5,
-            isAnswered: false,
-            attachmentIds: [],
-            choices: [],
-          },
-        ],
-      }),
-      task({
-        id: 'done-1',
-        title: 'Ολοκληρωμένο κλάδεμα',
-        status: 'completed',
-        statusLabel: 'Ολοκληρώθηκε',
+        id: 'overdue-1',
+        title: 'Καθυστερημένο πότισμα',
+        scheduledFor: '2026-10-01',
+        plannedStart: '2026-10-01',
+        timingBucket: 'today',
       }),
     ]);
   });
 
-  it('shows only the active tab content and defaults to to do', async () => {
+  it('defaults to today with three tabs', async () => {
     renderTasks();
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Να γίνουν', selected: true })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Σήμερα', selected: true })).toBeInTheDocument();
     });
-
-    expect(document.getElementById('tasks-panel-todo')).not.toBeNull();
-    expect(document.getElementById('tasks-panel-done')).toBeNull();
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    expect(screen.getByRole('tab', { name: 'Επόμενες' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Έγιναν' })).toBeInTheDocument();
   });
 
-  it('groups identical proposals across fields inside to do', async () => {
-    renderTasks('view=todo');
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Προτάσεις για τους ελαιώνες σου' })).toBeInTheDocument();
-    });
-    expect(screen.getByText(/Προτείνεται για/)).toBeInTheDocument();
-  });
-
-  it('shows tab counts for to do and completed', async () => {
+  it('shows overdue, today and suggestions sections without counting suggestions', async () => {
     renderTasks();
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Να γίνουν' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Καθυστέρησαν' })).toBeInTheDocument();
     });
-
-    expect(screen.getByRole('tab', { name: 'Ολοκληρωμένα' })).toBeInTheDocument();
-    expect(screen.getAllByRole('tab')).toHaveLength(2);
-    expect(screen.getByRole('heading', { name: 'Προτάσεις · 2' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Σήμερα' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Προτάσεις για τώρα' })).toBeInTheDocument();
+    expect(screen.getAllByText('Εποχική υπενθύμιση.').length).toBeGreaterThan(0);
+    // Tab count reflects tasks only (2), not suggestions
+    expect(screen.getByRole('tab', { name: 'Σήμερα' })).toHaveAccessibleDescription('2');
   });
 
-  it('updates suggestions when the field filter changes', async () => {
-    renderTasks('view=todo');
+  it('opens schedule sheet from the header CTA', async () => {
+    renderTasks();
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Φίλτρο ανά ελαιώνα')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Προγραμμάτισε δουλειά/ })).toBeInTheDocument();
     });
+    await userEvent.click(screen.getByRole('button', { name: /Προγραμμάτισε δουλειά/ }));
+    expect(mockSearchState.current.get('schedule')).toBe('1');
+    expect(await screen.findByText('Γράψε δική σου δουλειά')).toBeInTheDocument();
+  });
 
-    await userEvent.selectOptions(screen.getByLabelText('Φίλτρο ανά ελαιώνα'), 'field-2');
+  it('filters by grove from the header selector', async () => {
+    renderTasks();
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Προτάσεις · 1/ })).toBeInTheDocument();
+      expect(screen.getByLabelText('Ελαιώνας')).toBeInTheDocument();
     });
+    await userEvent.selectOptions(screen.getByLabelText('Ελαιώνας'), 'field-2');
     expect(mockSearchState.current.get('fieldId')).toBe('field-2');
   });
 
-  it('persists the year filter in the URL across tab changes', async () => {
-    renderTasks('view=todo&year=2025');
+  it('marks a task done and offers undo', async () => {
+    renderTasks();
 
     await waitFor(() => {
-      expect(mockListProposals).toHaveBeenCalledWith({ resultYear: 2025 });
-      expect(screen.getByRole('tab', { name: 'Ολοκληρωμένα' })).toBeInTheDocument();
+      expect(screen.getByText('Έλεγχος σήμερα')).toBeInTheDocument();
     });
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Ολοκληρωμένα' }));
-
+    const checks = screen.getAllByRole('button', { name: 'Σήμανε έτοιμη' });
+    await userEvent.click(checks[0]);
     await waitFor(() => {
-      expect(mockSearchState.current.get('view')).toBe('done');
-      expect(mockSearchState.current.get('year')).toBe('2025');
+      expect(mockCompleteTask).toHaveBeenCalled();
     });
+    expect(await screen.findByText('Σημειώθηκε ως έτοιμη.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Αναίρεση' })).toBeInTheDocument();
   });
 
-  it('does not mix completed work into to do', async () => {
-    renderTasks('view=todo');
-
-    await waitFor(() => {
-      expect(screen.getByRole('tabpanel')).toBeInTheDocument();
-    });
-    expect(screen.queryByText('Ολοκληρωμένο κλάδεμα')).not.toBeInTheDocument();
-  });
-
-  it('shows completed work in the completed tab', async () => {
+  it('shows done tasks in the done tab', async () => {
+    mockListTasks.mockResolvedValue([
+      task({ id: 'done-1', title: 'Ολοκληρωμένο κλάδεμα', status: 'done' }),
+    ]);
     renderTasks('view=done');
 
     await waitFor(() => {
@@ -425,59 +255,14 @@ describe('TasksPage Phase 1 shell', () => {
     expect(screen.getByText(/Δες το πλήρες Ιστορικό/)).toBeInTheDocument();
   });
 
-  it('puts in-progress work on to do', async () => {
-    renderTasks('view=todo');
+  it('does not mix suggestions into task counts on done', async () => {
+    mockListTasks.mockResolvedValue([]);
+    mockListSuggestions.mockResolvedValue([suggestion()]);
+    renderTasks('view=done');
 
     await waitFor(() => {
-      expect(screen.getByText('Κράτηση συνεργείου')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Έγιναν', selected: true })).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: 'Συνέχισε' })).toBeInTheDocument();
-  });
-
-  it('renders empty now state when there is nothing to do', async () => {
-    mockListProposals.mockResolvedValue([]);
-    mockListFieldTasks.mockResolvedValue([]);
-
-    renderTasks();
-    expect(await screen.findByText('Δεν χρειάζεται να κάνεις κάτι σήμερα')).toBeInTheDocument();
-  });
-
-  it('uses tab semantics with two views', async () => {
-    renderTasks();
-
-    await waitFor(() => {
-      expect(screen.getByRole('tablist', { name: 'Προβολές εργασιών' })).toBeInTheDocument();
-    });
-    expect(screen.getAllByRole('tab')).toHaveLength(2);
-    expect(screen.getByRole('tab', { name: /Να γίνουν/ })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'tasks-panel-todo');
-  });
-
-  it('opens schedule sheet for a grouped proposal', async () => {
-    renderTasks('view=todo');
-    const schedule = await screen.findAllByRole('button', { name: 'Προγραμμάτισε' });
-    await userEvent.click(schedule[0]);
-    expect(await screen.findByText(/Επίλεξε ελαιώνες/)).toBeInTheDocument();
-  });
-
-  it('groups many proposals into priority sections', async () => {
-    mockListProposals.mockResolvedValue([
-      proposal({ id: 'official', sourceType: 'official_warning', reasonCodes: ['official_warning'] }),
-      proposal({ id: 'weather', templateCode: 'T06', reasonCodes: [] }),
-      proposal({ id: 'seasonal', templateCode: 'T14' }),
-      proposal({
-        id: 'info',
-        templateCode: 'T01',
-        confidence: 'low',
-        reasonCodes: [],
-        explanation: '',
-        greekExplanation: '',
-      }),
-    ]);
-
-    renderTasks('view=proposals');
-
-    expect(await screen.findByRole('heading', { name: /Καλό να γίνουν τώρα/ })).toBeInTheDocument();
+    expect(screen.queryByText('Προτάσεις για τώρα')).not.toBeInTheDocument();
   });
 });
-

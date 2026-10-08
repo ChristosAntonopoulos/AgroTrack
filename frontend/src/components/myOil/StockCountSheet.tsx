@@ -8,8 +8,7 @@ import {
   deltaLitres,
   isEmptyDelta,
   stockCountDeltas,
-  type PackDelta,
-} from '../../myOil/stockCount';
+  type PackDelta} from '../../myOil/stockCount';
 import type { OilPack } from '../../services/oilStockService';
 
 type Props = {
@@ -44,8 +43,7 @@ export function StockCountSheet({ open, expected, busy, onClose, onSave }: Props
   const actual: PackDelta = {
     tin16: Math.max(0, Math.round(Number(tin16) || 0)),
     tin17: Math.max(0, Math.round(Number(tin17) || 0)),
-    bulkLitres: Math.max(0, Number(bulk) || 0),
-  };
+    bulkLitres: Math.max(0, Number(bulk) || 0)};
   const { add, remove } = stockCountDeltas(expected, actual);
   const changed = !isEmptyDelta(add) || !isEmptyDelta(remove);
   const net = deltaLitres(add) - deltaLitres(remove);
@@ -66,16 +64,14 @@ export function StockCountSheet({ open, expected, busy, onClose, onSave }: Props
       value: tin16,
       set: setTin16,
       book: String(expected.tin16),
-      bookLabel: `${t('warehouse.pack16')} · ${expected.tin16}`,
-    },
+      bookLabel: `${t('warehouse.pack16')} · ${expected.tin16}`},
     {
       key: 'tin17',
       label: t('sheet.tin17'),
       value: tin17,
       set: setTin17,
       book: String(expected.tin17),
-      bookLabel: `${t('warehouse.pack17')} · ${expected.tin17}`,
-    },
+      bookLabel: `${t('warehouse.pack17')} · ${expected.tin17}`},
     {
       key: 'bulkLitres',
       label: t('sheet.bulk'),
@@ -83,8 +79,7 @@ export function StockCountSheet({ open, expected, busy, onClose, onSave }: Props
       set: setBulk,
       book: String(expected.bulkLitres),
       bookLabel: `${t('warehouse.packBulk')} · ${formatOilNumber(expected.bulkLitres, locale)} L`,
-      step: '0.1',
-    },
+      step: '0.1'},
   ];
 
   return (
@@ -98,7 +93,7 @@ export function StockCountSheet({ open, expected, busy, onClose, onSave }: Props
       subtitle={t('count.subtitle')}
       icon={<Ruler size={18} strokeWidth={1.75} aria-hidden />}
       closeDisabled={busy}
-      closeLabel={t('common:close', { defaultValue: 'Κλείσιμο' })}
+      closeLabel={t('common:close')}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>

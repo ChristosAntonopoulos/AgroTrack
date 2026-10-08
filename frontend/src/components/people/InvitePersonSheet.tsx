@@ -9,8 +9,7 @@ import { isDeliverableEmail } from '../../utils/emailValidation';
 import {
   SUMMARY_MODULES,
   levelForModules,
-  modulesForRelationship,
-} from '../../people/aggregatePeople';
+  modulesForRelationship} from '../../people/aggregatePeople';
 import FieldPermissionPanel from './FieldPermissionPanel';
 
 type Relationship = 'Family' | 'Collaborator';
@@ -45,7 +44,7 @@ type Props = {
 };
 
 const looksLikeEmail = (value: string) => value.includes('@');
-const looksLikePhone = (value: string) => !looksLikeEmail(value) && /\d{6,}/.test(value.replace(/\s/g, ''));
+const looksLikePhone = (value: string) => !looksLikeEmail(value) && /\d{6}/.test(value.replace(/\s/g, ''));
 
 /**
  * Invite flow: Who → Access → Review.
@@ -61,8 +60,7 @@ const InvitePersonSheet: React.FC<Props> = ({
   initialEmail = '',
   initialPhone = '',
   onClose,
-  onSent,
-}) => {
+  onSent}) => {
   const { t } = useTranslation(['partners', 'common', 'errors', 'auth']);
   const knownPerson = Boolean(initialEmail || initialPhone);
   const multiGrove = fields.length > 1;
@@ -226,7 +224,7 @@ const InvitePersonSheet: React.FC<Props> = ({
       t(`partners:peoplePage.modules.${module}`)
     );
     if (modules.includes('harvest')) {
-      labels.push(t('partners:peoplePage.modules.oilStore', { defaultValue: 'Αποθήκη' }));
+      labels.push(t('partners:peoplePage.modules.oilStore'));
     }
     return labels;
   }, [modules, t]);
@@ -251,8 +249,7 @@ const InvitePersonSheet: React.FC<Props> = ({
         modules: modules.length > 0 ? modules : modulesForRelationship(relationship),
         email: inviteEmail,
         phone: (phone.trim() || typedPhone) || undefined,
-        displayName: name.trim() || undefined,
-      });
+        displayName: name.trim() || undefined});
       const anyExisting = created.some((invite) => invite.inviteeHasAccount);
       const anyNotified = created.some((invite) => invite.notificationQueued);
       const anyEmailSent = created.some((invite) => invite.emailSent);
@@ -261,27 +258,16 @@ const InvitePersonSheet: React.FC<Props> = ({
       let hint: string;
       let notice: string;
       if (wantedEmail && !anyEmailSent && !anyNotified) {
-        hint = t('partners:peoplePage.inviteEmailFailed', {
-          defaultValue:
-            'Η πρόσκληση αποθηκεύτηκε, αλλά το email δεν στάλθηκε. Έλεγξε τη διεύθυνση ή στείλε τον σύνδεσμο χειροκίνητα.',
-        });
+        hint = t('partners:peoplePage.inviteEmailFailed');
         notice = hint;
       } else if (wantedEmail && !anyEmailSent && anyNotified) {
-        hint = t('partners:peoplePage.inviteSentExistingAppOnly', {
-          defaultValue: 'Έχουν ήδη The Olive Lot — ειδοποιήθηκαν στην εφαρμογή. Το email δεν στάλθηκε.',
-        });
+        hint = t('partners:peoplePage.inviteSentExistingAppOnly');
         notice = hint;
       } else if (anyExisting) {
-        hint = t('partners:peoplePage.inviteSentExisting', {
-          defaultValue: anyNotified
-            ? 'They already use The Olive Lot — notified in the app and by email.'
-            : 'They already use The Olive Lot — invite email sent.',
-        });
+        hint = t('partners:peoplePage.inviteSentExisting');
         notice = t('partners:peoplePage.invitedNotice');
       } else if (anyEmailSent) {
-        hint = t('partners:peoplePage.inviteSentNew', {
-          defaultValue: 'Invite email sent. They can register with the link or code.',
-        });
+        hint = t('partners:peoplePage.inviteSentNew');
         notice = t('partners:peoplePage.invitedNotice');
       } else {
         hint = t('partners:inviteEmailSkipped');
@@ -371,8 +357,7 @@ const InvitePersonSheet: React.FC<Props> = ({
                   className={`invite-progress-seg ${state}`.trim()}
                   aria-label={t('partners:peoplePage.inviteStep', {
                     step: index + 1,
-                    total: stepOrder.length,
-                  })}
+                    total: stepOrder.length})}
                   aria-current={number === step ? 'step' : undefined}
                   disabled={index > stepPos}
                   onClick={() => {
@@ -550,9 +535,7 @@ const InvitePersonSheet: React.FC<Props> = ({
                   {reachReady && !emailInvalid ? (
                     <p className="invite-confirm">
                       {t('partners:peoplePage.willInvite', {
-                        contact: typedEmail || typedPhone,
-                        defaultValue: 'Θα σταλεί πρόσκληση στο {{contact}}.',
-                      })}
+                        contact: typedEmail || typedPhone})}
                     </p>
                   ) : null}
 

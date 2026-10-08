@@ -62,10 +62,12 @@ type Props = {
 
 const PLACE_FOCUS_ZOOM = 16;
 /**
- * Invisible grab radius. Mapbox GL Draw uses a 25px touch buffer around a
- * 3–5px vertex so the handle stays small and the finger can still catch it.
+ * Invisible grab radius (px). Apple HIG / Material want ≥44pt targets; on a map
+ * we use a generous radius so corners stay easy to catch without covering the grove.
  */
-const VERTEX_HIT_PX = 28;
+const VERTEX_HIT_PX = 44;
+/** Extra lift so the pin sits above the fingertip while dragging. */
+const VERTEX_DRAG_LIFT_PX = 28;
 
 const GREECE_OVERVIEW: MapRegion = {
   latitude: 38.42,
@@ -112,6 +114,12 @@ const FieldBoundaryStage: React.FC<Props> = ({
   const [mapLayer, setMapLayer] = useState<MapLayerType>(DEFAULT_MAP_LAYER);
   const [region, setRegion] = useState<MapRegion>(GREECE_OVERVIEW);
   const [phase, setPhase] = useState<DrawPhase>(() => (points.length >= 3 ? 'done' : 'locate'));
+  const reserveSkip = Boolean(
+    activation &&
+      !activation.laterSnoozed &&
+      !activation.journeyFinished &&
+      (activation.visible || activation.guideBeat)
+  );
   const locateCoached = activation?.guideBeat === 'locatePlace';
   const drawCoached = activation?.guideBeat === 'drawBoundary' && phase === 'drawing';
   const [liveZoom, setLiveZoom] = useState(PLACE_FOCUS_ZOOM);
@@ -128,6 +136,7 @@ const FieldBoundaryStage: React.FC<Props> = ({
   pointsRef.current = points;
   const screensRef = useRef<Array<{ x: number; y: number } | null>>([]);
   const dragIndexRef = useRef<number | null>(null);
+  const grabOffsetRef = useRef({ x: 0, y: 0 });
   const dragGenRef = useRef(0);
   const projectGenRef = useRef(0);
   const hadBoundaryOnMount = useRef(points.length >= 3);
@@ -237,6 +246,14 @@ const FieldBoundaryStage: React.FC<Props> = ({
         const finger = fingerOnMap(event);
         const index = hitVertex(finger.x, finger.y);
         if (index < 0) return false;
+        const screen = screensRef.current[index];
+        // Keep the pin under its original grab point, then lift above the fingertip.
+        grabOffsetRef.current = screen
+          ? {
+              x: screen.x - finger.x,
+              y: screen.y - finger.y - VERTEX_DRAG_LIFT_PX,
+            }
+          : { x: 0, y: -VERTEX_DRAG_LIFT_PX };
         dragIndexRef.current = index;
         return true;
       },
@@ -251,10 +268,13 @@ const FieldBoundaryStage: React.FC<Props> = ({
         const index = dragIndexRef.current;
         if (index == null) return;
         const finger = fingerOnMap(event);
+        const x = finger.x + grabOffsetRef.current.x;
+        const y = finger.y + grabOffsetRef.current.y;
+        screensRef.current[index] = { x, y };
         const map = mapRef.current;
         if (!map) return;
         const gen = ++dragGenRef.current;
-        void map.getCoordinateFromView(finger.x, finger.y).then((next) => {
+        void map.getCoordinateFromView(x, y).then((next) => {
           if (!next || gen !== dragGenRef.current) return;
           movePointRef.current(index, next);
         });
@@ -433,7 +453,8 @@ const FieldBoundaryStage: React.FC<Props> = ({
             <MapPolygonLayer
               id="draft-boundary"
               ring={points}
-              fillOpacity={phase === 'done' ? 0.32 : 0.12}
+              fillOpacity={0}
+              strokeWidth={phase === 'done' ? 3.5 : 3}
             />
           ) : null}
           <BoundaryVertexPins points={points} activeIndex={activeIndex} />
@@ -462,7 +483,13 @@ const FieldBoundaryStage: React.FC<Props> = ({
 
       {/* Top: search + locate only — the focus ring frames this while they search */}
       <View
-        style={[styles.topChrome, { paddingTop: Math.max(insets.top, 8) + 8 }]}
+        style={[
+          styles.topChrome,
+          {
+            paddingTop: Math.max(insets.top, 8) + 8,
+            paddingRight: reserveSkip ? 56 : spacing.sm,
+          },
+        ]}
         pointerEvents="box-none"
       >
         <GuideTarget id="locatePlace" style={styles.searchRow}>

@@ -54,6 +54,7 @@ import itPhotos from '../locales/it/photos.json';
 import itMyOil from '../locales/it/myOil.json';
 import itCapture from '../locales/it/capture.json';
 import itLegal from '../locales/it/legal.json';
+import itTasks from '../locales/it/tasks.json';
 
 /** Greek is the product default for Oleachron. */
 const defaultLng = 'el';
@@ -118,6 +119,7 @@ i18n.use(initReactI18next).init({
       myOil: itMyOil,
       capture: itCapture,
       legal: itLegal,
+      tasks: itTasks,
     },
   },
   lng: defaultLng,

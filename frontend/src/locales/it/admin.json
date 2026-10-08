@@ -1,0 +1,182 @@
+{
+  "dataSources": {
+    "title": "Fonti dati",
+    "subtitle": "Stato dei provider esterni geospatiali, meteo e satellitari, e dei job in background che li usano.",
+    "forbidden": "Non hai il permesso di visualizzare le fonti dati.",
+    "loadFailed": "Impossibile caricare lo stato delle fonti dati.",
+    "providers": "Provider",
+    "noProviders": "Nessun provider ha ancora segnalato. Lo stato viene registrato la prima volta che ogni job in background viene eseguito.",
+    "lastSuccess": "Ultimo aggiornamento riuscito",
+    "never": "Mai",
+    "stale": "Nessun aggiornamento da oltre {{hours}} h",
+    "details": "Dettagli",
+    "lastError": "Ultimo errore",
+    "jobs": "Code di elaborazione",
+    "jobStatus": {
+      "pending": "In attesa",
+      "processing": "In elaborazione",
+      "completed": "Completati",
+      "partial": "Parziali",
+      "failed": "Falliti"
+    },
+    "jobType": "Lavoro",
+    "field": "Campo",
+    "attempts": "Tentativi",
+    "failedAt": "Fallito il",
+    "noFailures": "Nessun fallimento recente dei job."
+  },
+  "campaigns": {
+    "nav": "Messaggi",
+    "title": "Messaggi in-app",
+    "subtitle": "Componi annunci, questionari e sondaggi. Scegli la visualizzazione in inbox e/o come popup.",
+    "editorSubtitle": "Bozza in inglese e greco, scegli i ruoli e pubblica.",
+    "forbidden": "Non hai il permesso di gestire le campagne.",
+    "loadFailed": "Impossibile caricare le campagne.",
+    "empty": "Nessuna campagna ancora. Creane una per avvisare i produttori.",
+    "new": "Nuova campagna",
+    "edit": "Modifica campagna",
+    "publish": "Pubblica",
+    "archive": "Archivia",
+    "backToList": "Torna alle campagne",
+    "kinds": {
+      "announcement": "Annuncio",
+      "questionnaire": "Questionario",
+      "poll": "Sondaggio"
+    },
+    "columns": {
+      "title": "Titolo",
+      "kind": "Tipo",
+      "status": "Stato",
+      "placements": "Posizionamenti",
+      "updated": "Aggiornato"
+    },
+    "fields": {
+      "kind": "Tipo",
+      "priority": "Priorità",
+      "inbox": "Mostra in inbox",
+      "modal": "Mostra come popup",
+      "dismissible": "Il popup può essere chiuso",
+      "startsAt": "Inizio",
+      "endsAt": "Fine",
+      "titleEn": "Titolo (EN)",
+      "titleEl": "Titolo (EL)",
+      "bodyEn": "Testo (EN)",
+      "bodyEl": "Testo (EL)",
+      "audience": "Ruoli destinatari",
+      "audienceHint": "Lascia tutto deselezionato per rivolgersi a tutti i ruoli connessi.",
+      "ctaEn": "Etichetta CTA (EN)",
+      "ctaEl": "Etichetta CTA (EL)",
+      "ctaUrl": "URL CTA",
+      "question": "Domanda",
+      "questionType": "Tipo di domanda",
+      "required": "Obbligatoria",
+      "promptEn": "Domanda (EN)",
+      "promptEl": "Domanda (EL)",
+      "addOption": "Aggiungi opzione",
+      "addQuestion": "Aggiungi domanda",
+      "showResults": "Mostra i risultati del sondaggio dopo il voto"
+    },
+    "responses": {
+      "title": "Risposte",
+      "completed": "Completate",
+      "dismissed": "Ignorate",
+      "seen": "Viste",
+      "delivered": "Coinvolte",
+      "textAnswers": "Risposte testuali",
+      "recent": "Risposte recenti"
+    }
+  },
+  "feedback": {
+    "nav": "Feedback utenti",
+    "title": "Inbox feedback utenti",
+    "subtitle": "{{count}} invii non visti",
+    "forbidden": "Non hai il permesso di visualizzare il feedback.",
+    "loadFailed": "Impossibile caricare il feedback.",
+    "empty": "Nessun feedback ancora.",
+    "select": "Seleziona una riga per leggere l’invio completo.",
+    "noComment": "(Nessun commento — solo media)",
+    "columns": {
+      "user": "Utente",
+      "comment": "Commento",
+      "when": "Quando",
+      "media": "Allegati"
+    }
+  },
+  "overview": {
+    "nav": "Panoramica",
+    "title": "Panoramica operativa",
+    "subtitle": "Utenti, attività, feedback e errori API recenti.",
+    "forbidden": "Non hai il permesso di visualizzare la panoramica operativa.",
+    "loadFailed": "Impossibile caricare la panoramica operativa.",
+    "viewAll": "Vedi tutto",
+    "kpis": {
+      "totalUsers": "Utenti totali",
+      "active24h": "Attivi (24h)",
+      "active7d": "7g",
+      "active30d": "30g",
+      "newUsers": "Nuovi (24h)",
+      "newUsers7d": "7g",
+      "unseenFeedback": "Feedback non visti",
+      "errors24h": "Errori API (24h)",
+      "unackedErrors": "Aperti",
+      "health": "Salute API"
+    },
+    "panels": {
+      "feedback": "Richiede attenzione — feedback",
+      "errors": "Richiede attenzione — errori",
+      "users": "Utenti più recenti"
+    }
+  },
+  "users": {
+    "nav": "Utenti",
+    "title": "Utenti",
+    "subtitle": "{{count}} account",
+    "forbidden": "Non hai il permesso di visualizzare gli utenti.",
+    "loadFailed": "Impossibile caricare gli utenti.",
+    "empty": "Nessun utente corrisponde a questi filtri.",
+    "select": "Seleziona una riga per i dettagli dell’account.",
+    "searchPlaceholder": "Cerca email o nome",
+    "role": "Ruolo",
+    "allRoles": "Tutti i ruoli",
+    "sort": "Ordina",
+    "sortCreated": "Creati più di recente",
+    "sortLastSeen": "Attivi di recente",
+    "language": "Lingua",
+    "experienceMode": "Modalità esperienza",
+    "columns": {
+      "user": "Utente",
+      "email": "Email",
+      "role": "Ruolo",
+      "created": "Creato",
+      "lastLogin": "Ultimo accesso",
+      "lastSeen": "Ultima attività"
+    }
+  },
+  "errors": {
+    "nav": "Errori",
+    "title": "Errori API",
+    "subtitle": "{{count}} eventi",
+    "forbidden": "Non hai il permesso di visualizzare gli errori.",
+    "loadFailed": "Impossibile caricare gli errori.",
+    "empty": "Nessun errore API corrispondente.",
+    "select": "Seleziona una riga per ispezionare il fallimento.",
+    "unackedOnly": "Solo aperti",
+    "pathPrefixPlaceholder": "Il path inizia con…",
+    "since": "Da",
+    "since24h": "Ultime 24 ore",
+    "since7d": "Ultimi 7 giorni",
+    "since30d": "Ultimi 30 giorni",
+    "sinceAll": "Tutti (conservati)",
+    "acknowledge": "Riconosci",
+    "acknowledged": "Riconosciuto",
+    "open": "Aperto",
+    "requestId": "Request id",
+    "userId": "User id",
+    "columns": {
+      "when": "Quando",
+      "request": "Richiesta",
+      "type": "Exception",
+      "status": "Stato"
+    }
+  }
+}

@@ -299,10 +299,10 @@ public class WeatherIntelligenceServiceTests
         _fieldTasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Core.Entities.FieldWork.FieldTask>
             {
-                new() { Id = "t1", TemplateCode = "Irrigation", Title = "Irrigation", Status = FieldTaskStatus.Completed },
-                new() { Id = "t2", TemplateCode = "Irrigation", Title = "Irrigation", Status = FieldTaskStatus.Completed },
+                new() { Id = "t1", TemplateCode = "Irrigation", Title = "Irrigation", Status = FieldTaskStatus.Done },
+                new() { Id = "t2", TemplateCode = "Irrigation", Title = "Irrigation", Status = FieldTaskStatus.Done },
                 new() { Id = "t3", TemplateCode = "Irrigation", Title = "Irrigation", Status = FieldTaskStatus.Planned },
-                new() { Id = "t4", TemplateCode = "Pruning", Title = "Pruning", Status = FieldTaskStatus.Completed }
+                new() { Id = "t4", TemplateCode = "Pruning", Title = "Pruning", Status = FieldTaskStatus.Done }
             });
         _executions.Setup(r => r.GetByFieldIdAsync("field-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Core.Entities.FieldWork.TaskExecution>

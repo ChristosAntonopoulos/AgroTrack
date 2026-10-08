@@ -441,9 +441,10 @@ export interface AcceptProposalInput {
   resultYear?: number;
 }
 
-/** Active Field Work list statuses (completed lives in Chronologio). */
+/** Active planned tasks (done/skipped live in Done / Chronologio). */
 export const ACTIVE_FIELD_TASK_STATUSES: ReadonlySet<string> = new Set([
   'planned',
+  // Legacy statuses kept so cached/offline rows still count until refreshed.
   'ready',
   'in_progress',
   'blocked',

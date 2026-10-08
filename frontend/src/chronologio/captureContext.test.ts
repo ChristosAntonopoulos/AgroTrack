@@ -5,14 +5,15 @@ import {
 
 describe('preferredCaptureTypeFromCategory', () => {
   it('maps primary filter keys to capture types', () => {
-    expect(preferredCaptureTypeFromCategory('work')).toBe('work');
+    // Work splits into schedule vs record — chooser, not a single preferred type.
+    expect(preferredCaptureTypeFromCategory('work')).toBeUndefined();
     expect(preferredCaptureTypeFromCategory('observation')).toBe('observation');
     expect(preferredCaptureTypeFromCategory('money')).toBe('money');
     expect(preferredCaptureTypeFromCategory('harvest')).toBeUndefined();
   });
 
   it('maps legacy API category aliases', () => {
-    expect(preferredCaptureTypeFromCategory('task')).toBe('work');
+    expect(preferredCaptureTypeFromCategory('task')).toBeUndefined();
     expect(preferredCaptureTypeFromCategory('note')).toBe('observation');
     expect(preferredCaptureTypeFromCategory('photo')).toBe('observation');
     expect(preferredCaptureTypeFromCategory('expense')).toBe('money');

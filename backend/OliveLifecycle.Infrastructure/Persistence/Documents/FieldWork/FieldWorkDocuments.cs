@@ -293,6 +293,42 @@ public class FieldTaskDocument
     [BsonElement("latestExecutionId")]
     public string? LatestExecutionId { get; set; }
 
+    [BsonElement("linkedWorkRecordId")]
+    public string? LinkedWorkRecordId { get; set; }
+
+    [BsonElement("ownerId")]
+    public string OwnerId { get; set; } = string.Empty;
+
+    [BsonElement("source")]
+    public string Source { get; set; } = "custom";
+
+    [BsonElement("timingBucket")]
+    public string TimingBucket { get; set; } = "later";
+
+    [BsonElement("scheduledFor")]
+    public DateTime? ScheduledFor { get; set; }
+
+    [BsonElement("assigneeId")]
+    public string? AssigneeId { get; set; }
+
+    [BsonElement("note")]
+    public string? Note { get; set; }
+
+    [BsonElement("recurrence")]
+    public string? Recurrence { get; set; }
+
+    [BsonElement("completedAt")]
+    public DateTime? CompletedAt { get; set; }
+
+    [BsonElement("completedByUserId")]
+    public string? CompletedByUserId { get; set; }
+
+    [BsonElement("skippedAt")]
+    public DateTime? SkippedAt { get; set; }
+
+    [BsonElement("skippedReason")]
+    public string? SkippedReason { get; set; }
+
     [BsonElement("startedAt")]
     public DateTime? StartedAt { get; set; }
 
@@ -346,13 +382,22 @@ public class TaskExecutionDocument
     public string Id { get; set; } = string.Empty;
 
     [BsonElement("taskId")]
-    public string TaskId { get; set; } = string.Empty;
+    public string? TaskId { get; set; }
 
     [BsonElement("fieldId")]
     public string FieldId { get; set; } = string.Empty;
 
     [BsonElement("resultYear")]
     public int ResultYear { get; set; }
+
+    [BsonElement("title")]
+    public string? Title { get; set; }
+
+    [BsonElement("templateCode")]
+    public string? TemplateCode { get; set; }
+
+    [BsonElement("ownerId")]
+    public string OwnerId { get; set; } = string.Empty;
 
     [BsonElement("startedAt")]
     public DateTime? StartedAt { get; set; }
@@ -410,6 +455,37 @@ public class TaskExecutionDocument
 
     [BsonElement("undoneByUserId")]
     public string? UndoneByUserId { get; set; }
+
+    [BsonElement("createdAt")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [BsonElement("updatedAt")]
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class TaskSuggestionDismissalDocument
+{
+    [BsonId]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string Id { get; set; } = string.Empty;
+
+    [BsonElement("fieldId")]
+    public string FieldId { get; set; } = string.Empty;
+
+    [BsonElement("resultYear")]
+    public int ResultYear { get; set; }
+
+    [BsonElement("templateCode")]
+    public string TemplateCode { get; set; } = string.Empty;
+
+    [BsonElement("ownerId")]
+    public string OwnerId { get; set; } = string.Empty;
+
+    [BsonElement("dismissedByUserId")]
+    public string DismissedByUserId { get; set; } = string.Empty;
+
+    [BsonElement("dismissedAt")]
+    public DateTime DismissedAt { get; set; } = DateTime.UtcNow;
 
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

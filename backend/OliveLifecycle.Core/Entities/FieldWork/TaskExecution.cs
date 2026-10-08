@@ -2,12 +2,27 @@ using OliveLifecycle.Core.Enums;
 
 namespace OliveLifecycle.Core.Entities.FieldWork;
 
-/// <summary>Permanent completion record for a FieldTask.</summary>
+/// <summary>
+/// Independent work record of past work. May exist without a planned task.
+/// Evolved from the former TaskExecution completion record.
+/// </summary>
 public class TaskExecution : BaseEntity
 {
-    public string TaskId { get; set; } = string.Empty;
+    /// <summary>Optional link to a FieldTask. Null when recorded without a plan.</summary>
+    public string? TaskId { get; set; }
+
+    /// <summary>Alias for <see cref="TaskId"/> — bidirectional link with FieldTask.LinkedWorkRecordId.</summary>
+    public string? LinkedTaskId
+    {
+        get => TaskId;
+        set => TaskId = value;
+    }
+
     public string FieldId { get; set; } = string.Empty;
     public int ResultYear { get; set; }
+    public string? Title { get; set; }
+    public string? TemplateCode { get; set; }
+    public string OwnerId { get; set; } = string.Empty;
     public DateTime? StartedAt { get; set; }
     public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
     public TaskExecutionOutcome Outcome { get; set; } = TaskExecutionOutcome.Completed;

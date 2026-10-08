@@ -2,14 +2,17 @@ import type { FinancialCategory } from '../finance/display';
 
 export type CaptureType =
   | 'observation'
-  | 'work'
+  | 'scheduleWork'
+  | 'recordWork'
   | 'expense'
   | 'income'
   | 'harvest'
   | 'money'
   | 'photo'
   | 'voice'
-  | 'document';
+  | 'document'
+  /** @deprecated Prefer scheduleWork | recordWork */
+  | 'work';
 
 /** Catalog section ids (formerly horizontal tabs — Quick Add no longer uses a tab strip). */
 export type CaptureTab = 'day' | 'grove' | 'warehouse' | 'money';

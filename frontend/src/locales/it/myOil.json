@@ -177,7 +177,7 @@
     "contactNoReach": "Nessun telefono o email",
     "platformTransferHint": "L'olio va nella loro cantina sull'app.",
     "role": {
-      "admin": "Admin",
+      "admin": "Amministratore",
       "family": "Famiglia"
     },
     "inside": "Nell'app",
@@ -195,7 +195,7 @@
     "unitLitres": "L",
     "bulk": "Sfuso",
     "bulkShort": "Sfuso",
-    "totalLitres": "{{amount}} L",
+    "totalLitres": "{{amount}} litri",
     "intent": "Cos'è successo?",
     "intentHold": "Tieni",
     "intentHoldHint": "Resta in cantina",
@@ -237,7 +237,7 @@
     "balanceUsed": "Riempi",
     "balanceLeft": "Restano",
     "tinName": "Latta",
-    "tinSubtotal": "{{amount}} L",
+    "tinSubtotal": "{{amount}} litri",
     "pickHint": "Tocca + per ogni latta riempita",
     "lessTins": "Meno latte da {{size}} L",
     "moreTins": "Più latte da {{size}} L",

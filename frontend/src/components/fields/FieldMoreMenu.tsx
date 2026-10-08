@@ -18,8 +18,7 @@ const FieldMoreMenu: React.FC<Props> = ({
   canOwn,
   canManageAccess = false,
   onArchive,
-  onRestore,
-}) => {
+  onRestore}) => {
   const { t } = useTranslation(['fields', 'common']);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -86,7 +85,7 @@ const FieldMoreMenu: React.FC<Props> = ({
                 navigate(`/fields/${field.id}/edit?focus=boundary`);
               }}
             >
-              {t('fields:page.editBoundary', { defaultValue: 'Αλλαγή ορίου' })}
+              {t('fields:page.editBoundary')}
             </button>
           ) : null}
           {canManage ? (

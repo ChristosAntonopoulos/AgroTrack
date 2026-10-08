@@ -20,6 +20,10 @@
   flex-wrap: wrap;
 }
 
+.fields-page-header--skip {
+  padding-right: 46px;
+}
+
 .fields-page-header-actions {
   display: flex;
   align-items: center;

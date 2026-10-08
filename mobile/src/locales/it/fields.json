@@ -111,6 +111,11 @@
       "Partner": "Partner",
       "Family": "Famiglia"
     },
+    "sections": {
+      "Admin": "Dove sono amministratore",
+      "Family": "Famiglia",
+      "Partner": "Partner"
+    },
     "draftBadge": "Bozza",
     "view": "View"
   },

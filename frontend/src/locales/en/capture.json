@@ -57,9 +57,13 @@
       "title": "Photo",
       "description": "Upload one or more grove photos"
     },
-    "work": {
-      "title": "Work",
-      "description": "Pruning, spraying, fertilizing…"
+    "scheduleWork": {
+      "title": "Schedule work",
+      "description": "Plan for later — pruning, spraying…"
+    },
+    "recordWork": {
+      "title": "Record work done",
+      "description": "Completed work in the grove"
     },
     "expense": {
       "title": "Expense",
@@ -132,12 +136,20 @@
     "chooseFile": "Choose file",
     "saved": "Document recorded."
   },
-  "work": {
-    "whatWork": "What work was done?",
-    "chooseType": "Choose the kind of work.",
-    "optionalCost": "Cost (optional)",
-    "optionalNote": "Note (optional)",
-    "saved": "Work recorded."
+  "recordWork": {
+    "title": "What was done?",
+    "titlePlaceholder": "e.g. Pruning, spraying…",
+    "titleRequired": "Enter a title for the work.",
+    "date": "When it was done",
+    "notes": "Notes",
+    "notesPlaceholder": "Optional",
+    "photo": "Photo",
+    "addPhoto": "Add",
+    "save": "Record",
+    "saved": "Work recorded.",
+    "linkOffer": "Link to a planned task?",
+    "linkHint": "Optional — you can skip this.",
+    "skipLink": "Skip linking"
   },
   "expense": {
     "amount": "Amount",

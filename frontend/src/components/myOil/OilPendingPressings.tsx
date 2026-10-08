@@ -100,8 +100,7 @@ function AllocatePressingDrawer({
   locale,
   busy,
   onClose,
-  onSubmit,
-}: {
+  onSubmit}: {
   open: boolean;
   pressing: OilPressing;
   fieldNames: Record<string, string>;
@@ -132,8 +131,7 @@ function AllocatePressingDrawer({
     () =>
       pressing.candidates.map((candidate) => ({
         candidate,
-        litres: Math.max(0, Number(draft[candidate.userId]) || 0),
-      })),
+        litres: Math.max(0, Number(draft[candidate.userId]) || 0)})),
     [pressing.candidates, draft]
   );
 
@@ -153,7 +151,7 @@ function AllocatePressingDrawer({
       subtitle={t('pendingPressings.batch', { batch: pressing.batchId })}
       icon={<Split size={18} strokeWidth={1.75} aria-hidden />}
       closeDisabled={busy}
-      closeLabel={t('common:close', { defaultValue: 'Κλείσιμο' })}
+      closeLabel={t('common:close')}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>

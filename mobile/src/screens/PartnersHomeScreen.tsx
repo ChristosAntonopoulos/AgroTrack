@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -8,24 +8,24 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
-import EmptyState from '../components/EmptyState';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { getFieldService, getPartnerService } from '../services/serviceFactory';
-import { Field } from '../services/fieldService';
-import { FieldInvite, FieldMembership, fieldPeopleService } from '../services/fieldPeopleService';
-import { SavedContact, ServiceCategory } from '../services/partnerService';
-import { fromSavedContacts, GrovePerson, linkedFieldIds, occupiesAccessSeat } from '../utils/grovePeople';
-import { canPickDeviceContact } from '../utils/pickDeviceContact';
-import { isPartnerScopeField } from '../utils/fieldDisplay';
+import {
+  FieldInvite,
+  ManagedContact,
+  ManagedPeople,
+  PersonAccess,
+  PersonFieldAccess,
+  fieldPeopleService,
+} from '../services/fieldPeopleService';
+import { SavedContact } from '../services/partnerService';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
-import { personSubtitle } from '../utils/personPresentation';
-import PartnersFieldPicker from '../components/partners/PartnersFieldPicker';
-import TeamAccessSection from '../components/partners/TeamAccessSection';
+import { capabilitySummaryKey } from '../utils/peopleAccess';
+import { copyText } from '../utils/shareHelpers';
 import SavedContactSheet from '../components/partners/SavedContactSheet';
-import SeatInviteSheet from '../components/partners/SeatInviteSheet';
-import PersonCard from '../components/partners/PersonCard';
-import PersonDetailSheet from '../components/partners/PersonDetailSheet';
+import InvitePersonSheet from '../components/partners/InvitePersonSheet';
+import EditAccessSheet from '../components/partners/EditAccessSheet';
 import { RootStackParamList } from '../navigation/types';
 import { spacing } from '../theme';
 
@@ -34,37 +34,40 @@ type Route = RouteProp<RootStackParamList, 'Partners'>;
 
 const FIELD_KEY = '@Oleachron/lastPartnerFieldId';
 
+const emptyManaged = (): ManagedPeople => ({
+  people: [],
+  pendingInvites: [],
+  contacts: [],
+  manageableFields: [],
+});
+
+const reachEmail = (value?: string) => (value || '').trim().toLowerCase();
+const reachPhone = (value?: string) => (value || '').replace(/[^\d]/g, '');
+
 const PartnersHomeScreen = () => {
-  const { t, i18n } = useTranslation(['partners', 'common', 'nav']);
+  const { t } = useTranslation(['partners', 'common', 'nav']);
   const { colors } = useTheme();
   const { user } = useAuth();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
 
-  const [fields, setFields] = useState<Field[]>([]);
-  const [categories, setCategories] = useState<ServiceCategory[]>([]);
-  const [fieldId, setFieldId] = useState(route.params?.fieldId || '');
-  const [people, setPeople] = useState<GrovePerson[]>([]);
-  const [peopleByField, setPeopleByField] = useState<Record<string, FieldMembership[]>>({});
+  const [data, setData] = useState<ManagedPeople>(emptyManaged);
   const [loading, setLoading] = useState(true);
-  const [peopleTick, setPeopleTick] = useState(0);
-  const [seatsTick, setSeatsTick] = useState(0);
-  const [pendingInvitesById, setPendingInvitesById] = useState<Record<string, FieldInvite>>({});
-  const [selected, setSelected] = useState<GrovePerson | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [editing, setEditing] = useState<SavedContact | null>(null);
-  const [section, setSection] = useState<'people' | 'invites' | 'contacts'>('people');
-  const [addingFamily, setAddingFamily] = useState(false);
-  const [addingPartner, setAddingPartner] = useState(false);
-  const [invitePrefill, setInvitePrefill] = useState<{ name?: string; email?: string }>({});
-  const [inviteTargetFieldId, setInviteTargetFieldId] = useState('');
+  const [fieldId, setFieldId] = useState(route.params?.fieldId || '');
+  const [query, setQuery] = useState('');
+  const [notice, setNotice] = useState('');
+  const [tick, setTick] = useState(0);
+  const [inviting, setInviting] = useState(false);
+  const [inviteSeed, setInviteSeed] = useState<{ name?: string; email?: string }>({});
+  const [editing, setEditing] = useState<{ person: PersonAccess; membership: PersonFieldAccess } | null>(null);
+  const [addingContact, setAddingContact] = useState(false);
+  const [addContactKey, setAddContactKey] = useState(0);
+  const [editingContact, setEditingContact] = useState<ManagedContact | null>(null);
   const openedAddContact = useRef(false);
 
-  const groveFields = useMemo(
-    () => fields.filter((field) => field.ownerId === user?.id && isPartnerScopeField(field, user?.id)),
-    [fields, user?.id]
-  );
-  const listedFields = groveFields;
+  const refresh = () => setTick((value) => value + 1);
+  const fields = data.manageableFields;
+  const selected = fields.find((field) => field.id === fieldId) || null;
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -72,88 +75,126 @@ const PartnersHomeScreen = () => {
       headerRight: () => (
         <Pressable
           onPress={() => {
-            const target = fieldId || listedFields[0]?.id;
-            if (!target) {
-              setAdding(true);
-              return;
-            }
-            setInviteTargetFieldId(target);
-            setAddingFamily(true);
+            if (!fieldId && fields[0]) setFieldId(fields[0].id);
+            setInviteSeed({});
+            setInviting(true);
           }}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel={t('partners:peoplePage.invite', { defaultValue: t('partners:addPerson') })}
+          accessibilityLabel={t('partners:peoplePage.addPerson')}
           style={{ paddingHorizontal: 12, paddingVertical: 6 }}
         >
           <Ionicons name="add" size={28} color={colors.primary} />
         </Pressable>
       ),
     });
-  }, [navigation, t, colors.primary, fieldId, listedFields]);
+  }, [navigation, t, colors.primary, fieldId, fields.length]);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const remembered = await AsyncStorage.getItem(FIELD_KEY);
-        const [fieldRows, cats] = await Promise.all([
-          getFieldService().getFields(user?.id || '', user?.role || ''),
-          getPartnerService().getCategories().catch(() => [] as ServiceCategory[]),
-        ]);
-        setFields(fieldRows);
-        setCategories(Array.isArray(cats) ? cats : []);
-        const preferred = route.params?.fieldId || remembered || '';
-        if (preferred && fieldRows.some((field) => field.id === preferred)) {
-          setFieldId(preferred);
-        } else {
-          setFieldId('');
-        }
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    void (async () => {
-      const saved = await getPartnerService()
-        .getContacts()
-        .catch(() => [] as SavedContact[]);
-      setPeople(fromSavedContacts(saved, i18n.language, categories));
-    })();
-  }, [peopleTick, i18n.language, categories]);
-
-  useEffect(() => {
-    if (!user || listedFields.length === 0) {
-      setPeopleByField({});
-      return;
-    }
     let cancelled = false;
     void (async () => {
+      setLoading(true);
       try {
-        const entries = await Promise.all(
-          listedFields.map(async (field) => {
-            try {
-              const rows = await fieldPeopleService.getPeople(field.id);
-              return [field.id, rows.map((row) => ({ ...row, fieldId: field.id }))] as const;
-            } catch {
-              return [field.id, [] as FieldMembership[]] as const;
-            }
+        try {
+          const managed = await fieldPeopleService.getManagedPeople();
+          if (!cancelled) setData(managed);
+          return;
+        } catch {
+          /* stitch when the aggregate endpoint is unavailable */
+        }
+        if (!user?.id) {
+          if (!cancelled) setData(emptyManaged());
+          return;
+        }
+        const fieldRows = await getFieldService().getFields(user.id, user.role || '').catch(() => []);
+        const owned = fieldRows.filter((field) => field.ownerId === user.id);
+        const membershipsByField: Record<string, Awaited<ReturnType<typeof fieldPeopleService.getPeople>>> = {};
+        const invitesByField: Record<string, FieldInvite[]> = {};
+        await Promise.all(
+          owned.map(async (field) => {
+            membershipsByField[field.id] = await fieldPeopleService.getPeople(field.id).catch(() => []);
+            invitesByField[field.id] = await fieldPeopleService.listInvites(field.id).catch(() => []);
           })
         );
-        if (!cancelled) setPeopleByField(Object.fromEntries(entries));
-      } catch {
-        if (!cancelled) setPeopleByField({});
+        const contacts = await getPartnerService().getContacts().catch(() => [] as SavedContact[]);
+        if (cancelled) return;
+        const people = new Map<string, PersonAccess>();
+        const pendingInvites: FieldInvite[] = [];
+        owned.forEach((field) => {
+          (membershipsByField[field.id] || []).forEach((member) => {
+            if (member.role === 'Admin' || !/^active$/i.test(member.status)) return;
+            const key = member.userId || member.email || member.displayName || field.id;
+            const membership: PersonFieldAccess = {
+              fieldId: field.id,
+              fieldName: field.name,
+              relationship: member.role === 'Partner' ? 'Partner' : 'Family',
+              accessPreset: member.accessLevel,
+              modules: member.modules,
+              status: member.status,
+            };
+            const existing = people.get(key);
+            if (!existing) {
+              people.set(key, {
+                userId: member.userId,
+                displayName: member.displayName || member.email || '',
+                email: member.email,
+                memberships: [membership],
+              });
+              return;
+            }
+            existing.memberships.push(membership);
+          });
+          (invitesByField[field.id] || []).forEach((invite) => {
+            if (/^(pending|expired|invited)$/i.test(invite.status || '')) pendingInvites.push(invite);
+          });
+        });
+        setData({
+          people: [...people.values()],
+          pendingInvites,
+          contacts: contacts.map((contact) => ({
+            id: contact.id,
+            displayName: contact.displayName,
+            phone: contact.phone,
+            email: contact.email,
+            notes: contact.notes,
+            serviceCategoryIds: contact.serviceCategoryIds || [],
+            fieldIds: contact.fieldIds || [],
+            linkedUserId: contact.linkedUserId,
+            source: contact.source === 'PhoneBook' ? 'PhoneBook' : 'Manual',
+            createdAt: contact.createdAt,
+            updatedAt: contact.updatedAt,
+          })),
+          manageableFields: owned.map((field) => ({
+            id: field.id,
+            name: field.name,
+            ownerUserId: user.id,
+            ownerDisplayName: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
+            ownerEmail: user.email,
+          })),
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [user, listedFields, seatsTick]);
+  }, [user, tick]);
+
+  useEffect(() => {
+    if (loading || fields.length === 0 || selected) return;
+    void (async () => {
+      const remembered = await AsyncStorage.getItem(FIELD_KEY);
+      const preferred = route.params?.fieldId || remembered || '';
+      const next = fields.some((field) => field.id === preferred) ? preferred : fields[0].id;
+      setFieldId(next);
+    })();
+  }, [loading, fields, selected, route.params?.fieldId]);
 
   useEffect(() => {
     if (loading || !route.params?.addContact || openedAddContact.current) return;
     openedAddContact.current = true;
-    setAdding(true);
+    setAddingContact(true);
   }, [loading, route.params?.addContact]);
 
   const onFieldChange = (nextId: string) => {
@@ -161,363 +202,334 @@ const PartnersHomeScreen = () => {
     if (nextId) void AsyncStorage.setItem(FIELD_KEY, nextId);
   };
 
-  const canManageField = (id: string) => {
-    if (!id || !user?.id) return false;
-    if (user.role === 'Administrator') return true;
-    const field = fields.find((row) => row.id === id);
-    if (field?.ownerId === user.id) return true;
-    return (peopleByField[id] || []).some(
-      (person) => person.userId === user.id && person.role === 'Admin'
-    );
-  };
-
-  const fieldPeople = useMemo(
-    () => (fieldId ? peopleByField[fieldId] || [] : Object.values(peopleByField).flat()),
-    [fieldId, peopleByField]
-  );
-
-  const accessUserIds = useMemo(() => {
-    const ids = new Set<string>();
-    fieldPeople.forEach((person) => {
-      if (person.userId && person.role !== 'Admin') ids.add(person.userId);
-    });
-    return ids;
-  }, [fieldPeople]);
-
-  const accessEmails = useMemo(() => {
-    const emails = new Set<string>();
-    fieldPeople.forEach((person) => {
-      if (person.email) emails.add(person.email.trim().toLowerCase());
-    });
-    return emails;
-  }, [fieldPeople]);
-
-  const visiblePeople = useMemo(
+  const needle = query.trim().toLowerCase();
+  const people = useMemo(
     () =>
-      people.filter((person) => {
-        if (!person.savedContact) return false;
-        if (user?.id && person.userId === user.id) return false;
-        if (occupiesAccessSeat(person, accessUserIds, accessEmails)) return false;
-        if (!fieldId) return true;
-        return linkedFieldIds(person).includes(fieldId);
-      }),
-    [people, user?.id, accessUserIds, accessEmails, fieldId]
+      data.people
+        .map((person) => ({
+          ...person,
+          memberships: person.memberships.filter((membership) => membership.fieldId === fieldId),
+        }))
+        .filter((person) => person.memberships.length > 0)
+        .filter((person) => {
+          if (!needle) return true;
+          const hay = `${person.displayName} ${person.email || ''}`.toLowerCase();
+          return hay.includes(needle);
+        }),
+    [data.people, fieldId, needle]
   );
 
-  const fieldPeopleCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    listedFields.forEach((field) => {
-      const members = (peopleByField[field.id] || []).filter(
-        (person) =>
-          person.role !== 'Admin' &&
-          !/^revoked$/i.test(person.status) &&
-          !/^removed$/i.test(person.status)
-      );
-      const memberUsers = new Set(members.map((person) => person.userId).filter(Boolean));
-      const memberEmails = new Set(
-        members.map((person) => person.email?.trim().toLowerCase()).filter(Boolean) as string[]
-      );
-      const extraContacts = people.filter((person) => {
-        if (!linkedFieldIds(person).includes(field.id)) return false;
-        if (person.userId && memberUsers.has(person.userId)) return false;
-        const email = (person.email || person.savedContact?.email || '').trim().toLowerCase();
-        if (email && memberEmails.has(email)) return false;
-        return true;
-      });
-      counts[field.id] = members.length + extraContacts.length;
-    });
-    return counts;
-  }, [listedFields, peopleByField, people]);
+  const invites = useMemo(
+    () =>
+      data.pendingInvites.filter((invite) => {
+        if (invite.fieldId !== fieldId) return false;
+        if (!needle) return true;
+        const hay = `${invite.displayName || ''} ${invite.email || ''} ${invite.phone || ''}`.toLowerCase();
+        return hay.includes(needle);
+      }),
+    [data.pendingInvites, fieldId, needle]
+  );
 
-  const onSeatsChanged = (invite?: FieldInvite) => {
-    if (invite?.id) {
-      setPendingInvitesById((prev) => ({ ...prev, [invite.id]: invite }));
-    }
-    setSeatsTick((n) => n + 1);
-  };
+  const contacts = useMemo(
+    () =>
+      data.contacts.filter((contact) => {
+        if (!needle) return true;
+        const hay = `${contact.displayName} ${contact.email || ''} ${contact.phone || ''}`.toLowerCase();
+        return hay.includes(needle);
+      }),
+    [data.contacts, needle]
+  );
 
-  const openInviteFamily = (prefill: { name?: string; email?: string } = {}, targetFieldId?: string) => {
-    const next = targetFieldId || fieldId;
-    if (!next) return;
-    setInviteTargetFieldId(next);
-    setInvitePrefill(prefill);
-    setAddingFamily(true);
-  };
-
-  const openInvitePartner = (prefill: { name?: string; email?: string } = {}, targetFieldId?: string) => {
-    const next = targetFieldId || fieldId;
-    if (!next) return;
-    setInviteTargetFieldId(next);
-    setInvitePrefill(prefill);
-    setAddingPartner(true);
-  };
-
-  const inviteFieldId = inviteTargetFieldId || fieldId;
-  const inviteField = fields.find((field) => field.id === inviteFieldId);
-  const accessFields = fieldId ? listedFields.filter((field) => field.id === fieldId) : [];
-  const peopleAcrossGroves = useMemo(() => {
-    const grouped = new Map<string, { key: string; name: string; detail: string }>();
-    const relationshipLabel = (role: string, level: string, modules: string[]) => {
-      const relation = role === 'Partner' ? 'Collaborator' : 'Family';
-      const preset = level === 'view' ? 'view' : level === 'help' ? 'help' : modules.includes('tasks') ? 'work' : 'record';
-      return `${t(`partners:peoplePage.relationship.${relation}`, { defaultValue: relation })} · ${t(
-        `partners:peoplePage.preset.${preset}`,
-        { defaultValue: preset }
-      )}`;
-    };
-    listedFields.forEach((field) => {
-      (peopleByField[field.id] || []).forEach((person) => {
-        if (person.role === 'Admin' || !/^active$/i.test(person.status)) return;
-        const key = person.userId || person.email || person.displayName || `${field.id}-anon`;
-        const current = grouped.get(key) || {
-          key,
-          name: person.displayName || person.email || '',
-          detail: '',
-        };
-        const line = `${friendlyFieldLabel(field.name)} · ${relationshipLabel(person.role, person.accessLevel, person.modules)}`;
-        current.detail = current.detail ? `${current.detail}\n${line}` : line;
-        grouped.set(key, current);
+  const emailsByField = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    data.people.forEach((person) => {
+      const email = reachEmail(person.email);
+      if (!email) return;
+      person.memberships.forEach((membership) => {
+        map[membership.fieldId] = [...(map[membership.fieldId] || []), email];
       });
     });
-    return [...grouped.values()];
-  }, [listedFields, peopleByField, t]);
-  const pendingRows = useMemo(() => {
-    const rows: { key: string; name: string; detail: string }[] = [];
-    listedFields.forEach((field) => {
-      (peopleByField[field.id] || []).forEach((person) => {
-        if (!/^(pending|expired|invited)$/i.test(person.status)) return;
-        rows.push({
-          key: `${field.id}-${person.inviteId || person.email || person.userId}`,
-          name: person.displayName || person.email || person.phone || '',
-          detail: friendlyFieldLabel(field.name),
-        });
-      });
+    return map;
+  }, [data.people]);
+
+  const onThisGrove = (contact: ManagedContact) => {
+    const email = reachEmail(contact.email);
+    const phone = reachPhone(contact.phone);
+    const members = data.people.filter((person) => person.memberships.some((row) => row.fieldId === fieldId));
+    if (contact.linkedUserId && members.some((person) => person.userId === contact.linkedUserId)) return true;
+    if (email && members.some((person) => reachEmail(person.email) === email)) return true;
+    return data.pendingInvites.some((invite) => {
+      if (invite.fieldId !== fieldId) return false;
+      if (email && reachEmail(invite.email) === email) return true;
+      return Boolean(phone) && reachPhone(invite.phone) === phone;
     });
-    return rows;
-  }, [listedFields, peopleByField]);
-  const canPickPhone = canPickDeviceContact();
+  };
+
+  const openInvite = (seed?: { name?: string; email?: string }) => {
+    if (!fieldId && fields[0]) setFieldId(fields[0].id);
+    setInviteSeed(seed || {});
+    setInviting(true);
+  };
+
+  const relationshipLabel = (role: string) =>
+    t(`partners:peoplePage.relationship.${role === 'Partner' ? 'Collaborator' : role === 'Collaborator' ? 'Collaborator' : 'Family'}`);
+
+  const capabilityLabel = (level: string, modules: string[]) =>
+    t(`partners:peoplePage.capability.${capabilitySummaryKey(level, modules)}`);
+
+  const copyLink = async (invite: FieldInvite) => {
+    if (!invite.shareUrl) return;
+    const ok = await copyText(invite.shareUrl);
+    setNotice(ok ? t('partners:peoplePage.linkCopied') : invite.shareUrl);
+  };
+
+  const cancelInvite = (invite: FieldInvite) => {
+    Alert.alert(t('partners:peoplePage.cancelInvite'), t('partners:peoplePage.cancelInviteConfirm'), [
+      { text: t('common:cancel'), style: 'cancel' },
+      {
+        text: t('partners:peoplePage.cancelInvite'),
+        style: 'destructive',
+        onPress: () => {
+          void fieldPeopleService.removeMembership(invite.fieldId, invite.id).then(refresh);
+        },
+      },
+    ]);
+  };
+
+  const asSaved = (contact: ManagedContact): SavedContact => ({
+    id: contact.id,
+    displayName: contact.displayName,
+    phone: contact.phone,
+    email: contact.email,
+    notes: contact.notes,
+    serviceCategoryIds: contact.serviceCategoryIds,
+    fieldIds: contact.fieldIds,
+    linkedUserId: contact.linkedUserId,
+    source: contact.source,
+    createdAt: contact.createdAt,
+    updatedAt: contact.updatedAt,
+  });
 
   if (loading) return <LoadingSpinner fullScreen />;
 
   return (
     <ScreenLayout scroll padded canvasOpacity={0.45}>
-      <Text style={[styles.lead, { color: colors.textSecondary, marginBottom: spacing.sm }]}>
-        {t('partners:peoplePage.subtitle', {
-          defaultValue: t('partners:homeLead'),
-        })}
-      </Text>
-      {listedFields.length > 0 ? (
-        <PartnersFieldPicker
-          fields={listedFields}
-          value={fieldId}
-          onChange={onFieldChange}
-          counts={fieldPeopleCounts}
+      <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('partners:peoplePage.focusLead')}</Text>
+
+      {fields.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groveRow}>
+          {fields.map((field) => {
+            const on = field.id === fieldId;
+            return (
+              <Pressable
+                key={field.id}
+                onPress={() => onFieldChange(field.id)}
+                style={[
+                  styles.groveChip,
+                  {
+                    borderColor: on ? colors.oliveBorder : colors.border,
+                    backgroundColor: on ? colors.primaryLight : colors.surface,
+                  },
+                ]}
+              >
+                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{friendlyFieldLabel(field.name)}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : selected ? (
+        <Text style={[styles.groveName, { color: colors.textPrimary }]}>{friendlyFieldLabel(selected.name)}</Text>
+      ) : null}
+
+      {fields.length === 0 ? (
+        <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('partners:peoplePage.needField')}</Text>
+      ) : null}
+
+      {selected ? (
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('partners:peoplePage.search')}
+          placeholderTextColor={colors.textTertiary}
+          style={[styles.search, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface }]}
         />
       ) : null}
+      {notice ? <Text style={[styles.notice, { color: colors.primary }]}>{notice}</Text> : null}
 
-      <View style={styles.tabs}>
-        {([
-          ['people', t('partners:peoplePage.tabs.people', { count: peopleAcrossGroves.length, defaultValue: 'People' })],
-          ['invites', t('partners:peoplePage.tabs.invites', { count: pendingRows.length, defaultValue: 'Invitations' })],
-          ['contacts', t('partners:peoplePage.tabs.contacts', { count: visiblePeople.length, defaultValue: 'Contacts' })],
-        ] as const).map(([id, label]) => (
-          <Pressable key={id} onPress={() => setSection(id)} style={styles.tab}>
-            <Text style={{ color: section === id ? colors.textPrimary : colors.textSecondary, fontWeight: '700' }}>
-              {label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {section === 'people' && !fieldId
-        ? peopleAcrossGroves.length === 0
-          ? (
-            <EmptyState
-              title={t('partners:peoplePage.emptyPeople', { defaultValue: t('partners:emptyPeople') })}
-              description={t('partners:peoplePage.subtitle', { defaultValue: '' })}
-            />
-          )
-          : peopleAcrossGroves.map((person) => (
-            <PersonCard key={person.key} name={person.name} subtitle={person.detail} onPress={() => undefined} />
-          ))
-        : null}
-
-      {section === 'people' && fieldId
-        ? accessFields.map((field) => (
-            <TeamAccessSection
-              key={field.id}
-              fieldId={field.id}
-              fieldName={friendlyFieldLabel(field.name)}
-              fieldColor={field.color}
-              showFieldHeading
-              people={peopleByField[field.id] || []}
-              canManage={canManageField(field.id)}
-              pendingInvitesById={pendingInvitesById}
-              onAddFamily={() => openInviteFamily({}, field.id)}
-              onAddPartner={() => openInvitePartner({}, field.id)}
-              onChanged={() => onSeatsChanged()}
-            />
-          ))
-        : null}
-
-      {section === 'invites' ? (
-        pendingRows.length === 0 ? (
-          <Text style={[styles.lead, { color: colors.textSecondary }]}>
-            {t('partners:peoplePage.emptyInvites', { defaultValue: t('partners:pendingInvites') })}
-          </Text>
-        ) : (
-          pendingRows.map((row) => (
-            <PersonCard key={row.key} name={row.name} subtitle={row.detail} onPress={() => undefined} />
-          ))
-        )
-      ) : null}
-
-      {section === 'contacts' ? (
+      {selected ? (
         <>
-          <Text style={[styles.lead, { color: colors.textSecondary }]}>
-            {t('partners:peoplePage.contactsLead', { defaultValue: t('partners:contactsSectionHint') })}
-          </Text>
-          <View style={styles.actions}>
-            {canPickPhone ? (
-              <Button
-                title={t('partners:fromPhone')}
-                variant="outline"
-                onPress={() => setAdding(true)}
-              />
-            ) : null}
-            <Button title={t('partners:addContact')} onPress={() => setAdding(true)} />
+          <View style={styles.sectionHead}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('partners:peoplePage.onThisGrove')}</Text>
+            <Button title={t('partners:peoplePage.addPerson')} size="small" onPress={() => openInvite()} />
           </View>
-          {visiblePeople.length === 0 ? (
-            <EmptyState
-              title={t('partners:peoplePage.emptyContacts', { defaultValue: t('partners:emptyPeople') })}
-              description={t('partners:peoplePage.contactsLead', { defaultValue: t('partners:emptyPeopleHint') })}
-              action={{ label: t('partners:addContact'), onPress: () => setAdding(true) }}
-            />
-          ) : (
-            visiblePeople.map((person) => (
-              <PersonCard
-                key={person.id}
-                name={person.displayName}
-                subtitle={personSubtitle(person, fields, t)}
-                phone={person.phone}
-                email={person.email}
-                hint={person.serviceLabels.join(' · ') || undefined}
-                onPress={() => setSelected(person)}
-              />
+          <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('partners:peoplePage.appLead')}</Text>
+
+          <View style={[styles.row, { backgroundColor: colors.surfaceElevated }]}>
+            <View style={styles.rowMain}>
+              <Text style={[styles.name, { color: colors.textPrimary }]}>
+                {selected.ownerDisplayName || selected.ownerEmail}
+              </Text>
+              <Text style={{ color: colors.textSecondary }}>{t('partners:peoplePage.owner')}</Text>
+            </View>
+          </View>
+
+          {people.map((person) =>
+            person.memberships.map((membership) => (
+              <View key={`${person.userId}-${membership.fieldId}`} style={[styles.row, { backgroundColor: colors.surfaceElevated }]}>
+                <View style={styles.rowMain}>
+                  <Text style={[styles.name, { color: colors.textPrimary }]}>{person.displayName || person.email}</Text>
+                  <Text style={{ color: colors.textSecondary }}>{relationshipLabel(membership.relationship)}</Text>
+                  <Text style={{ color: colors.textTertiary }}>
+                    {capabilityLabel(membership.accessPreset, membership.modules)}
+                  </Text>
+                </View>
+                <Button
+                  title={t('partners:peoplePage.manage')}
+                  size="small"
+                  variant="outline"
+                  onPress={() =>
+                    setEditing({
+                      person: data.people.find((row) => row.userId === person.userId) || person,
+                      membership,
+                    })
+                  }
+                />
+              </View>
             ))
           )}
+
+          {invites.map((invite) => {
+            const who = invite.displayName || invite.email || t('partners:peoplePage.thisPerson');
+            return (
+              <View key={invite.id} style={[styles.row, { backgroundColor: colors.surfaceElevated }]}>
+                <View style={styles.rowMain}>
+                  <Text style={[styles.name, { color: colors.textPrimary }]}>{who}</Text>
+                  <Text style={{ color: colors.textSecondary }}>
+                    {t('partners:peoplePage.kindInvite')} · {relationshipLabel(invite.role)} ·{' '}
+                    {capabilityLabel(invite.accessLevel, invite.modules)}
+                  </Text>
+                  <View style={styles.actions}>
+                    <Button title={t('partners:peoplePage.copyLink')} size="small" variant="text" onPress={() => void copyLink(invite)} />
+                    <Button
+                      title={t('partners:peoplePage.resend')}
+                      size="small"
+                      variant="text"
+                      onPress={() => void fieldPeopleService.resendInvite(invite.fieldId, invite.id).then(refresh)}
+                    />
+                    <Button
+                      title={t('partners:peoplePage.cancelInvite')}
+                      size="small"
+                      variant="text"
+                      textColor={colors.error}
+                      onPress={() => cancelInvite(invite)}
+                    />
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+
+          {people.length === 0 && invites.length === 0 ? (
+            <Text style={[styles.lead, { color: colors.textSecondary }]}>
+              {needle ? t('partners:peoplePage.noMatch') : t('partners:peoplePage.emptyGrove')}
+            </Text>
+          ) : null}
+
+          <View style={styles.sectionHead}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t('partners:peoplePage.yourContacts')}</Text>
+            <Button
+              title={t('partners:peoplePage.notebookAdd')}
+              size="small"
+              variant="outline"
+              onPress={() => {
+                setAddContactKey((value) => value + 1);
+                setAddingContact(true);
+              }}
+            />
+          </View>
+          <Text style={[styles.lead, { color: colors.textSecondary }]}>{t('partners:peoplePage.contactsConnect')}</Text>
+
+          {contacts.length === 0 ? (
+            <Text style={[styles.lead, { color: colors.textSecondary }]}>
+              {needle ? t('partners:peoplePage.noMatch') : t('partners:peoplePage.emptyContactsShort')}
+            </Text>
+          ) : null}
+
+          {contacts.map((contact) => {
+            const here = onThisGrove(contact);
+            return (
+              <View key={contact.id} style={[styles.row, { backgroundColor: colors.surfaceElevated }]}>
+                <View style={styles.rowMain}>
+                  <Text style={[styles.name, { color: colors.textPrimary }]}>{contact.displayName}</Text>
+                  <Text style={{ color: colors.textSecondary }}>{contact.email || contact.phone || t('partners:peoplePage.kindContact')}</Text>
+                  <View style={styles.actions}>
+                    {here ? (
+                      <Text style={{ color: colors.textSecondary }}>{t('partners:peoplePage.alreadyHere')}</Text>
+                    ) : (
+                      <Button
+                        title={t('partners:peoplePage.giveAccess')}
+                        size="small"
+                        variant="outline"
+                        onPress={() => openInvite({ name: contact.displayName, email: contact.email })}
+                      />
+                    )}
+                    <Button
+                      title={t('partners:peoplePage.editContact')}
+                      size="small"
+                      variant="text"
+                      onPress={() => setEditingContact(contact)}
+                    />
+                  </View>
+                </View>
+              </View>
+            );
+          })}
         </>
       ) : null}
 
-      <PersonDetailSheet
-        person={selected}
-        fields={fields}
-        canRemoveFromField={Boolean(
-          selected?.membership && !selected.connections.includes('owner') && canManageField(fieldId)
-        )}
-        onClose={() => setSelected(null)}
-        onEdit={
-          selected?.savedContact
-            ? () => {
-                const contact = selected.savedContact!;
-                setSelected(null);
-                setEditing(contact);
-              }
-            : undefined
-        }
-        onInvite={
-          selected
-            ? (() => {
-                const person = selected;
-                const inviteFieldForPerson = fieldId
-                  ? canManageField(fieldId)
-                    ? fieldId
-                    : ''
-                  : linkedFieldIds(person).find((id) => canManageField(id)) || '';
-                if (!inviteFieldForPerson) return undefined;
-                return () =>
-                  openInviteFamily(
-                    {
-                      name: person.displayName,
-                      email: person.email || person.savedContact?.email || '',
-                    },
-                    inviteFieldForPerson
-                  );
-              })()
-            : undefined
-        }
-        onRemoveFromField={
-          selected?.userId
-            ? () => {
-                const person = selected;
-                void (async () => {
-                  const ids = person.fieldIds?.length ? person.fieldIds : fieldId ? [fieldId] : [];
-                  await Promise.all(
-                    ids.map((id) => fieldPeopleService.removeMembership(id, person.userId!))
-                  );
-                  setPeopleTick((n) => n + 1);
-                  setSeatsTick((n) => n + 1);
-                })();
-              }
-            : undefined
-        }
-        onOpenProfile={
-          selected?.listed && selected.userId
-            ? () => {
-                const userId = selected.userId!;
-                setSelected(null);
-                navigation.navigate('PartnerProfile', { userId, fieldId });
-              }
-            : undefined
-        }
+      <InvitePersonSheet
+        visible={inviting}
+        fields={fields.map((field) => ({ id: field.id, name: friendlyFieldLabel(field.name) }))}
+        peopleEmailsByField={emailsByField}
+        initialFieldIds={fieldId ? [fieldId] : []}
+        initialName={inviteSeed.name}
+        initialEmail={inviteSeed.email}
+        onClose={() => setInviting(false)}
+        onSent={(message) => {
+          setNotice(message);
+          refresh();
+        }}
       />
 
-      <SavedContactSheet
-        visible={adding}
-        fieldId={fieldId || undefined}
-        fields={fields}
-        onClose={() => setAdding(false)}
-        onSaved={() => setPeopleTick((n) => n + 1)}
-      />
-      <SavedContactSheet
-        visible={Boolean(editing)}
-        fieldId={fieldId || undefined}
-        fields={fields}
-        existing={editing}
-        onClose={() => setEditing(null)}
-        onSaved={() => setPeopleTick((n) => n + 1)}
-      />
-
-      {inviteFieldId ? (
-        <SeatInviteSheet
-          visible={addingFamily}
-          role="Family"
-          fieldId={inviteFieldId}
-          fieldName={inviteField?.name}
-          initialName={invitePrefill.name}
-          initialEmail={invitePrefill.email}
-          onClose={() => {
-            setAddingFamily(false);
-            setInvitePrefill({});
-            setInviteTargetFieldId('');
-          }}
-          onCreated={onSeatsChanged}
+      {editing ? (
+        <EditAccessSheet
+          visible
+          personName={editing.person.displayName || editing.person.email || ''}
+          userId={editing.person.userId}
+          activeFieldId={editing.membership.fieldId}
+          memberships={editing.person.memberships}
+          onClose={() => setEditing(null)}
+          onSaved={refresh}
         />
       ) : null}
-      {inviteFieldId ? (
-        <SeatInviteSheet
-          visible={addingPartner}
-          role="Partner"
-          fieldId={inviteFieldId}
-          fieldName={inviteField?.name}
-          initialName={invitePrefill.name}
-          initialEmail={invitePrefill.email}
-          onClose={() => {
-            setAddingPartner(false);
-            setInvitePrefill({});
-            setInviteTargetFieldId('');
-          }}
-          onCreated={onSeatsChanged}
+
+      <SavedContactSheet
+        key={addContactKey}
+        visible={addingContact}
+        fieldId={fieldId || undefined}
+        fields={fields}
+        onClose={() => setAddingContact(false)}
+        onSaved={refresh}
+      />
+      {editingContact ? (
+        <SavedContactSheet
+          key={editingContact.id}
+          visible
+          fieldId={fieldId || undefined}
+          fields={fields}
+          existing={asSaved(editingContact)}
+          onClose={() => setEditingContact(null)}
+          onSaved={refresh}
         />
       ) : null}
     </ScreenLayout>
@@ -525,13 +537,45 @@ const PartnersHomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  sectionHead: { marginBottom: spacing.sm },
-  sectionTitle: { fontSize: 22, fontWeight: '800' },
-  lead: { fontSize: 14, lineHeight: 20, marginTop: 4 },
-  hint: { fontSize: 12, lineHeight: 18, marginTop: 4 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
-  tabs: { flexDirection: 'row', gap: 16, marginBottom: spacing.md },
-  tab: { paddingVertical: 8 },
+  lead: { fontSize: 14, lineHeight: 20, marginBottom: spacing.sm },
+  groveRow: { gap: 8, paddingBottom: spacing.sm },
+  groveChip: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  groveName: { fontSize: 16, fontWeight: '700', marginBottom: spacing.sm },
+  search: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    marginBottom: spacing.sm,
+  },
+  notice: { fontWeight: '600', marginBottom: spacing.sm },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  sectionTitle: { fontSize: 20, fontWeight: '800', flex: 1 },
+  row: {
+    borderRadius: 14,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rowMain: { flex: 1, gap: 2 },
+  name: { fontSize: 16, fontWeight: '700' },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
 });
 
 export default PartnersHomeScreen;

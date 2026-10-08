@@ -1,31 +1,16 @@
-import type { FieldTask } from '../services/fieldWorkService';
+import type { Task } from '../services/taskService';
 import { athensParts, parseBusinessDate } from './athensDate';
-import { isTaskDueToday, isTaskOverdue } from './taskListUtils';
-import { resolveWeatherKind } from './taskWeather';
 
-/** User-visible work state. Overdue, today and suggestions are not statuses. */
-export type NotebookStatus =
-  | 'todo'
-  | 'in_progress'
-  | 'completed'
-  | 'blocked'
-  | 'skipped'
-  | 'cancelled';
+/** User-visible work state. Overdue and suggestions are not statuses. */
+export type NotebookStatus = 'planned' | 'done' | 'skipped';
 
-export type NotebookSection =
-  | 'overdue'
-  | 'blocked'
-  | 'weather'
-  | 'today'
-  | 'tomorrow'
-  | 'week'
-  | 'later';
+export type NotebookSection = 'overdue' | 'today' | 'tomorrow' | 'week' | 'later';
 
-export type NotebookAction = 'start' | 'continue' | 'view' | 'resolve';
+export type NotebookMenuAction = 'reschedule' | 'assign' | 'edit' | 'skip';
 
 export type TaskUnit = {
   key: string;
-  tasks: FieldTask[];
+  tasks: Task[];
 };
 
 const dayKey = (date: Date): number => {
@@ -41,32 +26,19 @@ const parseDay = (value?: string | null): Date | null => {
 
 export const notebookStatus = (status: string | undefined): NotebookStatus => {
   const value = String(status || '').toLowerCase();
-  if (value === 'in_progress') return 'in_progress';
-  if (value === 'completed') return 'completed';
-  if (value === 'blocked') return 'blocked';
-  if (value === 'skipped') return 'skipped';
-  if (value === 'cancelled') return 'cancelled';
-  return 'todo';
+  if (value === 'done' || value === 'completed') return 'done';
+  if (value === 'skipped' || value === 'cancelled') return 'skipped';
+  return 'planned';
 };
 
-export const isOpenWork = (task: FieldTask): boolean => {
+export const isOpenWork = (task: Task): boolean => notebookStatus(task.status) === 'planned';
+
+export const isRecordedWork = (task: Task): boolean => {
   const status = notebookStatus(task.status);
-  return status === 'todo' || status === 'in_progress' || status === 'blocked';
+  return status === 'done' || status === 'skipped';
 };
 
-export const isRecordedWork = (task: FieldTask): boolean => {
-  const status = notebookStatus(task.status);
-  return status === 'completed' || status === 'skipped' || status === 'cancelled';
-};
-
-export const primaryActionFor = (status: NotebookStatus): NotebookAction => {
-  if (status === 'in_progress') return 'continue';
-  if (status === 'blocked') return 'resolve';
-  if (status === 'completed' || status === 'skipped' || status === 'cancelled') return 'view';
-  return 'start';
-};
-
-export const checklistCount = (task: FieldTask): { done: number; total: number } => {
+export const checklistCount = (task: Task): { done: number; total: number } => {
   const items = task.checklist || [];
   return {
     done: items.filter((item) => item.isAnswered).length,
@@ -74,93 +46,81 @@ export const checklistCount = (task: FieldTask): { done: number; total: number }
   };
 };
 
-export const requiredChecksRemaining = (task: FieldTask): number =>
-  (task.checklist || []).filter((item) => {
-    const requirement = String(item.requirement || '').toLowerCase();
-    const required = requirement.includes('required');
-    return required && !item.isAnswered;
-  }).length;
+const taskAnchor = (task: Task): Date | null =>
+  parseDay(task.scheduledFor || task.plannedStart || task.plannedEnd);
 
-const windowContainsToday = (task: FieldTask, now: Date): boolean => {
-  const start = parseDay(task.plannedStart);
-  const end = parseDay(task.plannedEnd);
-  if (!start || !end) return false;
-  const today = dayKey(now);
-  return dayKey(start) <= today && today <= dayKey(end);
+export const isTaskOverdue = (task: Task, now = new Date()): boolean => {
+  if (!isOpenWork(task)) return false;
+  const due = taskAnchor(task);
+  if (!due) return false;
+  return dayKey(due) < dayKey(now);
 };
 
-const isDueTomorrow = (task: FieldTask, now: Date): boolean => {
-  const due = parseDay(task.plannedEnd || task.plannedStart);
-  if (!due) return false;
+export const isTaskDueToday = (task: Task, now = new Date()): boolean => {
+  if (!isOpenWork(task)) return false;
+  const bucket = String(task.timingBucket || '').toLowerCase();
+  if (bucket === 'today' && !task.scheduledFor && !task.plannedStart) return true;
+  const due = taskAnchor(task);
+  if (!due) return bucket === 'today';
+  return dayKey(due) === dayKey(now);
+};
+
+/**
+ * One home section per open task. Overdue is derived from dates, never a stored status.
+ */
+export const sectionFor = (task: Task, now = new Date()): NotebookSection => {
+  if (!isOpenWork(task)) return 'later';
+  if (isTaskOverdue(task, now)) return 'overdue';
+
+  const bucket = String(task.timingBucket || '').toLowerCase();
+  if (bucket === 'today' || isTaskDueToday(task, now)) return 'today';
+  if (bucket === 'tomorrow') return 'tomorrow';
+  if (bucket === 'thisweek') return 'week';
+  if (bucket === 'later') return 'later';
+
+  const due = taskAnchor(task);
+  if (!due) return 'later';
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  return dayKey(due) === dayKey(tomorrow);
-};
-
-const isDueThisWeek = (task: FieldTask, now: Date): boolean => {
-  const due = parseDay(task.plannedStart || task.plannedEnd);
-  if (!due) return false;
-  const today = dayKey(now);
-  const dueKey = dayKey(due);
-  if (dueKey <= today) return false;
+  if (dayKey(due) === dayKey(tomorrow)) return 'tomorrow';
   const horizon = new Date(now);
   horizon.setDate(horizon.getDate() + 7);
-  return dueKey <= dayKey(horizon);
-};
-
-export const weatherChangesDecision = (task: FieldTask): boolean => {
-  const kind = resolveWeatherKind(task.weatherSuitability);
-  return kind === 'unsuitable' || kind === 'caution';
-};
-
-export const sectionFor = (task: FieldTask, now = new Date()): NotebookSection => {
-  const status = notebookStatus(task.status);
-  if (status === 'blocked') return 'blocked';
-  if (status === 'todo' && isTaskOverdue(task, now)) return 'overdue';
-  if (status === 'todo' && weatherChangesDecision(task)) return 'weather';
-  if (status === 'in_progress') return 'today';
-  if (status === 'todo' && (isTaskDueToday(task, now) || windowContainsToday(task, now))) return 'today';
-  if (status === 'todo' && isDueTomorrow(task, now)) return 'tomorrow';
-  if (status === 'todo' && isDueThisWeek(task, now)) return 'week';
+  if (dayKey(due) <= dayKey(horizon)) return 'week';
   return 'later';
 };
 
-export const groupWorkUnits = (tasks: FieldTask[]): TaskUnit[] => {
-  const groups = new Map<string, FieldTask[]>();
-  const order: string[] = [];
-  tasks.forEach((task) => {
-    const key = task.workGroupId || task.id;
-    if (!groups.has(key)) {
-      groups.set(key, []);
-      order.push(key);
-    }
-    groups.get(key)!.push(task);
-  });
-  return order.map((key) => ({ key, tasks: groups.get(key)! }));
-};
+export const groupWorkUnits = (tasks: Task[]): TaskUnit[] =>
+  tasks.map((task) => ({ key: task.id, tasks: [task] }));
 
-export const leadTask = (unit: TaskUnit): FieldTask => {
-  const rank = (task: FieldTask) => {
-    const status = notebookStatus(task.status);
-    if (status === 'in_progress') return 0;
-    if (status === 'blocked') return 1;
-    if (status === 'todo') return 2;
-    return 3;
-  };
-  return [...unit.tasks].sort((a, b) => rank(a) - rank(b))[0];
-};
+export const leadTask = (unit: TaskUnit): Task => unit.tasks[0];
 
 export const unitSection = (unit: TaskUnit, now = new Date()): NotebookSection =>
   sectionFor(leadTask(unit), now);
 
-export type WhenTone = 'overdue' | 'today' | 'tomorrow' | 'window' | 'none' | 'progress';
+export type WhenTone = 'overdue' | 'today' | 'tomorrow' | 'window' | 'none';
 
-export const whenTone = (task: FieldTask, now = new Date()): WhenTone => {
-  const status = notebookStatus(task.status);
+export const whenTone = (task: Task, now = new Date()): WhenTone => {
   if (isOpenWork(task) && isTaskOverdue(task, now)) return 'overdue';
-  if (status === 'in_progress') return 'progress';
-  if (isTaskDueToday(task, now) || windowContainsToday(task, now)) return 'today';
-  if (isDueTomorrow(task, now)) return 'tomorrow';
-  if (task.plannedStart || task.plannedEnd) return 'window';
+  if (isTaskDueToday(task, now)) return 'today';
+  const section = sectionFor(task, now);
+  if (section === 'tomorrow') return 'tomorrow';
+  if (task.scheduledFor || task.plannedStart || task.plannedEnd) return 'window';
   return 'none';
+};
+
+export const resolveTaskPerson = (
+  task: Pick<Task, 'assignedUserId' | 'assignedCollaboratorId' | 'assigneeId'>,
+  names: Record<string, string>
+): string => {
+  if (task.assignedUserId && names[`user:${task.assignedUserId}`]) {
+    return names[`user:${task.assignedUserId}`];
+  }
+  if (task.assigneeId) {
+    if (names[`user:${task.assigneeId}`]) return names[`user:${task.assigneeId}`];
+    if (names[task.assigneeId]) return names[task.assigneeId];
+  }
+  if (task.assignedCollaboratorId && names[`contact:${task.assignedCollaboratorId}`]) {
+    return names[`contact:${task.assignedCollaboratorId}`];
+  }
+  return '';
 };

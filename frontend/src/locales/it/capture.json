@@ -57,9 +57,13 @@
       "title": "Foto",
       "description": "Carica una o più foto dall’oliveto"
     },
-    "work": {
-      "title": "Lavoro",
-      "description": "Potatura, trattamento, concimazione…"
+    "scheduleWork": {
+      "title": "Programma un lavoro",
+      "description": "Piano per dopo — potatura, trattamento…"
+    },
+    "recordWork": {
+      "title": "Registra lavoro fatto",
+      "description": "Lavoro completato nell’oliveto"
     },
     "expense": {
       "title": "Spesa",
@@ -94,8 +98,8 @@
       "description": "Carica un file con un nome"
     }
   },
-  "fieldLabel": "Field",
-  "fieldPrompt": "Which field?",
+  "fieldLabel": "Oliveto",
+  "fieldPrompt": "Quale oliveto?",
   "dateLabel": "Quando",
   "today": "Oggi",
   "more": "Altri dettagli",
@@ -120,7 +124,7 @@
   "voice": {
     "hint": "Tocca registra e parla. Il messaggio appare nella timeline.",
     "record": "Registra",
-    "stop": "Stop {{time}}",
+    "stop": "Interrompi {{time}}",
     "rerecord": "Registra di nuovo",
     "clear": "Cancella",
     "noteBody": "Messaggio vocale",
@@ -132,12 +136,20 @@
     "chooseFile": "Scegli file",
     "saved": "Documento registrato."
   },
-  "work": {
-    "whatWork": "Che lavoro è stato fatto?",
-    "chooseType": "Scegli il tipo di lavoro.",
-    "optionalCost": "Costo (opzionale)",
-    "optionalNote": "Nota (opzionale)",
-    "saved": "Lavoro registrato."
+  "recordWork": {
+    "title": "Cosa è stato fatto?",
+    "titlePlaceholder": "es. Potatura, trattamento…",
+    "titleRequired": "Inserisci un titolo per il lavoro.",
+    "date": "Quando è stato fatto",
+    "notes": "Note",
+    "notesPlaceholder": "Opzionale",
+    "photo": "Foto",
+    "addPhoto": "Aggiungi",
+    "save": "Registra",
+    "saved": "Lavoro registrato.",
+    "linkOffer": "Collegare a un lavoro programmato?",
+    "linkHint": "Opzionale — puoi saltare.",
+    "skipLink": "Senza collegamento"
   },
   "expense": {
     "amount": "Importo",
@@ -161,7 +173,9 @@
     "workers": "Operai",
     "method": "Metodo",
     "notes": "Note",
-    "saved": "Raccolta registrata."
+    "saved": "Raccolta registrata.",
+    "olivesKg": "Olive (kg)",
+    "oilKg": "Olio (kg)"
   },
   "photos": {
     "limit": "Fino a {{count}} foto",

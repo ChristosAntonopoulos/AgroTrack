@@ -52,7 +52,12 @@ describe('buildQuickAddMoves', () => {
       isHarvestLive: false,
       groups: groups(false),
     });
-    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'harvest']);
+    expect(moves.map((m) => m.id)).toEqual([
+      'scheduleWork',
+      'recordWork',
+      'observation',
+      'expense',
+    ]);
   });
 
   it('prioritises harvest actions inside harvest even before campaign hydrates', () => {
@@ -73,7 +78,12 @@ describe('buildQuickAddMoves', () => {
       groups: groups(true),
       recentIds: ['sell', 'income', 'sacks'],
     });
-    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'harvest']);
+    expect(moves.map((m) => m.id)).toEqual([
+      'scheduleWork',
+      'recordWork',
+      'observation',
+      'expense',
+    ]);
   });
 
   it('uses money presets including sell, not sacks', () => {

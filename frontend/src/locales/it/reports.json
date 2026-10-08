@@ -130,8 +130,8 @@
   "csv": {
     "field": "Campo",
     "day": "Giorno",
-    "minC": "Min °C",
-    "maxC": "Max °C",
+    "minC": "Min. °C",
+    "maxC": "Max. °C",
     "rainMm": "Pioggia mm",
     "et0Mm": "ET₀ mm",
     "areaStremmata": "Superficie (stremmata)",

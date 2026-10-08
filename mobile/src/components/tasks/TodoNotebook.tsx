@@ -1,58 +1,57 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import type { Field } from '../../services/fieldService';
-import type { FieldTask, TaskProposal } from '../../services/fieldWorkService';
-import { resolveTaskPerson } from '../../utils/plannedTaskGroups';
+import type { Task, TaskSuggestion } from '../../services/taskService';
 import {
   groupWorkUnits,
   isOpenWork,
   leadTask,
+  resolveTaskPerson,
   unitSection,
-  type NotebookAction,
+  type NotebookMenuAction,
   type NotebookSection,
   type TaskUnit,
 } from '../../utils/taskNotebook';
-import TaskNotebookCard, { type NotebookMenuAction } from './TaskNotebookCard';
-import TaskProposalList, { type ProposalDismissChoice } from './TaskProposalList';
+import TaskNotebookCard from './TaskNotebookCard';
+import SuggestionCard from './SuggestionCard';
 import EmptyState from '../EmptyState';
-import type { ProposalTemplateGroup } from '../../utils/proposalPresentation';
-import { spacing, typography } from '../../theme';
-import { Ionicons } from '@expo/vector-icons';
+import { spacing } from '../../theme';
 
-const ATTENTION: NotebookSection[] = ['overdue', 'blocked', 'weather'];
-const TODAY: NotebookSection[] = ['today'];
-const NEXT: NotebookSection[] = ['tomorrow', 'week', 'later'];
+const UPCOMING_SECTIONS: NotebookSection[] = ['tomorrow', 'week', 'later'];
 
 type Props = {
-  tasks: FieldTask[];
+  mode: 'today' | 'upcoming';
+  tasks: Task[];
   fields: Field[];
   fieldNames: Record<string, string>;
   personNames: Record<string, string>;
   year: number;
   busyId: string | null;
-  proposals: TaskProposal[];
-  onOpen: (task: FieldTask) => void;
-  onPrimary: (task: FieldTask, action: NotebookAction) => void;
-  onMenu: (task: FieldTask, action: NotebookMenuAction) => void;
-  onScheduleGroup: (group: ProposalTemplateGroup) => void;
-  onDismissChoice: (group: ProposalTemplateGroup, choice: ProposalDismissChoice) => void;
+  suggestions: TaskSuggestion[];
+  onOpen: (task: Task) => void;
+  onComplete: (task: Task) => void;
+  onMenu: (task: Task, action: NotebookMenuAction) => void;
+  onScheduleSuggestion: (suggestion: TaskSuggestion) => void;
+  onDismissSuggestion: (suggestion: TaskSuggestion) => void;
 };
 
 const TodoNotebook: React.FC<Props> = ({
+  mode,
   tasks,
   fields,
   fieldNames,
   personNames,
   year,
   busyId,
-  proposals,
+  suggestions,
   onOpen,
-  onPrimary,
+  onComplete,
   onMenu,
-  onScheduleGroup,
-  onDismissChoice,
+  onScheduleSuggestion,
+  onDismissSuggestion,
 }) => {
   const { t } = useTranslation('tasks');
   const { colors } = useTheme();
@@ -73,89 +72,105 @@ const TodoNotebook: React.FC<Props> = ({
     return bySection;
   }, [tasks]);
 
-  const renderUnits = (sections: NotebookSection[]) => {
+  const renderUnits = (sections: NotebookSection[], heading: string) => {
     const units = sections.flatMap((section) => buckets.get(section) || []);
     if (units.length === 0) return null;
     return (
-      <View style={styles.list}>
-        {units.map((unit) => {
-          const person = resolveTaskPerson(leadTask(unit), personNames);
-          return (
-            <TaskNotebookCard
-              key={unit.key}
-              unit={unit}
-              fieldName={(id) => fieldNames[id] || t('fieldWork.unknownField')}
-              fieldColor={(id) => colorByField[id]}
-              personName={person || undefined}
-              year={year}
-              busy={unit.tasks.some((task) => task.id === busyId)}
-              onOpen={onOpen}
-              onPrimary={onPrimary}
-              onMenu={onMenu}
-            />
-          );
-        })}
+      <View>
+        <View style={styles.headingRow}>
+          <Text style={[styles.heading, { color: colors.textSecondary }]}>{heading}</Text>
+          <View
+            style={[
+              styles.count,
+              { backgroundColor: colors.surfaceMuted, borderColor: colors.borderLight },
+            ]}
+          >
+            <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700' }}>
+              {units.length}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.list}>
+          {units.map((unit) => {
+            const person = resolveTaskPerson(leadTask(unit), personNames);
+            return (
+              <TaskNotebookCard
+                key={unit.key}
+                unit={unit}
+                fieldName={(id) => fieldNames[id] || t('fieldWork.unknownField')}
+                fieldColor={(id) => colorByField[id]}
+                personName={person || undefined}
+                year={year}
+                busy={unit.tasks.some((task) => task.id === busyId)}
+                onOpen={onOpen}
+                onComplete={onComplete}
+                onMenu={onMenu}
+              />
+            );
+          })}
+        </View>
       </View>
     );
   };
 
-  const countUnits = (sections: NotebookSection[]) =>
-    sections.reduce((sum, section) => sum + (buckets.get(section)?.length || 0), 0);
+  if (mode === 'today') {
+    const overdue = renderUnits(['overdue'], t('notebook.sections.overdue'));
+    const today = renderUnits(['today'], t('notebook.sections.today'));
+    const hasWork = Boolean(overdue || today);
+    const showSuggestions = suggestions.length > 0;
 
-  const attention = renderUnits(ATTENTION);
-  const today = renderUnits(TODAY);
-  const next = renderUnits(NEXT);
-  const hasWork = Boolean(attention || today || next);
-
-  const heading = (label: string, count: number) => (
-    <View style={styles.headingRow}>
-      <Text style={[styles.heading, { color: colors.textSecondary }]}>{label}</Text>
-      <View style={[styles.count, { backgroundColor: colors.surfaceMuted, borderColor: colors.borderLight }]}>
-        <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700' }}>{count}</Text>
+    return (
+      <View style={styles.wrap}>
+        {overdue}
+        {today}
+        {showSuggestions ? (
+          <View>
+            <View style={styles.headingRow}>
+              <Text style={[styles.heading, { color: colors.textSecondary }]}>
+                {t('notebook.sections.suggestions')}
+              </Text>
+            </View>
+            <View style={styles.list}>
+              {suggestions.map((suggestion, index) => (
+                <SuggestionCard
+                  key={`${suggestion.fieldId}-${suggestion.templateCode}-${index}`}
+                  suggestion={suggestion}
+                  fieldName={fieldNames[suggestion.fieldId] || t('fieldWork.unknownField')}
+                  busy={busyId === `suggestion:${suggestion.fieldId}:${suggestion.templateCode}`}
+                  onSchedule={onScheduleSuggestion}
+                  onDismiss={onDismissSuggestion}
+                />
+              ))}
+            </View>
+          </View>
+        ) : null}
+        {!hasWork && !showSuggestions ? (
+          <EmptyState
+            icon={<Ionicons name="checkmark-circle-outline" size={36} color={colors.primary} />}
+            title={t('notebook.empty.todayTitle')}
+            description={t('notebook.empty.todayDescription')}
+          />
+        ) : null}
       </View>
-    </View>
-  );
+    );
+  }
+
+  const sections = UPCOMING_SECTIONS.map((section) =>
+    renderUnits(
+      [section],
+      t(`notebook.sections.${section === 'week' ? 'thisWeek' : section}`)
+    )
+  ).filter(Boolean);
 
   return (
     <View style={styles.wrap}>
-      {attention ? (
-        <View>
-          {heading(t('notebook.sections.attention'), countUnits(ATTENTION))}
-          {attention}
-        </View>
-      ) : null}
-      {today ? (
-        <View>
-          {heading(t('notebook.sections.today'), countUnits(TODAY))}
-          {today}
-        </View>
-      ) : null}
-      {next ? (
-        <View>
-          {heading(t('notebook.sections.next'), countUnits(NEXT))}
-          {next}
-        </View>
-      ) : null}
-      {!hasWork && proposals.length === 0 ? (
+      {sections}
+      {sections.length === 0 ? (
         <EmptyState
-          icon={<Ionicons name="checkmark-circle-outline" size={36} color={colors.primary} />}
-          title={t('fieldWork.empty.nowTitle')}
-          description={t('fieldWork.empty.nowDescription')}
+          icon={<Ionicons name="calendar-outline" size={36} color={colors.primary} />}
+          title={t('notebook.empty.upcomingTitle')}
+          description={t('notebook.empty.upcomingDescription')}
         />
-      ) : null}
-      {proposals.length > 0 ? (
-        <View>
-          {heading(t('notebook.sections.suggestions'), proposals.length)}
-          <TaskProposalList
-            proposals={proposals}
-            fieldNames={fieldNames}
-            fieldColors={colorByField}
-            unknownField={t('fieldWork.unknownField')}
-            busyId={busyId}
-            onScheduleGroup={onScheduleGroup}
-            onDismissChoice={onDismissChoice}
-          />
-        </View>
       ) : null}
     </View>
   );
@@ -163,22 +178,28 @@ const TodoNotebook: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
-  list: { gap: spacing.sm, marginTop: spacing.sm },
   headingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  heading: { ...typography.styles.overline, letterSpacing: 0.6 },
+  heading: {
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    fontSize: 12,
+  },
   count: {
     minWidth: 22,
-    height: 20,
+    height: 22,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  list: { gap: spacing.sm },
 });
 
 export default TodoNotebook;

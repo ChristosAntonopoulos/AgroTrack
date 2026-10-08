@@ -50,17 +50,58 @@
     "count": "Correct what is there"
   },
   "types": {
-    "observation": { "title": "Observation", "description": "A note or photos from the grove" },
-    "work": { "title": "Work", "description": "Pruning, spraying, fertilizing…" },
-    "expense": { "title": "Expense", "description": "Labor, materials, fuel…" },
-    "income": { "title": "Income", "description": "Oil, fruit, or subsidy…" },
-    "harvest": { "title": "Harvest", "description": "Olives, oil, and yield" },
-    "money": { "title": "Money", "description": "Income or expense" },
-    "oilSale": { "title": "Oil sale", "description": "Income from olive oil" },
-    "payment": { "title": "Payment", "description": "Labor or other payment" },
-    "voice": { "title": "Voice message", "description": "A recording saved on the timeline" },
-    "document": { "title": "Document", "description": "Upload a file with a name" },
-    "photo": { "title": "Photo", "description": "A photo from the grove" }
+    "observation": {
+      "title": "Observation",
+      "description": "A note or photos from the grove"
+    },
+    "work": {
+      "title": "Schedule work",
+      "description": "Something that still needs doing in the grove"
+    },
+    "expense": {
+      "title": "Expense",
+      "description": "Labor, materials, fuel…"
+    },
+    "income": {
+      "title": "Income",
+      "description": "Oil, fruit, or subsidy…"
+    },
+    "harvest": {
+      "title": "Harvest",
+      "description": "Olives, oil, and yield"
+    },
+    "money": {
+      "title": "Money",
+      "description": "Income or expense"
+    },
+    "oilSale": {
+      "title": "Oil sale",
+      "description": "Income from olive oil"
+    },
+    "payment": {
+      "title": "Payment",
+      "description": "Labor or other payment"
+    },
+    "voice": {
+      "title": "Voice message",
+      "description": "A recording saved on the timeline"
+    },
+    "document": {
+      "title": "Document",
+      "description": "Upload a file with a name"
+    },
+    "photo": {
+      "title": "Photo",
+      "description": "A photo from the grove"
+    },
+    "scheduleWork": {
+      "title": "Schedule work",
+      "description": "Something that still needs doing in the grove"
+    },
+    "recordWork": {
+      "title": "Record completed work",
+      "description": "Log work that already happened"
+    }
   },
   "fieldLabel": "Grove",
   "fieldPrompt": "Which grove?",
@@ -215,5 +256,18 @@
     "stepCategoryIncome": "What income?",
     "stepAmount": "How much?",
     "stepProgress": "Step {{current}} of {{total}}"
+  },
+  "recordWork": {
+    "what": "What was done?",
+    "whatPlaceholder": "e.g. Pruning, fertilising…",
+    "when": "When was it done?",
+    "save": "Save",
+    "saved": "Work recorded",
+    "saveFailed": "Could not save work record.",
+    "linkTitle": "Link to a planned task?",
+    "linkBody": "Matching planned tasks were found. Linking is optional.",
+    "linkAction": "Link",
+    "skipLink": "Skip linking",
+    "linkFailed": "Could not link task."
   }
 }

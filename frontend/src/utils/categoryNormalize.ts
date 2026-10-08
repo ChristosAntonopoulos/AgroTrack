@@ -96,6 +96,8 @@ const STATUS_ALIASES: Record<string, TaskStatusId> = {
   done: 'completed',
   cancelled: 'cancelled',
   canceled: 'cancelled',
+  skipped: 'cancelled',
+  skip: 'cancelled',
 };
 
 export const normalizeTaskStatus = (value: string | null | undefined): TaskStatusId | null => {

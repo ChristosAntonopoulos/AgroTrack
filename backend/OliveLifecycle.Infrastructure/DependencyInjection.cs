@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<ITaskProposalRepository, TaskProposalRepository>();
         services.AddScoped<IFieldTaskRepository, FieldTaskRepository>();
         services.AddScoped<ITaskExecutionRepository, TaskExecutionRepository>();
+        services.AddScoped<ITaskSuggestionDismissalRepository, TaskSuggestionDismissalRepository>();
         services.AddScoped<IFieldPhenologyObservationRepository, FieldPhenologyObservationRepository>();
         services.AddScoped<ITaskWeatherEvaluationRepository, TaskWeatherEvaluationRepository>();
         services.AddScoped<IOfficialAgriculturalWarningRepository, OfficialAgriculturalWarningRepository>();

@@ -33,17 +33,23 @@ import {
   fieldHasBoundary,
   fieldSearchHaystack,
   getFieldSetupResumeStep,
+  groupFieldsByViewerRole,
   isFieldSetupIncomplete,
+  type ViewerFieldRole,
 } from '../utils/fieldDisplay';
 import { getFieldShortLocation } from '../utils/shortLocation';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import { locationService } from '../services/locationService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GuideTarget from '../components/onboarding/GuideTarget';
+import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ViewMode = 'list' | 'map';
 type SortKey = 'name' | 'area' | 'activity' | 'distance';
+type FieldListRow =
+  | { kind: 'header'; id: string; title: string }
+  | { kind: 'field'; field: Field };
 
 const MAP_PANE_HEIGHT = 280;
 const SEARCH_HEIGHT = 52;
@@ -62,12 +68,19 @@ const FieldsListScreen = () => {
   const [sortOpen, setSortOpen] = useState(false);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const listRef = useRef<FlatList<Field>>(null);
-  const { fields, loading, fieldTodayTaskCounts, refresh } = useFields('fields');
+  const listRef = useRef<FlatList<FieldListRow>>(null);
+  const { fields, loading, fieldTodayTaskCounts, refresh } = useFields();
   const { refreshing, onRefresh } = useRefresh(refresh);
   const tasksReady = !loading || fields.length > 0;
   const canCreate = isFieldOwner();
   const addFieldAction = useAddFieldAction();
+  const activation = useOwnerActivationOptional();
+  const reserveSkip = Boolean(
+    activation &&
+      !activation.laterSnoozed &&
+      !activation.journeyFinished &&
+      (activation.visible || activation.guideBeat)
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +132,28 @@ const FieldsListScreen = () => {
     });
   }, [fields, search, sortBy, userCoords]);
 
+  const rows = useMemo(() => {
+    const groups = groupFieldsByViewerRole(filteredFields, user?.id);
+    const order: ViewerFieldRole[] = ['Admin', 'Family', 'Partner'];
+    const sections = order
+      .map((role) => ({ role, fields: groups[role] }))
+      .filter((section) => section.fields.length > 0);
+    const showTitles =
+      sections.length > 1 || (sections.length === 1 && sections[0].role !== 'Admin');
+    const next: FieldListRow[] = [];
+    for (const section of sections) {
+      if (showTitles) {
+        next.push({
+          kind: 'header',
+          id: `section-${section.role}`,
+          title: t(`fields:card.sections.${section.role}`),
+        });
+      }
+      for (const field of section.fields) next.push({ kind: 'field', field });
+    }
+    return next;
+  }, [filteredFields, user?.id, t]);
+
   useEffect(() => {
     if (selectedFieldId && !filteredFields.some((field) => field.id === selectedFieldId)) {
       setSelectedFieldId(null);
@@ -127,13 +162,13 @@ const FieldsListScreen = () => {
 
   useEffect(() => {
     if (!selectedFieldId || viewMode !== 'map') return;
-    const index = filteredFields.findIndex((field) => field.id === selectedFieldId);
+    const index = rows.findIndex((row) => row.kind === 'field' && row.field.id === selectedFieldId);
     if (index < 0) return;
     const id = requestAnimationFrame(() => {
       listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.15 });
     });
     return () => cancelAnimationFrame(id);
-  }, [selectedFieldId, viewMode, filteredFields]);
+  }, [selectedFieldId, viewMode, rows]);
 
   const draftToResume = useMemo(
     () =>
@@ -215,7 +250,7 @@ const FieldsListScreen = () => {
   const mapIconColor = viewMode === 'map' ? colors.primary : colors.textTertiary;
 
   const listHeader = (
-    <View style={styles.header}>
+    <View style={[styles.header, reserveSkip ? styles.headerWithSkip : null]}>
       <ScreenHeader
         title={t('fields:title')}
         dense
@@ -361,22 +396,26 @@ const FieldsListScreen = () => {
       <FlatList
         ref={listRef}
         style={styles.flex}
-        data={filteredFields}
+        data={rows}
         ListHeaderComponent={listHeader}
-        renderItem={({ item }) => (
-          <View style={styles.cardWrap}>
-            <FieldCard
-              field={item}
-              stats={getStats(item.id)}
-              currentUserId={user?.id}
-              compact={viewMode === 'map'}
-              selected={viewMode === 'map' ? selectedFieldId === item.id : undefined}
-              onSelect={viewMode === 'map' ? () => setSelectedFieldId(item.id) : undefined}
-              onPress={() => openField(item)}
-            />
-          </View>
-        )}
-        keyExtractor={(item) => item.id}
+        renderItem={({ item }) =>
+          item.kind === 'header' ? (
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{item.title}</Text>
+          ) : (
+            <View style={styles.cardWrap}>
+              <FieldCard
+                field={item.field}
+                stats={getStats(item.field.id)}
+                currentUserId={user?.id}
+                compact={viewMode === 'map'}
+                selected={viewMode === 'map' ? selectedFieldId === item.field.id : undefined}
+                onSelect={viewMode === 'map' ? () => setSelectedFieldId(item.field.id) : undefined}
+                onPress={() => openField(item.field)}
+              />
+            </View>
+          )
+        }
+        keyExtractor={(item) => (item.kind === 'header' ? item.id : item.field.id)}
         onScrollToIndexFailed={({ index }) => {
           listRef.current?.scrollToOffset({
             offset: Math.max(0, index * 88),
@@ -462,6 +501,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
     gap: 0,
+  },
+  headerWithSkip: {
+    paddingLeft: 52,
   },
   addBtn: {
     minHeight: 40,
@@ -550,6 +592,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     borderRadius: radii.lg,
     overflow: 'hidden',
+  },
+  sectionTitle: {
+    ...typography.styles.caption,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.sm,
+    paddingBottom: 4,
   },
   cardWrap: { paddingHorizontal: spacing.base },
   listContent: { paddingBottom: spacing['3xl'] },

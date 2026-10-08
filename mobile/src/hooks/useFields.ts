@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getFieldService, getFieldWorkService } from '../services/serviceFactory';
+import { getFieldService, getTaskService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import { FieldTask, isActiveFieldTask } from '../services/fieldWorkService';
 import { sanitizeFields } from '../utils/dataSanitizer';
@@ -9,6 +9,7 @@ import { countTasksToday } from '../utils/fieldDisplay';
 import { EntityCache } from '../utils/entityCache';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { useOfflineMode } from '../context/OfflineContext';
+import { taskToFieldTask } from '../utils/taskCompat';
 
 export interface UseFieldsResult {
   fields: Field[];
@@ -75,7 +76,10 @@ export const useFields = (module?: string): UseFieldsResult => {
       const online = await isDeviceOnline();
       const [fieldsData, tasksData] = await Promise.all([
         getFieldService().getFields(user.id, user.role, module),
-        getFieldWorkService().listFieldTasks().catch(() => [] as FieldTask[]),
+        getTaskService()
+          .listTasks({ view: 'all' })
+          .then((rows) => rows.map(taskToFieldTask))
+          .catch(() => [] as FieldTask[]),
       ]);
 
       const sanitizedFields = sanitizeFields(fieldsData);

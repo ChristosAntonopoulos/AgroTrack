@@ -144,6 +144,42 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+// CLI: migrate-tasks (dry-run default; --confirm for writes)
+if (args.Any(a => string.Equals(a, "migrate-tasks", StringComparison.OrdinalIgnoreCase)))
+{
+    var confirm = args.Any(a => string.Equals(a, "--confirm", StringComparison.OrdinalIgnoreCase));
+    using var scope = app.Services.CreateScope();
+    var migrator = scope.ServiceProvider.GetRequiredService<OliveLifecycle.Application.Services.ITasksDomainMigrationService>();
+    var report = await migrator.RunAsync(confirm);
+    Console.WriteLine("=== Tasks Domain Migration ===");
+    Console.WriteLine($"Mode: {(confirm ? "CONFIRM (writes)" : "DRY-RUN")}");
+    Console.WriteLine($"Tasks scanned: {report.TasksScanned}");
+    Console.WriteLine($"Executions scanned: {report.ExecutionsScanned}");
+    Console.WriteLine("Status counts (before → after):");
+    foreach (var key in report.StatusCountsBefore.Keys.Union(report.StatusCountsAfter.Keys).OrderBy(k => k))
+    {
+        var before = report.StatusCountsBefore.GetValueOrDefault(key);
+        var after = report.StatusCountsAfter.GetValueOrDefault(key);
+        Console.WriteLine($"  {key}: {before} → {after}");
+    }
+
+    Console.WriteLine("Owner counts:");
+    foreach (var (owner, count) in report.OwnerCounts.OrderByDescending(kv => kv.Value))
+    {
+        Console.WriteLine($"  {owner}: {count}");
+    }
+
+    Console.WriteLine($"Open proposals {(confirm ? "deleted" : "to delete")}: {report.OpenProposalsDeleted}");
+    Console.WriteLine($"Tasks updated: {report.TasksUpdated}");
+    Console.WriteLine($"Executions linked: {report.ExecutionsLinked}");
+    foreach (var message in report.Messages)
+    {
+        Console.WriteLine(message);
+    }
+
+    return;
+}
+
 app.UseCors("Frontend");
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();

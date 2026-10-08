@@ -4,8 +4,7 @@ import { FieldModule } from '../../services/fieldPeopleService';
 import {
   modulesForRelationship,
   modulesMatchRelationship,
-  SUMMARY_MODULES,
-} from '../../people/aggregatePeople';
+  SUMMARY_MODULES} from '../../people/aggregatePeople';
 import { PICKABLE_MODULES } from '../Partners/accessPreview';
 
 type Relationship = 'Family' | 'Collaborator';
@@ -35,8 +34,7 @@ const FieldPermissionPanel: React.FC<Props> = ({
   modules,
   legacyHelp = false,
   onChangeModules,
-  onApplyRelationshipPreset,
-}) => {
+  onApplyRelationshipPreset}) => {
   const { t } = useTranslation(['partners', 'common']);
   const uid = useId();
   const summaryId = `${uid}-summary`;
@@ -49,7 +47,7 @@ const FieldPermissionPanel: React.FC<Props> = ({
       t(`partners:peoplePage.modules.${module}`)
     );
     if (modules.includes('harvest')) {
-      labels.push(t('partners:peoplePage.modules.oilStore', { defaultValue: 'Αποθήκη' }));
+      labels.push(t('partners:peoplePage.modules.oilStore'));
     }
     return labels;
   }, [modules, t]);

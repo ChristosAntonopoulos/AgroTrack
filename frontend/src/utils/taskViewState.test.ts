@@ -3,28 +3,22 @@ import {
   DEFAULT_TASK_VIEW,
   parseTaskFieldId,
   parseTaskView,
-  parseTaskYear,
 } from './taskViewState';
 
 describe('task view URL state', () => {
-  it('defaults to to-do and remaps legacy views', () => {
-    expect(parseTaskView(null)).toBe('todo');
-    expect(DEFAULT_TASK_VIEW).toBe('todo');
-    expect(parseTaskView('todo')).toBe('todo');
+  it('defaults to today and remaps legacy views', () => {
+    expect(parseTaskView(null)).toBe('today');
+    expect(DEFAULT_TASK_VIEW).toBe('today');
+    expect(parseTaskView('today')).toBe('today');
+    expect(parseTaskView('upcoming')).toBe('upcoming');
     expect(parseTaskView('done')).toBe('done');
-    expect(parseTaskView('now')).toBe('todo');
-    expect(parseTaskView('upcoming')).toBe('todo');
-    expect(parseTaskView('proposals')).toBe('todo');
-    expect(parseTaskView('planned')).toBe('todo');
-    expect(parseTaskView('active')).toBe('todo');
+    expect(parseTaskView('todo')).toBe('today');
+    expect(parseTaskView('now')).toBe('today');
+    expect(parseTaskView('proposals')).toBe('today');
+    expect(parseTaskView('planned')).toBe('upcoming');
+    expect(parseTaskView('active')).toBe('today');
     expect(parseTaskView('history')).toBe('done');
     expect(parseTaskView('completed')).toBe('done');
-  });
-
-  it('parses a result year only when it is a plausible calendar year', () => {
-    expect(parseTaskYear('2026', 2025)).toBe(2026);
-    expect(parseTaskYear('nope', 2026)).toBe(2026);
-    expect(parseTaskYear('12', 2026)).toBe(2026);
   });
 
   it('treats empty field as all fields', () => {
@@ -32,23 +26,29 @@ describe('task view URL state', () => {
     expect(parseTaskFieldId(' field-1 ')).toBe('field-1');
   });
 
-  it('writes view; year only when non-default; field when selected', () => {
+  it('writes view and field when selected', () => {
     const params = buildTaskSearchParams({
-      view: 'todo',
-      year: 2026,
-      defaultYear: 2026,
+      view: 'today',
       fieldId: '',
     });
-    expect(params.get('view')).toBe('todo');
-    expect(params.get('year')).toBeNull();
+    expect(params.get('view')).toBe('today');
     expect(params.get('fieldId')).toBeNull();
 
     const filtered = buildTaskSearchParams({
       view: 'done',
-      year: 2025,
-      defaultYear: 2026,
       fieldId: 'field-2',
     });
-    expect(filtered.toString()).toBe('view=done&year=2025&fieldId=field-2');
+    expect(filtered.toString()).toBe('view=done&fieldId=field-2');
+  });
+
+  it('can open the schedule flow via query', () => {
+    const params = buildTaskSearchParams({
+      view: 'today',
+      fieldId: 'field-1',
+      schedule: true,
+      templateCode: 'T06',
+    });
+    expect(params.get('schedule')).toBe('1');
+    expect(params.get('templateCode')).toBe('T06');
   });
 });

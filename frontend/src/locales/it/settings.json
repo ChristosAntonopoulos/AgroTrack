@@ -47,7 +47,7 @@
     "changePassword": "Cambia password",
     "passwordUpdated": "Password aggiornata.",
     "passwordMismatch": "Le due password nuove non coincidono.",
-    "passwordTooShort": "Usa almeno 8 caratteri.",
+    "passwordTooShort": "La password deve avere almeno 8 caratteri.",
     "passwordComplexity": "Usa maiuscole, minuscole e almeno un numero.",
     "passwordResetLink": "Password dimenticata?"
   },
@@ -111,7 +111,7 @@
     },
     "defaultView": "Quando apro The Olive Lot",
     "defaultViews": {
-      "dashboard": "Dashboard",
+      "dashboard": "Cruscotto",
       "fields": "Campi",
       "tasks": "Attività",
       "calendar": "Cronologia",

@@ -13,7 +13,7 @@ const mockListByField = jest.fn();
 
 jest.mock('../../services/serviceFactory', () => ({
   getFinancialTransactionService: () => ({ create: (...args: unknown[]) => mockCreate(...args) }),
-  getFieldWorkService: () => ({ listFieldTasks: (...args: unknown[]) => mockGetTasks(...args) }),
+  getTaskService: () => ({ listTasks: (...args: unknown[]) => mockGetTasks(...args) }),
   getHarvestService: () => ({ listByField: (...args: unknown[]) => mockListByField(...args) }),
 }));
 

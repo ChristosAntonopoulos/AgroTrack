@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import RightDrawer from '../Common/RightDrawer';
 import Button from '../Common/Button';
-import type { FieldTask } from '../../services/fieldWorkService';
+import type { Task } from '../../services/taskService';
 import { toDateInputValue } from '../../utils/proposalPresentation';
 
 interface RescheduleTaskSheetProps {
-  task: FieldTask | null;
+  task: Task | null;
   open: boolean;
   busy?: boolean;
   suggestedDate?: string;
@@ -31,7 +31,11 @@ const RescheduleTaskSheet: React.FC<RescheduleTaskSheetProps> = ({
 
   useEffect(() => {
     if (!task) return;
-    setDate(suggestedDate || toDateInputValue(task.plannedStart) || '');
+    setDate(
+      suggestedDate ||
+        toDateInputValue(task.scheduledFor || task.plannedStart) ||
+        ''
+    );
   }, [task, suggestedDate]);
 
   return (

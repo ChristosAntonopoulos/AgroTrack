@@ -1,27 +1,139 @@
 {
-  "title": "Tasks",
+  "title": "Lavori",
   "failedLoad": "Impossibile caricare i lavori",
   "fieldFilterLabel": "Filtro per campo",
   "allFields": "Tutti i campi",
+  "page": {
+    "title": "Lavori",
+    "scheduleCta": "+ Programma un lavoro",
+    "fieldFilter": "Oliveto",
+    "allFields": "Tutti gli oliveti",
+    "viewsAria": "Viste lavori",
+    "tabs": {
+      "today": "Oggi",
+      "upcoming": "Prossimi",
+      "done": "Fatti"
+    }
+  },
+  "schedule": {
+    "title": "Programma un lavoro",
+    "cancel": "Annulla",
+    "submit": "Programma",
+    "failedSave": "Impossibile programmare.",
+    "what": "Cosa bisogna fare?",
+    "whatPlaceholder": "es. Potatura, controllo trappole…",
+    "pickTemplate": "Modelli",
+    "field": "Nell'oliveto",
+    "noFields": "Crea prima un oliveto",
+    "when": {
+      "label": "Quando?",
+      "today": "Oggi",
+      "tomorrow": "Domani",
+      "thisWeek": "Questa settimana",
+      "otherDay": "Altro giorno",
+      "sometime": "Prima o poi"
+    },
+    "who": "Chi?",
+    "assigneeMe": "Io",
+    "decideLater": "Più tardi",
+    "moreDetails": "Altri dettagli",
+    "lessDetails": "Meno dettagli",
+    "note": "Nota",
+    "notePlaceholder": "Qualcosa di utile per il lavoro",
+    "repeat": "Ripeti",
+    "repeatPlaceholder": "es. Ogni settimana",
+    "checklist": "Elenco",
+    "checklistPlaceholder": "Un passo per riga",
+    "photoHint": "Puoi aggiungere foto quando il lavoro è finito.",
+    "templates": {
+      "title": "Scegli un modello",
+      "subtitle": "Il modello compila solo il titolo — non crea ancora il lavoro.",
+      "suggestedNow": "Consigliati ora",
+      "curated": "Tutti i modelli",
+      "categories": "Categorie",
+      "allCategories": "Tutte",
+      "alsoSuggested": "Consigliato ora",
+      "writeOwn": "Scrivi un lavoro tuo",
+      "category": {
+        "pruning": "Potatura",
+        "fertilisation": "Concimazione",
+        "ground": "Suolo",
+        "monitoring": "Monitoraggio",
+        "irrigation": "Irrigazione",
+        "harvest": "Raccolta",
+        "inspection": "Controllo",
+        "other": "Altro"
+      }
+    }
+  },
+  "suggestions": {
+    "schedule": "Programma",
+    "dismiss": "Non mi riguarda",
+    "dismissFailed": "Impossibile scartare il suggerimento."
+  },
+  "complete": {
+    "failed": "Impossibile segnare come fatto.",
+    "undoFailed": "Impossibile annullare.",
+    "undoMessage": "Segnato come fatto.",
+    "undo": "Annulla",
+    "followUpTitle": "Fatto. Vuoi tenere cosa è successo?",
+    "followUpBody": "Aggiungi nota, costo o foto — oppure lascia solo che è fatto.",
+    "addDetails": "Aggiungi nota / costo / foto",
+    "done": "Fine",
+    "detailsTitle": "Cosa è successo",
+    "notes": "Nota",
+    "notesPlaceholder": "Cosa avete fatto, quantità, osservazioni…",
+    "costPhotoHint": "Costo e foto puoi aggiungerli anche dopo dalla registrazione.",
+    "saveDetails": "Salva",
+    "saveFailed": "Impossibile salvare la registrazione."
+  },
   "detail": {
-    "field": "Field",
-    "assignedTo": "Assigned To",
-    "scheduledStart": "Scheduled Start",
-    "scheduledEnd": "Scheduled End",
-    "actualStart": "Actual Start",
-    "actualEnd": "Actual End",
-    "type": "Type",
-    "lifecycleYear": "Lifecycle Year",
-    "description": "Description",
-    "evidence": "Evidence",
-    "complete": "Mark Complete",
-    "start": "Start Task"
+    "field": "Campo",
+    "assignedTo": "Assegnato a",
+    "scheduledStart": "Inizio programmato",
+    "scheduledEnd": "Fine programmata",
+    "actualStart": "Inizio reale",
+    "actualEnd": "Fine reale",
+    "type": "Tipo",
+    "lifecycleYear": "Annata di produzione",
+    "description": "Descrizione",
+    "evidence": "Foto",
+    "complete": "Segna come completato",
+    "start": "Inizia lavoro",
+    "backToTasks": "Torna ai lavori",
+    "editTask": "Modifica",
+    "notFound": "Lavoro non trovato.",
+    "failedLoad": "Impossibile caricare il lavoro.",
+    "failedStatus": "Impossibile aggiornare lo stato.",
+    "failedAssign": "Impossibile assegnare il lavoro.",
+    "failedApprove": "Impossibile approvare il lavoro.",
+    "failedReject": "Impossibile rifiutare il lavoro.",
+    "markAs": {
+      "in_progress": "Inizia il lavoro",
+      "completed": "Segna come completato"
+    },
+    "selectProducer": "Seleziona una persona",
+    "assignTask": "Assegna",
+    "reassignTask": "Riassegna",
+    "currentAssignee": "Responsabile attuale",
+    "loadingField": "Caricamento…",
+    "approve": "Approva",
+    "reject": "Rifiuta",
+    "rejectNotePrompt": "Motivo del rifiuto (opzionale)",
+    "moreDetails": "Altri dettagli",
+    "photos": "Foto",
+    "note": "Nota",
+    "notePlaceholder": "Note sul lavoro",
+    "markDone": "Segna come fatto",
+    "skipReason": "Perché saltarlo?",
+    "skipReasonPlaceholder": "Motivo opzionale",
+    "confirmSkip": "Salta"
   },
   "form": {
-    "newTitle": "New Task",
-    "editTitle": "Edit Task",
-    "title": "Title",
-    "save": "Save Task",
+    "newTitle": "Programma un lavoro",
+    "editTitle": "Modifica lavoro",
+    "title": "Titolo",
+    "save": "Salva lavoro",
     "stepsAria": "Passaggi creazione lavoro",
     "steps": {
       "what": "Lavoro",
@@ -31,6 +143,126 @@
       "review": "Conferma",
       "field": "Campo",
       "schedule": "Programma"
+    },
+    "subtitle": "Scegli un uliveto e un giorno. I modelli sono opzionali.",
+    "subtitleSimple": "Cosa è successo, dove e quando.",
+    "field": "Campo",
+    "selectField": "Seleziona un campo",
+    "fieldDesc": "Per quale uliveto è questo lavoro?",
+    "noFields": "Crea prima un campo, poi potrai programmare i lavori.",
+    "hectares": "ha",
+    "taskType": "Categoria",
+    "taskTypePlaceholder": "es. Potatura, Raccolta",
+    "titlePlaceholder": "Titolo del lavoro",
+    "descriptionPlaceholder": "Cosa bisogna fare (opzionale)",
+    "priority": "Priorità",
+    "repeat": "Ripeti",
+    "repeatPlaceholder": "es. Settimanale, Annuale",
+    "scheduledStart": "Inizio",
+    "scheduledEnd": "Scadenza",
+    "checklist": "Elenco passi",
+    "checklistPlaceholder": "Un passo per riga",
+    "notes": "Note sul momento",
+    "notesPlaceholder": "Regole meteo o promemoria",
+    "assignTo": "Assegna a un produttore",
+    "notAssigned": "Non assegnato",
+    "lifecycleHint": "L’annata di ciclo sarà impostata a:",
+    "createTask": "Crea lavoro",
+    "updateTask": "Aggiorna lavoro",
+    "backToTasks": "Torna ai lavori",
+    "cancel": "Annulla",
+    "back": "Indietro",
+    "next": "Avanti",
+    "required": "Campo e titolo sono obbligatori",
+    "permissionDenied": "Non hai il permesso di creare lavori.",
+    "failedLoadFields": "Impossibile caricare i campi",
+    "failedLoadTask": "Impossibile caricare il lavoro",
+    "failedSave": "Impossibile salvare il lavoro",
+    "editNotImplemented": "La modifica non è ancora disponibile",
+    "scheduleDesc": "Scegli i giorni e chi lo farà. Il resto è pronto.",
+    "moreSettings": "Cambia titolo o priorità",
+    "hideMore": "Nascondi impostazioni extra",
+    "addStep": "Aggiungi un passo",
+    "addStepPlaceholder": "Un altro passo",
+    "removeStep": "Rimuovi",
+    "noChecklist": "Nessun passo ancora. Aggiungine uno se vuoi.",
+    "who": "Chi lo farà?",
+    "whenStart": "Inizia",
+    "whenDue": "Fino al",
+    "assigned": "Assegnato a",
+    "unassignedReview": "Nessuno ancora — va bene così",
+    "when": {
+      "default": {
+        "title": "Quando si fa questo lavoro?",
+        "hint": "Scegli i giorni. I passi sono pronti."
+      },
+      "harvest": {
+        "title": "Quando raccogli?",
+        "hint": "Scegli i giorni. Chili e frantoio li scrivi dopo, in campo.",
+        "who": "Chi raccoglie?"
+      },
+      "pruning": {
+        "title": "Quando poti?",
+        "hint": "Scegli i giorni. I passi di potatura restano sul lavoro.",
+        "who": "Chi pota?"
+      },
+      "irrigation": {
+        "title": "Quando irrighi?",
+        "hint": "Scegli i giorni. Un’irrigazione o un breve periodo.",
+        "who": "Chi irriga?"
+      },
+      "fertilization": {
+        "title": "Quando concimi?",
+        "hint": "Scegli i giorni in cui metti concime in questo uliveto.",
+        "who": "Chi concima?"
+      },
+      "pest": {
+        "title": "Quando controlli o tratti?",
+        "hint": "Scegli i giorni per trappole, monitoraggio o trattamento.",
+        "who": "Chi controlla?"
+      },
+      "disease": {
+        "title": "Quando tratti la malattia?",
+        "hint": "Scegli i giorni per controllare e trattare.",
+        "who": "Chi tratta?"
+      },
+      "weeds": {
+        "title": "Quando tagli l’erba?",
+        "hint": "Scegli i giorni per lo sfalcio o la pulizia.",
+        "who": "Chi taglia?"
+      },
+      "soil": {
+        "title": "Quando è l’analisi?",
+        "hint": "Scegli il giorno per il campionamento.",
+        "who": "Chi campiona?"
+      },
+      "observation": {
+        "title": "Quando fai il giro dell’uliveto?",
+        "hint": "Scegli il giorno per dare un’occhiata.",
+        "who": "Chi lo fa?"
+      },
+      "equipment": {
+        "title": "Quando prepari gli attrezzi?",
+        "hint": "Scegli i giorni per controllare reti, cassette e macchine.",
+        "who": "Chi prepara?"
+      },
+      "postHarvest": {
+        "title": "Quando chiudi la stagione?",
+        "hint": "Scegli i giorni dopo la raccolta per questo uliveto.",
+        "who": "Chi chiude?"
+      }
+    },
+    "reviewDesc": "Controlla il campo, i giorni e chi lo fa. Poi crea.",
+    "errors": {
+      "fieldRequired": "Seleziona un campo per continuare.",
+      "titleRequired": "Il titolo del lavoro è obbligatorio.",
+      "typeRequired": "La categoria del lavoro è obbligatoria."
+    },
+    "priorities": {
+      "Low": "Bassa",
+      "Medium": "Media",
+      "High": "Alta",
+      "Critical": "Critica"
     }
   },
   "fieldWork": {
@@ -52,7 +284,10 @@
       "checksShort": "{{done}}/{{total}} controlli",
       "checksLong": "{{done}} di {{total}} controlli completati",
       "started": "Iniziato {{date}}",
-      "updated": "Aggiornato {{date}}"
+      "updated": "Aggiornato {{date}}",
+      "paused": "In pausa",
+      "progressSentence": "{{started}} · {{done}} di {{total}} controlli",
+      "startedRecently": "Iniziato di recente"
     },
     "weather": {
       "unknown": "Dati meteo insufficienti",
@@ -82,15 +317,26 @@
       "plannedTitle": "Nessun lavoro programmato",
       "plannedDescription": "Puoi crearne uno o programmare una proposta.",
       "activeTitle": "Nessun lavoro in corso",
-      "activeDescription": "I lavori che avvii appariranno qui."
+      "activeDescription": "I lavori che avvii appariranno qui.",
+      "nowTitle": "Niente da fare oggi",
+      "nowDescription": "Quando un lavoro richiede attenzione, lo vedrai qui.",
+      "nowNext": "Il prossimo lavoro è {{title}}, {{date}}.",
+      "seeUpcoming": "Vedi i prossimi",
+      "upcomingTitle": "Nessun lavoro in arrivo",
+      "upcomingDescription": "Programma una proposta o crea un nuovo lavoro.",
+      "historyTitle": "Nessuna cronologia ancora",
+      "historyDescription": "I lavori completati e annullati appariranno qui."
     },
     "context": {
       "clearYear": "Ripristina annata",
-      "clearField": "Rimuovi filtro campo"
+      "clearField": "Rimuovi filtro campo",
+      "clearAssignee": "Rimuovi filtro responsabile"
     },
     "proposalGroups": {
       "needsDecision": "Servono una decisione",
-      "canWait": "Possono aspettare"
+      "canWait": "Possono aspettare",
+      "doNow": "Buono da fare ora",
+      "laterYear": "Più avanti nell’anno"
     },
     "proposal": {
       "period": "Periodo:",
@@ -110,7 +356,16 @@
         "unsuitable": "Giornata non adatta",
         "unknown": "Dati insufficienti",
         "seasonal": "Promemoria stagionale"
-      }
+      },
+      "suitablePeriod": "Periodo adatto",
+      "forFields": "Suggerito per {{count}} campi",
+      "moreFields": "+{{count}} altri",
+      "whyRecommended": "Perché viene suggerito?",
+      "whyIntro": "Cosa significa questo suggerimento",
+      "whyScheduleHint": "Se ti torna, programmalo sui tuoi campi.",
+      "fieldsLabel": "Campi",
+      "showLater": "Mostra",
+      "hideLater": "Nascondi"
     },
     "actions": {
       "schedule": "Programma",
@@ -120,14 +375,33 @@
       "continue": "Continua",
       "continueIt": "Continua",
       "complete": "Completa",
-      "open": "Apri"
+      "open": "Apri",
+      "continueChecks": "Continua i controlli",
+      "notRelevant": "Non mi riguarda",
+      "changeDate": "Cambia data",
+      "pause": "Pausa",
+      "viewResult": "Vedi risultato",
+      "restore": "Ripristina",
+      "repeat": "Ripeti",
+      "recordResult": "Registra risultato",
+      "more": "Altro",
+      "edit": "Modifica",
+      "copy": "Copia",
+      "changeStatus": "Cambia stato",
+      "cancelTask": "Annulla",
+      "delete": "Elimina"
     },
     "errors": {
       "accept": "Impossibile programmare la proposta.",
       "dismiss": "Impossibile archiviare la proposta.",
       "snooze": "Impossibile rimandare.",
       "start": "Impossibile avviare.",
-      "complete": "Impossibile completare."
+      "complete": "Impossibile completare.",
+      "undoStart": "Impossibile annullare l’avvio.",
+      "pause": "Impossibile mettere in pausa.",
+      "reschedule": "Impossibile riprogrammare.",
+      "schedule": "Impossibile programmare.",
+      "cancel": "Impossibile annullare."
     },
     "form": {
       "newTitle": "Nuovo lavoro",
@@ -253,7 +527,8 @@
         "afternoon": "Pomeriggio",
         "anytime": "Qualsiasi ora",
         "specific": "Un orario preciso"
-      }
+      },
+      "fromSuggestion": "Da proposta · {{title}}{{field}}"
     },
     "detail": {
       "summary": "Riepilogo",
@@ -276,7 +551,11 @@
       "noChecks": "Non ci sono controlli per questo lavoro.",
       "fillChecks": "Compila i controlli",
       "notesOnComplete": "Puoi aggiungere note quando completi il lavoro.",
-      "noNotes": "Nessuna nota."
+      "noNotes": "Nessuna nota.",
+      "nextStepContinueChecks": "Completa altri {{count}} controlli.",
+      "nextStepRecordResult": "Tutti i controlli sono completati.",
+      "nextStepPaused": "Questo lavoro è in pausa. Continua quando sei pronto.",
+      "openFullPage": "Apri pagina completa"
     },
     "onboarding": {
       "progress": "{{current}} di {{total}}",
@@ -396,7 +675,8 @@
         "optionalMonths": "Scegli i mesi o tocca Salta.",
         "multiSelect": "Puoi scegliere più di uno.",
         "analysesYears": "Basta l’anno — non serve la data esatta.",
-        "reminders": "Puoi cambiarlo dopo."
+        "reminders": "Puoi cambiarlo dopo.",
+        "analysisNone": "Tocca di nuovo «Non faccio analisi» se vuoi cambiarlo."
       },
       "choices": {
         "unsure": "Non sono sicuro",
@@ -506,6 +786,10 @@
         "start": "Iniziamo",
         "resume": "Continua configurazione",
         "later": "Più tardi"
+      },
+      "personalizing": {
+        "title": "Raccolta dei tuoi dati",
+        "body": "Personalizziamo la tua cronologia…"
       }
     },
     "profile": {
@@ -590,6 +874,25 @@
           "lastPerformed": "Ultime date",
           "assignments": "Persone predefinite"
         }
+      },
+      "learning": {
+        "dismissalTitle": "Proposte di lavori",
+        "dismissalMessage": "Vuoi che smettiamo di proporre questo lavoro per il campo?",
+        "dontPropose": "Non proporre",
+        "askWhenIndicated": "Solo quando c’è un segnale",
+        "keepProposing": "Continua a proporre",
+        "completionTitle": "Frequenza di potatura",
+        "completionMessage": "La potatura è stata registrata per il {{year}}. Proporla di nuovo nel {{nextYear}}?",
+        "everyTwoYears": "Sì, ogni 2 anni",
+        "everyYear": "Ogni anno",
+        "whenNeeded": "Solo quando serve",
+        "noChange": "Nessuna modifica",
+        "reviewTitle": "Revisione annuale",
+        "reviewBody": "È passato circa un anno dall’ultima revisione. Vuoi controllare le impostazioni?",
+        "reviewNow": "Sì, rivedo",
+        "reviewLater": "Più tardi",
+        "reviewSaved": "Revisione registrata.",
+        "applyFailed": "Impossibile salvare quella scelta. Riprova."
       }
     },
     "completion": {
@@ -641,6 +944,197 @@
         "partialHint": "Resta qualcosa per dopo",
         "notDoneHint": "Registra senza risultato"
       }
+    },
+    "season": {
+      "afterHarvest": "Dopo la raccolta",
+      "winterCare": "Cura invernale",
+      "springGrowth": "Crescita primaverile",
+      "summerProtection": "Protezione estiva",
+      "harvestPrep": "Preparazione alla raccolta",
+      "harvest": "Raccolta",
+      "summary": "{{attention}} lavori richiedono attenzione · {{suitable}} adatti oggi"
+    },
+    "allAssignees": "Tutte le persone",
+    "allAssigneesLabel": "Responsabile",
+    "moreFilters": "Altri filtri",
+    "nowSections": {
+      "attention": "Richiedono attenzione",
+      "inProgress": "In corso",
+      "today": "Oggi",
+      "thisWeek": "Questa settimana",
+      "seeAllUpcoming": "Vedi tutti i prossimi"
+    },
+    "upcomingGroups": {
+      "tomorrow": "Domani",
+      "thisWeek": "Questa settimana",
+      "nextWeek": "Prossima settimana",
+      "later": "Più tardi",
+      "undated": "Senza data",
+      "withCount": "{{label}} · {{count}} lavori"
+    },
+    "upcomingMode": {
+      "aria": "Modalità vista prossimi",
+      "list": "Elenco",
+      "calendar": "Calendario",
+      "calendarNote": "Lavori in arrivo in ordine di data."
+    },
+    "attention": {
+      "reasons": {
+        "overdue": "Questo lavoro è in ritardo.",
+        "weatherBlocked": "Il meteo rende difficile questo lavoro oggi.",
+        "unassigned": "Non c’è ancora un responsabile.",
+        "windowEnding": "Il periodo consigliato finisce tra {{days}} giorni.",
+        "incompletePrep": "La preparazione non è ancora iniziata.",
+        "paused": "Questo lavoro è in pausa."
+      }
+    },
+    "history": {
+      "banner": "I lavori completati compaiono anche nella Cronologia con meteo, denaro e raccolta.",
+      "openChronologio": "Apri Cronologia completa",
+      "search": "Cerca",
+      "searchPlaceholder": "Titolo o campo",
+      "type": "Tipo",
+      "allTypes": "Tutti i tipi",
+      "completedOn": "Completato {{date}}",
+      "cancelledOn": "Annullato {{date}}"
+    },
+    "dismiss": {
+      "title": "Non mi riguarda",
+      "copy": "Scegli cosa vale per questa proposta.",
+      "dontDo": "Non faccio questo lavoro",
+      "dontDoHint": "Smetteremo di suggerirlo per questi campi.",
+      "alreadyDone": "L’ho già fatto",
+      "alreadyDoneHint": "Lo chiuderemo per quest’anno.",
+      "remindLater": "Ricordamelo più tardi",
+      "remindLaterHint": "Tornerà tra qualche giorno."
+    },
+    "scheduleGroup": {
+      "title": "Programma proposta",
+      "copy": "Scegli in quali campi e quando fare il lavoro.",
+      "allFields": "Tutti i campi consigliati",
+      "whenLabel": "Quando",
+      "differentDates": "Data diversa per campo",
+      "differentDatesHint": "Scegli un giorno per ogni campo.",
+      "sameDate": "Stessa data per tutti",
+      "sameDateHint": "Un giorno per tutti i campi selezionati.",
+      "sharedDate": "Giorno di lavoro",
+      "selectedCount": "{{selected}} di {{total}}"
+    },
+    "pause": {
+      "title": "Metti in pausa il lavoro",
+      "copy": "Perché lo metti in pausa?",
+      "confirm": "Pausa",
+      "newDate": "Nuova data",
+      "reasons": {
+        "weather": "Meteo",
+        "waiting_person": "Aspetto un collaboratore",
+        "waiting_equipment": "Aspetto l’attrezzatura",
+        "another_day": "Continuerò un altro giorno",
+        "other": "Altro motivo"
+      }
+    },
+    "reschedule": {
+      "title": "Cambia data",
+      "newDate": "Nuova data",
+      "confirm": "Sposta",
+      "keep": "Mantieni la data",
+      "moveToSuggested": "Sposta al giorno suggerito",
+      "suggested": "Nuovo giorno suggerito: {{date}}"
+    },
+    "undoStart": {
+      "message": "Lavoro avviato.",
+      "action": "Annulla"
+    },
+    "weatherNudge": {
+      "title": "Possibile pioggia il giorno del lavoro",
+      "body": "Questo lavoro potrebbe richiedere un cambio di data."
     }
+  },
+  "evidence": {
+    "add": "Aggiungi foto",
+    "upload": "Salva",
+    "uploading": "Salvataggio…",
+    "changePhoto": "Cambia foto",
+    "selectPhoto": "Seleziona foto",
+    "removePhoto": "Rimuovi foto",
+    "notes": "Note",
+    "notesPlaceholder": "Cosa mostra questa foto (opzionale)",
+    "existing": "Foto salvate",
+    "empty": "Nessuna foto ancora.",
+    "tooLarge": "L’immagine deve essere sotto i 2MB.",
+    "notImage": "Seleziona un file immagine.",
+    "needContent": "Aggiungi una foto o una nota.",
+    "failed": "Salvataggio non riuscito.",
+    "all": "Tutte",
+    "before": "Prima",
+    "after": "Dopo",
+    "general": "Generale",
+    "noPhoto": "Nessuna foto",
+    "close": "Chiudi"
+  },
+  "notebook": {
+    "sections": {
+      "overdue": "In ritardo",
+      "today": "Oggi",
+      "tomorrow": "Domani",
+      "thisWeek": "Questa settimana",
+      "later": "Più tardi",
+      "suggestions": "Suggerimenti per ora",
+      "attention": "Richiede attenzione",
+      "next": "Dopo"
+    },
+    "status": {
+      "planned": "Programmato",
+      "done": "Fatto",
+      "skipped": "Saltato",
+      "todo": "Da fare",
+      "in_progress": "In corso",
+      "completed": "Completato",
+      "blocked": "Bloccato",
+      "cancelled": "Annullato"
+    },
+    "when": {
+      "today": "Oggi",
+      "tomorrow": "Domani",
+      "overdue": "In ritardo",
+      "noDate": "Ancora senza data"
+    },
+    "unassigned": "Non assegnato",
+    "actions": {
+      "markDone": "Segna come fatto",
+      "completed": "Fatto",
+      "resolve": "Risolvi"
+    },
+    "menu": {
+      "reschedule": "Cambia data",
+      "assign": "Assegna",
+      "edit": "Modifica",
+      "skip": "Salta",
+      "block": "Non si può fare",
+      "cancel": "Annulla",
+      "reopen": "Riapri"
+    },
+    "tabs": {
+      "today": "Oggi",
+      "upcoming": "Prossimi",
+      "done": "Fatti",
+      "todo": "Da fare"
+    },
+    "empty": {
+      "todayTitle": "Niente per oggi",
+      "todayDescription": "Programma un lavoro o guarda i suggerimenti.",
+      "upcomingTitle": "Niente in programma",
+      "upcomingDescription": "I lavori programmati appariranno qui.",
+      "doneTitle": "Ancora niente di fatto",
+      "doneDescription": "I lavori completati appaiono qui."
+    },
+    "done": {
+      "banner": "Vedi lo storico completo nel Chronologio.",
+      "openChronologio": "Apri Chronologio"
+    },
+    "search": "Cerca",
+    "mine": "Miei",
+    "everyone": "Tutti",
+    "scope": "Chi viene mostrato"
   }
 }

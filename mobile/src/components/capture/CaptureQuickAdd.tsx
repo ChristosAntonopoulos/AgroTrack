@@ -99,7 +99,8 @@ const CaptureQuickAdd: React.FC<Props> = ({
     if (move.surface === 'money' || move.type === 'money') return 'wallet-outline';
     if (move.type === 'income') return 'trending-up';
     if (move.type === 'expense') return 'trending-down';
-    if (move.type === 'work') return 'checkmark-done-outline';
+    if (move.type === 'scheduleWork' || move.type === 'work') return 'calendar-outline';
+    if (move.type === 'recordWork') return 'checkmark-done-outline';
     if (move.type === 'photo') return 'camera-outline';
     if (move.type === 'voice') return 'mic-outline';
     if (move.type === 'document') return 'document-text-outline';
@@ -121,7 +122,13 @@ const CaptureQuickAdd: React.FC<Props> = ({
     if (move.id === 'payment' || move.type === 'expense') {
       return { accent: colors.eventExpense, soft: colors.eventExpenseSoft };
     }
-    if (move.type === 'work') return { accent: colors.eventWork, soft: colors.eventWorkSoft };
+    if (
+      move.type === 'work' ||
+      move.type === 'scheduleWork' ||
+      move.type === 'recordWork'
+    ) {
+      return { accent: colors.eventWork, soft: colors.eventWorkSoft };
+    }
     return { accent: colors.eventObservation, soft: colors.eventObservationSoft };
   };
 

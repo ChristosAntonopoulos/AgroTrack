@@ -9,6 +9,8 @@ export const tabFromPreferredType = (preferredType?: CaptureType): CaptureTab | 
   if (preferredType === 'harvest') return 'day';
   if (
     preferredType === 'work' ||
+    preferredType === 'scheduleWork' ||
+    preferredType === 'recordWork' ||
     preferredType === 'photo' ||
     preferredType === 'observation' ||
     preferredType === 'voice' ||

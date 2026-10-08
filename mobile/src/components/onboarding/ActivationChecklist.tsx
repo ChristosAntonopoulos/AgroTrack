@@ -23,8 +23,6 @@ const ActivationChecklist: React.FC = () => {
     setupUnlocked,
     setCollapsed,
     goToStep,
-    skipStep,
-    snoozeLater,
     clearCelebration,
   } = useOwnerActivation();
 
@@ -62,7 +60,10 @@ const ActivationChecklist: React.FC = () => {
 
   if (laterSnoozed && !setupUnlocked) {
     return (
-      <View style={[styles.bar, { top }]} accessibilityLabel={t('checklist.title')}>
+      <View
+        style={[styles.bar, { top }]}
+        accessibilityLabel={t('checklist.title')}
+      >
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.title}>{t('checklist.continueTitle')}</Text>
           <Text style={styles.body}>{t('checklist.continueBody')}</Text>
@@ -75,7 +76,7 @@ const ActivationChecklist: React.FC = () => {
   }
 
   return (
-    <View style={[styles.bar, { top }]} accessibilityLabel={t('checklist.title')}>
+    <View style={[styles.bar, { top, right: 54 }]} accessibilityLabel={t('checklist.title')}>
       <View style={styles.brand}>
         <Text style={styles.title}>{t('checklist.title')}</Text>
         <Text style={styles.progress}>
@@ -128,11 +129,6 @@ const ActivationChecklist: React.FC = () => {
               {t(`spotlight.${tipKey}.body`)}
             </Text>
           </View>
-          {setupUnlocked ? (
-            <Pressable onPress={() => (spotlightStep ? skipStep(spotlightStep) : snoozeLater())} hitSlop={6}>
-              <Text style={styles.skip}>{t('spotlight.skip')}</Text>
-            </Pressable>
-          ) : null}
         </View>
       ) : null}
 
@@ -144,11 +140,6 @@ const ActivationChecklist: React.FC = () => {
             color="#4a5746"
           />
         </Pressable>
-        {setupUnlocked ? (
-          <Pressable onPress={snoozeLater} hitSlop={8}>
-            <Text style={styles.skip}>{t('spotlight.skip')}</Text>
-          </Pressable>
-        ) : null}
       </View>
     </View>
   );
@@ -225,7 +216,6 @@ const styles = StyleSheet.create({
   },
   tipTitle: { fontSize: 12, fontWeight: '700', color: '#1e261c' },
   tipBody: { fontSize: 11, lineHeight: 15, color: '#4a5746', marginTop: 1 },
-  skip: { fontSize: 12, fontWeight: '700', color: '#2f5d38' },
   actions: { flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'flex-end' },
   primary: {
     borderRadius: 10,

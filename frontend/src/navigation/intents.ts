@@ -40,11 +40,19 @@ export const taskPeekPath = (taskId: string): string =>
 export const taskCompletePath = (taskId: string): string =>
   `/tasks/${encodeURIComponent(taskId)}/complete`;
 
-export const taskFormPath = (opts?: { fieldId?: string; proposalId?: string; templateCode?: string }): string =>
-  `/tasks/new${qs([
+/** Opens the schedule-work sheet on the Tasks page (Phase 2). */
+export const taskFormPath = (opts?: {
+  fieldId?: string;
+  proposalId?: string;
+  templateCode?: string;
+  view?: 'today' | 'upcoming' | 'done';
+}): string =>
+  `/tasks${qs([
+    ['view', opts?.view || 'today'],
+    ['schedule', 1],
     ['fieldId', opts?.fieldId],
-    ['proposalId', opts?.proposalId],
     ['templateCode', opts?.templateCode],
+    ['proposalId', opts?.proposalId],
   ])}`;
 
 export const moneyPath = (opts?: {

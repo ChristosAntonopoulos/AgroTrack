@@ -102,36 +102,35 @@ public class FieldTaskServiceTests
     }
 
     [Fact]
-    public async Task Complete_CreatesExactlyOneTaskExecution()
+    public async Task Complete_MarksDone_WithoutCreatingWorkRecord()
     {
         var task = PlannedTask();
         _tasks.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
-        _executions.Setup(r => r.CreateAsync(It.IsAny<TaskExecution>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((TaskExecution e, CancellationToken _) =>
-            {
-                e.Id = "exec-1";
-                return e;
-            });
         _tasks.Setup(r => r.UpdateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((FieldTask t, CancellationToken _) => t);
 
-        var execution = await _service.CompleteAsync(
+        var dto = await _service.CompleteAsync(
             task.Id,
             new CompleteFieldTaskDto { Outcome = "completed", Notes = "Ολοκληρώθηκε" },
             "owner-1",
             Roles.FieldOwner);
 
-        Assert.Equal("exec-1", execution.Id);
-        Assert.Equal("completed", execution.Outcome);
-        Assert.Equal(2026, execution.ResultYear);
-        _executions.Verify(r => r.CreateAsync(It.IsAny<TaskExecution>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal("done", dto.Status);
+        Assert.Equal("Έγινε", dto.StatusLabel);
+        Assert.Equal(2026, dto.ResultYear);
+        Assert.Null(dto.LatestExecutionId);
+        _executions.Verify(r => r.CreateAsync(It.IsAny<TaskExecution>(), It.IsAny<CancellationToken>()), Times.Never);
+        _tasks.Verify(r => r.CreateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()), Times.Never);
         _tasks.Verify(r => r.UpdateAsync(
-            It.Is<FieldTask>(t => t.Status == FieldTaskStatus.Completed && t.LatestExecutionId == "exec-1"),
+            It.Is<FieldTask>(t =>
+                t.Status == FieldTaskStatus.Done
+                && t.CompletedByUserId == "owner-1"
+                && t.CompletedAt.HasValue),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Complete_Partial_CreatesFollowUpTask()
+    public async Task Complete_DoesNotCreateFollowUpOrExecution()
     {
         var task = PlannedTask();
         task.ChecklistSnapshot =
@@ -141,47 +140,58 @@ public class FieldTaskServiceTests
         ];
 
         _tasks.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
-        _tasks.Setup(r => r.CreateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((FieldTask t, CancellationToken _) =>
-            {
-                t.Id = "follow-1";
-                return t;
-            });
-        _executions.Setup(r => r.CreateAsync(It.IsAny<TaskExecution>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((TaskExecution e, CancellationToken _) =>
-            {
-                e.Id = "exec-partial";
-                return e;
-            });
         _tasks.Setup(r => r.UpdateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((FieldTask t, CancellationToken _) => t);
 
-        var execution = await _service.CompleteAsync(
+        var dto = await _service.CompleteAsync(
             task.Id,
             new CompleteFieldTaskDto
             {
                 Outcome = "partially_completed",
+                CreateFollowUpForRemainder = true,
                 ChecklistAnswers = [new ChecklistAnswerDto { Key = "a", BoolValue = true }]
             },
             "owner-1",
             Roles.FieldOwner);
 
-        Assert.True(execution.FollowUpRequired);
-        Assert.Equal("follow-1", execution.FollowUpTaskId);
-        _tasks.Verify(r => r.CreateAsync(
+        Assert.Equal("done", dto.Status);
+        Assert.Null(dto.LatestExecutionId);
+        _tasks.Verify(r => r.CreateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()), Times.Never);
+        _executions.Verify(r => r.CreateAsync(It.IsAny<TaskExecution>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Skip_AcceptsReason()
+    {
+        var task = PlannedTask();
+        _tasks.Setup(r => r.GetByIdAsync(task.Id, It.IsAny<CancellationToken>())).ReturnsAsync(task);
+        _tasks.Setup(r => r.UpdateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((FieldTask t, CancellationToken _) => t);
+
+        var dto = await _service.SkipAsync(task.Id, "weather", "owner-1", Roles.FieldOwner);
+
+        Assert.Equal("skipped", dto.Status);
+        _tasks.Verify(r => r.UpdateAsync(
             It.Is<FieldTask>(t =>
-                t.ChecklistSnapshot.Count == 1
-                && t.ChecklistSnapshot[0].Key == "b"
-                && t.PlannedStart == task.PlannedStart),
+                t.Status == FieldTaskStatus.Skipped
+                && t.SkippedReason == "weather"),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Start_ThrowsLifecycleRemoved()
+    {
+        await Assert.ThrowsAsync<OliveLifecycle.Core.Exceptions.ValidationException>(() =>
+            _service.StartAsync("ft-1", "owner-1", Roles.FieldOwner));
     }
 
     [Fact]
     public async Task UndoCompletion_ReopensTask_AndHidesExecutionFromTimeline()
     {
         var task = PlannedTask();
-        task.Status = FieldTaskStatus.Completed;
+        task.Status = FieldTaskStatus.Done;
         task.LatestExecutionId = "exec-1";
+        task.LinkedWorkRecordId = "exec-1";
         var execution = new TaskExecution
         {
             Id = "exec-1",
@@ -203,7 +213,7 @@ public class FieldTaskServiceTests
 
         var restored = await _service.UndoCompletionAsync("exec-1", "owner-1", Roles.FieldOwner);
 
-        Assert.Equal(FieldTaskStatus.InProgress.ToApiString(), restored.Status);
+        Assert.Equal(FieldTaskStatus.Planned.ToApiString(), restored.Status);
         Assert.Null(restored.LatestExecutionId);
         Assert.NotNull(execution.UndoneAt);
         Assert.False(execution.IsActive);

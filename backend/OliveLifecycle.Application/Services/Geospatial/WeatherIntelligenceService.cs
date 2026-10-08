@@ -286,7 +286,8 @@ public class WeatherIntelligenceService : IWeatherIntelligenceService
         var executions = await _executions.GetByFieldIdAsync(fieldId, ct);
         var count = executions.Count(e =>
             e.IsActive &&
-            irrigationTaskIds.Contains(e.TaskId) &&
+            !string.IsNullOrWhiteSpace(e.TaskId) &&
+            irrigationTaskIds.Contains(e.TaskId!) &&
             e.CompletedAt >= windowStart);
         return count * _options.Weather.IrrigationMmPerTask;
     }

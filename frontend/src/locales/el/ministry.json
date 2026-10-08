@@ -1,7 +1,11 @@
 {
-  "title": "Ministry Notifications",
-  "subtitle": "Official announcements and compliance updates",
-  "emptyTitle": "No notifications",
-  "emptyDescription": "Ministry notifications will appear here when available.",
-  "expires": "Expires"
+  "title": "Ειδοποιήσεις Υπουργείου",
+  "subtitle": "Επίσημες ανακοινώσεις και ενημερώσεις συμμόρφωσης",
+  "emptyTitle": "Καμία ειδοποίηση",
+  "emptyDescription": "Οι ειδοποιήσεις του υπουργείου θα εμφανίζονται εδώ όταν υπάρχουν.",
+  "expires": "Λήγει",
+  "urgentOnly": "Μόνο επείγοντα",
+  "markAllRead": "Σήμανση όλων ως αναγνωσμένων",
+  "failedLoad": "Αποτυχία φόρτωσης ειδοποιήσεων",
+  "unread": "{{count}} μη αναγνωσμένα"
 }

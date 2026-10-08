@@ -61,6 +61,14 @@
       "title": "Lavoro",
       "description": "Potatura, trattamento, concimazione…"
     },
+    "scheduleWork": {
+      "title": "Programma un lavoro",
+      "description": "Qualcosa che deve ancora essere fatto nell’oliveto"
+    },
+    "recordWork": {
+      "title": "Registra lavoro completato",
+      "description": "Registra un lavoro già svolto"
+    },
     "expense": {
       "title": "Spesa",
       "description": "Manodopera, materiali, carburante…"
@@ -138,6 +146,19 @@
     "optionalCost": "Costo (opzionale)",
     "optionalNote": "Nota (opzionale)",
     "saved": "Lavoro registrato."
+  },
+  "recordWork": {
+    "what": "Cosa è stato fatto?",
+    "whatPlaceholder": "es. Potatura, concimazione…",
+    "when": "Quando è stato fatto?",
+    "save": "Salva",
+    "saved": "Lavoro registrato",
+    "saveFailed": "Impossibile salvare il lavoro.",
+    "linkTitle": "Collegare a un lavoro programmato?",
+    "linkBody": "Sono stati trovati lavori programmati corrispondenti. Il collegamento è facoltativo.",
+    "linkAction": "Collega",
+    "skipLink": "Salta collegamento",
+    "linkFailed": "Impossibile collegare il lavoro."
   },
   "expense": {
     "amount": "Importo",

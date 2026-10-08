@@ -192,8 +192,8 @@ const FieldDetailMap: React.FC<FieldDetailMapProps> = ({
             ring={polygon}
             fillColor={accent}
             strokeColor={accent}
-            fillOpacity={activeLayerId ? 0 : 0.28}
-            strokeWidth={activeLayerId ? 3 : 2.5}
+            fillOpacity={0}
+            strokeWidth={activeLayerId ? 3.5 : 3}
           />
         ) : null}
         <MapFieldPins

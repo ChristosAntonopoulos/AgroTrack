@@ -18,9 +18,9 @@ import type { HarvestCampaign } from '../../harvestCampaign/types';
 import type { Field } from '../../services/fieldService';
 import {
   getFieldService,
-  getFieldWorkService,
   getFinancialTransactionService,
   getNoteService,
+  getTaskService,
 } from '../../services/serviceFactory';
 import PhotoLightbox from '../photos/PhotoLightbox';
 import { usePhotoLightbox } from '../photos/usePhotoLightbox';
@@ -36,6 +36,7 @@ import {
 import { formatChronologioMoney, formatChronologioMoneySigned } from '../../utils/chronologioGrouping';
 import { normalizeTaskStatus, taskStatusI18nKey } from '../../utils/categoryNormalize';
 import { taskDisplayTitle } from '../../utils/taskDisplayTitle';
+import { taskToFieldTask } from '../../utils/taskCompat';
 import { formatQuantityLine } from '../../finance/moneyUi';
 import { financialStatusLabel, financialTypeLabel } from '../../finance/display';
 import {
@@ -371,10 +372,10 @@ const TaskDetail: React.FC<{
     const id = task?.taskId || (entry.sourceType === 'Task' ? entry.sourceId : '');
     if (!id) return;
     let cancelled = false;
-    void getFieldWorkService()
-      .getFieldTask(id)
+    void getTaskService()
+      .getTask(id)
       .then((row) => {
-        if (!cancelled) setFull(row);
+        if (!cancelled) setFull(taskToFieldTask(row));
       })
       .catch(() => {
         if (!cancelled) setFull(null);

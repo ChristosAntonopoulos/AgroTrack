@@ -846,15 +846,15 @@ public class FieldPeopleService : IFieldPeopleService
                 Role = person.Role.ToString(),
                 Modules = person.Modules.ToList(),
                 AccessLevel = person.AccessLevel,
-                CompletedTasks = userTasks.Count(t => t.Status == FieldTaskStatus.Completed),
+                CompletedTasks = userTasks.Count(t => t.Status == FieldTaskStatus.Done),
                 OverdueTasks = userTasks.Count(t =>
-                    t.Status != FieldTaskStatus.Completed
-                    && t.Status != FieldTaskStatus.Cancelled
+                    t.Status != FieldTaskStatus.Done
+                    && t.Status != FieldTaskStatus.Skipped
                     && t.PlannedEnd.HasValue
                     && t.PlannedEnd.Value.Date < today),
                 OpenTasks = userTasks.Count(t =>
-                    t.Status != FieldTaskStatus.Completed
-                    && t.Status != FieldTaskStatus.Cancelled),
+                    t.Status != FieldTaskStatus.Done
+                    && t.Status != FieldTaskStatus.Skipped),
                 LastActivityAt = activities
                     .Where(a => a.ActorUserId == person.UserId)
                     .Select(a => (DateTime?)a.Timestamp)

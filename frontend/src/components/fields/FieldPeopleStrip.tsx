@@ -46,8 +46,7 @@ const FieldPeopleStrip: React.FC<Props> = ({ fieldId, variant = 'overview' }) =>
             : t('fields:overview.people.moreNames', {
                 names: names.join(', '),
                 count: people.length - 3,
-                defaultValue: `${names.join(', ')} +${people.length - 3}`,
-              })}
+                defaultValue: `${names.join(', ')} +${people.length - 3}`})}
         </span>
       </p>
     );
@@ -58,10 +57,10 @@ const FieldPeopleStrip: React.FC<Props> = ({ fieldId, variant = 'overview' }) =>
       <div className="field-overview-section-head">
         <h2 id="field-overview-people-title">
           <Users size={18} strokeWidth={2} aria-hidden />
-          {t('fields:overview.people.title', { defaultValue: 'Άτομα' })}
+          {t('fields:overview.people.title')}
         </h2>
         <Link className="field-overview-cta field-overview-cta--ghost" to={href}>
-          {t('fields:overview.people.manage', { defaultValue: 'Διαχείριση' })}
+          {t('fields:overview.people.manage')}
           <ChevronRight size={15} aria-hidden />
         </Link>
       </div>
@@ -70,8 +69,7 @@ const FieldPeopleStrip: React.FC<Props> = ({ fieldId, variant = 'overview' }) =>
           const label =
             person.displayName || person.email || person.phone || t('partners:peoplePage.unnamed', { defaultValue: '—' });
           const roleLabel = t(`fields:card.role.${person.role}`, {
-            defaultValue: person.role,
-          });
+            defaultValue: person.role});
           return (
             <li key={`${person.userId}-${person.inviteId || ''}`}>
               <span className="field-overview-people-avatar" aria-hidden>
@@ -88,9 +86,7 @@ const FieldPeopleStrip: React.FC<Props> = ({ fieldId, variant = 'overview' }) =>
       {people.length > 6 ? (
         <Link className="field-overview-cta field-overview-cta--ghost" to={href}>
           {t('fields:overview.people.seeAll', {
-            count: people.length,
-            defaultValue: `Όλα · ${people.length}`,
-          })}
+            count: people.length})}
           <ChevronRight size={15} aria-hidden />
         </Link>
       ) : null}

@@ -175,6 +175,13 @@
       "cue": "Tocca Salva — qui inizia la Cronologia 🌱"
     }
   },
+  "skipConfirm": {
+    "label": "Salta",
+    "title": "Vuoi davvero saltare?",
+    "body": "Puoi finire l’oliveto quando vuoi. Quello che hai già salvato resta.",
+    "stay": "Continua",
+    "confirm": "Salta per ora"
+  },
   "settings": {
     "showTips": "Mostra suggerimenti setup oliveto"
   }

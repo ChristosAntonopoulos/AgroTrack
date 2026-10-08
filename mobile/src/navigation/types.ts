@@ -34,9 +34,11 @@ export type MainTabParamList = {
   Tasks: {
     fieldId?: string;
     filter?: string;
-    view?: 'todo' | 'done' | 'now' | 'upcoming' | 'proposals' | 'history' | 'planned' | 'active';
+    view?: 'today' | 'upcoming' | 'done' | 'todo' | 'now' | 'proposals' | 'history' | 'planned' | 'active';
     year?: string;
     created?: string;
+    schedule?: boolean;
+    templateCode?: string;
   } | undefined;
   More: undefined;
 };

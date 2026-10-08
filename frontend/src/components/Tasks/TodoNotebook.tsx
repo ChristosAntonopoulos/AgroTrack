@@ -1,55 +1,54 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
-import type { FieldTask, TaskProposal } from '../../services/fieldWorkService';
-import { resolveTaskPerson } from '../../utils/plannedTaskGroups';
+import type { Task, TaskSuggestion } from '../../services/taskService';
 import {
   groupWorkUnits,
   isOpenWork,
   leadTask,
+  resolveTaskPerson,
   unitSection,
-  type NotebookAction,
+  type NotebookMenuAction,
   type NotebookSection,
   type TaskUnit,
 } from '../../utils/taskNotebook';
-import TaskNotebookCard, { type NotebookMenuAction } from './TaskNotebookCard';
-import TaskProposalList, { type ProposalDismissChoice } from './TaskProposalList';
+import TaskNotebookCard from './TaskNotebookCard';
+import SuggestionCard from './SuggestionCard';
 import TasksEmptyState from './TasksEmptyState';
-import type { ProposalTemplateGroup } from '../../utils/proposalPresentation';
 import './TaskNotebookCard.css';
 
-const ATTENTION: NotebookSection[] = ['overdue', 'blocked', 'weather'];
-const TODAY: NotebookSection[] = ['today'];
-const NEXT: NotebookSection[] = ['tomorrow', 'week', 'later'];
-
 interface TodoNotebookProps {
-  tasks: FieldTask[];
+  mode: 'today' | 'upcoming';
+  tasks: Task[];
   fields: Field[];
   fieldNames: Record<string, string>;
   personNames: Record<string, string>;
   year: number;
   busyId: string | null;
-  proposals: TaskProposal[];
-  onOpen: (task: FieldTask) => void;
-  onPrimary: (task: FieldTask, action: NotebookAction) => void;
-  onMenu: (task: FieldTask, action: NotebookMenuAction) => void;
-  onScheduleGroup: (group: ProposalTemplateGroup) => void;
-  onDismissChoice: (group: ProposalTemplateGroup, choice: ProposalDismissChoice) => void;
+  suggestions: TaskSuggestion[];
+  onOpen: (task: Task) => void;
+  onComplete: (task: Task) => void;
+  onMenu: (task: Task, action: NotebookMenuAction) => void;
+  onScheduleSuggestion: (suggestion: TaskSuggestion) => void;
+  onDismissSuggestion: (suggestion: TaskSuggestion) => void;
 }
 
+const UPCOMING_SECTIONS: NotebookSection[] = ['tomorrow', 'week', 'later'];
+
 const TodoNotebook: React.FC<TodoNotebookProps> = ({
+  mode,
   tasks,
   fields,
   fieldNames,
   personNames,
   year,
   busyId,
-  proposals,
+  suggestions,
   onOpen,
-  onPrimary,
+  onComplete,
   onMenu,
-  onScheduleGroup,
-  onDismissChoice,
+  onScheduleSuggestion,
+  onDismissSuggestion,
 }) => {
   const { t } = useTranslation('tasks');
   const colorByField = useMemo(
@@ -69,88 +68,98 @@ const TodoNotebook: React.FC<TodoNotebookProps> = ({
     return bySection;
   }, [tasks]);
 
-  const renderUnits = (sections: NotebookSection[]) => {
+  const renderUnits = (sections: NotebookSection[], headingId: string, heading: string) => {
     const units = sections.flatMap((section) => buckets.get(section) || []);
     if (units.length === 0) return null;
     return (
-      <ul className="notebook-section-list">
-        {units.map((unit) => {
-          const person = resolveTaskPerson(leadTask(unit), personNames);
-          return (
-            <li key={unit.key}>
-              <TaskNotebookCard
-                unit={unit}
-                fieldName={(id) => fieldNames[id] || t('fieldWork.unknownField')}
-                fieldColor={(id) => colorByField[id]}
-                personName={person || undefined}
-                year={year}
-                busy={unit.tasks.some((task) => task.id === busyId)}
-                onOpen={onOpen}
-                onPrimary={onPrimary}
-                onMenu={onMenu}
-              />
-            </li>
-          );
-        })}
-      </ul>
+      <section aria-labelledby={headingId}>
+        <h2 id={headingId} className="notebook-section-title">
+          {heading}
+        </h2>
+        <ul className="notebook-section-list">
+          {units.map((unit) => {
+            const person = resolveTaskPerson(leadTask(unit), personNames);
+            return (
+              <li key={unit.key}>
+                <TaskNotebookCard
+                  unit={unit}
+                  fieldName={(id) => fieldNames[id] || t('fieldWork.unknownField')}
+                  fieldColor={(id) => colorByField[id]}
+                  personName={person || undefined}
+                  year={year}
+                  busy={unit.tasks.some((task) => task.id === busyId)}
+                  onOpen={onOpen}
+                  onComplete={onComplete}
+                  onMenu={onMenu}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      </section>
     );
   };
 
-  const attention = renderUnits(ATTENTION);
-  const today = renderUnits(TODAY);
-  const next = renderUnits(NEXT);
-  const hasWork = Boolean(attention || today || next);
+  if (mode === 'today') {
+    const overdue = renderUnits(
+      ['overdue'],
+      'notebook-overdue',
+      t('notebook.sections.overdue')
+    );
+    const today = renderUnits(['today'], 'notebook-today', t('notebook.sections.today'));
+    const hasWork = Boolean(overdue || today);
+    const showSuggestions = suggestions.length > 0;
+
+    return (
+      <div className="notebook-sections">
+        {overdue}
+        {today}
+        {showSuggestions ? (
+          <section aria-labelledby="notebook-suggestions">
+            <h2 id="notebook-suggestions" className="notebook-section-title">
+              {t('notebook.sections.suggestions')}
+            </h2>
+            <ul className="notebook-section-list">
+              {suggestions.map((suggestion, index) => (
+                <li key={`${suggestion.fieldId}-${suggestion.templateCode}-${index}`}>
+                  <SuggestionCard
+                    suggestion={suggestion}
+                    fieldName={fieldNames[suggestion.fieldId] || t('fieldWork.unknownField')}
+                    busy={busyId === `suggestion:${suggestion.fieldId}:${suggestion.templateCode}`}
+                    onSchedule={onScheduleSuggestion}
+                    onDismiss={onDismissSuggestion}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+        {!hasWork && !showSuggestions ? (
+          <TasksEmptyState
+            title={t('notebook.empty.todayTitle')}
+            description={t('notebook.empty.todayDescription')}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
+  const sections = UPCOMING_SECTIONS.map((section) =>
+    renderUnits(
+      [section],
+      `notebook-${section}`,
+      t(`notebook.sections.${section === 'week' ? 'thisWeek' : section}`)
+    )
+  ).filter(Boolean);
 
   return (
     <div className="notebook-sections">
-      {attention ? (
-        <section aria-labelledby="notebook-attention">
-          <h2 id="notebook-attention" className="notebook-section-title">
-            {t('notebook.sections.attention')}
-          </h2>
-          {attention}
-        </section>
-      ) : null}
-      {today ? (
-        <section aria-labelledby="notebook-today">
-          <h2 id="notebook-today" className="notebook-section-title">
-            {t('notebook.sections.today')}
-          </h2>
-          {today}
-        </section>
-      ) : null}
-      {next ? (
-        <section aria-labelledby="notebook-next">
-          <h2 id="notebook-next" className="notebook-section-title">
-            {t('notebook.sections.next')}
-          </h2>
-          {next}
-        </section>
-      ) : null}
-      {!hasWork && proposals.length === 0 ? (
+      {sections}
+      {sections.length === 0 ? (
         <TasksEmptyState
-          title={t('fieldWork.empty.nowTitle')}
-          description={t('fieldWork.empty.nowDescription')}
+          title={t('notebook.empty.upcomingTitle')}
+          description={t('notebook.empty.upcomingDescription')}
         />
-      ) : null}
-      {proposals.length > 0 ? (
-        <section aria-labelledby="notebook-suggestions">
-          <h2 id="notebook-suggestions" className="notebook-section-title">
-            {t('notebook.sections.suggestions')}
-            {` · ${proposals.length}`}
-          </h2>
-          <TaskProposalList
-            proposals={proposals}
-            fieldNames={fieldNames}
-            fieldColors={colorByField}
-            unknownField={t('fieldWork.unknownField')}
-            emptyTitle={t('fieldWork.empty.proposalsTitle')}
-            emptyDescription={t('fieldWork.empty.proposalsDescription')}
-            busyId={busyId}
-            onScheduleGroup={onScheduleGroup}
-            onDismissChoice={onDismissChoice}
-          />
-        </section>
       ) : null}
     </div>
   );

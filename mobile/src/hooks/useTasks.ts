@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getFieldWorkService, getFieldService } from '../services/serviceFactory';
+import { getFieldService, getTaskService } from '../services/serviceFactory';
 import {
   FieldTask,
   isActiveFieldTask,
@@ -9,14 +9,13 @@ import { Field } from '../services/fieldService';
 import { EntityCache } from '../utils/entityCache';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { useOfflineMode } from '../context/OfflineContext';
-import { athensCalendarYear } from '../utils/athensDate';
+import { taskToFieldTask } from '../utils/taskCompat';
 
-export type TaskListFilter = 'all' | 'planned' | 'in_progress' | 'ready' | 'blocked';
+export type TaskListFilter = 'all' | 'planned';
 
 export interface UseTasksOptions {
   fieldId?: string;
   filter?: TaskListFilter;
-  resultYear?: number;
 }
 
 export interface UseTasksResult {
@@ -34,7 +33,7 @@ export interface UseTasksResult {
 export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
   const { user } = useAuth();
   const { setShowingCachedData, syncGeneration } = useOfflineMode();
-  const { fieldId, resultYear = athensCalendarYear(new Date()) } = options;
+  const { fieldId } = options;
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [fields, setFields] = useState<Record<string, Field>>({});
   const [loading, setLoading] = useState(true);
@@ -54,13 +53,16 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
       const online = await isDeviceOnline();
 
       const tasksData = (
-        await getFieldWorkService().listFieldTasks({
-            resultYear,
-            ...(fieldId ? { fieldId } : {}),
-          })
-      ).filter(isActiveFieldTask);
+        await getTaskService().listTasks({
+          view: 'all',
+          ...(fieldId ? { fieldId } : {}),
+        })
+      )
+        .map(taskToFieldTask)
+        .filter(isActiveFieldTask);
 
       setTasks(tasksData);
+      await EntityCache.setTasks(user.id, tasksData);
 
       const fieldIds = [...new Set(tasksData.map((t) => t.fieldId))];
       const fieldsMap: Record<string, Field> = {};
@@ -84,11 +86,9 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
         const cachedTasks = await EntityCache.getTasks(user.id);
         if (cachedTasks) {
           const data = cachedTasks.data.filter(
-            (t) =>
-              (!fieldId || t.fieldId === fieldId) &&
-              (t.resultYear == null || t.resultYear === resultYear)
+            (t) => (!fieldId || t.fieldId === fieldId) && isActiveFieldTask(t)
           );
-          setTasks(data.filter(isActiveFieldTask));
+          setTasks(data);
           setFromCache(true);
           setShowingCachedData(true);
           setError(null);
@@ -107,7 +107,7 @@ export const useTasks = (options: UseTasksOptions = {}): UseTasksResult => {
 
   useEffect(() => {
     loadTasks();
-  }, [user, fieldId, resultYear, syncGeneration]);
+  }, [user, fieldId, syncGeneration]);
 
   const filteredTasks = useMemo(() => {
     if (filter === 'all') return tasks;

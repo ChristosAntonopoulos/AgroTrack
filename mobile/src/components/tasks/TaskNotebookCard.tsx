@@ -4,27 +4,23 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import Sheet from '../ui/Sheet';
-import type { FieldTask } from '../../services/fieldWorkService';
+import type { Task } from '../../services/taskService';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { formatCompactTaskPeriod } from '../../utils/taskDateRange';
 import { taskDisplayTitle } from '../../utils/taskDisplayTitle';
 import { resolveTaskCategoryAccent } from '../../utils/taskCategoryAccents';
 import { hexToRgba } from '../../utils/hexToRgba';
 import {
-  checklistCount,
   leadTask,
   notebookStatus,
-  primaryActionFor,
-  weatherChangesDecision,
   whenTone,
-  type NotebookAction,
+  type NotebookMenuAction,
   type TaskUnit,
 } from '../../utils/taskNotebook';
-import { resolveWeatherKind } from '../../utils/taskWeather';
 import { radii, spacing } from '../../theme';
 import TaskCategoryGlyph from './TaskCategoryGlyph';
 
-export type NotebookMenuAction = 'reschedule' | 'block' | 'skip' | 'cancel' | 'reopen';
+export type { NotebookMenuAction };
 
 type Props = {
   unit: TaskUnit;
@@ -33,9 +29,9 @@ type Props = {
   personName?: string;
   year: number;
   busy?: boolean;
-  onOpen: (task: FieldTask) => void;
-  onPrimary: (task: FieldTask, action: NotebookAction) => void;
-  onMenu?: (task: FieldTask, action: NotebookMenuAction) => void;
+  onOpen: (task: Task) => void;
+  onComplete: (task: Task) => void;
+  onMenu?: (task: Task, action: NotebookMenuAction) => void;
 };
 
 const TaskNotebookCard: React.FC<Props> = ({
@@ -46,7 +42,7 @@ const TaskNotebookCard: React.FC<Props> = ({
   year,
   busy,
   onOpen,
-  onPrimary,
+  onComplete,
   onMenu,
 }) => {
   const { t, i18n } = useTranslation('tasks');
@@ -54,71 +50,42 @@ const TaskNotebookCard: React.FC<Props> = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const task = leadTask(unit);
   const status = notebookStatus(task.status);
-  const action = primaryActionFor(status);
+  const done = status === 'done';
   const title = taskDisplayTitle(task.title, task.templateCode, i18n.language);
-  const several = unit.tasks.length > 1;
-  const doneFields = unit.tasks.filter((item) => notebookStatus(item.status) === 'completed').length;
-  const checks = checklistCount(task);
   const tone = whenTone(task);
-  const period = formatCompactTaskPeriod(task.plannedStart, task.plannedEnd, i18n.language, year);
+  const period = formatCompactTaskPeriod(
+    task.scheduledFor || task.plannedStart,
+    task.plannedEnd,
+    i18n.language,
+    year
+  );
   const when =
     tone === 'overdue'
       ? t('notebook.when.overdue')
-      : tone === 'today' || tone === 'progress'
+      : tone === 'today'
         ? t('notebook.when.today')
         : tone === 'tomorrow'
           ? t('notebook.when.tomorrow')
           : tone === 'none'
             ? t('notebook.when.noDate')
             : period || t('notebook.when.noDate');
-  const where = several ? t('notebook.fieldCount', { n: unit.tasks.length }) : fieldName(task.fieldId);
-  const progress = several
-    ? t('notebook.fieldProgress', { done: doneFields, total: unit.tasks.length })
-    : checks.total > 0
-      ? t('notebook.checks', { done: checks.done, total: checks.total })
-      : null;
-  const showWeather = weatherChangesDecision(task);
-  const weatherKind = resolveWeatherKind(task.weatherSuitability);
-  const accent = resolveTaskCategoryAccent(task.templateCode);
-  const colorsDots = unit.tasks
-    .slice(0, 3)
-    .map((item) => resolveFieldColor(fieldColor?.(item.fieldId), item.fieldId));
-
-  const actionLabel =
-    action === 'start'
-      ? t('fieldWork.actions.start')
-      : action === 'continue'
-        ? t('fieldWork.actions.continueIt')
-        : action === 'resolve'
-          ? t('notebook.actions.resolve')
-          : t('fieldWork.actions.viewResult');
-
-  const statusLabel = status === 'todo' ? null : t(`notebook.status.${status}` as const);
+  const where = fieldName(task.fieldId);
   const who = personName || t('notebook.unassigned');
-  const metaParts = [where, when, who, progress].filter(Boolean);
-  const strongPrimary = action === 'start' || action === 'continue' || action === 'resolve';
+  const metaParts = [where, when, who].filter(Boolean);
+  const accent = resolveTaskCategoryAccent(task.templateCode);
+  const color = resolveFieldColor(fieldColor?.(task.fieldId), task.fieldId);
   const urgent = tone === 'overdue';
 
   const menuItems: Array<{
     id: NotebookMenuAction;
     label: string;
     icon: React.ComponentProps<typeof Ionicons>['name'];
-  }> = [];
-  if (status !== 'completed' && status !== 'cancelled' && status !== 'skipped') {
-    menuItems.push({ id: 'reschedule', label: t('notebook.menu.reschedule'), icon: 'calendar-outline' });
-  }
-  if (status === 'todo' || status === 'in_progress') {
-    menuItems.push({ id: 'block', label: t('notebook.menu.block'), icon: 'pause-outline' });
-  }
-  if (status === 'todo' || status === 'in_progress' || status === 'blocked') {
-    menuItems.push({ id: 'skip', label: t('notebook.menu.skip'), icon: 'play-skip-forward-outline' });
-  }
-  if (status !== 'completed' && status !== 'cancelled' && status !== 'skipped') {
-    menuItems.push({ id: 'cancel', label: t('notebook.menu.cancel'), icon: 'close-circle-outline' });
-  }
-  if (status === 'completed' || status === 'cancelled' || status === 'skipped') {
-    menuItems.push({ id: 'reopen', label: t('notebook.menu.reopen'), icon: 'refresh-outline' });
-  }
+  }> = [
+    { id: 'reschedule', label: t('notebook.menu.reschedule'), icon: 'calendar-outline' },
+    { id: 'assign', label: t('notebook.menu.assign'), icon: 'person-outline' },
+    { id: 'edit', label: t('notebook.menu.edit'), icon: 'create-outline' },
+    { id: 'skip', label: t('notebook.menu.skip'), icon: 'play-skip-forward-outline' },
+  ];
 
   return (
     <View
@@ -132,73 +99,74 @@ const TaskNotebookCard: React.FC<Props> = ({
         },
       ]}
     >
-      <Pressable
-        onPress={() => onOpen(task)}
-        style={styles.hit}
-        accessibilityRole="button"
-      >
-        <TaskCategoryGlyph templateCode={task.templateCode} accent={accent} size={40} />
-        <View style={styles.copy}>
-          <Text
-            style={[styles.title, { color: colors.textPrimary, fontSize: 16 * fontScaleMultiplier }]}
-            numberOfLines={2}
-          >
-            {title}
-          </Text>
-          <Text
-            style={[styles.meta, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}
-            numberOfLines={2}
-          >
-            {metaParts.map((part, index) => (
-              <Text key={`${part}-${index}`}>
-                {index > 0 ? ' · ' : ''}
-                <Text style={index === 1 && urgent ? { fontWeight: '700', color: colors.textPrimary } : undefined}>
-                  {part}
-                </Text>
-              </Text>
-            ))}
-          </Text>
-          {(statusLabel || showWeather) ? (
-            <View style={styles.statusRow}>
-              {statusLabel ? (
-                <Text style={[styles.statusText, { color: colors.textSecondary }]}>{statusLabel}</Text>
-              ) : null}
-              {showWeather ? (
-                <Text style={[styles.statusText, { color: colors.warning }]}>
-                  {weatherKind === 'unsuitable'
-                    ? t('notebook.weather.unsuitable')
-                    : t('notebook.weather.caution')}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-          {colorsDots.length > 0 ? (
-            <View style={styles.dots}>
-              {colorsDots.map((color, index) => (
-                <View key={`${color}-${index}`} style={[styles.dot, { backgroundColor: color }]} />
-              ))}
-            </View>
-          ) : null}
-        </View>
-      </Pressable>
-      <View style={styles.actions}>
+      <View style={styles.row}>
         <Pressable
-          onPress={() => onPrimary(task, action)}
-          disabled={busy}
+          onPress={() => {
+            if (!done) onComplete(task);
+          }}
+          disabled={busy || status === 'skipped'}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: done, disabled: busy || status === 'skipped' }}
+          accessibilityLabel={done ? t('notebook.actions.completed') : t('notebook.actions.markDone')}
           style={[
-            styles.primary,
+            styles.check,
             {
-              minHeight: Math.max(44, tapMin * 0.92),
-              backgroundColor: strongPrimary ? colors.primary : colors.primaryLight,
+              minHeight: Math.max(48, tapMin),
+              minWidth: Math.max(48, tapMin),
+              borderColor: done ? colors.primary : colors.borderLight,
+              backgroundColor: done ? colors.primary : colors.surface,
               opacity: busy ? 0.6 : 1,
             },
           ]}
         >
-          <Text style={{ color: strongPrimary ? colors.onOlive : colors.primary, fontWeight: '700' }}>
-            {actionLabel}
-          </Text>
+          {done ? <Ionicons name="checkmark" size={22} color={colors.onOlive} /> : null}
         </Pressable>
-        {onMenu ? (
+
+        <Pressable
+          onPress={() => onOpen(task)}
+          style={styles.hit}
+          accessibilityRole="button"
+        >
+          <TaskCategoryGlyph templateCode={task.templateCode} accent={accent} size={40} />
+          <View style={styles.copy}>
+            <Text
+              style={[
+                styles.title,
+                {
+                  color: colors.textPrimary,
+                  fontSize: 16 * fontScaleMultiplier,
+                  textDecorationLine: done ? 'line-through' : 'none',
+                  opacity: done ? 0.7 : 1,
+                },
+              ]}
+              numberOfLines={2}
+            >
+              {title}
+            </Text>
+            <Text
+              style={[styles.meta, { color: colors.textSecondary, fontSize: 13 * fontScaleMultiplier }]}
+              numberOfLines={2}
+            >
+              {metaParts.map((part, index) => (
+                <Text key={`${part}-${index}`}>
+                  {index > 0 ? ' · ' : ''}
+                  <Text
+                    style={
+                      index === 1 && urgent
+                        ? { fontWeight: '700', color: colors.textPrimary }
+                        : undefined
+                    }
+                  >
+                    {part}
+                  </Text>
+                </Text>
+              ))}
+            </Text>
+            <View style={[styles.dot, { backgroundColor: color }]} />
+          </View>
+        </Pressable>
+
+        {onMenu && status === 'planned' ? (
           <Pressable
             onPress={() => setMenuOpen(true)}
             accessibilityLabel={t('fieldWork.actions.more')}
@@ -217,7 +185,13 @@ const TaskNotebookCard: React.FC<Props> = ({
         ) : null}
       </View>
 
-      <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title={t('fieldWork.actions.more')} edge="bottom" size="sm">
+      <Sheet
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={t('fieldWork.actions.more')}
+        edge="bottom"
+        size="sm"
+      >
         {menuItems.map((item) => (
           <Pressable
             key={item.id}
@@ -242,34 +216,30 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
+  check: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    borderWidth: 2,
+  },
   hit: {
+    flex: 1,
     flexDirection: 'row',
     gap: 12,
-    paddingTop: 14,
-    paddingHorizontal: 14,
+    minWidth: 0,
+    alignItems: 'center',
   },
   copy: { flex: 1, minWidth: 0, gap: 2 },
   title: { fontWeight: '700', lineHeight: 22, letterSpacing: -0.2 },
   meta: { lineHeight: 18 },
-  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  statusText: { fontSize: 12, fontWeight: '700' },
-  dots: { flexDirection: 'row', gap: 4, marginTop: 6 },
-  dot: { width: 8, height: 8, borderRadius: 99 },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    paddingTop: 10,
-  },
-  primary: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-  },
+  dot: { width: 8, height: 8, borderRadius: 99, marginTop: 6 },
   more: {
     alignItems: 'center',
     justifyContent: 'center',

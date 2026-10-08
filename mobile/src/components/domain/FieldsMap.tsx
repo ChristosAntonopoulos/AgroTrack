@@ -200,8 +200,8 @@ const FieldsMap: React.FC<FieldsMapProps> = ({
                   ring={polygon}
                   fillColor={accent}
                   strokeColor={accent}
-                  fillOpacity={selected ? 0.38 : 0.22}
-                  strokeWidth={selected ? 3.5 : 2.5}
+                  fillOpacity={0}
+                  strokeWidth={selected ? 3.5 : 2.75}
                   onPress={handlePinPress}
                 />
               );

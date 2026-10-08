@@ -559,6 +559,8 @@ export const OwnerActivationProvider: React.FC<{
       dismissedAt: new Date().toISOString(),
       forceShow: false,
       laterSnoozedAt: null,
+      awaitingFirstObservation: false,
+      navCoachPhase: null,
     });
     setCelebrating(false);
   }, [persist, persisted, setupUnlocked, snoozeLater]);

@@ -5,15 +5,13 @@ import { getFieldService, getFieldWorkService } from '../../services/serviceFact
 import type { Field } from '../../services/fieldService';
 import type {
   CopyFieldWorkProfileResult,
-  FieldWorkProfile,
-} from '../../services/fieldWorkService';
+  FieldWorkProfile} from '../../services/fieldWorkService';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { getApiErrorMessage } from '../../utils/translateApiError';
 import {
   buildCopyDiffPreview,
   selectableCopyTargets,
-  type CopyProfileOptions,
-} from '../../utils/fieldWorkProfileCopy';
+  type CopyProfileOptions} from '../../utils/fieldWorkProfileCopy';
 
 type Phase = 'pick' | 'options' | 'review' | 'done';
 
@@ -28,8 +26,7 @@ const WorkProfileCopyWizard: React.FC<Props> = ({
   sourceFieldId,
   profile,
   onDone,
-  onCancel,
-}) => {
+  onCancel}) => {
   const { t } = useTranslation(['tasks', 'common']);
   const [phase, setPhase] = useState<Phase>('pick');
   const [fields, setFields] = useState<Field[]>([]);
@@ -37,8 +34,7 @@ const WorkProfileCopyWizard: React.FC<Props> = ({
   const [options, setOptions] = useState<CopyProfileOptions>({
     copyIrrigation: false,
     copyLastPerformed: false,
-    copyAssignments: false,
-  });
+    copyAssignments: false});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,8 +82,7 @@ const WorkProfileCopyWizard: React.FC<Props> = ({
       setError(null);
       const res = await getFieldWorkService().copyWorkProfile(sourceFieldId, {
         targetFieldIds: selectedIds,
-        ...options,
-      });
+        ...options});
       setResult(res);
       setPhase('done');
     } catch (err: unknown) {
@@ -107,7 +102,7 @@ const WorkProfileCopyWizard: React.FC<Props> = ({
         <h2 className="fw-setup-question">{t('tasks:fieldWork.profile.copy.title')}</h2>
         <p className="fw-setup-hint">{t('tasks:fieldWork.profile.copy.noTargets')}</p>
         <Button variant="primary" size="lg" fullWidth onClick={onCancel}>
-          {t('common:back', { defaultValue: 'Πίσω' })}
+          {t('common:back')}
         </Button>
       </div>
     );
@@ -142,7 +137,7 @@ const WorkProfileCopyWizard: React.FC<Props> = ({
           </div>
           <div className="fw-setup-actions">
             <Button variant="ghost" size="lg" onClick={onCancel}>
-              {t('common:cancel', { defaultValue: 'Άκυρο' })}
+              {t('common:cancel')}
             </Button>
             <Button
               variant="primary"
@@ -192,7 +187,7 @@ const WorkProfileCopyWizard: React.FC<Props> = ({
           </label>
           <div className="fw-setup-actions">
             <Button variant="ghost" size="lg" onClick={() => setPhase('pick')}>
-              {t('common:back', { defaultValue: 'Πίσω' })}
+              {t('common:back')}
             </Button>
             <Button variant="primary" size="lg" onClick={() => setPhase('review')}>
               {t('tasks:fieldWork.profile.copy.review')}
@@ -234,7 +229,7 @@ const WorkProfileCopyWizard: React.FC<Props> = ({
           </ul>
           <div className="fw-setup-actions">
             <Button variant="ghost" size="lg" onClick={() => setPhase('options')}>
-              {t('common:back', { defaultValue: 'Πίσω' })}
+              {t('common:back')}
             </Button>
             <Button
               variant="primary"

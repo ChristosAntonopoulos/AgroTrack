@@ -2,22 +2,27 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
-import type { FieldTask } from '../../services/fieldWorkService';
-import { resolveTaskPerson } from '../../utils/plannedTaskGroups';
-import { groupWorkUnits, isRecordedWork, leadTask, type NotebookAction } from '../../utils/taskNotebook';
-import TaskNotebookCard, { type NotebookMenuAction } from './TaskNotebookCard';
+import type { Task } from '../../services/taskService';
+import {
+  groupWorkUnits,
+  isRecordedWork,
+  leadTask,
+  resolveTaskPerson,
+  type NotebookMenuAction,
+} from '../../utils/taskNotebook';
+import TaskNotebookCard from './TaskNotebookCard';
 import TasksEmptyState from './TasksEmptyState';
 
 interface HistoryTaskViewProps {
-  tasks: FieldTask[];
+  tasks: Task[];
   fields: Field[];
   fieldNames: Record<string, string>;
   personNames: Record<string, string>;
   year: number;
   busyId: string | null;
-  onOpen: (task: FieldTask) => void;
-  onPrimary: (task: FieldTask, action: NotebookAction) => void;
-  onMenu: (task: FieldTask, action: NotebookMenuAction) => void;
+  onOpen: (task: Task) => void;
+  onComplete: (task: Task) => void;
+  onMenu: (task: Task, action: NotebookMenuAction) => void;
 }
 
 const HistoryTaskView: React.FC<HistoryTaskViewProps> = ({
@@ -28,7 +33,7 @@ const HistoryTaskView: React.FC<HistoryTaskViewProps> = ({
   year,
   busyId,
   onOpen,
-  onPrimary,
+  onComplete,
   onMenu,
 }) => {
   const { t } = useTranslation('tasks');
@@ -41,16 +46,16 @@ const HistoryTaskView: React.FC<HistoryTaskViewProps> = ({
   return (
     <div className="tasks-history-view">
       <div className="tasks-history-banner">
-        <p>{t('fieldWork.history.banner')}</p>
+        <p>{t('notebook.done.banner')}</p>
         <Link to="/chronologio" className="tasks-history-banner-link">
-          {t('fieldWork.history.openChronologio')}
+          {t('notebook.done.openChronologio')}
         </Link>
       </div>
 
       {units.length === 0 ? (
         <TasksEmptyState
-          title={t('fieldWork.empty.historyTitle')}
-          description={t('fieldWork.empty.historyDescription')}
+          title={t('notebook.empty.doneTitle')}
+          description={t('notebook.empty.doneDescription')}
         />
       ) : (
         <ul className="notebook-section-list">
@@ -64,7 +69,7 @@ const HistoryTaskView: React.FC<HistoryTaskViewProps> = ({
                 year={year}
                 busy={unit.tasks.some((task) => task.id === busyId)}
                 onOpen={onOpen}
-                onPrimary={onPrimary}
+                onComplete={onComplete}
                 onMenu={onMenu}
               />
             </li>

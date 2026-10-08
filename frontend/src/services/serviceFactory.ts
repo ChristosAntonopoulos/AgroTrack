@@ -34,6 +34,8 @@ import { chronologioService } from './chronologioService';
 import { mockChronologioService } from './mock/mockChronologioService';
 import { fieldWorkService } from './fieldWorkService';
 import { mockFieldWorkService } from './mock/mockFieldWorkService';
+import { taskService } from './taskService';
+import { mockTaskService } from './mock/mockTaskService';
 import { fieldOverviewService } from './fieldOverviewService';
 import { feedbackService } from './feedbackService';
 import { mockFeedbackService } from './mock/mockFeedbackService';
@@ -61,6 +63,7 @@ export const getChronologioService = () =>
   useMockData ? mockChronologioService : chronologioService;
 export const getFieldWorkService = () =>
   useMockData ? mockFieldWorkService : fieldWorkService;
+export const getTaskService = () => (useMockData ? mockTaskService : taskService);
 export const getFieldOverviewService = () => fieldOverviewService;
 export const getFeedbackService = () =>
   useMockData ? mockFeedbackService : feedbackService;

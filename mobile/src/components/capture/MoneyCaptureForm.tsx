@@ -22,8 +22,9 @@ import type { HarvestRecord } from '../../services/harvestService';
 import {
   getFinancialTransactionService,
   getHarvestService,
-  getFieldWorkService,
+  getTaskService,
 } from '../../services/serviceFactory';
+import { taskToFieldTask } from '../../utils/taskCompat';
 import {
   categoriesForType,
   defaultCategoryForType,
@@ -218,8 +219,9 @@ const MoneyCaptureForm: React.FC<Props> = ({
     }
     let cancelled = false;
     void Promise.all([
-      getFieldWorkService()
-        .listFieldTasks({ fieldId })
+      getTaskService()
+        .listTasks({ view: 'all', fieldId })
+        .then((rows) => rows.map(taskToFieldTask))
         .catch(() => [] as FieldTask[]),
       getHarvestService().listByField(fieldId).catch(() => [] as HarvestRecord[]),
     ]).then(([nextTasks, nextHarvests]) => {

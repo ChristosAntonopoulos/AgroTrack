@@ -5,7 +5,7 @@ import FocusSpotlight from './FocusSpotlight';
 
 /** Checklist + focus spotlight for FieldOwner activation. */
 const OwnerActivationHost: React.FC = () => {
-  const { visible, spotlightStep, skipStep, guideBeat } = useOwnerActivation();
+  const { visible, spotlightStep, guideBeat } = useOwnerActivation();
 
   if (!visible || guideBeat) return null;
   // Naming is its own screen. A dim around the form hides the choices.
@@ -15,10 +15,7 @@ const OwnerActivationHost: React.FC = () => {
     <>
       {spotlightStep ? null : <ActivationChecklist />}
       {spotlightStep ? (
-        <FocusSpotlight
-          step={spotlightStep}
-          onSkip={() => skipStep(spotlightStep)}
-        />
+        <FocusSpotlight step={spotlightStep} />
       ) : null}
     </>
   );

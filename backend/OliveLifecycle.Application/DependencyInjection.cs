@@ -63,6 +63,10 @@ public static class DependencyInjection
         services.AddScoped<IFieldWorkTemplateService, FieldWorkTemplateService>();
         services.AddScoped<ITaskProposalService, TaskProposalService>();
         services.AddScoped<IFieldTaskService, FieldTaskService>();
+        services.AddScoped<ITaskService, TaskService>();
+        services.AddScoped<IWorkRecordService, WorkRecordService>();
+        services.AddScoped<ITaskSuggestionService, TaskSuggestionService>();
+        services.AddScoped<ITasksDomainMigrationService, TasksDomainMigrationService>();
         services.AddScoped<IFieldPhenologyService, FieldPhenologyService>();
         services.AddScoped<ITaskProposalEngine, TaskProposalEngine>();
         services.AddScoped<IFieldWorkEventSignalCollector, FieldWorkEventSignalCollector>();

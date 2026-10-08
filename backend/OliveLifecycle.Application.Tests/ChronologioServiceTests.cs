@@ -146,7 +146,7 @@ public class ChronologioServiceTests
                 FieldId = "field-1",
                 Title = "Ψεκασμός",
                 TemplateCode = "spraying",
-                Status = FieldTaskStatus.Completed,
+                Status = FieldTaskStatus.Done,
                 AssignedUserId = "giorgos",
                 CreatedAt = new DateTime(2026, 9, 13, 8, 0, 0, DateTimeKind.Utc),
                 UpdatedAt = new DateTime(2026, 9, 13, 8, 0, 0, DateTimeKind.Utc)
@@ -203,7 +203,7 @@ public class ChronologioServiceTests
                 Id = "task-1",
                 FieldId = "field-1",
                 Title = "Ψεκασμός",
-                Status = FieldTaskStatus.Completed
+                Status = FieldTaskStatus.Done
             });
 
         var entries = await _service.GetForFieldAsync(
@@ -240,7 +240,7 @@ public class ChronologioServiceTests
                 Id = "task-1",
                 FieldId = "field-1",
                 Title = "Λίπανση φθινοπώρου",
-                Status = FieldTaskStatus.Completed,
+                Status = FieldTaskStatus.Done,
                 CreatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
                 UpdatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc)
             });
@@ -469,7 +469,7 @@ public class ChronologioServiceTests
                 Id = "task-old-work",
                 FieldId = "field-1",
                 Title = "Yesterday spraying",
-                Status = FieldTaskStatus.Completed,
+                Status = FieldTaskStatus.Done,
                 CreatedAt = new DateTime(2026, 9, 8, 18, 0, 0, DateTimeKind.Utc),
                 UpdatedAt = new DateTime(2026, 9, 8, 18, 0, 0, DateTimeKind.Utc)
             });
@@ -577,7 +577,7 @@ public class ChronologioServiceTests
                 Id = "task-1",
                 FieldId = "field-1",
                 Title = "Irrigation",
-                Status = FieldTaskStatus.Completed,
+                Status = FieldTaskStatus.Done,
                 CreatedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
                 UpdatedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc)
             });
@@ -662,7 +662,7 @@ public class ChronologioServiceTests
                     Id = "task-1",
                     FieldId = "field-1",
                     Title = "Pruning",
-                    Status = FieldTaskStatus.Completed,
+                    Status = FieldTaskStatus.Done,
                     CreatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
                     UpdatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc)
                 },
@@ -671,7 +671,7 @@ public class ChronologioServiceTests
                     Id = "task-2",
                     FieldId = "field-1",
                     Title = "Spray",
-                    Status = FieldTaskStatus.Completed,
+                    Status = FieldTaskStatus.Done,
                     CreatedAt = new DateTime(2025, 11, 5, 0, 0, 0, DateTimeKind.Utc),
                     UpdatedAt = new DateTime(2025, 11, 5, 0, 0, 0, DateTimeKind.Utc)
                 }
@@ -752,7 +752,7 @@ public class ChronologioServiceTests
                     Id = "task-sep",
                     FieldId = "field-1",
                     Title = "Harvest prep",
-                    Status = FieldTaskStatus.Completed,
+                    Status = FieldTaskStatus.Done,
                     CreatedAt = new DateTime(2025, 9, 15, 0, 0, 0, DateTimeKind.Utc),
                     UpdatedAt = new DateTime(2025, 9, 15, 0, 0, 0, DateTimeKind.Utc)
                 },
@@ -761,7 +761,7 @@ public class ChronologioServiceTests
                     Id = "task-feb",
                     FieldId = "field-1",
                     Title = "Pruning",
-                    Status = FieldTaskStatus.Completed,
+                    Status = FieldTaskStatus.Done,
                     CreatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
                     UpdatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc)
                 }
@@ -802,7 +802,7 @@ public class ChronologioServiceTests
                 Id = "task-1",
                 FieldId = "field-1",
                 Title = "Ψεκασμός",
-                Status = FieldTaskStatus.Completed,
+                Status = FieldTaskStatus.Done,
                 CreatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
                 UpdatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc)
             });
@@ -843,7 +843,7 @@ public class ChronologioServiceTests
                 Id = "task-1",
                 FieldId = "field-1",
                 Title = "Work",
-                Status = FieldTaskStatus.Completed,
+                Status = FieldTaskStatus.Done,
                 CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
                 UpdatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc)
             });
@@ -955,7 +955,7 @@ public class ChronologioServiceTests
                     FieldId = "field-1",
                     Title = "Παρατήρηση",
                     TemplateCode = "observation",
-                    Status = FieldTaskStatus.Completed,
+                    Status = FieldTaskStatus.Done,
                     CreatedAt = new DateTime(2026, 9, 10, 8, 0, 0, DateTimeKind.Utc),
                     UpdatedAt = new DateTime(2026, 9, 10, 10, 0, 0, DateTimeKind.Utc)
                 }
@@ -996,7 +996,7 @@ public class ChronologioServiceTests
                 Id = "task-1",
                 FieldId = "field-1",
                 Title = "Λίπανση φθινοπώρου",
-                Status = FieldTaskStatus.Completed,
+                Status = FieldTaskStatus.Done,
                 CreatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc),
                 UpdatedAt = new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc)
             });
@@ -1048,7 +1048,7 @@ public class ChronologioServiceTests
                 Id = "task-1",
                 FieldId = "field-1",
                 Title = "Ψεκασμός",
-                Status = FieldTaskStatus.Completed,
+                Status = FieldTaskStatus.Done,
                 CreatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
                 UpdatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc)
             });
@@ -1332,7 +1332,7 @@ public class ChronologioServiceTests
                 FieldId = "field-1",
                 Title = "Ψεκασμός",
                 TemplateCode = "spraying",
-                Status = FieldTaskStatus.Completed,
+                Status = FieldTaskStatus.Done,
                 AssignedUserId = "partner-1",
                 CreatedAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc),
                 UpdatedAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc)
@@ -1417,6 +1417,8 @@ public class ChronologioServiceTests
     {
         _executions.Setup(r => r.GetByFieldIdAsync(fieldId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<TaskExecution>());
+        _fieldTasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FieldTask>());
         _finance.Setup(r => r.GetPostedByFieldIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<FinancialTransaction>());
         _harvests.Setup(r => r.GetByFieldIdAsync(fieldId, It.IsAny<CancellationToken>()))
@@ -1443,6 +1445,8 @@ public class ChronologioServiceTests
     {
         _executions.Setup(r => r.GetByFieldIdAsync(fieldId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(executions);
+        _fieldTasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FieldTask>());
 
         foreach (var task in fieldTasks)
         {

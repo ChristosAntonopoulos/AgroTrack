@@ -55,6 +55,8 @@ const MapPolygonLayerNative: React.FC<MapPolygonLayerProps> = ({
         style={{
           lineColor: strokeColor,
           lineWidth: strokeWidth,
+          lineJoin: 'round',
+          lineCap: 'round',
         }}
       />
     </ShapeSource>

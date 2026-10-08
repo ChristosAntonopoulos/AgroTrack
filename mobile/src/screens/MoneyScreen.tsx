@@ -37,10 +37,10 @@ import { useCaptureOptional } from '../context/CaptureContext';
 import { useRegisterCapturePage } from '../context/CapturePageContext';
 import {
   getFieldService,
-  getFieldWorkService,
   getFinancialSummaryService,
   getFinancialTransactionService,
   getHarvestService,
+  getTaskService,
 } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import type { FinancialTransaction } from '../services/financialTransactionService';
@@ -229,7 +229,7 @@ const MoneyScreen = () => {
       let harvestTitle: string | undefined;
       if (selected.relatedTaskId) {
         try {
-          const task = await getFieldWorkService().getFieldTask(selected.relatedTaskId);
+          const task = await getTaskService().getTask(selected.relatedTaskId);
           taskTitle = task.title;
         } catch {
           taskTitle = undefined;

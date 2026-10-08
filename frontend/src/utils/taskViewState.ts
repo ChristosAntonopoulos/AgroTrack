@@ -1,22 +1,22 @@
-export const TASK_VIEWS = ['todo', 'done'] as const;
+export const TASK_VIEWS = ['today', 'upcoming', 'done'] as const;
 
 export type TaskPageView = (typeof TASK_VIEWS)[number];
 
-export const DEFAULT_TASK_VIEW: TaskPageView = 'todo';
+export const DEFAULT_TASK_VIEW: TaskPageView = 'today';
 
-/** Older bookmarks land on the two notebook views. */
+/** Older bookmarks land on the three notebook views. */
 const LEGACY_VIEW_MAP: Record<string, TaskPageView> = {
-  now: 'todo',
-  upcoming: 'todo',
-  proposals: 'todo',
-  planned: 'todo',
-  active: 'todo',
+  todo: 'today',
+  now: 'today',
+  proposals: 'today',
+  planned: 'upcoming',
+  active: 'today',
   history: 'done',
   completed: 'done',
 };
 
 export const isTaskPageView = (value: string | null | undefined): value is TaskPageView =>
-  value === 'todo' || value === 'done';
+  value === 'today' || value === 'upcoming' || value === 'done';
 
 export const parseTaskView = (value: string | null | undefined): TaskPageView => {
   if (isTaskPageView(value)) return value;
@@ -24,37 +24,32 @@ export const parseTaskView = (value: string | null | undefined): TaskPageView =>
   return DEFAULT_TASK_VIEW;
 };
 
-export const parseTaskYear = (value: string | null | undefined, fallback: number): number => {
-  const year = Number(value);
-  if (!Number.isInteger(year) || year < 2000 || year > 2100) return fallback;
-  return year;
-};
-
 export const parseTaskFieldId = (value: string | null | undefined): string => value?.trim() || '';
-
-export const parseTaskAssigneeId = (value: string | null | undefined): string => value?.trim() || '';
 
 export const buildTaskSearchParams = (input: {
   view: TaskPageView;
-  year: number;
-  defaultYear: number;
   fieldId?: string;
-  assigneeId?: string;
   taskId?: string;
+  schedule?: boolean;
+  templateCode?: string;
+  created?: string;
 }): URLSearchParams => {
   const params = new URLSearchParams();
   params.set('view', input.view);
-  if (input.year !== input.defaultYear) {
-    params.set('year', String(input.year));
-  }
   if (input.fieldId) {
     params.set('fieldId', input.fieldId);
   }
-  if (input.assigneeId) {
-    params.set('assignee', input.assigneeId);
-  }
   if (input.taskId) {
     params.set('task', input.taskId);
+  }
+  if (input.schedule) {
+    params.set('schedule', '1');
+  }
+  if (input.templateCode) {
+    params.set('templateCode', input.templateCode);
+  }
+  if (input.created) {
+    params.set('created', input.created);
   }
   return params;
 };

@@ -31,7 +31,7 @@ export type FieldAttentionModel = {
 };
 
 const SAFETY_TYPES = new Set(['frost', 'heat', 'fireproximity']);
-const CLOSED_TASK = new Set(['completed', 'cancelled']);
+const CLOSED_TASK = new Set(['completed', 'cancelled', 'done', 'skipped']);
 const CLOSED_PROPOSAL = new Set(['accepted', 'dismissed', 'snoozed', 'expired']);
 const SEVERITY_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 

@@ -228,7 +228,7 @@ public class FieldWorkPlanPreviewService : IFieldWorkPlanPreviewService
             {
                 FieldId = fieldId,
                 ResultYear = resultYear,
-                Statuses = [FieldTaskStatus.Completed]
+                Statuses = [FieldTaskStatus.Done]
             },
             cancellationToken);
 
@@ -240,8 +240,9 @@ public class FieldWorkPlanPreviewService : IFieldWorkPlanPreviewService
         var executions = await _executions.GetByFieldAndYearAsync(fieldId, resultYear, cancellationToken);
         var activeExecutionTaskIds = executions
             .Where(e => e.IsActive
-                        && e.Outcome is TaskExecutionOutcome.Completed or TaskExecutionOutcome.PartiallyCompleted)
-            .Select(e => e.TaskId)
+                        && e.Outcome is TaskExecutionOutcome.Completed or TaskExecutionOutcome.PartiallyCompleted
+                        && !string.IsNullOrWhiteSpace(e.TaskId))
+            .Select(e => e.TaskId!)
             .ToHashSet(StringComparer.Ordinal);
 
         if (activeExecutionTaskIds.Count == 0)
@@ -256,7 +257,7 @@ public class FieldWorkPlanPreviewService : IFieldWorkPlanPreviewService
         foreach (var task in relatedTasks.Where(t =>
                      activeExecutionTaskIds.Contains(t.Id) && !string.IsNullOrWhiteSpace(t.TemplateCode)))
         {
-            if (task.Status == FieldTaskStatus.Completed)
+            if (task.Status == FieldTaskStatus.Done)
             {
                 continue;
             }

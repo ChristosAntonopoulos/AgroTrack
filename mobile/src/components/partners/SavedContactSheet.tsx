@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import PartnersSheet from './PartnersSheet';
-import { Field } from '../../services/fieldService';
 import { SavedContact, UpsertSavedContactPayload } from '../../services/partnerService';
 import { getPartnerService } from '../../services/serviceFactory';
 import { getApiErrorMessage } from '../../services/api';
@@ -15,7 +14,7 @@ import { friendlyFieldLabel } from '../../utils/fieldLabels';
 type Props = {
   visible: boolean;
   fieldId?: string;
-  fields: Field[];
+  fields: { id: string; name: string }[];
   existing?: SavedContact | null;
   onClose: () => void;
   onSaved?: () => void;

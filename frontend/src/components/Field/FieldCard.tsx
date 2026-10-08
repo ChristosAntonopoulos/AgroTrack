@@ -8,8 +8,7 @@ import {
   getFieldOpenPath,
   isFieldSetupIncomplete,
   isOwnedField,
-  viewerFieldRole,
-} from '../../utils/fieldDisplay';
+  viewerFieldRole} from '../../utils/fieldDisplay';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import FieldIdentity from '../fields/FieldIdentity';
 import FieldPolygonThumbnail from '../fields/FieldPolygonThumbnail';
@@ -41,8 +40,7 @@ const FieldCard: React.FC<FieldCardProps> = ({
   selected,
   onSelect,
   onHover,
-  showActivityDate = false,
-}) => {
+  showActivityDate = false}) => {
   const { t, i18n } = useTranslation(['fields']);
   const navigate = useNavigate();
   const accent = resolveFieldColor(field.color, field.id);
@@ -57,14 +55,10 @@ const FieldCard: React.FC<FieldCardProps> = ({
     ? t('fields:card.todayTasksLoading')
     : stats.todayTaskCount > 0
       ? t('fields:card.needsNowTasks', {
-          count: stats.todayTaskCount,
-          defaultValue: `Χρειάζεται τώρα · ${stats.todayTaskCount} εργασίες`,
-        })
+          count: stats.todayTaskCount})
       : showActivityDate && field.updatedAt
         ? t('fields:card.lastRecord', {
-            date: formatCompactDate(field.updatedAt, locale === 'el' ? 'el-GR' : locale),
-            defaultValue: `Τελευταία καταγραφή · ${formatCompactDate(field.updatedAt, locale === 'el' ? 'el-GR' : locale)}`,
-          })
+            date: formatCompactDate(field.updatedAt, locale === 'el' ? 'el-GR' : locale)})
         : t('fields:card.todayTasks_zero');
 
   const handleActivate = () => {
@@ -125,8 +119,7 @@ const FieldCard: React.FC<FieldCardProps> = ({
             {showActivityDate && field.updatedAt ? (
               <p className="field-card-v2-activity">
                 {t('fields:card.activityDate', {
-                  date: formatCompactDate(field.updatedAt, locale === 'el' ? 'el-GR' : locale),
-                })}
+                  date: formatCompactDate(field.updatedAt, locale === 'el' ? 'el-GR' : locale)})}
               </p>
             ) : null}
           </div>

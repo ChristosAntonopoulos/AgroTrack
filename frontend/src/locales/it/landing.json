@@ -1,0 +1,284 @@
+{
+  "brand": "The Olive Lot",
+  "header": {
+    "howItWorks": "Come funziona",
+    "keeps": "Cosa conserva",
+    "forWhom": "Per chi è",
+    "pricing": "Prezzi",
+    "signIn": "Accedi",
+    "startFree": "Inizia gratis"
+  },
+  "hero": {
+    "eyebrow": "",
+    "title": "Sai cosa è successo. Cosa hai pagato. Cosa hai ottenuto. Cosa ti è rimasto.",
+    "titleLine": "",
+    "sub": "Lavori, costi, raccolta e olio — tutto sull’oliveto giusto, ogni anno.",
+    "ctaPrimary": "Aggiungi il tuo primo oliveto",
+    "ctaSecondary": "Scopri come funziona ↓",
+    "trust": "1 oliveto gratis · Nessuna carta · Su telefono e computer",
+    "field": "Kato Alonia",
+    "year": "2026",
+    "status": "Ultima registrazione · Trattamento · 2 giorni fa",
+    "workLabel": "Lavori",
+    "workValue": "12",
+    "costLabel": "Costi",
+    "costValue": "860 €",
+    "harvestLabel": "Raccolta",
+    "harvestValue": "2.480 kg",
+    "oilLabel": "Olio",
+    "oilValue": "148 L"
+  },
+  "problem": {
+    "title": "Quaderni. Pezzi di carta. Foto.\nE cose che semplicemente ricordi.",
+    "asks": [
+      "Quando hai trattato?",
+      "Cosa hai pagato?",
+      "Cosa hai ottenuto?",
+      "Quanto olio è rimasto?"
+    ],
+    "now": "Ora trovi tutto sull’oliveto giusto.",
+    "photoAlt": "Quaderni, pezzi di carta e foto dall’oliveto"
+  },
+  "questions": {
+    "title": "Quattro domande.",
+    "titleLine": "Una risposta.",
+    "close": "Non devi ricordarle. The Olive Lot le conserva per te.",
+    "cards": [
+      {
+        "id": "work",
+        "ask": "Cosa è successo?",
+        "answer": "Trattamento · Potatura · Concimazione",
+        "detail": "12 registrazioni"
+      },
+      {
+        "id": "cost",
+        "ask": "Cosa ho pagato?",
+        "answer": "€860",
+        "detail": "Materiali + manodopera"
+      },
+      {
+        "id": "yield",
+        "ask": "Cosa ho ottenuto?",
+        "answer": "2.480 kg",
+        "detail": "42 sacchi"
+      },
+      {
+        "id": "stock",
+        "ask": "Cosa ho adesso?",
+        "answer": "8 latta",
+        "detail": "+ 12 L sfuso"
+      }
+    ]
+  },
+  "flow": {
+    "title": "Dal lavoro in campo all’olio che tieni a casa.",
+    "titleLine": "Dal campo alla latta.",
+    "line": "Una registrazione continua. Non scrivi la stessa cosa due volte.",
+    "steps": [
+      {
+        "id": "work",
+        "label": "Lavoro"
+      },
+      {
+        "id": "cost",
+        "label": "Costo"
+      },
+      {
+        "id": "harvest",
+        "label": "Raccolta"
+      },
+      {
+        "id": "mill",
+        "label": "Frantoio"
+      },
+      {
+        "id": "oil",
+        "label": "Olio"
+      },
+      {
+        "id": "store",
+        "label": "Deposito"
+      }
+    ]
+  },
+  "chronologio": {
+    "title": "Ogni anno ti aiuta a capire il successivo.",
+    "text": "Quando hai potato. Quando hai trattato. Cosa hai pagato. Cosa hai ottenuto. Col passare degli anni, The Olive Lot diventa la memoria del tuo oliveto.",
+    "railLabel": "Anni dell’oliveto",
+    "field": "Kato Alonia",
+    "highlightTitle": "Potatura di produzione",
+    "highlightWhen": "Febbraio 2025",
+    "years": [
+      {
+        "id": "2024",
+        "label": "2024",
+        "yield": "1.920 kg"
+      },
+      {
+        "id": "2025",
+        "label": "2025",
+        "yield": "2.480 kg"
+      },
+      {
+        "id": "2026",
+        "label": "2026",
+        "yield": "in corso"
+      }
+    ]
+  },
+  "map": {
+    "title": "Ogni registrazione sa dove appartiene.",
+    "sub": "I tuoi campi non si mescolano.",
+    "ownsLead": "Ogni oliveto conserva i propri:",
+    "knows": [
+      "lavori · costi · raccolta · foto · storia"
+    ],
+    "field": "Kato Alonia",
+    "marchLabel": "Marzo 2026",
+    "juneLabel": "Giugno 2026",
+    "marchFact": "A marzo l’immagine dell’oliveto era più irregolare.",
+    "juneFact": "A giugno l’immagine dell’oliveto si era riempita.",
+    "compareLabel": "Confronta due date",
+    "march": "Marzo",
+    "june": "Giugno"
+  },
+  "harvest": {
+    "title": "Quando arriva la raccolta, non cerchi pezzi di carta.",
+    "stages": [
+      {
+        "id": "field",
+        "label": "",
+        "focus": "860 kg",
+        "lines": [
+          "42 sacchi · 6 persone · €40 di costi"
+        ]
+      },
+      {
+        "id": "mill",
+        "label": "",
+        "focus": "148 L",
+        "lines": [
+          "da 860 kg di olive"
+        ]
+      },
+      {
+        "id": "store",
+        "label": "",
+        "focus": "8 × 17 L",
+        "lines": [
+          "+ 12 L sfuso"
+        ]
+      }
+    ]
+  },
+  "oil": {
+    "title": "Sai cosa hai tenuto, cosa hai dato e cosa ti è rimasto.",
+    "titleLine": "",
+    "total": "148 L in tutto",
+    "available": "Disponibile",
+    "held": "Riservato",
+    "given": "Dato",
+    "actions": "Vendi · Dona · Tieni · Correggi",
+    "text": "Latte e olio sfuso, ciò che hai tenuto, doni e vendite — senza un secondo quaderno.",
+    "lot": "17 L",
+    "batch": "LOT 2025"
+  },
+  "years": {
+    "title": "Ogni anno ti aiuta a capire il successivo.",
+    "text": "Quando hai potato. Quando hai trattato. Cosa hai pagato. Cosa hai ottenuto.",
+    "marks": [
+      {
+        "year": "2016",
+        "label": "Prima registrazione"
+      },
+      {
+        "year": "2020",
+        "label": "Nuovi alberi"
+      },
+      {
+        "year": "2023",
+        "label": "Una grande raccolta"
+      },
+      {
+        "year": "2026",
+        "label": "Quest’anno"
+      },
+      {
+        "year": "…",
+        "label": "E continua"
+      }
+    ]
+  },
+  "family": {
+    "title": "Un oliveto raramente è lavoro di una sola persona.",
+    "sub": "Famiglia, partner e un agronomo possono registrare dove devono — senza perdere il controllo.",
+    "field": "Kato Alonia",
+    "people": [
+      {
+        "name": "Kostas",
+        "did": "Ha aggiunto un costo di €40"
+      },
+      {
+        "name": "Maria",
+        "did": "Ha registrato una raccolta"
+      },
+      {
+        "name": "Giannis · Agronomo",
+        "did": "Ha aggiunto un’osservazione"
+      }
+    ]
+  },
+  "steps": {
+    "title": "Sei pronto in pochi minuti.",
+    "step1Title": "Aggiungi il tuo oliveto",
+    "step1Text": "Trovalo sulla mappa e disegna i confini una volta sola.",
+    "step2Title": "Scrivi cosa succede",
+    "step2Text": "Lavori, costi, raccolta e olio.",
+    "step3Title": "L’anno prossimo non cerchi",
+    "step3Text": "Ciò che registri resta sull’oliveto e costruisce la sua storia."
+  },
+  "pricing": {
+    "title": "Prezzi"
+  },
+  "killer": {
+    "line1": "Non cercare l’anno prossimo",
+    "line2": "cosa è successo quest’anno."
+  },
+  "proof": {
+    "title": "Costruito con chi ha gli olivi.",
+    "quotes": []
+  },
+  "cta": {
+    "text": "Inizia con il tuo primo oliveto gratis.",
+    "primary": "Inizia gratis",
+    "note": "Su telefono e computer · Pronto in pochi minuti"
+  },
+  "alpha": {
+    "androidTestTitle": "Prova Android (avanzata)",
+    "download": "Scarica l’APK di prova Android",
+    "downloadHint": "Installazione opzionale. La maggior parte inizia dal web.",
+    "safetyWhy": "Questa build è firmata e ospitata solo su theolivelot.com. Android avviserà di una fonte sconosciuta — normale prima del Play Store.",
+    "version": "Versione",
+    "versionValue": "0.1.0-alpha",
+    "released": "Data",
+    "releasedValue": "2026-09",
+    "installGuide": "Guida all’installazione",
+    "installTitle": "Come installare l’app di prova",
+    "installSteps": [
+      "Scarica il file sul telefono Android.",
+      "Apri il file.",
+      "Consenti l’installazione da questa fonte se richiesto.",
+      "Apri The Olive Lot.",
+      "Crea un account o accedi."
+    ],
+    "safety": "Installa solo da theolivelot.com."
+  },
+  "footer": {
+    "description": "Dal campo alla latta.",
+    "product": "Prodotto",
+    "contact": "Contatti",
+    "privacy": "Privacy",
+    "terms": "Termini",
+    "version": "Alpha"
+  }
+}

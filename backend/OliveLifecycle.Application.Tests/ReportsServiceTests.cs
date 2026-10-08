@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.Services;
@@ -67,7 +67,7 @@ public class ReportsServiceTests
             Name = "Grove",
             Area = 3.191456952651759,
             TreeCount = 100,
-            LocationText = "Φιλιατρόν"
+            LocationText = "F???at???"
         };
         _fieldAccessScope.Setup(s => s.ResolveAccessibleFieldsAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -120,7 +120,7 @@ public class ReportsServiceTests
         Assert.Equal(1200.2m, result.Revenue);
         Assert.Equal(-1644.29m, result.Profit);
         Assert.Equal(4100.2, result.OilProducedKg);
-        Assert.Equal("Φιλιατρόν", result.Location);
+        Assert.Equal("F???at???", result.Location);
         Assert.Equal("2024-11-02", result.LastHarvestDate);
     }
 
@@ -206,7 +206,7 @@ public class ReportsServiceTests
                     FieldId = "f1",
                     TemplateCode = "Pruning",
                     Title = "Main pruning",
-                    Status = FieldTaskStatus.Completed,
+                    Status = FieldTaskStatus.Done,
                     PlannedEnd = new DateTime(2024, 3, 12),
                     ResultYear = 2024
                 },

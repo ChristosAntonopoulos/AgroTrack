@@ -12,15 +12,13 @@ import {
   Sprout,
   Truck,
   Undo2,
-  type LucideIcon,
-} from 'lucide-react';
+  type LucideIcon} from 'lucide-react';
 import { formatOilNumber, formatOilPack } from '../../myOil/formatOilPack';
 import {
   canReverseMovement,
   groupMovementsByDay,
   movementActionKey,
-  undoneMovementIds,
-} from '../../myOil/commitmentCopy';
+  undoneMovementIds} from '../../myOil/commitmentCopy';
 import { OilSectionHeader } from './OilStockChrome';
 import type { OilLot, StockMovement } from '../../services/oilStockService';
 
@@ -53,8 +51,7 @@ const ACTION_ICON: Record<string, LucideIcon> = {
   gifted: Gift,
   consumed: Droplets,
   corrected: Pencil,
-  other: Activity,
-};
+  other: Activity};
 
 export function MovementsTab({
   movements,
@@ -64,8 +61,7 @@ export function MovementsTab({
   preview,
   onSeeAll,
   busy,
-  onReverse,
-}: Props) {
+  onReverse}: Props) {
   const { t, i18n } = useTranslation(['myOil', 'common']);
 
   const undone = useMemo(() => undoneMovementIds(movements), [movements]);
@@ -74,9 +70,8 @@ export function MovementsTab({
   const groups = useMemo(
     () =>
       groupMovementsByDay(shown, i18n.language, {
-        today: t('common:today', { defaultValue: 'Σήμερα' }),
-        yesterday: t('common:yesterday', { defaultValue: 'Χθες' }),
-      }),
+        today: t('common:today'),
+        yesterday: t('common:yesterday')}),
     [shown, i18n.language, t]
   );
 
@@ -104,8 +99,7 @@ export function MovementsTab({
       if (tins > 0) {
         return t('timeline.bulkToTins', {
           bulk: `${formatOilNumber(bulk || tins * 16, i18n.language)} L`,
-          tins,
-        });
+          tins});
       }
     }
     if (m.notes && !/oil lot|created|batch|allocation/i.test(m.notes)) return m.notes;
@@ -126,8 +120,7 @@ export function MovementsTab({
                 tin16: Math.abs(m.packDelta.tin16),
                 tin17: Math.abs(m.packDelta.tin17),
                 bulkLitres: Math.abs(m.packDelta.bulkLitres),
-                litres: Math.abs(m.litresDelta),
-              };
+                litres: Math.abs(m.litresDelta)};
               const detail = detailFor(m);
               const hasDelta = Math.abs(m.litresDelta) > 0.05;
               const positive = m.litresDelta > 0;

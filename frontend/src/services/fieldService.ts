@@ -208,7 +208,9 @@ export const fieldService = {
       });
       const incoming = response.data ?? [];
 
-      if (scoped) {
+      // Archived / all are views. Only the active identity list may replace the cache.
+      const identityList = !scoped && (!status || status === 'active');
+      if (!identityList) {
         return incoming;
       }
 

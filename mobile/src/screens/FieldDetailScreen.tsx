@@ -25,7 +25,9 @@ import {
   getFieldService,
   getFieldWorkService,
   getChronologioService,
+  getTaskService,
 } from '../services/serviceFactory';
+import { taskToFieldTask } from '../utils/taskCompat';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useCaptureOptional } from '../context/CaptureContext';
@@ -139,7 +141,7 @@ const FieldDetailScreen = () => {
       const work = getFieldWorkService();
       const [
         fieldData,
-        taskPlan,
+        plannedTasks,
         chrono,
         fieldAlerts,
         fieldPhenology,
@@ -149,7 +151,10 @@ const FieldDetailScreen = () => {
         overviewDto,
       ] = await Promise.all([
         getFieldService().getField(fieldId),
-        work.getTaskPlan(fieldId, year).catch(() => null),
+        getTaskService()
+          .listTasks({ view: 'all', fieldId })
+          .then((rows) => rows.map(taskToFieldTask).filter(isActiveFieldTask))
+          .catch(() => [] as FieldTask[]),
         getChronologioService()
           .getFieldChronologio(fieldId, {
             limit: 8,
@@ -168,12 +173,10 @@ const FieldDetailScreen = () => {
         navigation.replace('FieldForm', { fieldId: fieldData.id });
         return;
       }
-      const planTasks = Array.isArray(taskPlan?.tasks) ? taskPlan.tasks : [];
-      const planProposals = Array.isArray(taskPlan?.proposals) ? taskPlan.proposals : [];
-      const activeTasks = planTasks.filter(isActiveFieldTask);
       setField(fieldData);
-      setTasks(activeTasks);
-      setProposals(planProposals);
+      setTasks(plannedTasks);
+      // Suggestions live on Tasks; field overview no longer depends on proposal accept.
+      setProposals([]);
       setAlerts(Array.isArray(fieldAlerts) ? fieldAlerts : []);
       setPhenology(fieldPhenology);
       setRecentEntries(chrono);

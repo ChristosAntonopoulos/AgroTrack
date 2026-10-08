@@ -3,6 +3,90 @@
   "failedLoad": "Failed to load tasks",
   "fieldFilterLabel": "Filter by field",
   "allFields": "All fields",
+  "page": {
+    "title": "Tasks",
+    "scheduleCta": "+ Schedule work",
+    "fieldFilter": "Grove",
+    "allFields": "All groves",
+    "viewsAria": "Task views",
+    "tabs": {
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "done": "Done"
+    }
+  },
+  "schedule": {
+    "title": "Schedule work",
+    "cancel": "Cancel",
+    "submit": "Schedule",
+    "failedSave": "Could not schedule work.",
+    "what": "What needs doing?",
+    "whatPlaceholder": "e.g. Pruning, trap check…",
+    "pickTemplate": "Templates",
+    "field": "In the grove",
+    "noFields": "Create a grove first",
+    "when": {
+      "label": "When?",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This week",
+      "otherDay": "Another day",
+      "sometime": "Sometime"
+    },
+    "who": "Who?",
+    "assigneeMe": "Me",
+    "decideLater": "Later",
+    "moreDetails": "More details",
+    "lessDetails": "Fewer details",
+    "note": "Note",
+    "notePlaceholder": "Anything useful for the work",
+    "repeat": "Repeat",
+    "repeatPlaceholder": "e.g. Every week",
+    "checklist": "Checklist",
+    "checklistPlaceholder": "One step per line",
+    "photoHint": "You can add photos when the work is done.",
+    "templates": {
+      "title": "Choose a template",
+      "subtitle": "A template only prefills the title — it does not create the task yet.",
+      "suggestedNow": "Suggested now",
+      "curated": "All templates",
+      "categories": "Categories",
+      "allCategories": "All",
+      "alsoSuggested": "Suggested now",
+      "writeOwn": "Write your own work",
+      "category": {
+        "pruning": "Pruning",
+        "fertilisation": "Fertilisation",
+        "ground": "Ground",
+        "monitoring": "Monitoring",
+        "irrigation": "Irrigation",
+        "harvest": "Harvest",
+        "inspection": "Inspection",
+        "other": "Other"
+      }
+    }
+  },
+  "suggestions": {
+    "schedule": "Schedule",
+    "dismiss": "Not for me",
+    "dismissFailed": "Could not dismiss suggestion."
+  },
+  "complete": {
+    "failed": "Could not mark done.",
+    "undoFailed": "Could not undo.",
+    "undoMessage": "Marked as done.",
+    "undo": "Undo",
+    "followUpTitle": "Done. Want to keep what happened?",
+    "followUpBody": "Add a note, cost, or photo — or leave it as simply done.",
+    "addDetails": "Add note / cost / photo",
+    "done": "Done",
+    "detailsTitle": "What happened",
+    "notes": "Note",
+    "notesPlaceholder": "What you did, quantities, observations…",
+    "costPhotoHint": "You can also add cost and photos from capture later.",
+    "saveDetails": "Save",
+    "saveFailed": "Could not save work record."
+  },
   "detail": {
     "field": "Field",
     "assignedTo": "Assigned To",
@@ -37,7 +121,13 @@
     "reject": "Reject",
     "rejectNotePrompt": "Reason for rejection (optional)",
     "moreDetails": "More details",
-    "photos": "Photos"
+    "photos": "Photos",
+    "note": "Note",
+    "notePlaceholder": "Notes about the task",
+    "markDone": "Mark done",
+    "skipReason": "Why skip?",
+    "skipReasonPlaceholder": "Optional reason",
+    "confirmSkip": "Skip"
   },
   "evidence": {
     "add": "Add photo",
@@ -984,17 +1074,23 @@
   },
   "notebook": {
     "sections": {
-      "attention": "Needs attention",
+      "overdue": "Overdue",
       "today": "Today",
-      "next": "Next",
-      "suggestions": "Suggestions"
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This week",
+      "later": "Later",
+      "suggestions": "Suggestions for now",
+      "attention": "Needs attention",
+      "next": "Next"
     },
     "status": {
+      "planned": "Planned",
+      "done": "Done",
+      "skipped": "Skipped",
       "todo": "To do",
       "in_progress": "In progress",
       "completed": "Completed",
       "blocked": "Blocked",
-      "skipped": "Skipped",
       "cancelled": "Cancelled"
     },
     "when": {
@@ -1003,64 +1099,42 @@
       "overdue": "Overdue",
       "noDate": "No date yet"
     },
-    "fieldCount": "{{n}} fields",
-    "fieldProgress": "{{done}} of {{total}} completed",
-    "checks": "{{done}} of {{total}} steps",
     "unassigned": "Unassigned",
     "actions": {
+      "markDone": "Mark done",
+      "completed": "Done",
       "resolve": "Resolve"
     },
     "menu": {
-      "reschedule": "Reschedule",
-      "block": "Cannot do",
+      "reschedule": "Change date",
+      "assign": "Assign",
+      "edit": "Edit",
       "skip": "Skip",
+      "block": "Cannot do",
       "cancel": "Cancel",
       "reopen": "Reopen"
+    },
+    "tabs": {
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "done": "Done",
+      "todo": "To do"
+    },
+    "empty": {
+      "todayTitle": "Nothing for today",
+      "todayDescription": "Schedule work or check suggestions.",
+      "upcomingTitle": "Nothing upcoming",
+      "upcomingDescription": "Scheduled work will show up here.",
+      "doneTitle": "Nothing done yet",
+      "doneDescription": "Completed work appears here."
+    },
+    "done": {
+      "banner": "See the full history in Chronologio.",
+      "openChronologio": "Open Chronologio"
     },
     "search": "Search",
     "mine": "Mine",
     "everyone": "Everyone",
-    "tabs": {
-      "todo": "To do",
-      "done": "Completed"
-    },
-    "weather": {
-      "unsuitable": "Unsuitable weather",
-      "caution": "Weather warning"
-    },
-    "work": {
-      "started": "Started {{time}}",
-      "checks": "Checks",
-      "checksProgress": "{{done}} of {{total}}",
-      "note": "Note",
-      "saveNote": "Save note",
-      "complete": "Complete",
-      "pause": "Pause",
-      "incomplete": "{{open}} required checks are still open.",
-      "backToChecks": "Return to checks",
-      "completeAnyway": "Complete with explanation",
-      "doneNow": "Completed now",
-      "confirm": "Confirm",
-      "activity": "Activity",
-      "addPhoto": "Add photo",
-      "noChecks": "No checks. You can complete this as soon as the work is done.",
-      "activityActions": {
-        "created": "Created",
-        "started": "Started",
-        "completed": "Completed",
-        "cancelled": "Cancelled",
-        "rescheduled": "Rescheduled",
-        "check_completed": "Check marked",
-        "check_cleared": "Check cleared",
-        "blocked": "Blocked",
-        "skipped": "Skipped",
-        "resolved": "Resolved",
-        "reopened": "Reopened"
-      }
-    },
-    "scope": "Who is shown",
-    "frequent": "Common work",
-    "oneField": "One field",
-    "severalFields": "Several fields"
+    "scope": "Who is shown"
   }
 }

@@ -56,6 +56,8 @@ public interface IFieldTaskRepository : IRepository<FieldTask, string>
         CancellationToken cancellationToken = default);
 
     Task<FieldTask?> GetByProposalIdAsync(string proposalId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<FieldTask>> GetAllAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class FieldTaskQuery
@@ -82,6 +84,22 @@ public interface ITaskExecutionRepository : IRepository<TaskExecution, string>
 
     Task<IReadOnlyList<TaskExecution>> GetByFieldIdsAsync(
         IReadOnlyList<string> fieldIds,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<TaskExecution>> GetAllAsync(CancellationToken cancellationToken = default);
+}
+
+public interface ITaskSuggestionDismissalRepository : IRepository<TaskSuggestionDismissal, string>
+{
+    Task<IReadOnlyList<TaskSuggestionDismissal>> GetByFieldAndYearAsync(
+        string fieldId,
+        int resultYear,
+        CancellationToken cancellationToken = default);
+
+    Task<TaskSuggestionDismissal?> GetAsync(
+        string fieldId,
+        int resultYear,
+        string templateCode,
         CancellationToken cancellationToken = default);
 }
 

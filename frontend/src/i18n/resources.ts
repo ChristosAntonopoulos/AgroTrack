@@ -65,6 +65,8 @@ import itAnalytics from '../locales/it/analytics.json';
 import itReports from '../locales/it/reports.json';
 import itMinistry from '../locales/it/ministry.json';
 import itToday from '../locales/it/today.json';
+import itLanding from '../locales/it/landing.json';
+import itAdmin from '../locales/it/admin.json';
 import itPartners from '../locales/it/partners.json';
 import itLegal from '../locales/it/legal.json';
 import itChronologio from '../locales/it/chronologio.json';
@@ -113,8 +115,7 @@ const bundle = (
   admin,
   partners,
   chronologio,
-  capture,
-});
+  capture});
 
 export const resources: Record<
   SupportedLocale,
@@ -147,8 +148,7 @@ export const resources: Record<
     photos: enPhotos,
     onboarding: enOnboarding,
     subscription: enSubscription,
-    legal: enLegal,
-  },
+    legal: enLegal},
   el: {
     ...bundle(
       elCommon,
@@ -176,8 +176,7 @@ export const resources: Record<
     photos: elPhotos,
     onboarding: elOnboarding,
     subscription: elSubscription,
-    legal: elLegal,
-  },
+    legal: elLegal},
   it: {
     ...bundle(
       itCommon,
@@ -193,8 +192,8 @@ export const resources: Record<
       itReports,
       itMinistry,
       itToday,
-      enLanding,
-      enAdmin,
+      itLanding,
+      itAdmin,
       itPartners,
       itChronologio,
       itCapture
@@ -205,6 +204,4 @@ export const resources: Record<
     photos: itPhotos,
     onboarding: itOnboarding,
     subscription: itSubscription,
-    legal: itLegal,
-  },
-};
+    legal: itLegal}};

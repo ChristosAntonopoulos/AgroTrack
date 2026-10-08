@@ -10,7 +10,9 @@ import {
   getFieldService,
   getFieldWorkService,
   getFieldOverviewService,
+  getTaskService,
 } from '../services/serviceFactory';
+import { taskToFieldTask } from '../utils/taskCompat';
 import { geospatialService } from '../services/geospatialService';
 import type { FieldEnvironmentalAlert, FieldWeather } from '../services/geospatialService';
 import { isDeviceOnline } from '../utils/networkStatus';
@@ -148,8 +150,11 @@ const FieldDetailPage: React.FC = () => {
         setOverviewLoading(true);
         setOverviewError(false);
         setWeatherLoading(true);
-        const [plan, overviewDto, profile, stage, weatherData, alertData] = await Promise.all([
-          getFieldWorkService().getTaskPlan(id, year).catch(() => null),
+        const [plannedTasks, overviewDto, profile, stage, weatherData, alertData] = await Promise.all([
+          getTaskService()
+            .listTasks({ view: 'all', fieldId: id })
+            .then((rows) => rows.map(taskToFieldTask))
+            .catch(() => [] as FieldTask[]),
           getFieldOverviewService().getOverview(id, year).catch(() => null),
           getFieldWorkService().getWorkProfile(id).catch(() => null),
           getFieldWorkService().getPhenology(id).catch(() => null),
@@ -157,8 +162,9 @@ const FieldDetailPage: React.FC = () => {
           geospatialService.getAlerts(id).catch(() => [] as FieldEnvironmentalAlert[]),
         ]);
         if (cancelled) return;
-        setTasks(plan?.tasks ?? []);
-        setProposals(plan?.proposals ?? []);
+        setTasks(plannedTasks);
+        // Suggestions live on Tasks; field overview no longer depends on proposal accept.
+        setProposals([]);
         setOverview(overviewDto);
         setWorkProfile(profile);
         setPhenology(stage);

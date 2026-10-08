@@ -4,24 +4,22 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { isDeviceOnline } from '../utils/networkStatus';
-import { getFieldService, getFieldWorkService, getPartnerService } from '../services/serviceFactory';
+import { getFieldService, getPartnerService, getTaskService } from '../services/serviceFactory';
 import { fieldPeopleService } from '../services/fieldPeopleService';
-import type { DismissalLearningChoice, FieldTask, TaskProposal } from '../services/fieldWorkService';
+import type {
+  CreateTaskInput,
+  Task,
+  TaskSuggestion,
+} from '../services/taskService';
 import type { Field } from '../services/fieldService';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { athensCalendarYear } from '../utils/athensDate';
-import { dedupeTaskProposals } from '../utils/taskProposalDedup';
-import type { ProposalTemplateGroup } from '../utils/proposalPresentation';
-import LearningPromptSheet from '../components/FieldWork/LearningPromptSheet';
-import { useDrawerPresence } from '../hooks/useDrawerPresence';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { useActiveFieldAccess } from '../hooks/useActiveFieldAccess';
 import {
   buildTaskSearchParams,
-  parseTaskAssigneeId,
   parseTaskFieldId,
   parseTaskView,
-  parseTaskYear,
   readTaskListScroll,
   saveTaskListScroll,
   type TaskPageView,
@@ -33,30 +31,20 @@ import PageContainer from '../components/Common/PageContainer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import TasksPageHeader from '../components/Tasks/TasksPageHeader';
 import TaskViewTabs from '../components/Tasks/TaskViewTabs';
-import TaskContextBar from '../components/Tasks/TaskContextBar';
-import type { ProposalDismissChoice } from '../components/Tasks/TaskProposalList';
 import HistoryTaskView from '../components/Tasks/HistoryTaskView';
 import TodoNotebook from '../components/Tasks/TodoNotebook';
 import type { NotebookMenuAction } from '../components/Tasks/TaskNotebookCard';
-import { notebookStatus, type NotebookAction } from '../utils/taskNotebook';
 import CreatedTaskBanner from '../components/Tasks/CreatedTaskBanner';
-import WorkSetupBanner from '../components/fields/WorkSetupBanner';
-import { readWorkProfileDraft } from '../utils/fieldWorkProfileDraft';
 import RescheduleTaskSheet from '../components/Tasks/RescheduleTaskSheet';
-import ScheduleGroupSheet from '../components/Tasks/ScheduleGroupSheet';
+import ScheduleWorkSheet, {
+  type ScheduleWorkPrefill,
+} from '../components/Tasks/ScheduleWorkSheet';
+import CompletionFollowUpSheet from '../components/Tasks/CompletionFollowUpSheet';
+import type { AssigneeOption } from '../components/Tasks/form/AssigneeSelector';
 import { formatLongTaskDate } from '../utils/taskFormDates';
 import { taskDisplayTitle } from '../utils/taskDisplayTitle';
 import '../components/Tasks/TasksShell.css';
 import '../components/Tasks/TaskNotebookCard.css';
-
-const OPEN_STATUSES = new Set(['planned', 'ready', 'blocked', 'in_progress']);
-const HISTORY_STATUSES = new Set(['completed', 'cancelled', 'skipped']);
-
-type DismissalLearningPrompt = {
-  fieldId: string;
-  templateCode: string;
-  message: string;
-};
 
 const TasksPage: React.FC = () => {
   const { t, i18n } = useTranslation(['tasks', 'common', 'errors']);
@@ -72,35 +60,34 @@ const TasksPage: React.FC = () => {
     !isCollaboratorOnActive ||
     Boolean(capabilities?.canManageTasks && accessLevel === 'work');
 
-  const defaultYear = athensCalendarYear(new Date());
   const view = parseTaskView(searchParams.get('view'));
-  const yearFilter = parseTaskYear(searchParams.get('year'), defaultYear);
   const fieldFilter = parseTaskFieldId(readFieldId(searchParams));
-  const assigneeFilter = parseTaskAssigneeId(searchParams.get('assignee'));
   const createdId = searchParams.get('created') || '';
   const selectedTaskId = searchParams.get('task') || '';
+  const scheduleOpen = searchParams.get('schedule') === '1';
+  const templateCodeParam = searchParams.get('templateCode') || '';
+  const year = athensCalendarYear(new Date());
 
   useRegisterCapturePage({
     sourcePage: 'tasks',
     fieldId: fieldFilter || undefined,
   });
 
-  const [proposals, setProposals] = useState<TaskProposal[]>([]);
-  const [tasks, setTasks] = useState<FieldTask[]>([]);
+  const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [personNames, setPersonNames] = useState<Record<string, string>>({});
-  const [dismissalPrompt, setDismissalPrompt] = useState<DismissalLearningPrompt | null>(null);
-  const dismissalDrawer = useDrawerPresence(dismissalPrompt);
-  const [learningBusy, setLearningBusy] = useState(false);
-  const [undoStartIds, setUndoStartIds] = useState<string[]>([]);
-  const [rescheduleTask, setRescheduleTask] = useState<FieldTask | null>(null);
-  const [scheduleGroup, setScheduleGroup] = useState<ProposalTemplateGroup | null>(null);
-  const [query, setQuery] = useState('');
-  const [scope, setScope] = useState<'mine' | 'everyone'>('everyone');
-  const [workSetup, setWorkSetup] = useState<{ resume: boolean } | null>(null);
+  const [undoCompleteId, setUndoCompleteId] = useState<string | null>(null);
+  const [followUpTask, setFollowUpTask] = useState<Task | null>(null);
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
+  const [rescheduleTask, setRescheduleTask] = useState<Task | null>(null);
+  const [schedulePrefill, setSchedulePrefill] = useState<ScheduleWorkPrefill | null>(null);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [assigneeOptions, setAssigneeOptions] = useState<AssigneeOption[]>([]);
 
   const fieldNames = useMemo(
     () => Object.fromEntries(fields.map((field) => [field.id, field.name])),
@@ -110,82 +97,116 @@ const TasksPage: React.FC = () => {
   const writeParams = useCallback(
     (next: {
       view?: TaskPageView;
-      year?: number;
       fieldId?: string;
-      assigneeId?: string;
       taskId?: string | null;
+      schedule?: boolean | null;
+      templateCode?: string | null;
+      created?: string | null;
     }) => {
       const params = buildTaskSearchParams({
         view: next.view ?? view,
-        year: next.year ?? yearFilter,
-        defaultYear,
         fieldId: next.fieldId !== undefined ? next.fieldId : fieldFilter,
-        assigneeId: next.assigneeId !== undefined ? next.assigneeId : assigneeFilter,
-        taskId: next.taskId === null ? undefined : next.taskId !== undefined ? next.taskId : selectedTaskId || undefined,
+        taskId:
+          next.taskId === null
+            ? undefined
+            : next.taskId !== undefined
+              ? next.taskId
+              : selectedTaskId || undefined,
+        schedule:
+          next.schedule === null
+            ? false
+            : next.schedule !== undefined
+              ? next.schedule
+              : scheduleOpen,
+        templateCode:
+          next.templateCode === null
+            ? undefined
+            : next.templateCode !== undefined
+              ? next.templateCode
+              : templateCodeParam || undefined,
+        created:
+          next.created === null
+            ? undefined
+            : next.created !== undefined
+              ? next.created
+              : createdId || undefined,
       });
-      if (createdId && next.view === undefined) params.set('created', createdId);
       setSearchParams(params, { replace: false });
     },
     [
-      assigneeFilter,
       createdId,
-      defaultYear,
       fieldFilter,
+      scheduleOpen,
       selectedTaskId,
       setSearchParams,
+      templateCodeParam,
       view,
-      yearFilter,
     ]
   );
 
-  useEffect(() => {
-    if (!fieldFilter) {
-      setWorkSetup(null);
-      return;
-    }
-    const dismissKey = `The Olive Lot.workSetupBanner.dismissed.${fieldFilter}`;
-    if (localStorage.getItem(dismissKey) === '1') {
-      setWorkSetup(null);
-      return;
-    }
-    let cancelled = false;
-    void getFieldWorkService()
-      .getWorkProfile(fieldFilter)
-      .then((profile) => {
-        if (cancelled) return;
-        const resume =
-          profile?.status === 'draft' || Boolean(readWorkProfileDraft(fieldFilter)?.stepId);
-        if (profile == null || profile.status === 'draft') setWorkSetup({ resume });
-        else setWorkSetup(null);
-      })
-      .catch(() => {
-        if (!cancelled) setWorkSetup(null);
+  const closeSchedule = useCallback(() => {
+    writeParams({ schedule: null, templateCode: null });
+    setSchedulePrefill(null);
+    setScheduleError(null);
+  }, [writeParams]);
+
+  const openSchedule = useCallback(
+    (prefill?: ScheduleWorkPrefill) => {
+      setSchedulePrefill(prefill || { fieldId: fieldFilter || undefined });
+      setScheduleError(null);
+      writeParams({
+        schedule: true,
+        fieldId: prefill?.fieldId ?? fieldFilter,
+        templateCode: prefill?.templateCode || null,
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [fieldFilter, refreshGeneration]);
+    },
+    [fieldFilter, writeParams]
+  );
 
   const loadData = useCallback(async () => {
     try {
       setError(null);
-      const fw = getFieldWorkService();
-      const [fieldsData, proposalsData, tasksData] = await Promise.all([
+      const tasksApi = getTaskService();
+      const [fieldsData, tasksData] = await Promise.all([
         getFieldService().getFields('tasks').catch(() => [] as Field[]),
-        fw.listProposals({ resultYear: yearFilter }),
-        fw.listFieldTasks({ resultYear: yearFilter }),
+        tasksApi.listTasks({
+          view,
+          fieldId: fieldFilter || undefined,
+        }),
       ]);
 
       setFields(fieldsData);
-      setProposals(dedupeTaskProposals(proposalsData));
       setTasks(tasksData);
+
+      if (view === 'today') {
+        const fieldIds = fieldFilter
+          ? [fieldFilter]
+          : fieldsData.map((field) => field.id).slice(0, 12);
+        const suggestionGroups = await Promise.all(
+          fieldIds.map((id) =>
+            tasksApi.listSuggestions({ fieldId: id }).catch(() => [] as TaskSuggestion[])
+          )
+        );
+        const seen = new Set<string>();
+        setSuggestions(
+          suggestionGroups.flat().filter((item) => {
+            const key = `${item.fieldId}:${item.templateCode}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+        );
+      } else {
+        setSuggestions([]);
+      }
+
       setShowingCachedData(!isDeviceOnline());
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('tasks:failedLoad'));
     } finally {
       setLoading(false);
     }
-  }, [yearFilter, setShowingCachedData, t]);
+  }, [view, fieldFilter, setShowingCachedData, t]);
 
   useEffect(() => {
     setLoading(true);
@@ -202,86 +223,24 @@ const TasksPage: React.FC = () => {
     };
   }, [view]);
 
-  const matchesAssignee = useCallback(
-    (task: FieldTask) => {
-      if (!assigneeFilter) return true;
-      if (assigneeFilter.startsWith('user:')) {
-        return task.assignedUserId === assigneeFilter.slice(5);
-      }
-      if (assigneeFilter.startsWith('contact:')) {
-        return task.assignedCollaboratorId === assigneeFilter.slice(8);
-      }
-      return (
-        task.assignedUserId === assigneeFilter ||
-        task.assignedCollaboratorId === assigneeFilter ||
-        task.responsibleUserId === assigneeFilter
-      );
-    },
-    [assigneeFilter]
-  );
-
-  const visibleProposals = useMemo(
-    () =>
-      proposals.filter((proposal) => {
-        if (fieldFilter && proposal.fieldId !== fieldFilter) return false;
-        return proposal.status === 'active' || proposal.status === 'snoozed';
-      }),
-    [proposals, fieldFilter]
-  );
-
-  const matchesQuery = useCallback(
-    (task: FieldTask) => {
-      const q = query.trim().toLowerCase();
-      if (!q) return true;
-      const title = taskDisplayTitle(task.title, task.templateCode, i18n.language).toLowerCase();
-      const field = (fieldNames[task.fieldId] || '').toLowerCase();
-      return title.includes(q) || field.includes(q);
-    },
-    [fieldNames, i18n.language, query]
-  );
-
-  const matchesScope = useCallback(
-    (task: FieldTask) => {
-      if (scope !== 'mine' || !user?.userId) return true;
-      return (
-        task.assignedUserId === user.userId ||
-        task.responsibleUserId === user.userId ||
-        task.createdByUserId === user.userId
-      );
-    },
-    [scope, user?.userId]
-  );
-
-  const openTasks = useMemo(
-    () =>
-      tasks.filter((task) => {
-        if (fieldFilter && task.fieldId !== fieldFilter) return false;
-        if (!matchesAssignee(task)) return false;
-        if (!matchesScope(task)) return false;
-        if (!matchesQuery(task)) return false;
-        return OPEN_STATUSES.has(String(task.status).toLowerCase());
-      }),
-    [tasks, fieldFilter, matchesAssignee, matchesQuery, matchesScope]
-  );
-
-  const historyTasks = useMemo(
-    () =>
-      tasks.filter((task) => {
-        if (fieldFilter && task.fieldId !== fieldFilter) return false;
-        if (!matchesAssignee(task)) return false;
-        if (!matchesScope(task)) return false;
-        if (!matchesQuery(task)) return false;
-        return HISTORY_STATUSES.has(String(task.status).toLowerCase());
-      }),
-    [tasks, fieldFilter, matchesAssignee, matchesQuery, matchesScope]
-  );
+  useEffect(() => {
+    if (scheduleOpen && !schedulePrefill) {
+      setSchedulePrefill({
+        fieldId: fieldFilter || undefined,
+        templateCode: templateCodeParam || undefined,
+        title: templateCodeParam
+          ? taskDisplayTitle('', templateCodeParam, i18n.language)
+          : undefined,
+      });
+    }
+  }, [scheduleOpen, schedulePrefill, fieldFilter, templateCodeParam, i18n.language]);
 
   const peopleFieldKey = useMemo(
     () =>
-      [...new Set([...openTasks, ...historyTasks].map((task) => task.fieldId).filter(Boolean))]
+      [...new Set(tasks.map((task) => task.fieldId).filter(Boolean))]
         .sort()
         .join(','),
-    [openTasks, historyTasks]
+    [tasks]
   );
 
   useEffect(() => {
@@ -315,67 +274,96 @@ const TasksPage: React.FC = () => {
     };
   }, [peopleFieldKey]);
 
-  const assignees = useMemo(() => {
-    const options: Array<{ id: string; name: string }> = [];
-    const seen = new Set<string>();
-    Object.entries(personNames).forEach(([id, name]) => {
-      if (seen.has(id)) return;
-      seen.add(id);
-      options.push({ id, name });
+  useEffect(() => {
+    const targetField = fieldFilter || fields[0]?.id;
+    if (!targetField) {
+      setAssigneeOptions([
+        {
+          key: user?.userId ? `user:${user.userId}` : 'later',
+          label: t('schedule.assigneeMe'),
+          group: 'self',
+        },
+        { key: 'later', label: t('schedule.decideLater'), group: 'later' },
+      ]);
+      return;
+    }
+    let cancelled = false;
+    void Promise.all([
+      Promise.resolve(fieldPeopleService.getPeople(targetField)).catch(() => []),
+      Promise.resolve(
+        getPartnerService().getContacts({ fieldId: targetField, includeUnassigned: true })
+      ).catch(() => []),
+    ]).then(([people, contacts]) => {
+      if (cancelled) return;
+      const options: AssigneeOption[] = [
+        {
+          key: user?.userId ? `user:${user.userId}` : 'later',
+          label: t('schedule.assigneeMe'),
+          group: 'self',
+        },
+      ];
+      (Array.isArray(people) ? people : []).forEach((person) => {
+        if (person.userId === user?.userId || person.role === 'Admin') return;
+        options.push({
+          key: `user:${person.userId}`,
+          label: person.displayName || person.email || t('fieldWork.form.collaborator'),
+          group: person.role === 'Family' ? 'family' : 'partner',
+        });
+      });
+      (Array.isArray(contacts) ? contacts : []).forEach((contact) => {
+        options.push({
+          key: `contact:${contact.id}`,
+          label: contact.displayName,
+          group: 'contact',
+        });
+      });
+      options.push({ key: 'later', label: t('schedule.decideLater'), group: 'later' });
+      setAssigneeOptions(options);
     });
-    return options.sort((a, b) => a.name.localeCompare(b.name, i18n.language));
-  }, [personNames, i18n.language]);
+    return () => {
+      cancelled = true;
+    };
+  }, [fieldFilter, fields, user?.userId, t]);
 
   useEffect(() => {
     if (!selectedTaskId) return;
     navigate(`/tasks/${selectedTaskId}`, { replace: true });
   }, [navigate, selectedTaskId]);
 
-  const openTask = (task: FieldTask) => {
+  const openTask = (task: Task) => {
     saveTaskListScroll(view, window.scrollY);
     navigate(`/tasks/${task.id}`);
   };
 
-  const handleStart = async (task: FieldTask) => {
-    const peers = task.workGroupId
-      ? tasks.filter(
-          (item) =>
-            item.workGroupId === task.workGroupId && notebookStatus(item.status) === 'todo'
-        )
-      : [];
-    const targets = peers.length > 0 ? peers : [task];
+  const handleComplete = async (task: Task) => {
     try {
       setBusyId(task.id);
-      const fw = getFieldWorkService();
-      for (const item of targets) {
-        await fw.startFieldTask(item.id);
-      }
-      const startedIds = targets.map((item) => item.id);
-      setUndoStartIds(startedIds);
+      const updated = await getTaskService().completeTask(task.id);
+      setUndoCompleteId(task.id);
+      setFollowUpTask(updated);
+      setFollowUpError(null);
       window.setTimeout(
-        () => setUndoStartIds((current) => (current[0] === startedIds[0] ? [] : current)),
+        () => setUndoCompleteId((current) => (current === task.id ? null : current)),
         8000
       );
-      navigate(`/tasks/${task.id}`);
+      await loadData();
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.start'));
+      setError(getApiErrorMessage(err, t) || t('tasks:complete.failed'));
     } finally {
       setBusyId(null);
     }
   };
 
-  const handleUndoStart = async () => {
-    if (undoStartIds.length === 0) return;
+  const handleUndoComplete = async () => {
+    if (!undoCompleteId) return;
     try {
-      setBusyId(undoStartIds[0]);
-      const fw = getFieldWorkService();
-      for (const id of undoStartIds) {
-        await fw.undoStartFieldTask(id);
-      }
-      setUndoStartIds([]);
+      setBusyId(undoCompleteId);
+      await getTaskService().undoComplete(undoCompleteId);
+      setUndoCompleteId(null);
+      setFollowUpTask(null);
       await loadData();
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.undoStart'));
+      setError(getApiErrorMessage(err, t) || t('tasks:complete.undoFailed'));
     } finally {
       setBusyId(null);
     }
@@ -385,7 +373,8 @@ const TasksPage: React.FC = () => {
     if (!rescheduleTask) return;
     try {
       setBusyId(rescheduleTask.id);
-      await getFieldWorkService().rescheduleFieldTask(rescheduleTask.id, {
+      await getTaskService().patchTask(rescheduleTask.id, {
+        scheduledFor: plannedStart,
         plannedStart,
         plannedEnd: plannedEnd || plannedStart,
       });
@@ -398,91 +387,84 @@ const TasksPage: React.FC = () => {
     }
   };
 
-  const handleScheduleGroup = async (payload: {
-    proposalIds: string[];
-    datesByProposalId: Record<string, string>;
-  }) => {
+  const handleScheduleSubmit = async (input: CreateTaskInput) => {
     try {
-      setBusyId(payload.proposalIds[0] || 'group');
-      const fw = getFieldWorkService();
-      let lastId = '';
-      for (const proposalId of payload.proposalIds) {
-        const date = payload.datesByProposalId[proposalId];
-        const result = await fw.acceptProposal(proposalId, {
-          plannedStart: date || undefined,
-          plannedEnd: date || undefined,
-        });
-        lastId = result.acceptedTaskId || lastId;
-      }
-      setScheduleGroup(null);
+      setScheduleBusy(true);
+      setScheduleError(null);
+      const created = await getTaskService().createTask(input);
+      closeSchedule();
+      writeParams({
+        view: 'today',
+        fieldId: created.fieldId,
+        created: created.id,
+        schedule: null,
+        templateCode: null,
+      });
       await loadData();
-      writeParams({ view: 'todo' });
-      if (lastId) {
-        const next = new URLSearchParams(searchParams);
-        next.set('view', 'todo');
-        next.set('created', lastId);
-        setSearchParams(next, { replace: false });
-      }
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.schedule'));
+      setScheduleError(getApiErrorMessage(err, t) || t('schedule.failedSave'));
+    } finally {
+      setScheduleBusy(false);
+    }
+  };
+
+  const handleDismissSuggestion = async (suggestion: TaskSuggestion) => {
+    try {
+      setBusyId(`suggestion:${suggestion.fieldId}:${suggestion.templateCode}`);
+      await getTaskService().dismissSuggestion({
+        fieldId: suggestion.fieldId,
+        templateCode: suggestion.templateCode,
+        resultYear: suggestion.resultYear,
+      });
+      await loadData();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('suggestions.dismissFailed'));
     } finally {
       setBusyId(null);
     }
   };
 
-  const handleDismissChoice = async (
-    group: ProposalTemplateGroup,
-    choice: ProposalDismissChoice
-  ) => {
-    try {
-      setBusyId(group.proposals[0]?.id || null);
-      const fw = getFieldWorkService();
-      for (const proposal of group.proposals) {
-        if (choice === 'remind_later') {
-          await fw.snoozeProposal(proposal.id);
-        } else if (choice === 'already_done') {
-          await fw.dismissProposal(proposal.id, 'dismiss_for_year');
-        } else {
-          await fw.dismissProposal(proposal.id, 'not_for_this_field');
-          try {
-            const evalResult = await fw.evaluateDismissalLearning(
-              proposal.fieldId,
-              proposal.templateCode
-            );
-            if (evalResult.shouldPrompt) {
-              setDismissalPrompt({
-                fieldId: proposal.fieldId,
-                templateCode: proposal.templateCode,
-                message: evalResult.promptMessage || t('fieldWork.profile.learning.dismissalMessage'),
-              });
-            }
-          } catch {
-            // optional
-          }
-        }
+  const handleMenu = async (task: Task, action: NotebookMenuAction) => {
+    if (action === 'reschedule') {
+      setRescheduleTask(task);
+      return;
+    }
+    if (action === 'edit' || action === 'assign') {
+      navigate(`/tasks/${task.id}`);
+      return;
+    }
+    if (action === 'skip') {
+      try {
+        setBusyId(task.id);
+        await getTaskService().skipTask(task.id);
+        await loadData();
+      } catch (err: unknown) {
+        setError(getApiErrorMessage(err, t) || t('fieldWork.errors.cancel'));
+      } finally {
+        setBusyId(null);
       }
-      await loadData();
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.dismiss'));
-    } finally {
-      setBusyId(null);
     }
   };
 
-  const applyDismissalLearning = async (choice: DismissalLearningChoice) => {
-    if (!dismissalPrompt) return;
+  const handleSaveCompletionDetails = async (payload: { notes: string }) => {
+    if (!followUpTask) return;
     try {
-      setLearningBusy(true);
-      await getFieldWorkService().applyDismissalLearning(
-        dismissalPrompt.fieldId,
-        dismissalPrompt.templateCode,
-        choice
-      );
-      setDismissalPrompt(null);
+      setBusyId(followUpTask.id);
+      setFollowUpError(null);
+      await getTaskService().createWorkRecord({
+        fieldId: followUpTask.fieldId,
+        title: followUpTask.title,
+        templateCode: followUpTask.templateCode,
+        notes: payload.notes || undefined,
+        linkedTaskId: followUpTask.id,
+        offerPlannedTaskMatch: false,
+      });
+      setFollowUpTask(null);
+      await loadData();
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('fieldWork.profile.learning.applyFailed'));
+      setFollowUpError(getApiErrorMessage(err, t) || t('complete.saveFailed'));
     } finally {
-      setLearningBusy(false);
+      setBusyId(null);
     }
   };
 
@@ -491,81 +473,30 @@ const TasksPage: React.FC = () => {
     [tasks, createdId]
   );
 
-  const clearCreated = () => {
-    const next = new URLSearchParams(searchParams);
-    next.delete('created');
-    setSearchParams(next, { replace: true });
-  };
+  const clearCreated = () => writeParams({ created: null });
 
   const handleUndoCreated = async () => {
     if (!createdId) return;
     try {
       setBusyId(createdId);
-      await getFieldWorkService().cancelFieldTask(createdId);
+      await getTaskService().skipTask(createdId, 'undo_create');
       clearCreated();
       await loadData();
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('fieldWork.form.failedSave'));
+      setError(getApiErrorMessage(err, t) || t('schedule.failedSave'));
     } finally {
       setBusyId(null);
     }
   };
 
-  const handlePrimary = async (task: FieldTask, action: NotebookAction) => {
-    if (action === 'start') {
-      await handleStart(task);
-      return;
-    }
-    if (action === 'resolve') {
-      try {
-        setBusyId(task.id);
-        await getFieldWorkService().resolveFieldTask(task.id);
-        await loadData();
-      } catch (err: unknown) {
-        setError(getApiErrorMessage(err, t) || t('fieldWork.errors.start'));
-      } finally {
-        setBusyId(null);
-      }
-      return;
-    }
-    openTask(task);
-  };
+  const taskCounts = useMemo(() => {
+    // Suggestions never count. Counts reflect loaded view list sizes for open views.
+    if (view === 'done') return { today: 0, upcoming: 0, done: tasks.length };
+    if (view === 'upcoming') return { today: 0, upcoming: tasks.length, done: 0 };
+    return { today: tasks.length, upcoming: 0, done: 0 };
+  }, [tasks, view]);
 
-  const handleMenu = async (task: FieldTask, action: NotebookMenuAction) => {
-    if (action === 'reschedule') {
-      setRescheduleTask(task);
-      return;
-    }
-    try {
-      setBusyId(task.id);
-      const fw = getFieldWorkService();
-      if (action === 'block') await fw.blockFieldTask(task.id);
-      else if (action === 'skip') await fw.skipFieldTask(task.id);
-      else if (action === 'cancel') await fw.cancelFieldTask(task.id);
-      else if (action === 'reopen') await fw.reopenFieldTask(task.id);
-      await loadData();
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.cancel'));
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const years = useMemo(() => {
-    const current = defaultYear;
-    return [current - 1, current, current + 1];
-  }, [defaultYear]);
-
-  if (pageGuard.loading) {
-    return (
-      <PageContainer className="tasks-page-container">
-        <Breadcrumbs />
-        <LoadingSpinner />
-      </PageContainer>
-    );
-  }
-
-  if (loading) {
+  if (pageGuard.loading || loading) {
     return (
       <PageContainer className="tasks-page-container">
         <Breadcrumbs />
@@ -579,72 +510,35 @@ const TasksPage: React.FC = () => {
       <Breadcrumbs />
       <div className="tasks-page">
         <TasksPageHeader
-          title={t('fieldWork.pageTitle')}
-          subtitle={t('fieldWork.pageSubtitle')}
-          newTaskLabel={t('fieldWork.addTask')}
-          newTaskTo="/tasks/new"
+          title={t('page.title')}
+          newTaskLabel={t('page.scheduleCta')}
           canCreateTasks={canCreateTasks}
-        />
-
-        <TaskViewTabs
-          ariaLabel={t('fieldWork.views.aria')}
-          activeView={view}
-          onChange={(next) => writeParams({ view: next, taskId: null })}
-          views={[
-            { id: 'todo', label: t('notebook.tabs.todo'), count: openTasks.length },
-            { id: 'done', label: t('notebook.tabs.done'), count: historyTasks.length },
-          ]}
-        />
-
-        <TaskContextBar
-          searchLabel={t('notebook.search')}
-          searchPlaceholder={t('notebook.search')}
-          searchValue={query}
-          onSearchChange={setQuery}
-          scopeLabel={t('notebook.scope')}
-          scope={scope}
-          mineLabel={t('notebook.mine')}
-          everyoneLabel={t('notebook.everyone')}
-          onScopeChange={setScope}
-          fieldLabel={t('fieldFilterLabel')}
-          allFieldsLabel={t('fieldWork.allFields')}
+          onNewTask={() => openSchedule({ fieldId: fieldFilter || undefined })}
+          fieldLabel={t('page.fieldFilter')}
+          allFieldsLabel={t('page.allFields')}
           fieldId={fieldFilter}
           fields={fields}
           onFieldChange={(fieldId) => writeParams({ fieldId })}
-          assigneeLabel={t('fieldWork.allAssigneesLabel')}
-          allAssigneesLabel={t('fieldWork.allAssignees')}
-          assigneeId={assigneeFilter}
-          assignees={assignees}
-          onAssigneeChange={(assigneeId) => writeParams({ assigneeId })}
-          yearLabel={t('fieldWork.year')}
-          year={yearFilter}
-          years={years}
-          defaultYear={defaultYear}
-          onYearChange={(year) => writeParams({ year })}
-          moreFiltersLabel={t('fieldWork.moreFilters')}
-          clearFieldLabel={t('fieldWork.context.clearField')}
-          clearAssigneeLabel={t('fieldWork.context.clearAssignee')}
-          clearYearLabel={t('fieldWork.context.clearYear')}
+        />
+
+        <TaskViewTabs
+          ariaLabel={t('page.viewsAria')}
+          activeView={view}
+          onChange={(next) => writeParams({ view: next, taskId: null })}
+          views={[
+            { id: 'today', label: t('page.tabs.today'), count: taskCounts.today },
+            { id: 'upcoming', label: t('page.tabs.upcoming'), count: taskCounts.upcoming },
+            { id: 'done', label: t('page.tabs.done'), count: taskCounts.done },
+          ]}
         />
 
         {error && <div className="tasks-error">{error}</div>}
 
-        {fieldFilter && workSetup ? (
-          <WorkSetupBanner
-            fieldId={fieldFilter}
-            resume={workSetup.resume}
-            onDismiss={() => {
-              localStorage.setItem(`The Olive Lot.workSetupBanner.dismissed.${fieldFilter}`, '1');
-              setWorkSetup(null);
-            }}
-          />
-        ) : null}
-
-        {undoStartIds.length > 0 ? (
+        {undoCompleteId ? (
           <div className="tasks-undo-toast" role="status">
-            <span>{t('fieldWork.undoStart.message')}</span>
-            <button type="button" onClick={() => void handleUndoStart()}>
-              {t('fieldWork.undoStart.action')}
+            <span>{t('complete.undoMessage')}</span>
+            <button type="button" onClick={() => void handleUndoComplete()}>
+              {t('complete.undo')}
             </button>
           </div>
         ) : null}
@@ -653,36 +547,17 @@ const TasksPage: React.FC = () => {
           <CreatedTaskBanner
             title={taskDisplayTitle(createdTask.title, createdTask.templateCode, i18n.language)}
             fieldName={fieldNames[createdTask.fieldId] || t('fieldWork.unknownField')}
-            dateLabel={formatLongTaskDate(createdTask.plannedStart, i18n.language)}
+            dateLabel={formatLongTaskDate(
+              createdTask.scheduledFor || createdTask.plannedStart,
+              i18n.language
+            )}
             onView={() => openTask(createdTask)}
-            onCreateAnother={() => navigate('/tasks/new')}
+            onCreateAnother={() => openSchedule({ fieldId: createdTask.fieldId })}
             onUndo={() => void handleUndoCreated()}
           />
         ) : null}
 
-        {view === 'todo' ? (
-          <section
-            className="tasks-view-panel"
-            role="tabpanel"
-            id="tasks-panel-todo"
-            aria-labelledby="tasks-tab-todo"
-          >
-            <TodoNotebook
-              tasks={openTasks}
-              fields={fields}
-              fieldNames={fieldNames}
-              personNames={personNames}
-              year={yearFilter}
-              busyId={busyId}
-              proposals={visibleProposals}
-              onOpen={openTask}
-              onPrimary={(task, action) => void handlePrimary(task, action)}
-              onMenu={(task, action) => void handleMenu(task, action)}
-              onScheduleGroup={setScheduleGroup}
-              onDismissChoice={(group, choice) => void handleDismissChoice(group, choice)}
-            />
-          </section>
-        ) : (
+        {view === 'done' ? (
           <section
             className="tasks-view-panel"
             role="tabpanel"
@@ -690,15 +565,44 @@ const TasksPage: React.FC = () => {
             aria-labelledby="tasks-tab-done"
           >
             <HistoryTaskView
-              tasks={historyTasks}
+              tasks={tasks}
               fields={fields}
               fieldNames={fieldNames}
               personNames={personNames}
-              year={yearFilter}
+              year={year}
               busyId={busyId}
               onOpen={openTask}
-              onPrimary={(task, action) => void handlePrimary(task, action)}
+              onComplete={(task) => void handleComplete(task)}
               onMenu={(task, action) => void handleMenu(task, action)}
+            />
+          </section>
+        ) : (
+          <section
+            className="tasks-view-panel"
+            role="tabpanel"
+            id={`tasks-panel-${view}`}
+            aria-labelledby={`tasks-tab-${view}`}
+          >
+            <TodoNotebook
+              mode={view}
+              tasks={tasks}
+              fields={fields}
+              fieldNames={fieldNames}
+              personNames={personNames}
+              year={year}
+              busyId={busyId}
+              suggestions={view === 'today' ? suggestions : []}
+              onOpen={openTask}
+              onComplete={(task) => void handleComplete(task)}
+              onMenu={(task, action) => void handleMenu(task, action)}
+              onScheduleSuggestion={(suggestion) =>
+                openSchedule({
+                  fieldId: suggestion.fieldId,
+                  templateCode: suggestion.templateCode,
+                  title: suggestion.title,
+                })
+              }
+              onDismissSuggestion={(suggestion) => void handleDismissSuggestion(suggestion)}
             />
           </section>
         )}
@@ -712,38 +616,27 @@ const TasksPage: React.FC = () => {
         onConfirm={(start, end) => void handleReschedule(start, end)}
       />
 
-      <ScheduleGroupSheet
-        group={scheduleGroup}
-        fieldNames={fieldNames}
-        fieldColors={Object.fromEntries(fields.map((field) => [field.id, field.color]))}
-        open={Boolean(scheduleGroup)}
-        busy={Boolean(busyId)}
-        onClose={() => setScheduleGroup(null)}
-        onConfirm={(payload) => void handleScheduleGroup(payload)}
+      <ScheduleWorkSheet
+        open={scheduleOpen}
+        fields={fields}
+        assigneeOptions={assigneeOptions}
+        suggestions={suggestions}
+        prefill={schedulePrefill}
+        busy={scheduleBusy}
+        error={scheduleError}
+        onClose={closeSchedule}
+        onSubmit={handleScheduleSubmit}
       />
 
-      {dismissalDrawer.mounted && dismissalDrawer.value ? (
-        <LearningPromptSheet
-          open={dismissalDrawer.open}
-          title={t('fieldWork.profile.learning.dismissalTitle')}
-          message={dismissalDrawer.value.message}
-          busy={learningBusy}
-          onClose={() => setDismissalPrompt(null)}
-          onAction={(actionId) => void applyDismissalLearning(actionId as DismissalLearningChoice)}
-          actions={[
-            {
-              id: 'dont_propose',
-              label: t('fieldWork.profile.learning.dontPropose'),
-              variant: 'caution',
-            },
-            { id: 'ask_when_indicated', label: t('fieldWork.profile.learning.askWhenIndicated') },
-            {
-              id: 'keep_proposing',
-              label: t('fieldWork.profile.learning.keepProposing'),
-            },
-          ]}
-        />
-      ) : null}
+      <CompletionFollowUpSheet
+        task={followUpTask}
+        open={Boolean(followUpTask)}
+        busy={Boolean(followUpTask && busyId === followUpTask.id)}
+        error={followUpError}
+        onClose={() => setFollowUpTask(null)}
+        onDone={() => setFollowUpTask(null)}
+        onSaveDetails={(payload) => void handleSaveCompletionDetails(payload)}
+      />
     </PageContainer>
   );
 };

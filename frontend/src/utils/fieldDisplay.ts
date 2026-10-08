@@ -70,6 +70,22 @@ export const viewerFieldRole = (
   return null;
 };
 
+/** Every grove this person sits on, split by the seat they hold. */
+export const groupFieldsByViewerRole = <T extends Pick<Field, 'ownerId' | 'memberships'>>(
+  fields: T[],
+  userId: string | undefined | null
+): Record<ViewerFieldRole, T[]> => {
+  const groups: Record<ViewerFieldRole, T[]> = { Admin: [], Family: [], Partner: [] };
+  for (const field of fields) {
+    const role = viewerFieldRole(field, userId);
+    if (role === 'Family') groups.Family.push(field);
+    else if (role === 'Partner') groups.Partner.push(field);
+    else if (role === 'Admin' || isOwnedField(field, userId)) groups.Admin.push(field);
+    else groups.Partner.push(field);
+  }
+  return groups;
+};
+
 export type FieldListCounts = {
   active: number;
   draft: number;
@@ -113,10 +129,15 @@ const startOfLocalDay = (d: Date): Date =>
 export const countTasksToday = (tasks: FieldTask[], now: Date = new Date()): number =>
   tasks.filter((task) => isTaskDueToday(task, now)).length;
 
+const isOpenForFieldList = (status: string | undefined): boolean => {
+  const s = String(status || '').toLowerCase();
+  return s !== 'completed' && s !== 'cancelled' && s !== 'done' && s !== 'skipped';
+};
+
 export const getNextUpcomingTask = (tasks: FieldTask[], now: Date = new Date()): FieldTask | undefined => {
   const start = startOfLocalDay(now).getTime();
   return tasks
-    .filter((task) => task.status !== 'completed' && task.status !== 'cancelled')
+    .filter((task) => isOpenForFieldList(task.status))
     .filter((task) => task.plannedEnd || task.plannedStart)
     .slice()
     .sort((a, b) => {

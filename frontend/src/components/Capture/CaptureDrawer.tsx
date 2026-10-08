@@ -31,17 +31,14 @@ import CaptureQuickAdd from './CaptureQuickAdd';
 import CaptureCatalog from './CaptureCatalog';
 import CaptureContextChips from './CaptureContextChips';
 import { readLastMoneyFieldId } from '../../finance/lastField';
-import { templateTitle } from '../../data/fieldWorkCatalogueLabels';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
-import { resolveFieldColor } from '../../utils/fieldColors';
 import MoneyCaptureForm from './MoneyCaptureForm';
 import PhotoCaptureForm from './PhotoCaptureForm';
+import RecordCompletedWorkSheet from '../Tasks/RecordCompletedWorkSheet';
 import './Capture.css';
 import '../../harvestCampaign/HarvestSheets.css';
 
 const MAX_PHOTOS = 5;
-
-const WORK_CHOICES = ['T06', 'T05', 'T09', 'T14', 'T15', 'T08', 'T17'] as const;
 
 type Props = {
   open: boolean;
@@ -63,7 +60,14 @@ const isChooserStep = (step: DrawerStep): step is ChooserStep =>
 const initialStepFromContext = (preferredType?: CaptureType): DrawerStep => {
   if (preferredType === 'photo') return 'observation';
   if (preferredType === 'expense' || preferredType === 'income') return preferredType;
-  if (preferredType && preferredType !== 'harvest' && preferredType !== 'money') {
+  if (preferredType === 'recordWork') return 'recordWork';
+  // scheduleWork navigates away; harvest/money stay on chooser until picked.
+  if (
+    preferredType &&
+    preferredType !== 'harvest' &&
+    preferredType !== 'money' &&
+    preferredType !== 'scheduleWork'
+  ) {
     return preferredType;
   }
   return 'quick';
@@ -89,7 +93,7 @@ const CaptureDrawer: React.FC<Props> = ({
   onContextChange,
   onSaved,
 }) => {
-  const { t, i18n } = useTranslation(['capture', 'fields', 'common', 'chronologio', 'money']);
+  const { t } = useTranslation(['capture', 'fields', 'common', 'chronologio', 'money']);
   const { user } = useAuth();
   const activeField = useActiveFieldAccess();
   const harvestCampaign = useHarvestCampaignOptional();
@@ -143,7 +147,6 @@ const CaptureDrawer: React.FC<Props> = ({
   const [oliveKg, setOliveKg] = useState('');
   const [oilKg, setOilKg] = useState('');
   const [harvestNotes, setHarvestNotes] = useState('');
-  const [workTemplate, setWorkTemplate] = useState('');
 
   const permissions = useMemo(
     () =>
@@ -206,7 +209,6 @@ const CaptureDrawer: React.FC<Props> = ({
     setOliveKg('');
     setOilKg('');
     setHarvestNotes('');
-    setWorkTemplate('');
     void getFieldService()
       .getFields()
       .then((list) => {
@@ -498,16 +500,6 @@ const CaptureDrawer: React.FC<Props> = ({
           t('capture:observation.saved'),
           { reopen: reopenQuickContext() }
         );
-      } else if (step === 'work') {
-        if (!ensureField()) return;
-        if (!workTemplate) {
-          setError(t('capture:work.chooseType'));
-          setSubmitting(false);
-          return;
-        }
-        onClose();
-        navigate(taskFormPath({ fieldId, templateCode: workTemplate }));
-        return;
       } else if (step === 'harvest') {
         const olives = Number(oliveKg.replace(',', '.'));
         if (!olives || Number.isNaN(olives)) {
@@ -675,6 +667,11 @@ const CaptureDrawer: React.FC<Props> = ({
         );
         return;
       }
+      if (move.type === 'scheduleWork') {
+        onClose();
+        navigate(taskFormPath({ fieldId: fieldId || context.fieldId }));
+        return;
+      }
       if (move.type === 'photo') {
         onContextChange({
           ...context,
@@ -722,8 +719,24 @@ const CaptureDrawer: React.FC<Props> = ({
 
   const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
   const isPhotoStep = step === 'photo';
+  const isRecordWorkStep = step === 'recordWork';
   const isChoosing = isChooserStep(step);
   const selectedFieldName = fields.find((f) => f.id === fieldId)?.name;
+
+  // preferredType scheduleWork: leave capture and open the schedule sheet.
+  useEffect(() => {
+    if (!open || !chooserReady || context.preferredType !== 'scheduleWork') return;
+    onClose();
+    navigate(taskFormPath({ fieldId: fieldId || context.fieldId }));
+  }, [
+    open,
+    chooserReady,
+    context.preferredType,
+    context.fieldId,
+    fieldId,
+    navigate,
+    onClose,
+  ]);
 
   const quickHints = useMemo(() => {
     const hints: Partial<Record<string, string>> = {};
@@ -767,7 +780,7 @@ const CaptureDrawer: React.FC<Props> = ({
       }
       bodyClassName={isMoneyStep ? 'oa-drawer-body--flush' : undefined}
       footer={
-        chooserReady && !isChoosing && !isMoneyStep && !isPhotoStep ? (
+        chooserReady && !isChoosing && !isMoneyStep && !isPhotoStep && !isRecordWorkStep ? (
           <button
             type="button"
             className="capture-save-btn"
@@ -875,6 +888,27 @@ const CaptureDrawer: React.FC<Props> = ({
                 onFieldChange={onFieldChange}
                 onSaved={onSaved}
                 onDirty={markDirty}
+              />
+            ) : isRecordWorkStep ? (
+              <RecordCompletedWorkSheet
+                fields={fields}
+                fieldId={fieldId}
+                defaultCompletedAt={occurredAt}
+                onFieldChange={onFieldChange}
+                onDirty={markDirty}
+                onSaved={(record) => {
+                  onSaved(
+                    {
+                      type: 'recordWork',
+                      fieldId: record.fieldId,
+                      sourceId: record.id,
+                      description: record.title,
+                      occurredOn: record.completedAt,
+                    },
+                    t('capture:recordWork.saved'),
+                    { reopen: reopenQuickContext() }
+                  );
+                }}
               />
             ) : !isChoosing ? (
                 <div className={`capture-form${step === 'observation' ? ' capture-form--observation' : ''}`}>
@@ -1006,29 +1040,6 @@ const CaptureDrawer: React.FC<Props> = ({
                         />
                       </div>
                     </>
-                  ) : null}
-
-                  {step === 'work' ? (
-                    <div className="capture-label">
-                      <p>{t('capture:work.whatWork')}</p>
-                      <div className="capture-work-choices" role="listbox" aria-label={t('capture:work.whatWork')}>
-                        {WORK_CHOICES.map((code) => (
-                          <button
-                            key={code}
-                            type="button"
-                            role="option"
-                            aria-selected={workTemplate === code}
-                            className={`capture-work-choice${workTemplate === code ? ' is-selected' : ''}`}
-                            onClick={() => {
-                              setWorkTemplate(code);
-                              markDirty();
-                            }}
-                          >
-                            {templateTitle(code, i18n.language)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                   ) : null}
 
                   {step === 'harvest' ? (

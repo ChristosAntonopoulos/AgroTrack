@@ -30,10 +30,7 @@ public class MeDashboardService : IMeDashboardService
 
     private static readonly HashSet<FieldTaskStatus> OpenStatuses = new()
     {
-        FieldTaskStatus.Planned,
-        FieldTaskStatus.Ready,
-        FieldTaskStatus.InProgress,
-        FieldTaskStatus.Blocked
+        FieldTaskStatus.Planned
     };
 
     private readonly IActivityRepository _activities;
@@ -113,8 +110,8 @@ public class MeDashboardService : IMeDashboardService
         var activeExecutionTaskIds = taskFieldIds.Count == 0
             ? new HashSet<string>(StringComparer.Ordinal)
             : (await _executions.GetByFieldIdsAsync(taskFieldIds, cancellationToken))
-                .Where(e => e.IsActive)
-                .Select(e => e.TaskId)
+                .Where(e => e.IsActive && !string.IsNullOrWhiteSpace(e.TaskId))
+                .Select(e => e.TaskId!)
                 .ToHashSet(StringComparer.Ordinal);
 
         var pending = BuildPending(fieldTasks, activeExecutionTaskIds, now);
@@ -268,12 +265,12 @@ public class MeDashboardService : IMeDashboardService
 
     public static bool IsOpen(FieldTask task, IReadOnlySet<string> activeExecutionTaskIds)
     {
-        if (task.Status == FieldTaskStatus.Cancelled)
+        if (task.Status == FieldTaskStatus.Skipped)
         {
             return false;
         }
 
-        if (task.Status == FieldTaskStatus.Completed || activeExecutionTaskIds.Contains(task.Id))
+        if (task.Status == FieldTaskStatus.Done || activeExecutionTaskIds.Contains(task.Id))
         {
             return false;
         }
@@ -282,7 +279,7 @@ public class MeDashboardService : IMeDashboardService
     }
 
     public static bool IsCompleted(FieldTask task, IReadOnlySet<string> activeExecutionTaskIds) =>
-        task.Status == FieldTaskStatus.Completed || activeExecutionTaskIds.Contains(task.Id);
+        task.Status == FieldTaskStatus.Done || activeExecutionTaskIds.Contains(task.Id);
 
     private static bool HasMeta(Activity activity, string key, string expected)
     {

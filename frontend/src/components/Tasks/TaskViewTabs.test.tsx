@@ -3,21 +3,23 @@ import { render, screen } from '@testing-library/react';
 import TaskViewTabs from './TaskViewTabs';
 
 describe('TaskViewTabs', () => {
-  it('renders farmer workflow tabs with counts', () => {
+  it('renders today / upcoming / done tabs with counts', () => {
     render(
       <TaskViewTabs
         ariaLabel="Task views"
-        activeView="todo"
+        activeView="today"
         onChange={() => undefined}
         views={[
-          { id: 'todo', label: 'Να γίνουν', count: 3 },
-          { id: 'done', label: 'Ολοκληρωμένα', count: 0 },
+          { id: 'today', label: 'Σήμερα', count: 3 },
+          { id: 'upcoming', label: 'Επόμενες', count: 1 },
+          { id: 'done', label: 'Έγιναν', count: 0 },
         ]}
       />
     );
 
-    const todo = screen.getByRole('tab', { name: 'Να γίνουν' });
-    expect(todo).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: 'Ολοκληρωμένα' })).not.toHaveAttribute('aria-describedby');
+    const today = screen.getByRole('tab', { name: 'Σήμερα' });
+    expect(today).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Επόμενες' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Έγιναν' })).not.toHaveAttribute('aria-describedby');
   });
 });

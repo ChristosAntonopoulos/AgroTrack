@@ -229,13 +229,15 @@ public class FieldTaskRepository
 
         if (query.Status.HasValue)
         {
-            filter &= Builders<FieldTaskDocument>.Filter.Eq(t => t.Status, query.Status.Value.ToApiString());
+            filter &= Builders<FieldTaskDocument>.Filter.In(
+                t => t.Status,
+                StatusApiValues(query.Status.Value));
         }
         else if (query.Statuses is { Count: > 0 })
         {
             filter &= Builders<FieldTaskDocument>.Filter.In(
                 t => t.Status,
-                query.Statuses.Select(s => s.ToApiString()));
+                query.Statuses.SelectMany(StatusApiValues).Distinct());
         }
 
         var documents = await Collection
@@ -252,6 +254,21 @@ public class FieldTaskRepository
             .FirstOrDefaultAsync(cancellationToken);
         return document is null ? null : ToEntity(document);
     }
+
+    public async Task<IReadOnlyList<FieldTask>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var documents = await Collection.Find(FilterDefinition<FieldTaskDocument>.Empty)
+            .ToListAsync(cancellationToken);
+        return documents.Select(ToEntity).ToList();
+    }
+
+    /// <summary>Include legacy Mongo status strings until migration rewrites them.</summary>
+    private static IEnumerable<string> StatusApiValues(FieldTaskStatus status) => status switch
+    {
+        FieldTaskStatus.Done => ["done", "completed"],
+        FieldTaskStatus.Skipped => ["skipped", "cancelled"],
+        _ => ["planned", "ready", "in_progress", "blocked"]
+    };
 }
 
 public class TaskExecutionRepository
@@ -319,6 +336,55 @@ public class TaskExecutionRepository
             .SortByDescending(e => e.CompletedAt)
             .ToListAsync(cancellationToken);
         return documents.Select(ToEntity).ToList();
+    }
+
+    public async Task<IReadOnlyList<TaskExecution>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var documents = await Collection.Find(FilterDefinition<TaskExecutionDocument>.Empty)
+            .ToListAsync(cancellationToken);
+        return documents.Select(ToEntity).ToList();
+    }
+}
+
+public class TaskSuggestionDismissalRepository
+    : MongoRepositoryBase<TaskSuggestionDismissalDocument, TaskSuggestionDismissal>,
+      ITaskSuggestionDismissalRepository
+{
+    public TaskSuggestionDismissalRepository(MongoDbContext context)
+        : base(context, "task_suggestion_dismissals")
+    {
+    }
+
+    protected override TaskSuggestionDismissalDocument ToDocument(TaskSuggestionDismissal entity) =>
+        FieldWorkPersistenceMapper.ToDocument(entity);
+
+    protected override TaskSuggestionDismissal ToEntity(TaskSuggestionDismissalDocument document) =>
+        FieldWorkPersistenceMapper.ToEntity(document);
+
+    protected override FilterDefinition<TaskSuggestionDismissalDocument> BuildIdFilter(string id) =>
+        Builders<TaskSuggestionDismissalDocument>.Filter.Eq(t => t.Id, id);
+
+    public async Task<IReadOnlyList<TaskSuggestionDismissal>> GetByFieldAndYearAsync(
+        string fieldId,
+        int resultYear,
+        CancellationToken cancellationToken = default)
+    {
+        var documents = await Collection
+            .Find(d => d.FieldId == fieldId && d.ResultYear == resultYear)
+            .ToListAsync(cancellationToken);
+        return documents.Select(ToEntity).ToList();
+    }
+
+    public async Task<TaskSuggestionDismissal?> GetAsync(
+        string fieldId,
+        int resultYear,
+        string templateCode,
+        CancellationToken cancellationToken = default)
+    {
+        var document = await Collection
+            .Find(d => d.FieldId == fieldId && d.ResultYear == resultYear && d.TemplateCode == templateCode)
+            .FirstOrDefaultAsync(cancellationToken);
+        return document is null ? null : ToEntity(document);
     }
 }
 

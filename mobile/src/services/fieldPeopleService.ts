@@ -83,6 +83,60 @@ export interface FieldInvite {
   capacities?: FieldCapacity[];
 }
 
+export interface PersonFieldAccess {
+  fieldId: string;
+  fieldName: string;
+  relationship: FieldPersonRole;
+  accessPreset: FieldAccessLevel;
+  modules: FieldModule[];
+  status: string;
+}
+
+export interface PersonAccess {
+  userId: string;
+  displayName: string;
+  email?: string;
+  memberships: PersonFieldAccess[];
+}
+
+export interface ManageableFieldSummary {
+  id: string;
+  name: string;
+  ownerUserId: string;
+  ownerDisplayName?: string;
+  ownerEmail?: string;
+}
+
+export interface ManagedContact {
+  id: string;
+  displayName: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+  serviceCategoryIds: string[];
+  fieldIds: string[];
+  linkedUserId?: string;
+  source: 'Manual' | 'PhoneBook';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ManagedPeople {
+  people: PersonAccess[];
+  pendingInvites: FieldInvite[];
+  contacts: ManagedContact[];
+  manageableFields: ManageableFieldSummary[];
+}
+
+export interface CreateMultiFieldInvitePayload {
+  fieldIds: string[];
+  relationship: 'Family' | 'Collaborator';
+  accessPreset: FieldAccessLevel;
+  modules: FieldModule[];
+  email: string;
+  displayName?: string;
+}
+
 export interface AdvisorComment {
   id: string;
   userId: string;
@@ -242,6 +296,43 @@ const normalizeInvite = (row: Partial<FieldInvite> & { capacities?: string[] }):
   };
 };
 
+const normalizeManaged = (row: Partial<ManagedPeople> | undefined): ManagedPeople => ({
+  people: (row?.people || []).map((person) => ({
+    userId: person.userId || '',
+    displayName: person.displayName || person.email || '',
+    email: person.email,
+    memberships: (person.memberships || []).map((membership) => ({
+      fieldId: membership.fieldId,
+      fieldName: membership.fieldName,
+      relationship: normalizeRole(membership.relationship),
+      accessPreset: normalizeAccessLevel(membership.accessPreset),
+      modules: normalizeModules(membership.modules),
+      status: membership.status || 'active',
+    })),
+  })),
+  pendingInvites: (row?.pendingInvites || []).map(normalizeInvite),
+  contacts: (row?.contacts || []).map((contact) => ({
+    id: contact.id,
+    displayName: contact.displayName || '',
+    phone: contact.phone,
+    email: contact.email,
+    notes: contact.notes,
+    serviceCategoryIds: contact.serviceCategoryIds || [],
+    fieldIds: contact.fieldIds || [],
+    linkedUserId: contact.linkedUserId,
+    source: contact.source === 'PhoneBook' ? 'PhoneBook' : 'Manual',
+    createdAt: contact.createdAt || '',
+    updatedAt: contact.updatedAt || '',
+  })),
+  manageableFields: (row?.manageableFields || []).map((field) => ({
+    id: field.id,
+    name: field.name,
+    ownerUserId: field.ownerUserId,
+    ownerDisplayName: field.ownerDisplayName,
+    ownerEmail: field.ownerEmail,
+  })),
+});
+
 const fallbackPeople = (field: Field): FieldMembership[] => {
   const people: FieldMembership[] = [];
   if (field.ownerId) {
@@ -327,7 +418,14 @@ export const fieldPeopleService = {
   updatePerson: async (
     fieldId: string,
     userId: string,
-    payload: { modules?: FieldModule[]; accessLevel?: FieldAccessLevel; displayName?: string; phone?: string; email?: string }
+    payload: {
+      role?: 'Partner' | 'Family' | 'Collaborator';
+      modules?: FieldModule[];
+      accessLevel?: FieldAccessLevel;
+      displayName?: string;
+      phone?: string;
+      email?: string;
+    }
   ): Promise<FieldMembership> => {
     const response = await api.patch<FieldMembership>(`/api/v1/fields/${fieldId}/people/${userId}`, payload);
     return normalizeMembership(response.data, fieldId);
@@ -354,6 +452,23 @@ export const fieldPeopleService = {
 
   listInvites: async (fieldId: string): Promise<FieldInvite[]> => {
     const response = await api.get<FieldInvite[]>(`/api/v1/fields/${fieldId}/people/invites`);
+    return (response.data || []).map(normalizeInvite);
+  },
+
+  getManagedPeople: async (): Promise<ManagedPeople> => {
+    const response = await api.get<ManagedPeople>('/api/v1/me/managed-people');
+    return normalizeManaged(response.data);
+  },
+
+  createInvites: async (payload: CreateMultiFieldInvitePayload): Promise<FieldInvite[]> => {
+    const response = await api.post<FieldInvite[]>('/api/v1/me/field-invites', {
+      fieldIds: payload.fieldIds,
+      relationship: payload.relationship,
+      accessPreset: payload.accessPreset,
+      modules: payload.modules,
+      email: payload.email,
+      displayName: payload.displayName,
+    });
     return (response.data || []).map(normalizeInvite);
   },
 

@@ -6,9 +6,10 @@ describe('shouldRouteCaptureToHarvest', () => {
     expect(shouldRouteCaptureToHarvest('harvest')).toBe(true);
   });
 
-  it('leaves money, work, observation, and photo on generic capture', () => {
+  it('leaves money, work moves, observation, and photo on generic capture', () => {
     expect(shouldRouteCaptureToHarvest('money')).toBe(false);
-    expect(shouldRouteCaptureToHarvest('work')).toBe(false);
+    expect(shouldRouteCaptureToHarvest('scheduleWork')).toBe(false);
+    expect(shouldRouteCaptureToHarvest('recordWork')).toBe(false);
     expect(shouldRouteCaptureToHarvest('observation')).toBe(false);
     expect(shouldRouteCaptureToHarvest('photo')).toBe(false);
     expect(shouldRouteCaptureToHarvest('expense')).toBe(false);

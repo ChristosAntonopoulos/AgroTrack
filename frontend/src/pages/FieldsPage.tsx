@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
-import { getFieldService, getFieldWorkService } from '../services/serviceFactory';
+import { getFieldService, getTaskService } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import type { FieldTask } from '../services/fieldWorkService';
+import { taskToFieldTask } from '../utils/taskCompat';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { isDeviceOnline } from '../utils/networkStatus';
 import { locationService } from '../services/locationService';
@@ -17,8 +18,9 @@ import {
   fieldHasBoundary,
   fieldSearchHaystack,
   getFieldOpenPath,
-  isOwnedField,
+  groupFieldsByViewerRole,
   isVisibleOnFieldsList,
+  type ViewerFieldRole,
 } from '../utils/fieldDisplay';
 import { distinctFieldColors } from '../utils/fieldColors';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
@@ -90,7 +92,8 @@ const FieldsPage: React.FC = () => {
       if (fields.length === 0) setLoading(true);
       const status =
         statusFilter === 'archived' ? 'archived' : statusFilter === 'all' ? 'all' : 'active';
-      setFields(await getFieldService().getFields('fields', status));
+      // Identity list: every grove this person sits on, not only the Fields module.
+      setFields(await getFieldService().getFields(undefined, status));
       setShowingCachedData(!isDeviceOnline());
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fields:failedLoad'));
@@ -101,8 +104,7 @@ const FieldsPage: React.FC = () => {
 
   const loadFieldTasks = async () => {
     try {
-      const fieldWork = getFieldWorkService();
-      const all = await fieldWork.listFieldTasks();
+      const all = (await getTaskService().listTasks({ view: 'all' })).map(taskToFieldTask);
       const tasksMap = new Map<string, FieldTask[]>();
       for (const field of fields) {
         tasksMap.set(
@@ -184,14 +186,21 @@ const FieldsPage: React.FC = () => {
     [filteredFields, user?.userId]
   );
 
-  const ownedFields = useMemo(
-    () => filteredFields.filter((f) => isOwnedField(f, user?.userId)),
+  const roleGroups = useMemo(
+    () => groupFieldsByViewerRole(filteredFields, user?.userId),
     [filteredFields, user?.userId]
   );
-  const sharedFields = useMemo(
-    () => filteredFields.filter((f) => !isOwnedField(f, user?.userId)),
-    [filteredFields, user?.userId]
-  );
+  const fieldSections = useMemo(() => {
+    const order: ViewerFieldRole[] = ['Admin', 'Family', 'Partner'];
+    const titleKey: Record<ViewerFieldRole, string> = {
+      Admin: 'fields:summary.adminSection',
+      Family: 'fields:summary.familySection',
+      Partner: 'fields:summary.partnerSection',
+    };
+    return order
+      .map((role) => ({ role, title: t(titleKey[role]), fields: roleGroups[role] }))
+      .filter((section) => section.fields.length > 0);
+  }, [roleGroups, t]);
 
   const fieldAccents = useMemo(() => distinctFieldColors(fields), [fields]);
   const paintField = (field: Field): Field => ({
@@ -221,6 +230,9 @@ const FieldsPage: React.FC = () => {
         : t('fields:subtitleDefault');
 
   const canCreate = user?.role !== 'Producer';
+  const reserveSkip = Boolean(
+    activation && !activation.laterSnoozed && (activation.visible || activation.guideBeat)
+  );
 
   const renderCard = (field: Field, compact = false) => (
     <FieldCard
@@ -237,15 +249,17 @@ const FieldsPage: React.FC = () => {
   );
 
   const renderSections = (compact = false) => {
-    if (ownedFields.length === 0 && sharedFields.length === 0) return null;
-    const showSections = ownedFields.length > 0 && sharedFields.length > 0;
+    if (fieldSections.length === 0) return null;
+    const showTitles =
+      fieldSections.length > 1 ||
+      (fieldSections.length === 1 && fieldSections[0].role !== 'Admin');
     return (
       <>
-        {ownedFields.length > 0 ? (
-          <section className="fields-section" aria-label={t('fields:summary.mineSection')}>
-            {showSections ? <h2 className="fields-section-title">{t('fields:summary.mineSection')}</h2> : null}
+        {fieldSections.map((section) => (
+          <section key={section.role} className="fields-section" aria-label={section.title}>
+            {showTitles ? <h2 className="fields-section-title">{section.title}</h2> : null}
             <div className={compact ? undefined : 'fields-list'}>
-              {ownedFields.map((field) =>
+              {section.fields.map((field) =>
                 compact ? (
                   <div key={field.id} id={`fields-split-item-${field.id}`} role="listitem">
                     {renderCard(field, true)}
@@ -256,25 +270,7 @@ const FieldsPage: React.FC = () => {
               )}
             </div>
           </section>
-        ) : null}
-        {sharedFields.length > 0 ? (
-          <section className="fields-section" aria-label={t('fields:summary.sharedSection')}>
-            {showSections || ownedFields.length === 0 ? (
-              <h2 className="fields-section-title">{t('fields:summary.sharedSection')}</h2>
-            ) : null}
-            <div className={compact ? undefined : 'fields-list'}>
-              {sharedFields.map((field) =>
-                compact ? (
-                  <div key={field.id} id={`fields-split-item-${field.id}`} role="listitem">
-                    {renderCard(field, true)}
-                  </div>
-                ) : (
-                  renderCard(field)
-                )
-              )}
-            </div>
-          </section>
-        ) : null}
+        ))}
       </>
     );
   };
@@ -292,7 +288,7 @@ const FieldsPage: React.FC = () => {
       <div className="fields-page">
         <Breadcrumbs />
 
-        <header className="fields-page-header">
+        <header className={`fields-page-header${reserveSkip ? ' fields-page-header--skip' : ''}`}>
           <div className="fields-page-header-text">
             <h1>{t('fields:title')}</h1>
             <p className="fields-subtitle">{subtitle}</p>

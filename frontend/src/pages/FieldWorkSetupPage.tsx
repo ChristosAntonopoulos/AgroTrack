@@ -16,8 +16,7 @@ import type {
   AnalysisKindEntry,
   CurrentYearDeclaredWork,
   FieldWorkProfile,
-  UpdateFieldWorkProfileInput,
-} from '../services/fieldWorkService';
+  UpdateFieldWorkProfileInput} from '../services/fieldWorkService';
 import { athensCalendarYear } from '../utils/athensDate';
 import { formatFieldArea } from '../utils/fieldGeo';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
@@ -34,14 +33,12 @@ import {
   primaryIndexForStep,
   PRIMARY_TOTAL,
   resultYearOptions,
-  type OnboardingStepId,
-} from '../utils/fieldWorkOnboardingSteps';
+  type OnboardingStepId} from '../utils/fieldWorkOnboardingSteps';
 import {
   clearWorkProfileDraft,
   mergePendingUpdates,
   readWorkProfileDraft,
-  writeWorkProfileDraft,
-} from '../utils/fieldWorkProfileDraft';
+  writeWorkProfileDraft} from '../utils/fieldWorkProfileDraft';
 import './FieldWorkSetupPage.css';
 import './FieldWorkProfilePage.css';
 
@@ -86,8 +83,7 @@ const FieldWorkSetupPage: React.FC = () => {
         pestMonitoring:
           profile?.pestManagement.decisionApproach === 'trap_and_fruit_checks' ||
           profile?.pestManagement.decisionApproach === 'combined',
-        analysisKindsSelected: hasSelectedAnalysisKinds(analysisKinds) || hasSelectedAnalysisKinds(profile?.analysis.kinds),
-      }),
+        analysisKindsSelected: hasSelectedAnalysisKinds(analysisKinds) || hasSelectedAnalysisKinds(profile?.analysis.kinds)}),
     [profile, fertilisationAnnual, analysisKinds]
   );
 
@@ -107,8 +103,7 @@ const FieldWorkSetupPage: React.FC = () => {
         stepId: nextStep,
         pendingUpdate: mergePendingUpdates(existing?.pendingUpdate ?? {}, pending),
         needsSync: needsSync || Boolean(existing?.needsSync),
-        updatedAt: new Date().toISOString(),
-      });
+        updatedAt: new Date().toISOString()});
     },
     [fieldId]
   );
@@ -146,8 +141,7 @@ const FieldWorkSetupPage: React.FC = () => {
           analysisKindsSelected:
             hasSelectedAnalysisKinds(patch.analysis?.kinds) ||
             hasSelectedAnalysisKinds(analysisKinds) ||
-            hasSelectedAnalysisKinds(profile?.analysis.kinds),
-        })));
+            hasSelectedAnalysisKinds(profile?.analysis.kinds)})));
 
       if (resumePlan) {
         setReturnToPlanAfterSave(false);
@@ -168,22 +162,18 @@ const FieldWorkSetupPage: React.FC = () => {
                   groundCover: {
                     ...prev.groundCover,
                     ...patch.groundCover,
-                    methods: patch.groundCover?.methods ?? prev.groundCover.methods,
-                  },
+                    methods: patch.groundCover?.methods ?? prev.groundCover.methods},
                   pestManagement: { ...prev.pestManagement, ...patch.pestManagement },
                   analysis: {
                     ...prev.analysis,
                     ...patch.analysis,
-                    kinds: patch.analysis?.kinds ?? prev.analysis.kinds,
-                  },
+                    kinds: patch.analysis?.kinds ?? prev.analysis.kinds},
                   harvest: { ...prev.harvest, ...patch.harvest },
                   notificationPreference: {
                     ...prev.notificationPreference,
-                    ...patch.notificationPreference,
-                  },
+                    ...patch.notificationPreference},
                   currentYearDeclaredWork:
-                    patch.currentYearDeclaredWork ?? prev.currentYearDeclaredWork,
-                }
+                    patch.currentYearDeclaredWork ?? prev.currentYearDeclaredWork}
               : prev
           );
           setStep(targetStep);
@@ -204,8 +194,7 @@ const FieldWorkSetupPage: React.FC = () => {
           await OfflineQueue.addOperation({
             method: 'put',
             endpoint: `/api/v1/fields/${fieldId}/work-profile`,
-            data: patch,
-          });
+            data: patch});
           setSyncNote(t('tasks:fieldWork.onboarding.savedOffline'));
           setStep(targetStep);
         } else {
@@ -262,8 +251,7 @@ const FieldWorkSetupPage: React.FC = () => {
             return;
           }
           workProfile = await getFieldWorkService().createWorkProfile(fieldId, {
-            resultYearCreated: athensCalendarYear(new Date()),
-          });
+            resultYearCreated: athensCalendarYear(new Date())});
         }
 
         const local = readWorkProfileDraft(fieldId);
@@ -277,8 +265,7 @@ const FieldWorkSetupPage: React.FC = () => {
               ...local,
               needsSync: false,
               pendingUpdate: {},
-              updatedAt: new Date().toISOString(),
-            });
+              updatedAt: new Date().toISOString()});
           } catch {
             // keep offline draft
           }
@@ -341,17 +328,14 @@ const FieldWorkSetupPage: React.FC = () => {
           harvest: { needsMillBooking: 'unknown', source: SOURCE },
           notificationPreference: {
             intensity: 'decisions_and_upcoming',
-            acceptedTaskReminderDaysBefore: 3,
-          },
-        }).catch(() => undefined);
+            acceptedTaskReminderDaysBefore: 3}}).catch(() => undefined);
 
         const activated = await getFieldWorkService().activateWorkProfile(fieldId);
         if (cancelled) return;
         setProfile(activated);
         try {
           await getFieldWorkService().evaluateFieldProposals(fieldId, {
-            resultYear,
-          });
+            resultYear});
         } catch {
           /* Chronologio can refresh later */
         }
@@ -390,8 +374,7 @@ const FieldWorkSetupPage: React.FC = () => {
           stepId: back,
           pendingUpdate: draft?.pendingUpdate ?? {},
           needsSync: Boolean(draft?.needsSync),
-          updatedAt: new Date().toISOString(),
-        });
+          updatedAt: new Date().toISOString()});
       }
     }
   };
@@ -413,8 +396,7 @@ const FieldWorkSetupPage: React.FC = () => {
       choices={choiceKeys.map((c) => ({
         id: c.id,
         title: label(c.titleKey),
-        description: c.descKey ? label(c.descKey) : undefined,
-      }))}
+        description: c.descKey ? label(c.descKey) : undefined}))}
       selectedId={selectedId}
       onSelect={onPick}
     />
@@ -422,8 +404,7 @@ const FieldWorkSetupPage: React.FC = () => {
 
   const yearCards = resultYearOptions(resultYear).map((opt) => ({
     id: String(opt.value),
-    title: t(`tasks:fieldWork.onboarding.years.${opt.key}`, { year: opt.value }),
-  }));
+    title: t(`tasks:fieldWork.onboarding.years.${opt.key}`, { year: opt.value })}));
 
   if (loading) {
     return (
@@ -516,8 +497,7 @@ const FieldWorkSetupPage: React.FC = () => {
             <span className="fw-setup-progress">
               {t('tasks:fieldWork.onboarding.progress', {
                 current: progress,
-                total: PRIMARY_TOTAL,
-              })}
+                total: PRIMARY_TOTAL})}
             </span>
           ) : (
             <span className="fw-setup-progress" />
@@ -555,8 +535,7 @@ const FieldWorkSetupPage: React.FC = () => {
                       stepId: 'purpose',
                       pendingUpdate: readWorkProfileDraft(fieldId)?.pendingUpdate ?? {},
                       needsSync: Boolean(readWorkProfileDraft(fieldId)?.needsSync),
-                      updatedAt: new Date().toISOString(),
-                    });
+                      updatedAt: new Date().toISOString()});
                   }
                   setStep('purpose');
                 }}
@@ -603,8 +582,7 @@ const FieldWorkSetupPage: React.FC = () => {
               ],
               (id) =>
                 void saveAnswer({
-                  irrigation: { preferenceMode: id, source: SOURCE },
-                })
+                  irrigation: { preferenceMode: id, source: SOURCE }})
             )}
           </>
         )}
@@ -648,10 +626,8 @@ const FieldWorkSetupPage: React.FC = () => {
                               (e) => e.category !== 'irrigation'
                             ) ?? []),
                             { category: 'irrigation', isSelf: true },
-                          ],
-                        }
-                      : undefined,
-                })
+                          ]}
+                      : undefined})
             )}
           </>
         )}
@@ -674,22 +650,17 @@ const FieldWorkSetupPage: React.FC = () => {
                     pruning: {
                       preferenceMode: 'enabled',
                       frequencyType: 'when_needed',
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 } else if (id === 'enabled') {
                   void saveAnswer({
                     pruning: {
                       preferenceMode: 'enabled',
                       frequencyType: 'every_n_years',
                       frequencyValue: 1,
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 } else {
                   void saveAnswer({
-                    pruning: { preferenceMode: id, source: SOURCE },
-                  });
+                    pruning: { preferenceMode: id, source: SOURCE }});
                 }
               }
             )}
@@ -711,25 +682,19 @@ const FieldWorkSetupPage: React.FC = () => {
                     pruning: {
                       clearLastPerformedYear: true,
                       datePrecision: 'year',
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 } else if (id === 'unknown') {
                   unsure({
                     pruning: {
                       clearLastPerformedYear: true,
                       datePrecision: 'year',
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 } else {
                   void saveAnswer({
                     pruning: {
                       lastPerformedYear: Number(id),
                       datePrecision: 'year',
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 }
               }}
             />
@@ -761,9 +726,7 @@ const FieldWorkSetupPage: React.FC = () => {
                         (e) => e.category !== 'pruning'
                       ) ?? []),
                       { category: 'pruning', isSelf: id === 'self' },
-                    ],
-                  },
-                });
+                    ]}});
               }
             )}
           </>
@@ -788,36 +751,28 @@ const FieldWorkSetupPage: React.FC = () => {
                       preferenceMode: 'enabled',
                       frequencyType: 'times_per_year',
                       frequencyValue: 1,
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 } else if (id === 'sometimes') {
                   setFertilisationAnnual(false);
                   void saveAnswer({
                     fertilisation: {
                       preferenceMode: 'enabled',
                       frequencyType: 'when_needed',
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 } else if (id === 'pro') {
                   setFertilisationAnnual(false);
                   void saveAnswer({
                     fertilisation: {
                       preferenceMode: 'decided_by_professional',
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 } else if (id === 'no') {
                   setFertilisationAnnual(false);
                   void saveAnswer({
-                    fertilisation: { preferenceMode: 'disabled', source: SOURCE },
-                  });
+                    fertilisation: { preferenceMode: 'disabled', source: SOURCE }});
                 } else {
                   setFertilisationAnnual(false);
                   void saveAnswer({
-                    fertilisation: { preferenceMode: 'unknown', source: SOURCE },
-                  });
+                    fertilisation: { preferenceMode: 'unknown', source: SOURCE }});
                 }
               }
             )}
@@ -837,16 +792,13 @@ const FieldWorkSetupPage: React.FC = () => {
               (id) => {
                 if (id === 'unknown') {
                   unsure({
-                    fertilisation: { frequencyType: 'times_per_year', source: SOURCE },
-                  });
+                    fertilisation: { frequencyType: 'times_per_year', source: SOURCE }});
                 } else {
                   void saveAnswer({
                     fertilisation: {
                       frequencyType: 'times_per_year',
                       frequencyValue: Number(id),
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 }
               }
             )}
@@ -871,8 +823,7 @@ const FieldWorkSetupPage: React.FC = () => {
                   templateCode: 'T09',
                   resultYear,
                   completion: id,
-                  source: SOURCE,
-                };
+                  source: SOURCE};
                 const rest =
                   profile?.currentYearDeclaredWork.filter((w) => w.category !== 'fertilisation') ??
                   [];
@@ -900,8 +851,7 @@ const FieldWorkSetupPage: React.FC = () => {
                   return;
                 }
                 void saveAnswer({
-                  fertilisation: { decisionMaker: id, source: SOURCE },
-                });
+                  fertilisation: { decisionMaker: id, source: SOURCE }});
               }
             )}
           </>
@@ -948,9 +898,7 @@ const FieldWorkSetupPage: React.FC = () => {
                           ? 'disabled'
                           : 'enabled',
                       methods: groundMethods,
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 }}
               >
                 {t('tasks:fieldWork.onboarding.continue')}
@@ -973,20 +921,16 @@ const FieldWorkSetupPage: React.FC = () => {
               (id) => {
                 if (id === 'when_needed') {
                   void saveAnswer({
-                    groundCover: { frequencyType: 'when_needed', source: SOURCE },
-                  });
+                    groundCover: { frequencyType: 'when_needed', source: SOURCE }});
                 } else if (id === 'unknown') {
                   unsure({
-                    groundCover: { frequencyType: 'unknown', source: SOURCE },
-                  });
+                    groundCover: { frequencyType: 'unknown', source: SOURCE }});
                 } else {
                   void saveAnswer({
                     groundCover: {
                       frequencyType: 'times_per_year',
                       frequencyValue: Number(id),
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 }
               }
             )}
@@ -1015,9 +959,7 @@ const FieldWorkSetupPage: React.FC = () => {
                         : id === 'unknown'
                           ? 'unknown'
                           : 'enabled',
-                    source: SOURCE,
-                  },
-                })
+                    source: SOURCE}})
             )}
           </>
         )}
@@ -1034,8 +976,7 @@ const FieldWorkSetupPage: React.FC = () => {
               ],
               (id) =>
                 void saveAnswer({
-                  pestManagement: { trapStatus: id, source: SOURCE },
-                })
+                  pestManagement: { trapStatus: id, source: SOURCE }})
             )}
           </>
         )}
@@ -1064,9 +1005,7 @@ const FieldWorkSetupPage: React.FC = () => {
                         (e) => e.category !== 'pest'
                       ) ?? []),
                       { category: 'pest', isSelf: id === 'self' },
-                    ],
-                  },
-                });
+                    ]}});
               }
             )}
           </>
@@ -1123,9 +1062,7 @@ const FieldWorkSetupPage: React.FC = () => {
                     analysis: {
                       preferenceMode: kinds.length ? 'enabled' : 'disabled',
                       kinds,
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 }}
               >
                 {t('tasks:fieldWork.onboarding.continue')}
@@ -1136,8 +1073,7 @@ const FieldWorkSetupPage: React.FC = () => {
                   size="lg"
                   onClick={() =>
                     unsure({
-                      analysis: { preferenceMode: 'unknown', kinds: [], source: SOURCE },
-                    })
+                      analysis: { preferenceMode: 'unknown', kinds: [], source: SOURCE }})
                   }
                 >
                   {label('unsure')}
@@ -1175,8 +1111,7 @@ const FieldWorkSetupPage: React.FC = () => {
                             ? {
                                 ...k,
                                 lastPerformedYear: id === 'unknown' ? null : Number(id),
-                                datePrecision: 'year',
-                              }
+                                datePrecision: 'year'}
                             : k
                         );
                       });
@@ -1193,8 +1128,7 @@ const FieldWorkSetupPage: React.FC = () => {
                   const kinds =
                     analysisKinds.length > 0 ? analysisKinds : profile?.analysis.kinds ?? [];
                   void saveAnswer({
-                    analysis: { kinds, preferenceMode: 'enabled', source: SOURCE },
-                  });
+                    analysis: { kinds, preferenceMode: 'enabled', source: SOURCE }});
                 }}
               >
                 {t('tasks:fieldWork.onboarding.continue')}
@@ -1218,16 +1152,13 @@ const FieldWorkSetupPage: React.FC = () => {
               onSelect={(id) => {
                 if (id === 'unknown') {
                   unsure({
-                    harvest: { clearExpectedStartMonth: true, source: SOURCE },
-                  });
+                    harvest: { clearExpectedStartMonth: true, source: SOURCE }});
                 } else {
                   void saveAnswer({
                     harvest: {
                       expectedStartMonth: Number(id),
                       preferenceMode: 'enabled',
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 }
               }}
             />
@@ -1247,8 +1178,7 @@ const FieldWorkSetupPage: React.FC = () => {
               ],
               (id) =>
                 void saveAnswer({
-                  harvest: { organizer: id, source: SOURCE },
-                })
+                  harvest: { organizer: id, source: SOURCE }})
             )}
           </>
         )}
@@ -1272,7 +1202,7 @@ const FieldWorkSetupPage: React.FC = () => {
         step !== 'personalizing' ? (
           <div className="fw-setup-actions">
             <Button variant="ghost" size="lg" onClick={goBack} disabled={saving}>
-              {t('common:back', { defaultValue: 'Πίσω' })}
+              {t('common:back')}
             </Button>
           </div>
         ) : null}

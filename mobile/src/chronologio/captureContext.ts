@@ -16,7 +16,7 @@ export const preferredCaptureTypeFromCategory = (
   switch (first) {
     case 'work':
     case 'task':
-      return 'work';
+      return 'scheduleWork';
     case 'observation':
     case 'note':
       return 'observation';

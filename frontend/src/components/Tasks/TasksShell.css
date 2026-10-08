@@ -46,6 +46,22 @@
   min-height: 48px;
 }
 
+.tasks-header-field {
+  display: block;
+  margin-top: 8px;
+}
+
+.tasks-header-field select {
+  min-height: 40px;
+  max-width: min(100%, 280px);
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  font: inherit;
+  color: var(--color-text-primary);
+}
+
 .tasks-view-tabs {
   display: flex;
   flex-wrap: wrap;

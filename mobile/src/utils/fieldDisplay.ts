@@ -60,6 +60,22 @@ export const viewerFieldRole = (
   return null;
 };
 
+/** Every grove this person sits on, split by the seat they hold. */
+export const groupFieldsByViewerRole = <T extends Pick<Field, 'ownerId' | 'memberships'>>(
+  fields: T[],
+  userId: string | undefined | null
+): Record<ViewerFieldRole, T[]> => {
+  const groups: Record<ViewerFieldRole, T[]> = { Admin: [], Family: [], Partner: [] };
+  for (const field of fields) {
+    const role = viewerFieldRole(field, userId);
+    if (role === 'Family') groups.Family.push(field);
+    else if (role === 'Partner') groups.Partner.push(field);
+    else if (role === 'Admin' || isOwnedField(field, userId)) groups.Admin.push(field);
+    else groups.Partner.push(field);
+  }
+  return groups;
+};
+
 export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
   const ring = field.boundary?.coordinates?.[0];
   return Boolean(ring && ring.length >= 4);

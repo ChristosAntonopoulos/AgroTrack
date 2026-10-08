@@ -476,6 +476,8 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       dismissedAt: new Date().toISOString(),
       forceShow: false,
       laterSnoozedAt: null,
+      awaitingFirstObservation: false,
+      navCoachPhase: null,
     });
     setCelebrating(false);
   }, [persist, persisted, setupUnlocked, snoozeLater]);

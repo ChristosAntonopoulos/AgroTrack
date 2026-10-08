@@ -88,8 +88,8 @@ public class ReportsService : IReportsService
             ? Array.Empty<TaskExecution>()
             : await _executions.GetByFieldIdsAsync(taskQueryIds, cancellationToken);
         var activeByTaskId = executions
-            .Where(e => e.IsActive)
-            .GroupBy(e => e.TaskId)
+            .Where(e => e.IsActive && !string.IsNullOrWhiteSpace(e.TaskId))
+            .GroupBy(e => e.TaskId!, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.CompletedAt).First(), StringComparer.Ordinal);
         var harvests = harvestQueryIds.Count == 0
             ? Enumerable.Empty<HarvestRecord>()
@@ -349,8 +349,8 @@ public class ReportsService : IReportsService
             ? Array.Empty<TaskExecution>()
             : await _executions.GetByFieldIdsAsync(taskQueryIds, cancellationToken);
         var activeByTaskId = executions
-            .Where(e => e.IsActive)
-            .GroupBy(e => e.TaskId)
+            .Where(e => e.IsActive && !string.IsNullOrWhiteSpace(e.TaskId))
+            .GroupBy(e => e.TaskId!, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(e => e.CompletedAt).First(), StringComparer.Ordinal);
         var ledger = moneyQueryIds.Count == 0
             ? Enumerable.Empty<FinancialTransaction>()
@@ -655,18 +655,15 @@ public class ReportsService : IReportsService
     private static bool IsCompleted(
         FieldTask task,
         IReadOnlyDictionary<string, TaskExecution> activeByTaskId) =>
-        task.Status == FieldTaskStatus.Completed || activeByTaskId.ContainsKey(task.Id);
+        task.Status == FieldTaskStatus.Done || activeByTaskId.ContainsKey(task.Id);
 
     private static bool IsOpen(
         FieldTask task,
         IReadOnlyDictionary<string, TaskExecution> activeByTaskId) =>
-        task.Status != FieldTaskStatus.Cancelled
-        && task.Status != FieldTaskStatus.Completed
+        task.Status != FieldTaskStatus.Skipped
+        && task.Status != FieldTaskStatus.Done
         && !activeByTaskId.ContainsKey(task.Id)
-        && task.Status is FieldTaskStatus.Planned
-            or FieldTaskStatus.Ready
-            or FieldTaskStatus.InProgress
-            or FieldTaskStatus.Blocked;
+        && task.Status is FieldTaskStatus.Planned;
 
     private static string ResolveTaskType(FieldTask task) =>
         !string.IsNullOrWhiteSpace(task.TemplateCode)

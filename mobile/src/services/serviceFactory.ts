@@ -1,6 +1,8 @@
 import { fieldService } from './fieldService';
 import { mockFieldService } from './mockFieldService';
 import { fieldWorkService } from './fieldWorkService';
+import { taskService } from './taskService';
+import { mockTaskService } from './mockTaskService';
 import { lifecycleService } from './lifecycleService';
 import { mockLifecycleService } from './mockLifecycleService';
 import { authService } from './authService';
@@ -31,6 +33,7 @@ const useMock = () => isMockDataEnabled();
 export const getAuthService = () => (useMock() ? mockAuthService : authService);
 export const getFieldService = () => (useMock() ? mockFieldService : fieldService);
 export const getFieldWorkService = () => fieldWorkService;
+export const getTaskService = () => (useMock() ? mockTaskService : taskService);
 export const getLifecycleService = () => (useMock() ? mockLifecycleService : lifecycleService);
 export const getMinistryService = () => (useMock() ? mockMinistryService : ministryApiService);
 export const getFileService = () => (useMock() ? mockFileService : fileService);

@@ -1,6 +1,19 @@
 {
   "title": "Analytics",
-  "subtitle": "Insights across fields, tasks, and costs",
-  "loading": "Loading analytics...",
-  "noData": "No data available for the selected period"
+  "subtitle": "Approfondimenti su oliveti, attività e costi",
+  "loading": "Caricamento analisi…",
+  "noData": "Nessun dato disponibile per il periodo selezionato",
+  "totalTasks": "Attività totali",
+  "completionRate": "Tasso di completamento",
+  "totalCost": "Costo totale",
+  "avgCompletionTime": "Tempo medio di completamento",
+  "statusDistribution": "Distribuzione per stato",
+  "costByField": "Costo per oliveto",
+  "costByTaskType": "Costo per tipo di attività",
+  "monthlyCompletion": "Completamenti mensili",
+  "fieldPerformance": "Prestazioni oliveto",
+  "field": "Oliveto",
+  "completed": "Completate",
+  "avgCostTask": "Costo medio / attività",
+  "noPermission": "Non hai il permesso di vedere le analisi."
 }

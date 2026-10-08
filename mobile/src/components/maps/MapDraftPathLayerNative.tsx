@@ -44,6 +44,8 @@ const MapDraftPathLayer: React.FC<Props> = ({
           lineColor: color,
           lineWidth: width,
           lineOpacity: 0.95,
+          lineJoin: 'round',
+          lineCap: 'round',
           ...(dashed
             ? {
                 lineDasharray: [1.6, 1.4],

@@ -369,9 +369,13 @@ const ChronologioPeekSheet: React.FC<Props> = ({
             remove: removeEntry,
             createTask: () => {
               onClose();
-              navigation.navigate('CreateTask', {
-                fieldId: entry.fieldId,
-                scheduledStart: entry.occurredAt,
+              navigation.navigate('Main', {
+                screen: 'Tasks',
+                params: {
+                  view: 'today',
+                  fieldId: entry.fieldId,
+                  schedule: true,
+                },
               });
             },
             addNote: capture

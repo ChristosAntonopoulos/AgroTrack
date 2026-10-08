@@ -3,7 +3,8 @@ import type { FinancialCategory } from '../finance/display';
 export type CaptureType =
   | 'observation'
   | 'photo'
-  | 'work'
+  | 'scheduleWork'
+  | 'recordWork'
   | 'expense'
   | 'income'
   | 'harvest'

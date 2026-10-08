@@ -3,11 +3,11 @@ import Sheet from '../ui/Sheet';
 import Button from '../ui/Button';
 import FormDateField from '../forms/FormDateField';
 import { useTranslation } from 'react-i18next';
-import type { FieldTask } from '../../services/fieldWorkService';
+import type { Task } from '../../services/taskService';
 import { toDateInputValue } from '../../utils/proposalPresentation';
 
 type Props = {
-  task: FieldTask | null;
+  task: Task | null;
   open: boolean;
   busy?: boolean;
   onClose: () => void;
@@ -20,7 +20,7 @@ const RescheduleTaskSheet: React.FC<Props> = ({ task, open, busy, onClose, onCon
 
   useEffect(() => {
     if (!task) return;
-    setDate(toDateInputValue(task.plannedStart) || '');
+    setDate(toDateInputValue(task.scheduledFor || task.plannedStart) || '');
   }, [task]);
 
   return (

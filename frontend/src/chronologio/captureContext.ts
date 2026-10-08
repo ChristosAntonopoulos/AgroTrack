@@ -15,7 +15,8 @@ export const preferredCaptureTypeFromCategory = (
   switch (first) {
     case 'work':
     case 'task':
-      return 'work';
+      // Grove work splits into schedule vs record — show the chooser.
+      return undefined;
     case 'observation':
     case 'note':
     case 'photo':

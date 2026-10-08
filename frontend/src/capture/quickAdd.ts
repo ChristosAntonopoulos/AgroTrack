@@ -39,11 +39,12 @@ export const resolveQuickAddContext = (input: {
 export const QUICK_PRESETS: Record<QuickAddContext, readonly string[]> = {
   harvest: ['sacks', 'mill', 'oil', 'expense'],
   warehouse: ['add', 'sell', 'give', 'fill'],
-  grove: ['work', 'observation', 'expense', 'harvest'],
+  grove: ['scheduleWork', 'recordWork', 'observation', 'expense', 'harvest'],
   money: ['income', 'expense', 'sell'],
-  tasks: ['work', 'observation', 'expense', 'harvest'],
-  photos: ['observation', 'work', 'expense', 'harvest'],
-  home: ['work', 'observation', 'expense', 'harvest'],
+  /** Tasks page: schedule first, then record completed work. */
+  tasks: ['scheduleWork', 'recordWork', 'observation', 'expense'],
+  photos: ['observation', 'recordWork', 'scheduleWork', 'expense'],
+  home: ['scheduleWork', 'recordWork', 'observation', 'expense', 'harvest'],
 };
 
 const isPresetAllowed = (
@@ -52,7 +53,8 @@ const isPresetAllowed = (
 ): boolean => {
   if (!permissions) return true;
   switch (id) {
-    case 'work':
+    case 'scheduleWork':
+    case 'recordWork':
       return permissions.canRecordWork;
     case 'observation':
       return permissions.canRecordObservation;

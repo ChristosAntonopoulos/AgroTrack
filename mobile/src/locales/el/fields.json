@@ -384,6 +384,11 @@
       "Partner": "Συνεργάτης",
       "Family": "Οικογένεια"
     },
+    "sections": {
+      "Admin": "Όπου είμαι διαχειριστής",
+      "Family": "Οικογένεια",
+      "Partner": "Συνεργάτης"
+    },
     "draftBadge": "Πρόχειρο",
     "irrigationYes": "Ναι",
     "metaAria": "Στοιχεία ελαιώνα"

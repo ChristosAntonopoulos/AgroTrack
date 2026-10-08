@@ -165,7 +165,15 @@
     "notFound": "Task not found.",
     "failedLoad": "Failed to load task.",
     "failedAssign": "Failed to assign task.",
-    "description": "Description"
+    "description": "Description",
+    "markDone": "Mark done",
+    "editTask": "Edit",
+    "note": "Note",
+    "notePlaceholder": "Notes for this task",
+    "skipReason": "Why skip?",
+    "skipReasonPlaceholder": "Optional reason",
+    "confirmSkip": "Skip",
+    "failedStatus": "Failed to update status."
   },
   "fieldWork": {
     "pageTitle": "Tasks",
@@ -808,7 +816,11 @@
       "attention": "Needs attention",
       "today": "Today",
       "next": "Next",
-      "suggestions": "Suggestions"
+      "suggestions": "Suggestions for now",
+      "overdue": "Overdue",
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This week",
+      "later": "Later"
     },
     "status": {
       "todo": "To do",
@@ -816,7 +828,9 @@
       "completed": "Completed",
       "blocked": "Blocked",
       "skipped": "Skipped",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "planned": "Planned",
+      "done": "Done"
     },
     "when": {
       "today": "Today",
@@ -829,21 +843,27 @@
     "checks": "{{done}} of {{total}} steps",
     "unassigned": "Unassigned",
     "actions": {
-      "resolve": "Resolve"
+      "resolve": "Resolve",
+      "markDone": "Mark done",
+      "completed": "Done"
     },
     "menu": {
-      "reschedule": "Reschedule",
+      "reschedule": "Change date",
       "block": "Cannot do",
       "skip": "Skip",
       "cancel": "Cancel",
-      "reopen": "Reopen"
+      "reopen": "Reopen",
+      "assign": "Assign",
+      "edit": "Edit"
     },
     "search": "Search",
     "mine": "Mine",
     "everyone": "Everyone",
     "tabs": {
       "todo": "To do",
-      "done": "Completed"
+      "done": "Done",
+      "today": "Today",
+      "upcoming": "Upcoming"
     },
     "weather": {
       "unsuitable": "Unsuitable weather",
@@ -882,6 +902,102 @@
     "scope": "Who is shown",
     "frequent": "Common work",
     "oneField": "One field",
-    "severalFields": "Several fields"
+    "severalFields": "Several fields",
+    "empty": {
+      "todayTitle": "Nothing for today",
+      "todayDescription": "Schedule work or check suggestions.",
+      "upcomingTitle": "Nothing upcoming",
+      "upcomingDescription": "Scheduled work will show up here.",
+      "doneTitle": "Nothing done yet",
+      "doneDescription": "Completed work appears here."
+    },
+    "done": {
+      "banner": "See the full history in Chronologio.",
+      "openChronologio": "Open Chronologio"
+    }
+  },
+  "page": {
+    "title": "Tasks",
+    "scheduleCta": "+ Schedule work",
+    "fieldFilter": "Grove",
+    "allFields": "All groves",
+    "viewsAria": "Task views",
+    "tabs": {
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "done": "Done"
+    }
+  },
+  "schedule": {
+    "title": "Schedule work",
+    "cancel": "Cancel",
+    "submit": "Schedule",
+    "failedSave": "Could not schedule work.",
+    "what": "What needs doing?",
+    "whatPlaceholder": "e.g. Pruning, trap check…",
+    "pickTemplate": "Templates",
+    "field": "In the grove",
+    "noFields": "Create a grove first",
+    "when": {
+      "label": "When?",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This week",
+      "otherDay": "Another day",
+      "sometime": "Sometime"
+    },
+    "who": "Who?",
+    "assigneeMe": "Me",
+    "decideLater": "Later",
+    "moreDetails": "More details",
+    "lessDetails": "Fewer details",
+    "note": "Note",
+    "notePlaceholder": "Anything useful for the work",
+    "repeat": "Repeat",
+    "repeatPlaceholder": "e.g. Every week",
+    "checklist": "Checklist",
+    "checklistPlaceholder": "One step per line",
+    "photoHint": "You can add photos when the work is done.",
+    "templates": {
+      "title": "Choose a template",
+      "subtitle": "A template only prefills the title — it does not create the task yet.",
+      "suggestedNow": "Suggested now",
+      "curated": "All templates",
+      "categories": "Categories",
+      "allCategories": "All",
+      "alsoSuggested": "Suggested now",
+      "writeOwn": "Write your own work",
+      "category": {
+        "pruning": "Pruning",
+        "fertilisation": "Fertilisation",
+        "ground": "Ground",
+        "monitoring": "Monitoring",
+        "irrigation": "Irrigation",
+        "harvest": "Harvest",
+        "inspection": "Inspection",
+        "other": "Other"
+      }
+    }
+  },
+  "suggestions": {
+    "schedule": "Schedule",
+    "dismiss": "Not for me",
+    "dismissFailed": "Could not dismiss suggestion."
+  },
+  "complete": {
+    "failed": "Could not mark done.",
+    "undoFailed": "Could not undo.",
+    "undoMessage": "Marked as done.",
+    "undo": "Undo",
+    "followUpTitle": "Done. Want to keep what happened?",
+    "followUpBody": "Add a note, cost, or photo — or leave it as simply done.",
+    "addDetails": "Add note / cost / photo",
+    "done": "Done",
+    "detailsTitle": "What happened",
+    "notes": "Note",
+    "notesPlaceholder": "What you did, quantities, observations…",
+    "costPhotoHint": "You can also add cost and photos from capture later.",
+    "saveDetails": "Save",
+    "saveFailed": "Could not save work record."
   }
 }

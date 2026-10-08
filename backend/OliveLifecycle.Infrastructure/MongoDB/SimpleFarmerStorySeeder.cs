@@ -720,7 +720,7 @@ public static class SimpleFarmerStorySeeder
                 TemplateVersion = FieldWorkCatalogue.Version,
                 Title = title,
                 Description = notes,
-                Status = FieldTaskStatus.Completed.ToApiString(),
+                Status = FieldTaskStatus.Done.ToApiString(),
                 PlannedStart = when,
                 PlannedEnd = end,
                 StartedAt = when.AddMinutes(30),

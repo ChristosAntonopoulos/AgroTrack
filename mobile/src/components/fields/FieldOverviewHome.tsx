@@ -94,7 +94,10 @@ const FieldOverviewHome: React.FC<Props> = ({
           .join(' · ');
 
   const nextTask = useMemo(() => {
-    const open = tasks.filter((task) => task.status !== 'Completed' && task.status !== 'Cancelled');
+    const open = tasks.filter((task) => {
+      const s = String(task.status || '').toLowerCase();
+      return s !== 'completed' && s !== 'cancelled' && s !== 'done' && s !== 'skipped';
+    });
     return open[0] || null;
   }, [tasks]);
 

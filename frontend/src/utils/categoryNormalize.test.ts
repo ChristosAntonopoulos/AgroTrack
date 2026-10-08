@@ -20,4 +20,10 @@ describe('category and status normalization', () => {
     expect(normalizeTaskStatus('Completed')).toBe('completed');
     expect(normalizeTaskStatus('in progress')).toBe('in_progress');
   });
+
+  it('maps new task domain statuses onto display buckets', () => {
+    expect(normalizeTaskStatus('planned')).toBe('pending');
+    expect(normalizeTaskStatus('done')).toBe('completed');
+    expect(normalizeTaskStatus('skipped')).toBe('cancelled');
+  });
 });

@@ -43,6 +43,7 @@ import {
   getHarvestService,
   getNoteService,
   getPhotoService,
+  getTaskService,
 } from '../services/serviceFactory';
 import type { Field } from '../services/fieldService';
 import type {
@@ -413,10 +414,11 @@ const PhotoHubScreen: React.FC = () => {
       try {
         let next: LinkTarget[] = [];
         if (ownerType === 'task') {
-          const tasks = await getFieldWorkService().listFieldTasks({
-            fieldId: selected.fieldId,
-          });
-          next = tasks.map((task) => ({
+          const [planned, done] = await Promise.all([
+            getTaskService().listTasks({ view: 'all', fieldId: selected.fieldId }),
+            getTaskService().listTasks({ view: 'done', fieldId: selected.fieldId }),
+          ]);
+          next = [...planned, ...done].map((task) => ({
             id: task.id,
             label: `${task.title} · ${task.statusLabel || task.status}`,
           }));

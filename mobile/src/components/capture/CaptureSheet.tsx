@@ -53,20 +53,19 @@ import {
   getHarvestService,
   getNoteService,
   getFileService,
+  getTaskService,
 } from '../../services/serviceFactory';
 import type { Field } from '../../services/fieldService';
 import type { RootStackParamList } from '../../navigation/types';
 import { radii } from '../../theme';
 import { readLastMoneyFieldId } from '../../finance/lastField';
-import { templateTitle } from '../../data/fieldWorkCatalogueLabels';
 import { getFocusedRoute } from '../../navigation/dockRoute';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
+import RecordCompletedWorkSheet from '../tasks/RecordCompletedWorkSheet';
 
 const MAX_PHOTOS = 5;
 
 type DocPick = { uri: string; name: string; mimeType: string };
-
-const WORK_CHOICES = ['T06', 'T05', 'T09', 'T14', 'T15', 'T08', 'T17'] as const;
 
 const toDateKey = (iso?: string): string => {
   const d = iso ? new Date(iso) : new Date();
@@ -101,7 +100,7 @@ const CaptureSheet: React.FC<Props> = ({
   onContextChange,
   onSaved,
 }) => {
-  const { t, i18n } = useTranslation(['capture', 'fields', 'common', 'chronologio', 'onboarding']);
+  const { t } = useTranslation(['capture', 'fields', 'common', 'chronologio', 'onboarding']);
   const { colors, tapMin } = useTheme();
   const { user, isFieldOwner } = useAuth();
   const activation = useOwnerActivationOptional();
@@ -123,9 +122,16 @@ const CaptureSheet: React.FC<Props> = ({
     if (coachingFirstObservation) return 'quick';
     if (preferredType === 'photo') return 'observation';
     if (preferredType === 'expense' || preferredType === 'income') return preferredType;
-    if (preferredType && preferredType !== 'harvest' && preferredType !== 'money') {
-      return preferredType;
+    if (
+      preferredType === 'scheduleWork' ||
+      preferredType === 'recordWork' ||
+      preferredType === 'work' ||
+      preferredType === 'harvest' ||
+      preferredType === 'money'
+    ) {
+      return 'quick';
     }
+    if (preferredType) return preferredType;
     return 'quick';
   };
 
@@ -147,7 +153,9 @@ const CaptureSheet: React.FC<Props> = ({
   const sessionGenRef = useRef(0);
 
   const [body, setBody] = useState('');
-  const [workTemplate, setWorkTemplate] = useState('');
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [recordBusy, setRecordBusy] = useState(false);
+  const [recordError, setRecordError] = useState<string | null>(null);
   const [oliveKg, setOliveKg] = useState('');
   const [oilKg, setOilKg] = useState('');
   const [harvestNotes, setHarvestNotes] = useState('');
@@ -209,7 +217,8 @@ const CaptureSheet: React.FC<Props> = ({
         : context.description || ''
     );
     setPhotos([]);
-    setWorkTemplate('');
+    setRecordOpen(false);
+    setRecordError(null);
     setOliveKg('');
     setOilKg('');
     setHarvestNotes('');
@@ -424,19 +433,6 @@ const CaptureSheet: React.FC<Props> = ({
             : t('capture:observation.saved'),
           coachingFirstObservation ? { skipDialog: true } : { reopen: reopenQuick() }
         );
-      } else if (step === 'work') {
-        if (!workTemplate) {
-          Alert.alert('', t('capture:work.chooseType'));
-          setSubmitting(false);
-          return;
-        }
-        onClose();
-        navigation.navigate('CreateTask', {
-          fieldId: fieldId || undefined,
-          templateCode: workTemplate,
-          scheduledStart: occurredAt,
-        });
-        return;
       } else if (step === 'harvest') {
         const olives = Number(oliveKg.replace(',', '.'));
         if (!olives || Number.isNaN(olives)) {
@@ -616,6 +612,24 @@ const CaptureSheet: React.FC<Props> = ({
       });
       return;
     }
+    if (type === 'scheduleWork' || type === 'work') {
+      onClose();
+      navigation.navigate('Main', {
+        screen: 'Tasks',
+        params: {
+          view: 'today',
+          fieldId: fieldId || context.fieldId || undefined,
+          schedule: true,
+        },
+      });
+      return;
+    }
+    if (type === 'recordWork') {
+      onClose();
+      setRecordError(null);
+      setRecordOpen(true);
+      return;
+    }
     setReturnTo(isChooser ? step : returnTo);
     setStep(type);
   };
@@ -681,6 +695,7 @@ const CaptureSheet: React.FC<Props> = ({
   };
 
   return (
+    <>
     <Sheet
       open={open}
       onClose={isChooser ? onClose : goBack}
@@ -956,36 +971,6 @@ const CaptureSheet: React.FC<Props> = ({
                 </>
               ) : null}
 
-              {step === 'work' ? (
-                <>
-                  <Text style={[styles.prompt, { color: colors.textPrimary }]}>{t('capture:work.whatWork')}</Text>
-                  <View style={{ gap: 8 }}>
-                    {WORK_CHOICES.map((code) => {
-                      const selected = workTemplate === code;
-                      return (
-                        <Pressable
-                          key={code}
-                          style={[
-                            styles.choiceRow,
-                            {
-                              borderColor: selected ? colors.oliveBorder : 'transparent',
-                              backgroundColor: selected ? colors.primaryLight : colors.surfaceMuted,
-                              minHeight: tapMin,
-                            },
-                          ]}
-                          onPress={() => setWorkTemplate(code)}
-                        >
-                          <Text style={{ flex: 1, color: colors.textPrimary, fontWeight: selected ? '800' : '600' }}>
-                            {templateTitle(code, i18n.language)}
-                          </Text>
-                          {selected ? <Ionicons name="checkmark" size={18} color={colors.primary} /> : null}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </>
-              ) : null}
-
               {step === 'harvest' ? (
                 <>
                   <HarvestNumberInput
@@ -1093,6 +1078,46 @@ const CaptureSheet: React.FC<Props> = ({
         </ScrollView>
       )}
     </Sheet>
+
+    <RecordCompletedWorkSheet
+      open={recordOpen}
+      fields={fields}
+      prefillFieldId={fieldId || context.fieldId}
+      busy={recordBusy}
+      error={recordError}
+      onClose={() => {
+        setRecordOpen(false);
+        setRecordError(null);
+      }}
+      onSubmit={async (input) => {
+        setRecordBusy(true);
+        setRecordError(null);
+        try {
+          return await getTaskService().createWorkRecord(input);
+        } catch (err) {
+          setRecordError(err instanceof Error ? err.message : t('capture:recordWork.saveFailed'));
+          throw err;
+        } finally {
+          setRecordBusy(false);
+        }
+      }}
+      onLinkTask={async (taskId, workRecordId) => {
+        await getTaskService().linkWorkRecord(taskId, workRecordId);
+      }}
+      onFinished={(record) => {
+        onSaved(
+          {
+            type: 'recordWork',
+            fieldId: record.fieldId,
+            sourceId: record.id,
+            description: record.title,
+            occurredOn: record.completedAt,
+          },
+          t('capture:recordWork.saved')
+        );
+      }}
+    />
+    </>
   );
 };
 

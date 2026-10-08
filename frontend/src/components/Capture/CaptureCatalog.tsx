@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Bookmark,
+  CalendarPlus,
   Camera,
   CheckSquare,
   Cylinder,
@@ -163,7 +164,8 @@ const CaptureCatalog: React.FC<Props> = ({
     if (move.surface === 'money' || move.type === 'money') return <Wallet size={18} strokeWidth={2.25} />;
     if (move.type === 'income') return <TrendingUp size={18} strokeWidth={2.25} />;
     if (move.type === 'expense') return <TrendingDown size={18} strokeWidth={2.25} />;
-    if (move.type === 'work') return <CheckSquare size={18} strokeWidth={2.25} />;
+    if (move.type === 'scheduleWork') return <CalendarPlus size={18} strokeWidth={2.25} />;
+    if (move.type === 'recordWork') return <CheckSquare size={18} strokeWidth={2.25} />;
     if (move.type === 'photo') return <Camera size={18} strokeWidth={2.25} />;
     if (move.type === 'voice') return <Mic size={18} strokeWidth={2.25} />;
     if (move.type === 'document') return <FileText size={18} strokeWidth={2.25} />;
@@ -182,7 +184,7 @@ const CaptureCatalog: React.FC<Props> = ({
     if (move.surface === 'money' || move.type === 'money') return 'is-money';
     if (move.type === 'income') return 'is-income';
     if (move.type === 'expense') return 'is-expense';
-    if (move.type === 'work') return 'is-work';
+    if (move.type === 'scheduleWork' || move.type === 'recordWork') return 'is-work';
     if (move.type === 'photo' || move.type === 'observation') return 'is-note';
     if (move.type === 'voice') return 'is-voice';
     if (move.type === 'document') return 'is-doc';

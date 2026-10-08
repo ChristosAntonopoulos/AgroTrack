@@ -10,8 +10,7 @@ import {
   entryFromChoice,
   getAssignmentForCategory,
   type DefaultAssigneeChoice,
-  upsertAssignmentEntry,
-} from '../../utils/fieldWorkDefaultAssignments';
+  upsertAssignmentEntry} from '../../utils/fieldWorkDefaultAssignments';
 
 type Props = {
   value: DefaultAssignments;
@@ -29,8 +28,7 @@ const DefaultAssignmentsEditor: React.FC<Props> = ({
   people,
   currentUserId,
   disabled,
-  onChange,
-}) => {
+  onChange}) => {
   const { t } = useTranslation(['tasks', 'common']);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [pendingChoice, setPendingChoice] = useState<DefaultAssigneeChoice>('later');
@@ -83,8 +81,7 @@ const DefaultAssignmentsEditor: React.FC<Props> = ({
           if (choice === 'me') summary = t('tasks:fieldWork.profile.assignments.me');
           if (choice === 'collaborator') {
             summary = t('tasks:fieldWork.profile.assignments.person', {
-              name: personLabel(entry?.assigneeUserId),
-            });
+              name: personLabel(entry?.assigneeUserId)});
           }
           return (
             <li key={category} className="fw-profile-row">
@@ -116,20 +113,17 @@ const DefaultAssignmentsEditor: React.FC<Props> = ({
             choices={[
               {
                 id: 'me',
-                title: t('tasks:fieldWork.profile.assignments.me'),
-              },
+                title: t('tasks:fieldWork.profile.assignments.me')},
               {
                 id: 'collaborator',
                 title: t('tasks:fieldWork.profile.assignments.collaborator'),
                 description:
                   collaborators.length === 0
                     ? t('tasks:fieldWork.profile.assignments.noCollaborators')
-                    : undefined,
-              },
+                    : undefined},
               {
                 id: 'later',
-                title: t('tasks:fieldWork.profile.assignments.later'),
-              },
+                title: t('tasks:fieldWork.profile.assignments.later')},
             ]}
           />
           {pendingChoice === 'collaborator' && collaborators.length > 0 ? (
@@ -156,7 +150,7 @@ const DefaultAssignmentsEditor: React.FC<Props> = ({
               className="fw-setup-exit"
               onClick={() => setEditingCategory(null)}
             >
-              {t('common:cancel', { defaultValue: 'Άκυρο' })}
+              {t('common:cancel')}
             </button>
             <button
               type="button"

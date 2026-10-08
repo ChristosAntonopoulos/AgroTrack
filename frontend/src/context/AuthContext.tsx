@@ -3,8 +3,7 @@ import {
   authService,
   AuthResponse,
   persistAuthSession,
-  clearAuthSession,
-} from '../services/authService';
+  clearAuthSession} from '../services/authService';
 import { setUnauthorizedHandler, setSessionRefreshedHandler } from '../services/api';
 import { EntityCache } from '../utils/entityCache';
 import { OfflineQueue } from '../utils/offlineQueue';
@@ -59,8 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       password,
       firstName,
       lastName,
-      inviteCode: inviteCode?.trim() || undefined,
-    });
+      inviteCode: inviteCode?.trim() || undefined});
     clearSessionCaches();
     persistAuthSession(response);
     setUser(response);

@@ -97,10 +97,10 @@ public class MeDashboardServiceTests
         var tasks = new List<FieldTask>
         {
             new() { Id = "t1", Status = FieldTaskStatus.Planned, PlannedEnd = today.AddDays(-1) },
-            new() { Id = "t2", Status = FieldTaskStatus.InProgress, PlannedEnd = today.AddHours(6) },
-            new() { Id = "t3", Status = FieldTaskStatus.Completed, PlannedEnd = today.AddDays(-2) },
-            new() { Id = "t4", Status = FieldTaskStatus.Ready, PlannedEnd = today.AddDays(-3) },
-            new() { Id = "t5", Status = FieldTaskStatus.Cancelled, PlannedEnd = today.AddDays(-1) }
+            new() { Id = "t2", Status = FieldTaskStatus.Planned, PlannedEnd = today.AddHours(6) },
+            new() { Id = "t3", Status = FieldTaskStatus.Done, PlannedEnd = today.AddDays(-2) },
+            new() { Id = "t4", Status = FieldTaskStatus.Planned, PlannedEnd = today.AddDays(-3) },
+            new() { Id = "t5", Status = FieldTaskStatus.Skipped, PlannedEnd = today.AddDays(-1) }
         };
         var activeExecutions = new HashSet<string>(StringComparer.Ordinal) { "t4" };
 

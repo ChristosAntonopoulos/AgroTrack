@@ -1,9 +1,10 @@
 /** Hard stop for user zoom. Past native zoom, tiles are overscaled so the map stays visible. */
 export const MAP_MAX_ZOOM = 19;
+/** Esri World Imagery carries real detail for rural Greece through ~18; z19+ is often empty. */
 export const MAP_MAX_NATIVE_ZOOM = 18;
 export const MAP_MIN_ZOOM = 5;
 
-/** Esri World Imagery (same source as web frontend). */
+/** Esri World Imagery (same source as web frontend). LODs exist to 23 in cities; rural GR ~18. */
 export const SATELLITE_TILE_URL =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 

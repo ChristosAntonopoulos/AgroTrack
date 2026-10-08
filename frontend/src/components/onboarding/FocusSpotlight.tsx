@@ -8,8 +8,6 @@ import './FocusSpotlight.css';
 
 type Props = {
   step: OwnerActivationStepId;
-  /** When omitted, Escape does nothing (createGrove must finish name/colour). */
-  onSkip?: () => void;
 };
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -56,7 +54,7 @@ const readBoundaryFocus = (): BoundaryFocus => {
 };
 
 /** Dim + ring only — tip lives in the top activation bar so the map stays clear. */
-const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
+const FocusSpotlight: React.FC<Props> = ({ step }) => {
   const { t } = useTranslation('onboarding');
   const [rect, setRect] = useState<Rect | null>(null);
   const [boundaryFocus, setBoundaryFocus] = useState<BoundaryFocus>('search');
@@ -132,15 +130,6 @@ const FocusSpotlight: React.FC<Props> = ({ step, onSkip }) => {
       window.cancelAnimationFrame(raf2);
     };
   }, [step]);
-
-  useEffect(() => {
-    if (!onSkip) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onSkip();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onSkip]);
 
   // Target not laid out yet (map stage mounting after the name step): poll fast so the cue
   // lands with the page instead of up to a second later.

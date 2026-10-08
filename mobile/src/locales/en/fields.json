@@ -391,6 +391,11 @@
       "Partner": "Partner",
       "Family": "Family"
     },
+    "sections": {
+      "Admin": "Where I'm admin",
+      "Family": "Family",
+      "Partner": "Partner"
+    },
     "draftBadge": "Draft",
     "irrigationYes": "Yes",
     "metaAria": "Field details"

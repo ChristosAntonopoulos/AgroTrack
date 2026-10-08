@@ -3,11 +3,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../i18n';
 import TaskDetailPage from './TaskDetailPage';
-import type { FieldTask } from '../services/fieldWorkService';
-import type { TaskFinancialSummary } from '../services/financialSummaryService';
+import type { Task } from '../services/taskService';
 
-const mockGetFieldTask = jest.fn();
-const mockGetTaskSummary = jest.fn();
+const mockGetTask = jest.fn();
 
 jest.mock(
   'react-router-dom',
@@ -24,76 +22,47 @@ jest.mock(
 jest.mock('../components/Layout/Breadcrumbs', () => () => null);
 
 jest.mock('../services/serviceFactory', () => ({
-  getFieldWorkService: () => ({
-    getFieldTask: (...args: unknown[]) => mockGetFieldTask(...args),
-    startFieldTask: jest.fn(),
+  getTaskService: () => ({
+    getTask: (...args: unknown[]) => mockGetTask(...args),
+    patchTask: jest.fn(),
+    completeTask: jest.fn(),
+    skipTask: jest.fn(),
   }),
   getFieldService: () => ({ getFields: async () => [] }),
-  getPartnerService: () => ({ getContacts: async () => [] }),
-  getFinancialSummaryService: () => ({
-    getTaskSummary: (...args: unknown[]) => mockGetTaskSummary(...args),
-  }),
 }));
 
-jest.mock('../services/fieldPeopleService', () => ({
-  fieldPeopleService: { getPeople: async () => [] },
-}));
-
-jest.mock('../context/CaptureContext', () => ({
-  useCaptureOptional: () => ({ openCapture: jest.fn() }),
-}));
-
-const task: FieldTask = {
+const task: Task = {
   id: 'task-1',
   fieldId: 'field-1',
   resultYear: 2026,
+  ownerId: 'owner-1',
   title: 'Λίπανση',
   status: 'planned',
   statusLabel: 'Προγραμματισμένη',
+  source: 'custom',
+  timingBucket: 'today',
   checklist: [],
-  additionalParticipantUserIds: [],
-  assignmentResponse: 'pending',
-  weatherSuitability: 'unknown',
-  weatherSuitabilityLabel: 'Άγνωστο',
-  attachmentIds: [],
   createdByUserId: 'owner-1',
   createdAt: '2026-09-01T00:00:00Z',
   updatedAt: '2026-09-01T00:00:00Z',
-  estimatedCost: 200,
 };
 
-const money: TaskFinancialSummary = {
-  taskId: 'task-1',
-  fieldId: 'field-1',
-  estimatedCost: 200,
-  actualCost: null,
-  difference: null,
-  transactionCount: 0,
-  dataAvailability: {
-    hasPostedRecords: false,
-    hasDraftRecords: false,
-    incomeIsUnknown: true,
-    expensesAreUnknown: true,
-    areaIsMissing: false,
-    oilQuantityIsMissing: false,
-    includesUnassigned: false,
-  },
-};
-
-test('task detail keeps estimate separate from unknown actual cost', async () => {
-  mockGetFieldTask.mockResolvedValue(task);
-  mockGetTaskSummary.mockResolvedValue(money);
-  await i18n.changeLanguage('el');
-  render(
-    <I18nextProvider i18n={i18n}>
-      <TaskDetailPage />
-    </I18nextProvider>
-  );
-
-  await waitFor(() => {
-    expect(screen.getByText('Πραγματικό κόστος')).toBeInTheDocument();
+describe('TaskDetailPage slim detail', () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('el');
+    mockGetTask.mockResolvedValue(task);
   });
-  expect(screen.getByText('Δεν έχει καταχωρηθεί ακόμη κόστος')).toBeInTheDocument();
-  expect(screen.getByText('Το εκτιμώμενο ποσό δεν μπαίνει στα αποτελέσματα της χρονιάς.')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Καταχώρηση εξόδου' })).toBeInTheDocument();
+
+  it('shows view/edit actions without start/pause work controls', async () => {
+    render(
+      <I18nextProvider i18n={i18n}>
+        <TaskDetailPage />
+      </I18nextProvider>
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Λίπανση' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Σήμανε έτοιμη' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Αλλαγή ημερομηνίας' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Έναρξη|Συνέχισε|Παύση/i })).not.toBeInTheDocument();
+  });
 });

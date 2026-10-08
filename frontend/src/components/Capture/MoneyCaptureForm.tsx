@@ -4,8 +4,9 @@ import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp } from 'lucide-reac
 import type { CaptureContext, CaptureSavedDetail } from '../../capture/types';
 import type { Field } from '../../services/fieldService';
 import type { HarvestRecord } from '../../services/harvestService';
-import { getFieldWorkService, getFinancialTransactionService, getHarvestService } from '../../services/serviceFactory';
+import { getFinancialTransactionService, getHarvestService, getTaskService } from '../../services/serviceFactory';
 import type { FieldTask } from '../../services/fieldWorkService';
+import { taskToFieldTask } from '../../utils/taskCompat';
 import { fileUploadService } from '../../services/fileUploadService';
 import {
   defaultCategoryForType,
@@ -286,7 +287,10 @@ const MoneyCaptureForm: React.FC<Props> = ({
     }
     let cancelled = false;
     void Promise.all([
-      getFieldWorkService().listFieldTasks({ fieldId }).catch(() => [] as FieldTask[]),
+      getTaskService()
+        .listTasks({ view: 'all', fieldId })
+        .then((rows) => rows.map(taskToFieldTask))
+        .catch(() => [] as FieldTask[]),
       getHarvestService().listByField(fieldId).catch(() => [] as HarvestRecord[]),
     ]).then(([nextTasks, nextHarvests]) => {
       if (cancelled) return;

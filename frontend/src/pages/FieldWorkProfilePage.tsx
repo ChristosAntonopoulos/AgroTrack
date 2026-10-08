@@ -18,8 +18,7 @@ import type {
   DefaultAssignments,
   FieldWorkLearningStatus,
   FieldWorkProfile,
-  UpdateFieldWorkProfileInput,
-} from '../services/fieldWorkService';
+  UpdateFieldWorkProfileInput} from '../services/fieldWorkService';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import { shouldShowDefaultAssignments } from '../utils/fieldWorkDefaultAssignments';
@@ -141,8 +140,7 @@ const FieldWorkProfilePage: React.FC = () => {
 
   const prefLabel = (mode: string) =>
     t(`tasks:fieldWork.profile.pref.${mode}`, {
-      defaultValue: mode,
-    });
+      defaultValue: mode});
 
   if (loading) {
     return (
@@ -157,7 +155,7 @@ const FieldWorkProfilePage: React.FC = () => {
       <PageContainer>
         <p className="fw-setup-status is-error">{error || t('tasks:fieldWork.profile.loadFailed')}</p>
         <BackLink to="/fields">
-          {t('fields:controlRoom.backToFields', { defaultValue: 'Πίσω' })}
+          {t('fields:controlRoom.backToFields')}
         </BackLink>
       </PageContainer>
     );
@@ -190,43 +188,36 @@ const FieldWorkProfilePage: React.FC = () => {
     {
       key: 'purpose',
       title: t('tasks:fieldWork.profile.sections.purpose'),
-      summary: profile.productionPurposeLabel || prefLabel(profile.productionPurpose),
-    },
+      summary: profile.productionPurposeLabel || prefLabel(profile.productionPurpose)},
     {
       key: 'irrigation',
       title: t('tasks:fieldWork.profile.categories.irrigation'),
-      summary: profile.irrigation.preferenceModeLabel || prefLabel(profile.irrigation.preferenceMode),
-    },
+      summary: profile.irrigation.preferenceModeLabel || prefLabel(profile.irrigation.preferenceMode)},
     {
       key: 'pruning',
       title: t('tasks:fieldWork.profile.categories.pruning'),
-      summary: profile.pruning.preferenceModeLabel || prefLabel(profile.pruning.preferenceMode),
-    },
+      summary: profile.pruning.preferenceModeLabel || prefLabel(profile.pruning.preferenceMode)},
     {
       key: 'fertilisation',
       title: t('tasks:fieldWork.profile.categories.fertilisation'),
       summary:
         profile.fertilisation.preferenceModeLabel ||
-        prefLabel(profile.fertilisation.preferenceMode),
-    },
+        prefLabel(profile.fertilisation.preferenceMode)},
     {
       key: 'groundCover',
       title: t('tasks:fieldWork.profile.categories.ground_cover'),
       summary:
-        profile.groundCover.preferenceModeLabel || prefLabel(profile.groundCover.preferenceMode),
-    },
+        profile.groundCover.preferenceModeLabel || prefLabel(profile.groundCover.preferenceMode)},
     {
       key: 'pest',
       title: t('tasks:fieldWork.profile.categories.monitoring'),
       summary:
         profile.pestManagement.preferenceModeLabel ||
-        prefLabel(profile.pestManagement.preferenceMode),
-    },
+        prefLabel(profile.pestManagement.preferenceMode)},
     {
       key: 'harvest',
       title: t('tasks:fieldWork.profile.categories.harvest'),
-      summary: profile.harvest.preferenceModeLabel || prefLabel(profile.harvest.preferenceMode),
-    },
+      summary: profile.harvest.preferenceModeLabel || prefLabel(profile.harvest.preferenceMode)},
   ];
 
   const showDefaults = shouldShowDefaultAssignments(
@@ -377,9 +368,8 @@ const FieldWorkProfilePage: React.FC = () => {
                   const map: Record<string, string> = {
                     oil: 'olive_oil',
                     table: 'table_olives',
-                    both: 'both',
-                  };
-                  void savePatch({ productionPurpose: map[id] || id, });
+                    both: 'both'};
+                  void savePatch({ productionPurpose: map[id] || id});
                 }}
                 choices={[
                   { id: 'oil', title: t('tasks:fieldWork.onboarding.choices.purpose.oil') },
@@ -394,22 +384,18 @@ const FieldWorkProfilePage: React.FC = () => {
                   const mode =
                     id === 'yes' ? 'enabled' : id === 'no' ? 'disabled' : 'ask_first';
                   void savePatch({
-                    irrigation: { preferenceMode: mode, source: SOURCE },
-                  });
+                    irrigation: { preferenceMode: mode, source: SOURCE }});
                 }}
                 choices={[
                   {
                     id: 'yes',
-                    title: t('tasks:fieldWork.onboarding.choices.irrigation.yes'),
-                  },
+                    title: t('tasks:fieldWork.onboarding.choices.irrigation.yes')},
                   {
                     id: 'no',
-                    title: t('tasks:fieldWork.onboarding.choices.irrigation.no'),
-                  },
+                    title: t('tasks:fieldWork.onboarding.choices.irrigation.no')},
                   {
                     id: 'ask',
-                    title: t('tasks:fieldWork.onboarding.choices.irrigation.ask'),
-                  },
+                    title: t('tasks:fieldWork.onboarding.choices.irrigation.ask')},
                 ]}
               />
             ) : null}
@@ -433,8 +419,7 @@ const FieldWorkProfilePage: React.FC = () => {
                   { id: 'no', title: t('tasks:fieldWork.onboarding.choices.no') },
                   {
                     id: 'ask',
-                    title: t('tasks:fieldWork.onboarding.choices.unsure'),
-                  },
+                    title: t('tasks:fieldWork.onboarding.choices.unsure')},
                 ]}
               />
             ) : null}
@@ -446,36 +431,29 @@ const FieldWorkProfilePage: React.FC = () => {
                       preferenceMode:
                         id === 'no_usual_treatments' ? 'disabled' : 'enabled',
                       decisionApproach: id,
-                      source: SOURCE,
-                    },
-                  });
+                      source: SOURCE}});
                 }}
                 choices={[
                   {
                     id: 'official_warnings',
-                    title: t('tasks:fieldWork.onboarding.choices.pest.official'),
-                  },
+                    title: t('tasks:fieldWork.onboarding.choices.pest.official')},
                   {
                     id: 'agronomist',
-                    title: t('tasks:fieldWork.onboarding.choices.pest.agronomist'),
-                  },
+                    title: t('tasks:fieldWork.onboarding.choices.pest.agronomist')},
                   {
                     id: 'trap_and_fruit_checks',
-                    title: t('tasks:fieldWork.onboarding.choices.pest.traps'),
-                  },
+                    title: t('tasks:fieldWork.onboarding.choices.pest.traps')},
                   {
                     id: 'combined',
-                    title: t('tasks:fieldWork.onboarding.choices.pest.combined'),
-                  },
+                    title: t('tasks:fieldWork.onboarding.choices.pest.combined')},
                   {
                     id: 'no_usual_treatments',
-                    title: t('tasks:fieldWork.onboarding.choices.pest.none'),
-                  },
+                    title: t('tasks:fieldWork.onboarding.choices.pest.none')},
                 ]}
               />
             ) : null}
             <Button variant="ghost" size="lg" fullWidth onClick={() => setEditSection(null)}>
-              {t('common:cancel', { defaultValue: 'Άκυρο' })}
+              {t('common:cancel')}
             </Button>
             {saving ? (
               <p className="fw-setup-status">{t('tasks:fieldWork.onboarding.saving')}</p>

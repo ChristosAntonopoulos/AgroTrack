@@ -13,10 +13,10 @@ import { useModulePageGuard } from '../hooks/useModulePageGuard';
 import { isDeviceOnline } from '../utils/networkStatus';
 import {
   getFieldService,
-  getFieldWorkService,
   getFinancialSummaryService,
   getFinancialTransactionService,
   getHarvestService,
+  getTaskService,
 } from '../services/serviceFactory';
 import { Field } from '../services/fieldService';
 import type { FinancialTransaction } from '../services/financialTransactionService';
@@ -261,8 +261,8 @@ const MoneyPage: React.FC = () => {
     let cancelled = false;
     void (async () => {
       const taskTitle = selected.relatedTaskId
-        ? await getFieldWorkService()
-            .getFieldTask(selected.relatedTaskId)
+        ? await getTaskService()
+            .getTask(selected.relatedTaskId)
             .then((task) => task.title)
             .catch(() => undefined)
         : undefined;

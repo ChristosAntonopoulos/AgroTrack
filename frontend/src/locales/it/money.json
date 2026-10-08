@@ -31,8 +31,8 @@
   "expenseShort": "Uscite",
   "netShort": "Risultato",
   "byField": "Per campo",
-  "perHectare": "per stremma",
-  "perStremma": "per stremma",
+  "perHectare": "allo stremma",
+  "perStremma": "allo stremma",
   "categories": "Categorie",
   "expenseCategories": "Uscite per categoria",
   "incomeCategories": "Entrate per categoria",
@@ -142,5 +142,14 @@
   "unsoldTin": "{{count}} × {{size}} L",
   "unsoldBulk": "{{amount}} sfuso",
   "openMyOil": "Vedi il magazzino",
-  "oilSaleInCellar": "Collegato alla cantina dell'olio"
+  "oilSaleInCellar": "Collegato alla cantina dell'olio",
+  "provisionalBalance": "Saldo provvisorio",
+  "incomeToDate": "Entrate finora",
+  "expensesToDate": "Spese finora",
+  "expected": "Previsto",
+  "noIncomeYetActive": "Nessuna entrata ancora in questa stagione attiva.",
+  "markPaid": "Segna come pagato",
+  "markOwed": "Segna come dovuto",
+  "settlementPaid": "Pagato",
+  "settlementOwed": "Dovuto"
 }

@@ -153,6 +153,13 @@
     "cta": "Write the note",
     "prefill": "My first observation in the grove — History begins here."
   },
+  "skipConfirm": {
+    "label": "Skip setup",
+    "title": "Are you sure you want to skip?",
+    "body": "You can finish the grove whenever you like. What you already saved stays.",
+    "stay": "Keep going",
+    "confirm": "Skip for now"
+  },
   "settings": {
     "showTips": "Show grove setup tips"
   }

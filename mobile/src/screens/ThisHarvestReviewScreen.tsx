@@ -13,8 +13,9 @@ import { usePreferences } from '../context/PreferencesContext';
 import { useRefresh } from '../hooks/useRefresh';
 import { useFields } from '../hooks/useFields';
 import { reportsService, HarvestReportRecord } from '../services/reportsService';
-import { getFieldWorkService, getNoteService, getFinancialSummaryService } from '../services/serviceFactory';
+import { getNoteService, getFinancialSummaryService, getTaskService } from '../services/serviceFactory';
 import { FieldTask } from '../services/fieldWorkService';
+import { taskToFieldTask } from '../utils/taskCompat';
 import { Note, notePreviewTitle } from '../services/noteService';
 import { formatKg } from '../utils/harvestUtils';
 import {
@@ -63,7 +64,12 @@ const ThisHarvestReviewScreen = () => {
   const discover = useCallback(async () => {
     setLoading(true);
     try {
-      const tasks = await getFieldWorkService().listFieldTasks().catch(() => [] as FieldTask[]);
+      const tasks = await Promise.all([
+        getTaskService().listTasks({ view: 'all' }),
+        getTaskService().listTasks({ view: 'done' }),
+      ])
+        .then(([planned, done]) => [...planned, ...done].map(taskToFieldTask))
+        .catch(() => [] as FieldTask[]);
       setAllTasks(tasks);
       const closed = listRecentSeasonYears(8).filter((y) => isSeasonClosedForReview(y, tasks));
       setClosedYears(closed);

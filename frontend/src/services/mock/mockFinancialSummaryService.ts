@@ -6,7 +6,7 @@ import type {
   YearFinancialSummary,
 } from '../financialSummaryService';
 import { listMockFinancialTransactions } from './mockFinancialTransactionService';
-import { mockFieldWorkService } from './mockFieldWorkService';
+import { mockTaskService } from './mockTaskService';
 
 const posted = () => listMockFinancialTransactions().filter((row) => row.status === 'posted');
 
@@ -27,11 +27,14 @@ export const mockFinancialSummaryService = {
   },
 
   getTaskSummary: async (taskId: string): Promise<TaskFinancialSummary> => {
-    const tasks = await mockFieldWorkService.listFieldTasks();
-    const task = tasks.find((item) => item.id === taskId);
+    const [planned, done] = await Promise.all([
+      mockTaskService.listTasks({ view: 'all' }),
+      mockTaskService.listTasks({ view: 'done' }),
+    ]);
+    const task = [...planned, ...done].find((item) => item.id === taskId);
     const expenses = posted().filter((row) => row.relatedTaskId === taskId && row.type === 'expense');
     const actual = expenses.length ? roundMoney(expenses.reduce((sum, row) => sum + row.amount, 0)) : null;
-    const estimated = task?.estimatedCost ?? null;
+    const estimated = null;
     return {
       taskId,
       fieldId: task?.fieldId || expenses[0]?.fieldId || '',

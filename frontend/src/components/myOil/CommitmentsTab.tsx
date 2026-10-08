@@ -7,8 +7,7 @@ import { formatOilPack } from '../../myOil/formatOilPack';
 import {
   holdState,
   isHouseholdCommitment,
-  type CommitmentFilter,
-} from '../../myOil/commitmentCopy';
+  type CommitmentFilter} from '../../myOil/commitmentCopy';
 import { useDrawerPresence } from '../../hooks/useDrawerPresence';
 import type { OilCommitment, OilLot } from '../../services/oilStockService';
 
@@ -41,8 +40,7 @@ export function CommitmentsTab({
   formatDate,
   onDeliver,
   onCancel,
-  onGive,
-}: Props) {
+  onGive}: Props) {
   const { t } = useTranslation(['myOil', 'common']);
   const [filter, setFilter] = useState<CommitmentFilter>('all');
   const [detail, setDetail] = useState<OilCommitment | null>(null);
@@ -163,7 +161,7 @@ export function CommitmentsTab({
           title={active.counterpartyName}
           subtitle={statusFor(active)}
           icon={<Bookmark size={18} strokeWidth={1.75} aria-hidden />}
-          closeLabel={t('common:close', { defaultValue: 'Κλείσιμο' })}
+          closeLabel={t('common:close')}
           footer={
             <>
               <Button variant="secondary" onClick={() => setDetail(null)}>

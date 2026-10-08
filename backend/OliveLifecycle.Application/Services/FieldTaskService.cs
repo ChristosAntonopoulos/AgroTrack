@@ -73,7 +73,7 @@ public interface IFieldTaskService
         string language = "el",
         CancellationToken cancellationToken = default);
 
-    Task<TaskExecutionDto> CompleteAsync(
+    Task<FieldTaskDto> CompleteAsync(
         string id,
         CompleteFieldTaskDto dto,
         string userId,
@@ -130,6 +130,7 @@ public interface IFieldTaskService
 
     Task<FieldTaskDto> SkipAsync(
         string id,
+        string? reason,
         string userId,
         string userRole,
         string language = "el",
@@ -270,20 +271,26 @@ public class FieldTaskService : IFieldTaskService
         {
             FieldId = dto.FieldId,
             ResultYear = resultYear,
+            OwnerId = userId,
             TemplateCode = dto.TemplateCode,
             TemplateVersion = templateVersion,
             Title = dto.Title.Trim(),
             Description = dto.Description,
             Status = FieldTaskStatus.Planned,
+            Source = string.IsNullOrWhiteSpace(dto.TemplateCode) ? TaskSource.Custom : TaskSource.Template,
+            TimingBucket = TaskTimingBucket.Later,
+            ScheduledFor = plannedStart,
             PlannedStart = plannedStart,
             PlannedEnd = dto.PlannedEnd,
             PreferredTimeWindow = dto.PreferredTimeWindow,
+            AssigneeId = dto.AssignedUserId,
             AssignedUserId = dto.AssignedUserId,
             AssignedCollaboratorId = dto.AssignedCollaboratorId,
             ResponsibleUserId = userId,
             ChecklistSnapshot = checklist,
             EstimatedCost = dto.EstimatedCost,
             Notes = dto.Notes,
+            Note = dto.Notes,
             RelatedHarvestId = dto.RelatedHarvestId,
             WeatherSuitability = WeatherSuitability.Unknown,
             WorkGroupId = string.IsNullOrWhiteSpace(dto.WorkGroupId) ? null : dto.WorkGroupId.Trim(),
@@ -364,119 +371,40 @@ public class FieldTaskService : IFieldTaskService
         return FieldWorkMapper.ToDto(updated, language);
     }
 
-    public async Task<FieldTaskDto> StartAsync(
+    public Task<FieldTaskDto> StartAsync(
         string id,
         string userId,
         string userRole,
         string language = "el",
-        CancellationToken cancellationToken = default)
-    {
-        var task = await RequireTaskAsync(id, cancellationToken);
-        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
-        EnsureNotTerminal(task);
+        CancellationToken cancellationToken = default) =>
+        throw new ValidationException("Start is no longer supported. Complete the planned task or link a work record.");
 
-        if (task.Status is FieldTaskStatus.Planned or FieldTaskStatus.Ready or FieldTaskStatus.Blocked)
-        {
-            task.Status = FieldTaskStatus.InProgress;
-            task.StartedAt ??= _clock.UtcNow;
-            task.IsPaused = false;
-            task.PauseReason = null;
-            task.PausedAt = null;
-            task.UpdatedAt = _clock.UtcNow;
-            Record(task, "started", userId, task.UpdatedAt);
-            task = await _tasks.UpdateAsync(task, cancellationToken);
-        }
-
-        return FieldWorkMapper.ToDto(task, language);
-    }
-
-    public async Task<FieldTaskDto> UndoStartAsync(
+    public Task<FieldTaskDto> UndoStartAsync(
         string id,
         string userId,
         string userRole,
         string language = "el",
-        CancellationToken cancellationToken = default)
-    {
-        var task = await RequireTaskAsync(id, cancellationToken);
-        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+        CancellationToken cancellationToken = default) =>
+        throw new ValidationException("Start/pause lifecycle actions were removed.");
 
-        if (task.Status != FieldTaskStatus.InProgress)
-        {
-            throw new ValidationException("Only in-progress tasks can undo start.");
-        }
-
-        if (task.ChecklistSnapshot.Any(c => c.IsAnswered))
-        {
-            throw new ValidationException("Cannot undo start after checklist answers exist.");
-        }
-
-        task.Status = FieldTaskStatus.Planned;
-        task.StartedAt = null;
-        task.IsPaused = false;
-        task.PauseReason = null;
-        task.PausedAt = null;
-        task.UpdatedAt = _clock.UtcNow;
-        task = await _tasks.UpdateAsync(task, cancellationToken);
-        return FieldWorkMapper.ToDto(task, language);
-    }
-
-    public async Task<FieldTaskDto> PauseAsync(
+    public Task<FieldTaskDto> PauseAsync(
         string id,
         PauseFieldTaskDto dto,
         string userId,
         string userRole,
         string language = "el",
-        CancellationToken cancellationToken = default)
-    {
-        var task = await RequireTaskAsync(id, cancellationToken);
-        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
-        EnsureNotTerminal(task);
+        CancellationToken cancellationToken = default) =>
+        throw new ValidationException("Pause is no longer supported.");
 
-        if (task.Status != FieldTaskStatus.InProgress)
-        {
-            throw new ValidationException("Only in-progress tasks can be paused.");
-        }
-
-        task.IsPaused = true;
-        task.PauseReason = string.IsNullOrWhiteSpace(dto.Reason) ? "other" : dto.Reason.Trim();
-        task.PausedAt = _clock.UtcNow;
-        if (dto.PlannedStart.HasValue)
-        {
-            task.PlannedStart = dto.PlannedStart;
-        }
-        if (dto.PlannedEnd.HasValue || dto.PlannedStart.HasValue)
-        {
-            task.PlannedEnd = dto.PlannedEnd ?? dto.PlannedStart;
-        }
-        task.UpdatedAt = _clock.UtcNow;
-        task = await _tasks.UpdateAsync(task, cancellationToken);
-        return FieldWorkMapper.ToDto(task, language);
-    }
-
-    public async Task<FieldTaskDto> ResumeAsync(
+    public Task<FieldTaskDto> ResumeAsync(
         string id,
         string userId,
         string userRole,
         string language = "el",
-        CancellationToken cancellationToken = default)
-    {
-        var task = await RequireTaskAsync(id, cancellationToken);
-        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
+        CancellationToken cancellationToken = default) =>
+        throw new ValidationException("Resume is no longer supported.");
 
-        if (task.Status != FieldTaskStatus.InProgress)
-        {
-            throw new ValidationException("Only in-progress tasks can be resumed.");
-        }
-
-        task.IsPaused = false;
-        task.PauseReason = null;
-        task.PausedAt = null;
-        task.UpdatedAt = _clock.UtcNow;
-        task = await _tasks.UpdateAsync(task, cancellationToken);
-        return FieldWorkMapper.ToDto(task, language);
-    }
-
-    public async Task<TaskExecutionDto> CompleteAsync(
+    public async Task<FieldTaskDto> CompleteAsync(
         string id,
         CompleteFieldTaskDto dto,
         string userId,
@@ -487,15 +415,17 @@ public class FieldTaskService : IFieldTaskService
         var task = await RequireTaskAsync(id, cancellationToken);
         await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
 
-        if (task.Status == FieldTaskStatus.Cancelled)
+        if (task.Status == FieldTaskStatus.Skipped)
         {
-            throw new ValidationException("Cancelled tasks cannot be completed.");
+            throw new ValidationException("Skipped tasks cannot be completed.");
         }
 
-        var outcome = TaskExecutionOutcomeExtensions.FromApiString(dto.Outcome)
-            ?? TaskExecutionOutcome.Completed;
-        var now = _clock.UtcNow;
+        if (task.Status == FieldTaskStatus.Done)
+        {
+            return FieldWorkMapper.ToDto(task, language);
+        }
 
+        var now = _clock.UtcNow;
         ApplyChecklistAnswers(task, dto.ChecklistAnswers);
         var incompleteRequired = task.ChecklistSnapshot.Count(item =>
             item.Requirement == ChecklistItemRequirement.RequiredBeforeCompletion && !item.IsAnswered);
@@ -504,79 +434,26 @@ public class FieldTaskService : IFieldTaskService
             throw new ValidationException($"{incompleteRequired} required checks are incomplete.");
         }
 
-        var execution = new TaskExecution
+        if (!string.IsNullOrWhiteSpace(dto.Notes))
         {
-            TaskId = task.Id,
-            FieldId = task.FieldId,
-            ResultYear = task.ResultYear,
-            StartedAt = dto.StartedAt ?? (task.Status == FieldTaskStatus.InProgress ? task.UpdatedAt : now),
-            CompletedAt = dto.CompletedAt ?? now,
-            Outcome = outcome,
-            CompletedByUserIds = [userId],
-            ChecklistResults = task.ChecklistSnapshot.Select(ToResult).ToList(),
-            Notes = dto.Notes,
-            AttachmentIds = dto.AttachmentIds?.ToList() ?? [],
-            TreatedAreaHectares = dto.TreatedAreaHectares,
-            WeatherSuitability = task.WeatherSuitability,
-            WeatherEvaluationId = task.WeatherEvaluationId,
-            PlannedStartSnapshot = task.PlannedStart,
-            PlannedEndSnapshot = task.PlannedEnd,
-            RecordedByUserId = userId,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
-
-        if (outcome == TaskExecutionOutcome.PartiallyCompleted && dto.CreateFollowUpForRemainder)
-        {
-            var followUp = new FieldTask
-            {
-                FieldId = task.FieldId,
-                ResultYear = task.ResultYear,
-                TemplateCode = task.TemplateCode,
-                TemplateVersion = task.TemplateVersion,
-                Title = task.Title,
-                Description = task.Description,
-                Status = FieldTaskStatus.Planned,
-                PlannedStart = task.PlannedStart,
-                PlannedEnd = task.PlannedEnd,
-                PreferredTimeWindow = task.PreferredTimeWindow,
-                AssignedUserId = task.AssignedUserId,
-                AssignedCollaboratorId = task.AssignedCollaboratorId,
-                ResponsibleUserId = task.ResponsibleUserId,
-                ChecklistSnapshot = task.ChecklistSnapshot
-                    .Where(c => !c.IsAnswered)
-                    .Select(CloneChecklistItem)
-                    .ToList(),
-                EstimatedCost = null,
-                Notes = "Υπόλοιπο εργασίας",
-                RelatedHarvestId = task.RelatedHarvestId,
-                WeatherSuitability = WeatherSuitability.Unknown,
-                CreatedByUserId = userId,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-
-            var createdFollowUp = await _tasks.CreateAsync(followUp, cancellationToken);
-            execution.FollowUpRequired = true;
-            execution.FollowUpTaskId = createdFollowUp.Id;
+            task.Notes = dto.Notes;
+            task.Note = dto.Notes;
         }
 
-        var createdExecution = await _executions.CreateAsync(execution, cancellationToken);
+        if (dto.AttachmentIds is { Count: > 0 })
+        {
+            task.AttachmentIds = dto.AttachmentIds.ToList();
+        }
 
-        task.LatestExecutionId = createdExecution.Id;
-        task.ChecklistSnapshot = task.ChecklistSnapshot;
+        // Mark done only — do NOT create TaskExecution/WorkRecord or follow-up tasks.
+        task.Status = FieldTaskStatus.Done;
+        task.CompletedAt = dto.CompletedAt ?? now;
+        task.CompletedByUserId = userId;
         task.UpdatedAt = now;
         Record(task, "completed", userId, now, dto.Notes);
-        task.Status = outcome switch
-        {
-            TaskExecutionOutcome.Completed => FieldTaskStatus.Completed,
-            TaskExecutionOutcome.NotDone => FieldTaskStatus.Cancelled,
-            _ => FieldTaskStatus.Completed
-        };
 
-        await _tasks.UpdateAsync(task, cancellationToken);
+        var updated = await _tasks.UpdateAsync(task, cancellationToken);
 
-        // Completion can unlock follow-up event proposals (post-treatment rain, fertiliser + rain, etc.).
         try
         {
             await _proposalEngine.EvaluateFieldAsync(
@@ -589,7 +466,7 @@ public class FieldTaskService : IFieldTaskService
             // Proposal refresh must not fail completion.
         }
 
-        return FieldWorkMapper.ToDto(createdExecution, language);
+        return FieldWorkMapper.ToDto(updated, language);
     }
 
     public async Task<FieldTaskDto> UndoCompletionAsync(
@@ -607,6 +484,11 @@ public class FieldTaskService : IFieldTaskService
             throw new ValidationException("This completion was already undone.");
         }
 
+        if (string.IsNullOrWhiteSpace(execution.TaskId))
+        {
+            throw new ValidationException("This work record is not linked to a task.");
+        }
+
         var task = await RequireTaskAsync(execution.TaskId, cancellationToken);
         await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
 
@@ -622,24 +504,15 @@ public class FieldTaskService : IFieldTaskService
         execution.UpdatedAt = now;
         await _executions.UpdateAsync(execution, cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(execution.FollowUpTaskId))
-        {
-            var followUp = await _tasks.GetByIdAsync(execution.FollowUpTaskId, cancellationToken);
-            if (followUp is { Status: FieldTaskStatus.Planned or FieldTaskStatus.Ready }
-                && string.IsNullOrWhiteSpace(followUp.LatestExecutionId))
-            {
-                followUp.Status = FieldTaskStatus.Cancelled;
-                followUp.UpdatedAt = now;
-                await _tasks.UpdateAsync(followUp, cancellationToken);
-            }
-        }
-
-        // Restore original plan dates from the execution snapshot; reopen the FieldTask.
-        task.Status = FieldTaskStatus.InProgress;
+        task.Status = FieldTaskStatus.Planned;
         task.PlannedStart = execution.PlannedStartSnapshot ?? task.PlannedStart;
         task.PlannedEnd = execution.PlannedEndSnapshot ?? task.PlannedEnd;
         task.LatestExecutionId = null;
+        task.LinkedWorkRecordId = null;
+        task.CompletedAt = null;
+        task.CompletedByUserId = null;
         task.UpdatedAt = now;
+        Record(task, "reopened", userId, now);
         var updated = await _tasks.UpdateAsync(task, cancellationToken);
         return FieldWorkMapper.ToDto(updated, language);
     }
@@ -654,14 +527,16 @@ public class FieldTaskService : IFieldTaskService
         var task = await RequireTaskAsync(id, cancellationToken);
         await _auth.EnsureCanCreateOrEditTaskAsync(task.FieldId, userId, userRole, cancellationToken);
 
-        if (task.Status == FieldTaskStatus.Completed)
+        if (task.Status == FieldTaskStatus.Done)
         {
-            throw new ValidationException("Completed tasks cannot be cancelled.");
+            throw new ValidationException("Done tasks cannot be cancelled.");
         }
 
-        task.Status = FieldTaskStatus.Cancelled;
-        task.UpdatedAt = _clock.UtcNow;
-        Record(task, "cancelled", userId, task.UpdatedAt);
+        var now = _clock.UtcNow;
+        task.Status = FieldTaskStatus.Skipped;
+        task.SkippedAt = now;
+        task.UpdatedAt = now;
+        Record(task, "cancelled", userId, now);
         var updated = await _tasks.UpdateAsync(task, cancellationToken);
         return FieldWorkMapper.ToDto(updated, language);
     }
@@ -763,7 +638,16 @@ public class FieldTaskService : IFieldTaskService
         return FieldWorkMapper.ToDto(updated, language);
     }
 
-    public async Task<FieldTaskDto> BlockAsync(
+    public Task<FieldTaskDto> BlockAsync(
+        string id,
+        string? reason,
+        string userId,
+        string userRole,
+        string language = "el",
+        CancellationToken cancellationToken = default) =>
+        throw new ValidationException("Block is no longer supported. Skip the task instead.");
+
+    public async Task<FieldTaskDto> SkipAsync(
         string id,
         string? reason,
         string userId,
@@ -776,57 +660,22 @@ public class FieldTaskService : IFieldTaskService
         EnsureNotTerminal(task);
 
         var now = _clock.UtcNow;
-        task.Status = FieldTaskStatus.Blocked;
-        task.BlockedReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
-        task.IsPaused = false;
-        task.UpdatedAt = now;
-        Record(task, "blocked", userId, now, task.BlockedReason);
-        var updated = await _tasks.UpdateAsync(task, cancellationToken);
-        return FieldWorkMapper.ToDto(updated, language);
-    }
-
-    public async Task<FieldTaskDto> SkipAsync(
-        string id,
-        string userId,
-        string userRole,
-        string language = "el",
-        CancellationToken cancellationToken = default)
-    {
-        var task = await RequireTaskAsync(id, cancellationToken);
-        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
-        EnsureNotTerminal(task);
-
-        var now = _clock.UtcNow;
         task.Status = FieldTaskStatus.Skipped;
+        task.SkippedAt = now;
+        task.SkippedReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
         task.UpdatedAt = now;
-        Record(task, "skipped", userId, now);
+        Record(task, "skipped", userId, now, task.SkippedReason);
         var updated = await _tasks.UpdateAsync(task, cancellationToken);
         return FieldWorkMapper.ToDto(updated, language);
     }
 
-    public async Task<FieldTaskDto> ResolveAsync(
+    public Task<FieldTaskDto> ResolveAsync(
         string id,
         string userId,
         string userRole,
         string language = "el",
-        CancellationToken cancellationToken = default)
-    {
-        var task = await RequireTaskAsync(id, cancellationToken);
-        await _auth.EnsureCanOperateTaskAsync(task, userId, userRole, cancellationToken);
-
-        if (task.Status != FieldTaskStatus.Blocked)
-        {
-            throw new ValidationException("Only blocked tasks can be resolved.");
-        }
-
-        var now = _clock.UtcNow;
-        task.Status = task.StartedAt.HasValue ? FieldTaskStatus.InProgress : FieldTaskStatus.Planned;
-        task.BlockedReason = null;
-        task.UpdatedAt = now;
-        Record(task, "resolved", userId, now);
-        var updated = await _tasks.UpdateAsync(task, cancellationToken);
-        return FieldWorkMapper.ToDto(updated, language);
-    }
+        CancellationToken cancellationToken = default) =>
+        throw new ValidationException("Resolve is no longer supported.");
 
     public async Task<FieldTaskDto> ReopenAsync(
         string id,
@@ -838,13 +687,17 @@ public class FieldTaskService : IFieldTaskService
         var task = await RequireTaskAsync(id, cancellationToken);
         await _auth.EnsureCanCreateOrEditTaskAsync(task.FieldId, userId, userRole, cancellationToken);
 
-        if (task.Status is not (FieldTaskStatus.Completed or FieldTaskStatus.Cancelled or FieldTaskStatus.Skipped))
+        if (task.Status is not (FieldTaskStatus.Done or FieldTaskStatus.Skipped))
         {
-            throw new ValidationException("Only recorded work can be reopened.");
+            throw new ValidationException("Only done or skipped tasks can be reopened.");
         }
 
         var now = _clock.UtcNow;
         task.Status = FieldTaskStatus.Planned;
+        task.CompletedAt = null;
+        task.CompletedByUserId = null;
+        task.SkippedAt = null;
+        task.SkippedReason = null;
         task.UpdatedAt = now;
         Record(task, "reopened", userId, now);
         var updated = await _tasks.UpdateAsync(task, cancellationToken);
@@ -885,7 +738,7 @@ public class FieldTaskService : IFieldTaskService
 
     private static void EnsureNotTerminal(FieldTask task)
     {
-        if (task.Status is FieldTaskStatus.Completed or FieldTaskStatus.Cancelled or FieldTaskStatus.Skipped)
+        if (task.Status.IsTerminal())
         {
             throw new ValidationException("This task can no longer be modified.");
         }

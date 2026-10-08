@@ -707,7 +707,9 @@ public class ChronologioService : IChronologioService
             .ToList();
 
         var fieldTasksById = new Dictionary<string, FieldTask>(StringComparer.Ordinal);
-        var relatedTaskIds = executions.Select(e => e.TaskId)
+        var relatedTaskIds = executions
+            .Where(e => !string.IsNullOrWhiteSpace(e.TaskId))
+            .Select(e => e.TaskId!)
             .Concat(money
                 .Where(t => !string.IsNullOrWhiteSpace(t.RelatedTaskId))
                 .Select(t => t.RelatedTaskId!))
@@ -719,6 +721,29 @@ public class ChronologioService : IChronologioService
             {
                 fieldTasksById[task.Id] = task;
             }
+        }
+
+        // Done tasks without a WorkRecord emit compact Chronologio history.
+        var linkedExecutionTaskIds = executions
+            .Where(e => !string.IsNullOrWhiteSpace(e.TaskId))
+            .Select(e => e.TaskId!)
+            .ToHashSet(StringComparer.Ordinal);
+        var doneWithoutWork = await _fieldTaskRepository.QueryAsync(
+            new FieldTaskQuery
+            {
+                FieldIds = fieldIds,
+                Statuses = [FieldTaskStatus.Done]
+            },
+            cancellationToken);
+        foreach (var task in doneWithoutWork)
+        {
+            if (!string.IsNullOrWhiteSpace(task.LinkedWorkRecordId)
+                || linkedExecutionTaskIds.Contains(task.Id))
+            {
+                continue;
+            }
+
+            fieldTasksById[task.Id] = task;
         }
 
         var harvestsById = harvests.ToDictionary(h => h.Id, StringComparer.Ordinal);
@@ -751,8 +776,15 @@ public class ChronologioService : IChronologioService
                 MediaOwnerType.Note, notes.Select(n => n.Id), cancellationToken))
             .GroupBy(m => m.OwnerId)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+        var taskMediaOwners = executions
+            .Select(e => e.TaskId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Cast<string>()
+            .Concat(doneWithoutWork.Select(t => t.Id))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
         var taskMedia = (await _mediaAttachmentRepository.GetByOwnersAsync(
-                MediaOwnerType.Task, executions.Select(e => e.TaskId), cancellationToken))
+                MediaOwnerType.Task, taskMediaOwners, cancellationToken))
             .GroupBy(m => m.OwnerId)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
 
@@ -760,14 +792,37 @@ public class ChronologioService : IChronologioService
 
         foreach (var execution in executions)
         {
-            fieldTasksById.TryGetValue(execution.TaskId, out var fieldTask);
+            FieldTask? fieldTask = null;
+            if (!string.IsNullOrWhiteSpace(execution.TaskId))
+            {
+                fieldTasksById.TryGetValue(execution.TaskId, out fieldTask);
+            }
+
             entries.Add(MapTaskExecution(
                 execution,
                 fieldTask,
                 fieldLabels,
                 displayNames,
                 userId,
-                taskMedia.GetValueOrDefault(execution.TaskId)));
+                string.IsNullOrWhiteSpace(execution.TaskId)
+                    ? null
+                    : taskMedia.GetValueOrDefault(execution.TaskId)));
+        }
+
+        foreach (var task in doneWithoutWork)
+        {
+            if (!string.IsNullOrWhiteSpace(task.LinkedWorkRecordId)
+                || linkedExecutionTaskIds.Contains(task.Id))
+            {
+                continue;
+            }
+
+            entries.Add(MapDoneTaskWithoutWorkRecord(
+                task,
+                fieldLabels,
+                displayNames,
+                userId,
+                taskMedia.GetValueOrDefault(task.Id)));
         }
 
         foreach (var transaction in money)
@@ -930,15 +985,77 @@ public class ChronologioService : IChronologioService
             {
                 Task = new ChronologioTaskDetailsDto
                 {
-                    TaskId = execution.TaskId,
+                    TaskId = execution.TaskId ?? string.Empty,
                     ExecutionId = execution.Id,
                     TaskType = task?.TemplateCode,
-                    Status = task?.Status.ToApiString() ?? FieldTaskStatus.Completed.ToApiString(),
+                    Status = task?.Status.ToApiString() ?? FieldTaskStatus.Done.ToApiString(),
                     Outcome = execution.Outcome.ToApiString(),
                     StartDate = execution.StartedAt ?? execution.PlannedStartSnapshot ?? task?.PlannedStart,
                     EndDate = execution.CompletedAt,
                     AssigneeName = assigneeName,
                     FollowUpTaskId = execution.FollowUpTaskId
+                }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Compact Chronologio card when a task is marked done without a linked WorkRecord.
+    /// </summary>
+    private ChronologioEntryDto MapDoneTaskWithoutWorkRecord(
+        FieldTask task,
+        IReadOnlyDictionary<string, FieldLabel> fieldLabels,
+        IReadOnlyDictionary<string, string> displayNames,
+        string viewerUserId,
+        IReadOnlyList<MediaAttachment>? attachments = null)
+    {
+        var occurredAt = task.CompletedAt ?? task.UpdatedAt;
+        var actorUserId = task.CompletedByUserId
+            ?? task.AssignedUserId
+            ?? task.ResponsibleUserId
+            ?? task.CreatedByUserId;
+        var media = new List<ChronologioMediaDto>();
+        if (attachments is { Count: > 0 })
+        {
+            media.AddRange(attachments.Select(a => MapMediaAttachment(a, viewerUserId)));
+        }
+
+        return new ChronologioEntryDto
+        {
+            Id = $"{ChronologioSourceTypes.Task}:{task.Id}:done",
+            FieldId = task.FieldId,
+            Field = FieldRef(task.FieldId, fieldLabels),
+            CropCycleId = null,
+            LifecycleYear = YearLabel(task.ResultYear, occurredAt),
+            ResultYear = ResolveResultYear(task.ResultYear, occurredAt),
+            OccurredAt = EnsureUtc(occurredAt),
+            CreatedAt = EnsureUtc(task.UpdatedAt),
+            Category = ChronologioCategory.Task.ToApiString(),
+            EventType = ChronologioEventTypes.TaskCompleted,
+            Title = ResolveTaskTitle(task),
+            Summary = string.IsNullOrWhiteSpace(task.Note ?? task.Notes)
+                ? ChronologioDisplayLabels.OutcomeSummary(TaskExecutionOutcome.Completed)
+                : (task.Note ?? task.Notes)!,
+            SourceType = ChronologioSourceTypes.Task,
+            SourceId = task.Id,
+            OccurrenceId = task.Id,
+            IsSystemGenerated = false,
+            Actor = BuildActor(actorUserId, displayNames),
+            Importance = ChronologioImportance.Normal.ToApiString(),
+            Amount = null,
+            Media = media,
+            Details = new ChronologioDetailsDto
+            {
+                Task = new ChronologioTaskDetailsDto
+                {
+                    TaskId = task.Id,
+                    ExecutionId = null,
+                    TaskType = task.TemplateCode,
+                    Status = FieldTaskStatus.Done.ToApiString(),
+                    Outcome = "done",
+                    StartDate = task.ScheduledFor ?? task.PlannedStart,
+                    EndDate = task.CompletedAt,
+                    AssigneeName = ResolveName(task.EffectiveAssigneeId, displayNames)
                 }
             }
         };

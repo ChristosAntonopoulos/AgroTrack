@@ -4,7 +4,6 @@ import { normalizeTaskStatus } from './categoryNormalize';
 
 export type TaskFocusFilter = 'all' | 'action' | 'active' | 'completed';
 export type TaskSort = 'due' | 'priority' | 'field' | 'recent';
-export type TaskBoardColumn = 'overdue' | 'today' | 'thisWeek' | 'done';
 
 const startOfDay = (d: Date) => startOfLocalDay(d);
 
@@ -128,63 +127,4 @@ export const sortTasks = (
 
     return a.title.localeCompare(b.title);
   });
-};
-
-export const groupOpenTasks = (tasks: FieldTask[], now = new Date()) => {
-  const overdue: FieldTask[] = [];
-  const today: FieldTask[] = [];
-  const upcoming: FieldTask[] = [];
-  for (const task of tasks) {
-    if (!isActiveTask(task)) continue;
-    if (isTaskOverdue(task, now)) overdue.push(task);
-    else if (isTaskDueToday(task, now)) today.push(task);
-    else upcoming.push(task);
-  }
-  return { overdue, today, upcoming };
-};
-
-export const groupTasksForBoard = (tasks: FieldTask[], now = new Date()): Record<TaskBoardColumn, FieldTask[]> => {
-  const today = startOfDay(now);
-  const weekEnd = new Date(today);
-  weekEnd.setDate(weekEnd.getDate() + 7);
-
-  const cols: Record<TaskBoardColumn, FieldTask[]> = {
-    overdue: [],
-    today: [],
-    thisWeek: [],
-    done: [],
-  };
-
-  for (const task of tasks) {
-    const due = taskDueDate(task);
-    const isDone = normalizeTaskStatus(task.status) === 'completed';
-
-    if (isDone) {
-      cols.done.push(task);
-      continue;
-    }
-    if (due && due < today) {
-      cols.overdue.push(task);
-      continue;
-    }
-    if (due && startOfDay(due).getTime() === today.getTime()) {
-      cols.today.push(task);
-      continue;
-    }
-    if (due && due < weekEnd) {
-      cols.thisWeek.push(task);
-      continue;
-    }
-    cols.thisWeek.push(task);
-  }
-
-  (Object.keys(cols) as TaskBoardColumn[]).forEach((key) => {
-    cols[key].sort((a, b) => {
-      const ad = a.plannedEnd ? new Date(a.plannedEnd).getTime() : Number.POSITIVE_INFINITY;
-      const bd = b.plannedEnd ? new Date(b.plannedEnd).getTime() : Number.POSITIVE_INFINITY;
-      return ad - bd;
-    });
-  });
-
-  return cols;
 };

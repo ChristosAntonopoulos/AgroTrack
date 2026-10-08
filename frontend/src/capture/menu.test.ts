@@ -24,7 +24,11 @@ describe('buildCaptureMenu', () => {
     });
     expect(groups.map((group) => group.id)).toEqual(['day', 'grove', 'warehouse', 'money']);
     expect(groups[0].moves.map((move) => move.id)).toEqual(['harvest']);
-    expect(groups[1].moves.map((move) => move.id)).toEqual(['work', 'observation']);
+    expect(groups[1].moves.map((move) => move.id)).toEqual([
+      'scheduleWork',
+      'recordWork',
+      'observation',
+    ]);
     expect(groups[2].moves.map((move) => move.id)).toEqual(['add', 'sell', 'give', 'fill', 'count']);
     expect(groups[3].moves.map((move) => move.id)).toEqual(['income', 'expense']);
   });
@@ -68,7 +72,10 @@ describe('defaultCaptureTab', () => {
 
   it('maps preferred type before the route', () => {
     expect(tabFromPreferredType('money')).toBe('money');
-    expect(defaultCaptureTab({ pathname: '/fields', preferredType: 'work' })).toBe('grove');
+    expect(defaultCaptureTab({ pathname: '/fields', preferredType: 'scheduleWork' })).toBe(
+      'grove'
+    );
+    expect(defaultCaptureTab({ pathname: '/fields', preferredType: 'recordWork' })).toBe('grove');
   });
 
   it('follows the page when no override is set', () => {

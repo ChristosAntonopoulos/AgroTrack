@@ -33,8 +33,7 @@ const LOOK_ICON: Record<string, React.ComponentType<{ size?: number; strokeWidth
   ndmi: Droplets,
   ndre: Leaf,
   ndwi: Waves,
-  savi: Sprout,
-};
+  savi: Sprout};
 
 const MapLayerPanel: React.FC<Props> = ({
   baseLayer,
@@ -48,8 +47,7 @@ const MapLayerPanel: React.FC<Props> = ({
   onShowInfo,
   loading,
   error,
-  onRetryError,
-}) => {
+  onRetryError}) => {
   const { t } = useTranslation(['fields', 'common']);
   const [open, setOpen] = useState(false);
   const [showMore, setShowMore] = useState(false);
@@ -134,7 +132,7 @@ const MapLayerPanel: React.FC<Props> = ({
         onClick={() => setOpen((value) => !value)}
       >
         <Layers size={15} strokeWidth={2.2} aria-hidden />
-        <span>{t('fields:mapWorkspace.layers', { defaultValue: 'Επίπεδα' })}</span>
+        <span>{t('fields:mapWorkspace.layers')}</span>
         <span className="map-look-trigger-active">{activeLabel}</span>
         <ChevronDown size={14} aria-hidden />
       </button>
@@ -153,7 +151,7 @@ const MapLayerPanel: React.FC<Props> = ({
 
           {more.length > 0 && !showMore ? (
             <button type="button" className="map-look-more" onClick={() => setShowMore(true)}>
-              {t('fields:mapWorkspace.moreLayers', { defaultValue: 'Περισσότερα' })}
+              {t('fields:mapWorkspace.moreLayers')}
             </button>
           ) : null}
 
@@ -198,8 +196,7 @@ const MapLayerPanel: React.FC<Props> = ({
                 onClick={() => onShowInfo(activeDefinition, activeLayer)}
               >
                 {t('fields:mapLayers.aboutLayer', {
-                  layer: t(`fields:mapLayers.looks.${activeDefinition.id}`, activeDefinition.name),
-                })}
+                  layer: t(`fields:mapLayers.looks.${activeDefinition.id}`, activeDefinition.name)})}
               </button>
             </div>
           ) : null}

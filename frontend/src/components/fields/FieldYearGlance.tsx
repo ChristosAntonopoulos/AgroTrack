@@ -41,13 +41,12 @@ const FieldYearGlance: React.FC<Props> = ({ overview, canViewMoney = true }) => 
       : new Intl.NumberFormat(i18n.language, {
           style: 'currency',
           currency,
-          maximumFractionDigits: 0,
-        }).format(money.result);
+          maximumFractionDigits: 0}).format(money.result);
 
   return (
     <section className="field-year-glance field-year-glance--bar" aria-labelledby="field-year-glance-title">
       <div className="field-overview-section-head">
-        <h2 id="field-year-glance-title">{t('overview.yearGlance.titleShort', { defaultValue: 'Η χρονιά' })}</h2>
+        <h2 id="field-year-glance-title">{t('overview.yearGlance.titleShort')}</h2>
         <div className="field-year-glance-links">
           {canViewMoney ? (
             <Link

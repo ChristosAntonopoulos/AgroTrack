@@ -16,10 +16,7 @@ public static class FieldWorkDisplayLabels
 
     public static string ForTaskStatus(Enums.FieldTaskStatus status, string language = "el") => status switch
     {
-        Enums.FieldTaskStatus.InProgress => IsEnglish(language) ? "In progress" : "Σε εξέλιξη",
-        Enums.FieldTaskStatus.Blocked => IsEnglish(language) ? "Blocked" : "Δεν μπορεί να γίνει",
-        Enums.FieldTaskStatus.Completed => IsEnglish(language) ? "Completed" : "Ολοκληρώθηκε",
-        Enums.FieldTaskStatus.Cancelled => IsEnglish(language) ? "Cancelled" : "Ακυρώθηκε",
+        Enums.FieldTaskStatus.Done => IsEnglish(language) ? "Done" : "Έγινε",
         Enums.FieldTaskStatus.Skipped => IsEnglish(language) ? "Skipped" : "Παραλείφθηκε",
         _ => IsEnglish(language) ? "To do" : "Να γίνει"
     };

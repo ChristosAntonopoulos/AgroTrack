@@ -62,6 +62,7 @@
       "diseaseCheckReason": "Periodo adatto per il monitoraggio delle malattie.",
       "seasonalGenericTitle": "Programma un controllo",
       "seasonalGenericReason": "Periodo adatto per questo lavoro."
-    }
+    },
+    "overdueSection": "In ritardo"
   }
 }

@@ -1,6 +1,6 @@
 {
   "appName": "The Olive Lot",
-  "home": "Home",
+  "home": "Inizio",
   "loading": "Caricamento...",
   "refresh": "Aggiorna",
   "save": "Salva",
@@ -108,7 +108,18 @@
   "inApp": {
     "announcement": "Annuncio",
     "questionnaire": "Questionario",
-    "poll": "Sondaggio"
+    "poll": "Sondaggio",
+    "submit": "Invia",
+    "later": "Più tardi",
+    "gotIt": "Capito",
+    "done": "Fatto",
+    "thanksTitle": "Grazie",
+    "thanks": "Risposta inviata.",
+    "results": "Risultati",
+    "answerRequired": "Risposta obbligatoria",
+    "required": "Obbligatorio",
+    "textPlaceholder": "Scrivi qui…",
+    "multiHint": "Puoi scegliere più opzioni."
   },
   "retry": "Riprova",
   "language": "Lingua",
@@ -118,5 +129,15 @@
     "offlineWithPending": "Sei offline. {{count}} modifica(e) in attesa di sincronizzazione.",
     "pending": "{{count}} modifica(e) in attesa. Tocca riprova per sincronizzare.",
     "syncing": "Sincronizzazione di {{count}} modifica(e)…"
-  }
+  },
+  "breadcrumb": "Percorso",
+  "lifecycleStage": {
+    "dormancy": "Riposo",
+    "bud_break": "Germogliamento",
+    "flowering": "Fioritura",
+    "fruit_set": "Allegagione",
+    "fruit_growth": "Accrescimento frutto",
+    "harvest": "Raccolta"
+  },
+  "previous": "Precedente"
 }

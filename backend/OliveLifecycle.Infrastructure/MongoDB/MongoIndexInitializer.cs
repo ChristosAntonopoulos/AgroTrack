@@ -452,6 +452,14 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(e => e.FieldId)
                 .Ascending(e => e.ResultYear)));
 
+        var suggestionDismissals = _context.GetCollection<TaskSuggestionDismissalDocument>("task_suggestion_dismissals");
+        suggestionDismissals.Indexes.CreateOne(new CreateIndexModel<TaskSuggestionDismissalDocument>(
+            Builders<TaskSuggestionDismissalDocument>.IndexKeys
+                .Ascending(d => d.FieldId)
+                .Ascending(d => d.ResultYear)
+                .Ascending(d => d.TemplateCode),
+            new CreateIndexOptions { Unique = true, Name = "field_year_template_unique" }));
+
         var phenology = _context.GetCollection<FieldPhenologyObservationDocument>("field_phenology_observations");
         phenology.Indexes.CreateOne(new CreateIndexModel<FieldPhenologyObservationDocument>(
             Builders<FieldPhenologyObservationDocument>.IndexKeys

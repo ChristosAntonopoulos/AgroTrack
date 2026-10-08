@@ -10,12 +10,13 @@ import EmptyState from '../components/Common/EmptyState';
 import Button from '../components/Common/Button';
 import {
   getReportsService,
-  getFieldWorkService,
   getNoteService,
   getFieldService,
   getFinancialSummaryService,
+  getTaskService,
 } from '../services/serviceFactory';
 import type { FieldTask } from '../services/fieldWorkService';
+import { taskToFieldTask } from '../utils/taskCompat';
 import { Note, notePreviewTitle } from '../services/noteService';
 import {
   formatSeasonLabel,
@@ -65,7 +66,12 @@ const ThisHarvestReviewPage: React.FC = () => {
     setLoading(true);
     try {
       const [tasks, fields] = await Promise.all([
-        getFieldWorkService().listFieldTasks().catch(() => [] as FieldTask[]),
+        Promise.all([
+          getTaskService().listTasks({ view: 'all' }),
+          getTaskService().listTasks({ view: 'done' }),
+        ])
+          .then(([planned, done]) => [...planned, ...done].map(taskToFieldTask))
+          .catch(() => [] as FieldTask[]),
         getFieldService().getFields().catch(() => []),
       ]);
       setAllTasks(tasks);

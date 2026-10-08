@@ -1,7 +1,13 @@
-import { getFieldWorkService, getHarvestService, getNoteService } from '../../services/serviceFactory';
+import {
+  getFieldWorkService,
+  getHarvestService,
+  getNoteService,
+  getTaskService,
+} from '../../services/serviceFactory';
 import type { FieldPhenologyObservation } from '../../services/fieldWorkService';
 import { notePreviewTitle } from '../../services/noteService';
 import { localizeLinkedStatus } from './photoLabels';
+import { taskToFieldTask } from '../../utils/taskCompat';
 
 import type { TFunction } from 'i18next';
 
@@ -23,10 +29,14 @@ export const loadPhotoLinkTargets = async ({
 }: LoadArgs): Promise<PhotoLinkTarget[]> => {
   const fieldWork = getFieldWorkService();
   if (ownerType === 'task') {
-    const tasks = await fieldWork.listFieldTasks({ fieldId });
+    const [planned, done] = await Promise.all([
+      getTaskService().listTasks({ view: 'all', fieldId }),
+      getTaskService().listTasks({ view: 'done', fieldId }),
+    ]);
+    const tasks = [...planned, ...done].map(taskToFieldTask);
     return tasks.map((task) => {
       const when = task.plannedStart ? formatDate(task.plannedStart) : '';
-      const status = localizeLinkedStatus(task.status, t) || '';
+      const status = localizeLinkedStatus(task.status, t) || task.statusLabel || '';
       return {
         id: task.id,
         label: [when, task.title, status].filter(Boolean).join(' · '),

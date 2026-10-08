@@ -7,8 +7,7 @@ import {
   Droplets,
   Leaf,
   MapPinned,
-  Users,
-} from 'lucide-react';
+  Users} from 'lucide-react';
 import type { Field } from '../../services/fieldService';
 import type { FieldOverviewDto } from '../../services/fieldOverviewService';
 import type { FieldWeather } from '../../services/geospatialService';
@@ -40,8 +39,7 @@ const FieldOverview: React.FC<Props> = ({
   onOpenMap,
   onOpenStatus,
   canViewMoney = true,
-  canEdit = false,
-}) => {
+  canEdit = false}) => {
   const { t } = useTranslation(['fields', 'chronologio']);
   const { formatRelativeTime, formatDate } = useLocaleFormatters();
   const latest = overview?.current.latestRecord;
@@ -81,14 +79,13 @@ const FieldOverview: React.FC<Props> = ({
         </h2>
         {weatherLine ? <p className="field-today-weather">{weatherLine}</p> : null}
         <p className="field-today-task">
-          {t('overview.today.noTask', { defaultValue: 'Καμία εργασία σήμερα' })}
+          {t('overview.today.noTask')}
         </p>
         {latest ? (
           <p className="field-today-last">
             {t('overview.today.last', {
               title: latest.title,
               when: whenLabel(latest.occurredAt),
-              defaultValue: `Τελευταίο: ${latest.title} · ${whenLabel(latest.occurredAt)}`,
             })}
           </p>
         ) : (
@@ -116,7 +113,7 @@ const FieldOverview: React.FC<Props> = ({
               onOpenMapTab={onOpenMap}
             />
             <button type="button" className="field-overview-layers-btn" onClick={onOpenMap}>
-              {t('overview.mapPeek.layers', { defaultValue: 'Επίπεδα' })}
+              {t('overview.mapPeek.layers')}
             </button>
           </div>
         </section>
@@ -127,8 +124,8 @@ const FieldOverview: React.FC<Props> = ({
           <Leaf size={18} strokeWidth={2} />
         </span>
         <span className="field-status-row-body">
-          <strong>{t('overview.statusCard.title', { defaultValue: 'Κατάσταση' })}</strong>
-          <span>{t('overview.statusCard.hint', { defaultValue: 'Πρασινάδα, υγρασία και δορυφορική εικόνα' })}</span>
+          <strong>{t('overview.statusCard.title')}</strong>
+          <span>{t('overview.statusCard.hint')}</span>
         </span>
         <ChevronRight size={18} aria-hidden />
       </button>
@@ -146,7 +143,7 @@ const FieldOverview: React.FC<Props> = ({
               className="field-overview-cta field-overview-cta--ghost"
               onClick={() => onOpenChronologio()}
             >
-              {t('overview.seeAllChronologioShort', { defaultValue: 'Όλα' })}
+              {t('overview.seeAllChronologioShort')}
               <ChevronRight size={15} aria-hidden />
             </button>
           </div>
@@ -173,8 +170,8 @@ const FieldOverview: React.FC<Props> = ({
         </section>
       ) : null}
 
-      <nav className="field-overview-more" aria-label={t('overview.more.aria', { defaultValue: 'Περισσότερα' })}>
-        <p className="field-overview-kicker">{t('overview.more.title', { defaultValue: 'Περισσότερα' })}</p>
+      <nav className="field-overview-more" aria-label={t('overview.more.aria')}>
+        <p className="field-overview-kicker">{t('overview.more.title')}</p>
         <ul>
           <li>
             <button type="button" onClick={() => onOpenChronologio()}>
@@ -190,7 +187,7 @@ const FieldOverview: React.FC<Props> = ({
             <Link to={peopleHref}>
               <Users size={16} aria-hidden />
               <span>
-                <strong>{t('overview.people.title', { defaultValue: 'Άτομα' })}</strong>
+                <strong>{t('overview.people.title')}</strong>
               </span>
               <ChevronRight size={16} aria-hidden />
             </Link>
@@ -199,7 +196,7 @@ const FieldOverview: React.FC<Props> = ({
             <Link to={myOilPath({ field: field.id })}>
               <Droplets size={16} aria-hidden />
               <span>
-                <strong>{t('overview.more.cellar', { defaultValue: 'Αποθήκη' })}</strong>
+                <strong>{t('overview.more.cellar')}</strong>
                 {cellar != null && cellar > 0.05 ? (
                   <em>
                     {cellar.toLocaleString(undefined, { maximumFractionDigits: 0 })} L

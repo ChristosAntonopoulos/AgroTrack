@@ -18,7 +18,7 @@ export const taskDueDate = (task: FieldTask): Date | null => {
 export function isTaskOverdue(task: FieldTask, now = new Date()): boolean {
   if (isCompletedFieldTask(task)) return false;
   const status = String(task.status).toLowerCase();
-  if (status === 'cancelled') return false;
+  if (status === 'cancelled' || status === 'skipped') return false;
   const due = taskDueDate(task);
   if (!due) return false;
   return due < startOfLocalDay(now);
@@ -32,7 +32,7 @@ export const isActiveTask = (task: FieldTask): boolean => {
 export const isTaskDueToday = (task: FieldTask, now = new Date()): boolean => {
   if (isCompletedFieldTask(task)) return false;
   const status = String(task.status).toLowerCase();
-  if (status === 'cancelled') return false;
+  if (status === 'cancelled' || status === 'skipped') return false;
   const due = taskDueDate(task);
   if (!due) return false;
   return startOfLocalDay(due).getTime() === startOfLocalDay(now).getTime();

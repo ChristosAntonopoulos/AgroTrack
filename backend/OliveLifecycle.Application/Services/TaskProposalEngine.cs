@@ -109,13 +109,7 @@ public class TaskProposalEngine : ITaskProposalEngine
             {
                 FieldId = fieldId,
                 ResultYear = year,
-                Statuses =
-                [
-                    FieldTaskStatus.Planned,
-                    FieldTaskStatus.Ready,
-                    FieldTaskStatus.InProgress,
-                    FieldTaskStatus.Blocked
-                ]
+                Statuses = [FieldTaskStatus.Planned]
             },
             cancellationToken);
 
@@ -243,7 +237,7 @@ public class TaskProposalEngine : ITaskProposalEngine
             {
                 FieldId = fieldId,
                 ResultYear = resultYear,
-                Statuses = [FieldTaskStatus.Completed]
+                Statuses = [FieldTaskStatus.Done]
             },
             cancellationToken);
 
@@ -254,8 +248,10 @@ public class TaskProposalEngine : ITaskProposalEngine
 
         var executions = await _executions.GetByFieldAndYearAsync(fieldId, resultYear, cancellationToken);
         var activeExecutionTaskIds = executions
-            .Where(e => e.IsActive && e.Outcome is TaskExecutionOutcome.Completed or TaskExecutionOutcome.PartiallyCompleted)
-            .Select(e => e.TaskId)
+            .Where(e => e.IsActive
+                        && e.Outcome is TaskExecutionOutcome.Completed or TaskExecutionOutcome.PartiallyCompleted
+                        && !string.IsNullOrWhiteSpace(e.TaskId))
+            .Select(e => e.TaskId!)
             .ToHashSet(StringComparer.Ordinal);
 
         if (activeExecutionTaskIds.Count == 0)
@@ -272,7 +268,7 @@ public class TaskProposalEngine : ITaskProposalEngine
                      activeExecutionTaskIds.Contains(t.Id) && !string.IsNullOrWhiteSpace(t.TemplateCode)))
         {
             // Avoid double-counting tasks already counted as Completed.
-            if (task.Status == FieldTaskStatus.Completed)
+            if (task.Status == FieldTaskStatus.Done)
             {
                 continue;
             }

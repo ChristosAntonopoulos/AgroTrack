@@ -22,8 +22,7 @@ import { StockCountSheet } from '../components/myOil/StockCountSheet';
 import {
   GiveOilSheet,
   type GiveOilIntent,
-  type GiveOilSaveInput,
-} from '../components/myOil/GiveOilSheet';
+  type GiveOilSaveInput} from '../components/myOil/GiveOilSheet';
 import { FillTinsDrawer } from '../components/myOil/FillTinsDrawer';
 import { AddOilSheet } from '../components/myOil/AddOilSheet';
 import { useAuth } from '../context/AuthContext';
@@ -38,23 +37,20 @@ import {
   type OilPressing,
   type OilShareRequest,
   type OilStockSummary,
-  type StockMovement,
-} from '../services/oilStockService';
+  type StockMovement} from '../services/oilStockService';
 import { migrateLocalOilPackingOnce } from '../myOil/syncOilLots';
 import { formatOilNumber, formatOilPack } from '../myOil/formatOilPack';
 import {
   holdState,
   needsNowCommitments,
   tinCount,
-  type OilStockTab,
-} from '../myOil/commitmentCopy';
+  type OilStockTab} from '../myOil/commitmentCopy';
 import {
   isEmptyDelta,
   newestLotId,
   planLotDrain,
   stockCountDeltas,
-  type PackDelta,
-} from '../myOil/stockCount';
+  type PackDelta} from '../myOil/stockCount';
 import { groupLotsByGrove, type GroveOilGroup } from '../myOil/groupLotsByGrove';
 import { agriculturalYearFor } from '../chronologio/agriculturalYear';
 import { clampPackInput, emptyOilPackInput, packLitresOf, type OilPackInput } from '../myOil/packInput';
@@ -75,8 +71,7 @@ const MyOilPage: React.FC = () => {
 
   useRegisterCapturePage({
     sourcePage: 'warehouse',
-    fieldId: focusFieldId || undefined,
-  });
+    fieldId: focusFieldId || undefined});
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -115,8 +110,7 @@ const MyOilPage: React.FC = () => {
       bulk: (amount: number) =>
         t('bulk', { amount: formatOilNumber(amount, i18n.language) }),
       litres: (amount: number) =>
-        t('litres', { amount: formatOilNumber(amount, i18n.language) }),
-    }),
+        t('litres', { amount: formatOilNumber(amount, i18n.language) })}),
     [t, i18n.language]
   );
 
@@ -230,16 +224,14 @@ const MyOilPage: React.FC = () => {
         await oilStockService.transferToUser({
           toUserId: input.toUserId,
           requested: input.requested,
-          fieldIds: fieldIds.length ? fieldIds : undefined,
-        });
+          fieldIds: fieldIds.length ? fieldIds : undefined});
       } else if (input.forHome && input.alreadyDelivered && summary?.lots.length) {
         const lot =
           summary.lots.find((l) => l.available.litres > 0.05) || summary.lots[0];
         await oilStockService.adjust({
           oilLotId: lot.id,
           kind: 'home_use',
-          pack: input.requested,
-        });
+          pack: input.requested});
       } else {
         await oilStockService.createCommitment({
           contactId: input.contactId,
@@ -248,8 +240,7 @@ const MyOilPage: React.FC = () => {
           isSale: input.isSale,
           amount: input.isSale ? input.amount : undefined,
           alreadyDelivered: input.alreadyDelivered,
-          notes: input.isSale && !input.alreadyPaid ? 'owed' : undefined,
-        });
+          notes: input.isSale && !input.alreadyPaid ? 'owed' : undefined});
       }
       setShowGive(false);
     });
@@ -296,8 +287,7 @@ const MyOilPage: React.FC = () => {
           kind: 'correction',
           remove: true,
           pack: slice.pack,
-          notes,
-        });
+          notes});
       }
 
       const target = newestLotId(lots);
@@ -626,7 +616,7 @@ const DeliverSheet: React.FC<{
       title={t('deliverAllPrompt')}
       subtitle={formatOilPack(commitment.remaining, packLabels)}
       closeDisabled={busy}
-      closeLabel={t('common:close', { defaultValue: 'Κλείσιμο' })}
+      closeLabel={t('common:close')}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
@@ -645,8 +635,7 @@ const DeliverSheet: React.FC<{
       <div className="my-oil-flow">
         <Button variant="primary" disabled={busy} onClick={onDeliverAll}>
           {t('deliverAll', {
-            count: tinCount(commitment.remaining) || Math.round(commitment.remaining.bulkLitres),
-          })}
+            count: tinCount(commitment.remaining) || Math.round(commitment.remaining.bulkLitres)})}
         </Button>
         <p className="my-oil-flow__step">{t('deliverPartial')}</p>
         <div className="my-oil-field">

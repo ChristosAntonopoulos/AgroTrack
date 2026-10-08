@@ -17,7 +17,6 @@ const ActivationChecklist: React.FC = () => {
     laterSnoozed,
     setupUnlocked,
     goToStep,
-    snoozeLater,
     clearCelebration,
   } = useOwnerActivation();
 
@@ -88,12 +87,6 @@ const ActivationChecklist: React.FC = () => {
             );
           })}
         </nav>
-
-        {setupUnlocked ? (
-          <button type="button" className="activation-bar-skip" onClick={snoozeLater}>
-            {t('spotlight.skip')}
-          </button>
-        ) : null}
       </div>
     </aside>
   );

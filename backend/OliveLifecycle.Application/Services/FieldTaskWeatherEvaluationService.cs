@@ -34,10 +34,7 @@ public class FieldTaskWeatherEvaluationService : IFieldTaskWeatherEvaluationServ
 {
     private static readonly FieldTaskStatus[] OpenStatuses =
     [
-        FieldTaskStatus.Planned,
-        FieldTaskStatus.Ready,
-        FieldTaskStatus.InProgress,
-        FieldTaskStatus.Blocked
+        FieldTaskStatus.Planned
     ];
 
     private readonly IFieldTaskRepository _tasks;

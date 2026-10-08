@@ -1,5 +1,5 @@
 {
-  "title": "Dashboard",
+  "title": "Cruscotto",
   "welcome": "Welcome back, {{email}}",
   "ownerCommand": {
     "approvalsPending": "Approvals pending",
@@ -7,8 +7,12 @@
     "issuesOpen": "Issues open",
     "highSeverity": "<strong>{{count}}</strong> high severity need attention.",
     "noHighSeverity": "No high severity issues.",
-    "fieldsAtRisk": "Fields at risk",
-    "fieldsAtRiskSub": "Fields with overdue work."
+    "fieldsAtRisk": "Oliveti a rischio",
+    "fieldsAtRiskSub": "Oliveti con lavori in ritardo.",
+    "overdueTasks": "Attività in ritardo",
+    "overdueSub": "Lavori oltre la scadenza nei tuoi oliveti.",
+    "seasonalCalendar": "Calendario stagionale",
+    "seasonalSub": "Vedi le attività consigliate per le olive di questo mese."
   },
   "stats": {
     "totalFields": "Total Fields",
@@ -17,21 +21,25 @@
     "highYearFields": "High Year Fields",
     "pendingTasks": "Pending Tasks",
     "inProgress": "In Progress",
-    "completed": "Completed",
+    "completed": "Completate",
     "totalTasks": "Total Tasks",
     "thisWeekCost": "Costo di questa settimana",
-    "thisYearCost": "Spese di quest'anno"
+    "thisYearCost": "Spese di quest'anno",
+    "dueToday": "In scadenza oggi",
+    "overdue": "In ritardo"
   },
   "fieldsSection": {
     "ownerTitle": "My Fields",
     "workerTitle": "Fields I Work On",
-    "emptyOwner": "No fields yet. <1>Create your first field</1>",
-    "emptyWorker": "No fields assigned yet."
+    "emptyOwner": "Nessun oliveto ancora. <1>Crea il tuo primo oliveto</1>",
+    "emptyWorker": "Nessun oliveto assegnato ancora."
   },
   "tasksSection": {
     "title": "Recent Tasks",
-    "emptyProducer": "No tasks assigned yet.",
-    "emptyDefault": "No tasks available yet."
+    "emptyProducer": "Nessuna attività assegnata ancora.",
+    "emptyDefault": "Nessuna attività disponibile ancora.",
+    "recentTitle": "Attività recenti",
+    "viewToday": "Vedi tutto nello Sguardo del giorno"
   },
   "myActions": {
     "stripTitle": "Le tue azioni",
@@ -105,5 +113,81 @@
     "pageSubtitle": "Il tuo blocco note privato. Collega un campo se serve.",
     "emptyTitle": "Nessuna nota ancora",
     "emptyDescription": "Annota un promemoria da Oggi o da qui."
+  },
+  "welcomeFallback": "Bentornato",
+  "todayDate": "{{date}}",
+  "onboarding": {
+    "title": "Avvio rapido",
+    "subtitle": "Completa questi passaggi uno alla volta per conoscere l'app",
+    "dismiss": "Nascondi",
+    "stepOf": "Passo {{current}} di {{total}}",
+    "completeTitle": "Fatto! Onboarding completato",
+    "completeHint": "Esplora l'app liberamente. Usa l'accesso rapido per provare un altro account demo.",
+    "producer": {
+      "step1": {
+        "label": "Apri lo Sguardo del giorno",
+        "hint": "Vedi il percorso e le priorità di questa mattina.",
+        "action": "Apri lo Sguardo del giorno"
+      },
+      "step2": {
+        "label": "Inizia un'attività",
+        "hint": "Apri un oliveto e inizia il lavoro dalla bacheca attività.",
+        "action": "Apri un oliveto"
+      },
+      "step3": {
+        "label": "Aggiungi una prova",
+        "hint": "Allega una foto e una nota al lavoro completato.",
+        "action": "Apri un oliveto"
+      }
+    },
+    "owner": {
+      "step1": {
+        "label": "Apri Questa stagione",
+        "hint": "Vedi la pianificazione della raccolta e i progressi della stagione.",
+        "action": "Apri Questa stagione"
+      },
+      "step2": {
+        "label": "Imposta come lavori un oliveto",
+        "hint": "Rispondi a poche domande sulla pratica in oliveto così The Olive Lot può proporti il lavoro giusto.",
+        "action": "Apri gli oliveti"
+      },
+      "step3": {
+        "label": "Controlla la cronologia dell'attività",
+        "hint": "Apri un oliveto qualsiasi e vedi le attività recenti.",
+        "action": "Apri gli oliveti"
+      }
+    }
+  },
+  "quickActions": {
+    "title": "Azioni rapide",
+    "today": "Oggi",
+    "todaySub": "Percorso e attività giornaliere",
+    "calendar": "Calendario",
+    "calendarSub": "Pianificazione stagionale",
+    "reports": "Report",
+    "reportsSub": "Produzione e finanze",
+    "newTask": "Nuova attività",
+    "newTaskSub": "Programma il lavoro",
+    "fields": "Oliveti",
+    "fieldsSub": "Vedi tutti",
+    "tasks": "Attività",
+    "tasksSub": "Tutte le attività",
+    "partners": "Ti serve un partner?",
+    "partnersSub": "Trova aiuto vicino al tuo oliveto"
+  },
+  "alerts": {
+    "title": "Richiede attenzione",
+    "overdue": "Attività in ritardo",
+    "overdueSub": "Lavori oltre la scadenza",
+    "fieldsAtRisk": "Oliveti a rischio",
+    "fieldsAtRiskSub": "Oliveti con lavori in ritardo",
+    "pendingApproval": "In attesa di approvazione",
+    "pendingApprovalSub": "Attività completate in attesa della tua conferma",
+    "none": "Tutto a posto — niente di urgente"
+  },
+  "producerHero": {
+    "title": "Inizia dallo Sguardo del giorno",
+    "subtitle": "Vedi il lavoro di questa mattina e il percorso tra gli oliveti.",
+    "cta": "Apri lo Sguardo del giorno"
   }
 }

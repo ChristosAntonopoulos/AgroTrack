@@ -85,6 +85,11 @@ public class FieldWorkEventSignalCollector : IFieldWorkEventSignalCollector
         var recent = new List<FieldWorkRecentExecutionSignal>();
         foreach (var execution in executions)
         {
+            if (string.IsNullOrWhiteSpace(execution.TaskId))
+            {
+                continue;
+            }
+
             var task = await _tasks.GetByIdAsync(execution.TaskId, cancellationToken);
             var code = task?.TemplateCode;
             if (string.IsNullOrWhiteSpace(code))

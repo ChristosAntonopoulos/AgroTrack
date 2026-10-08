@@ -144,6 +144,13 @@
   background: color-mix(in srgb, var(--olive-primary, var(--color-primary)) 8%, var(--surface-1, var(--color-surface)));
 }
 
+.task-detail-slim .task-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
 .task-detail-actions {
   display: flex;
   flex-wrap: wrap;

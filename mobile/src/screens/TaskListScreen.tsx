@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
@@ -13,59 +13,41 @@ import ScreenHeader from '../components/layout/ScreenHeader';
 import HeaderIconButton from '../components/layout/HeaderIconButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import TaskViewTabs from '../components/tasks/TaskViewTabs';
-import TaskContextBar from '../components/tasks/TaskContextBar';
 import TodoNotebook from '../components/tasks/TodoNotebook';
 import HistoryTaskView from '../components/tasks/HistoryTaskView';
 import CreatedTaskBanner from '../components/tasks/CreatedTaskBanner';
-import WorkSetupBanner from '../components/fields/WorkSetupBanner';
-import LearningPromptSheet from '../components/tasks/LearningPromptSheet';
-import ScheduleGroupSheet from '../components/tasks/ScheduleGroupSheet';
 import RescheduleTaskSheet from '../components/tasks/RescheduleTaskSheet';
+import ScheduleWorkSheet, {
+  type ScheduleWorkPrefill,
+} from '../components/tasks/ScheduleWorkSheet';
+import CompletionFollowUpSheet from '../components/tasks/CompletionFollowUpSheet';
 import type { NotebookMenuAction } from '../components/tasks/TaskNotebookCard';
-import type { ProposalDismissChoice } from '../components/tasks/TaskProposalList';
+import type { AssigneeOption } from '../components/tasks/form/AssigneeSelector';
+import Sheet from '../components/ui/Sheet';
 import { spacing, radii } from '../theme';
 import { MainTabParamList, RootStackParamList } from '../navigation/types';
 import { openChronologioHome } from '../navigation/intents';
 import {
   getFieldService,
-  getFieldWorkService,
   getPartnerService,
+  getTaskService,
 } from '../services/serviceFactory';
-import {
-  dismissWorkSetupBanner,
-  isWorkSetupBannerDismissed,
-  readWorkProfileDraft,
-} from '../utils/fieldWorkProfileDraft';
 import { fieldPeopleService } from '../services/fieldPeopleService';
-import type { DismissalLearningChoice, FieldTask, TaskProposal } from '../services/fieldWorkService';
+import type { CreateTaskInput, Task, TaskSuggestion } from '../services/taskService';
 import type { Field } from '../services/fieldService';
 import { athensCalendarYear } from '../utils/athensDate';
-import { dedupeTaskProposals } from '../utils/taskProposalDedup';
-import type { ProposalTemplateGroup } from '../utils/proposalPresentation';
 import {
-  parseTaskAssigneeId,
   parseTaskFieldId,
   parseTaskView,
-  parseTaskYear,
   viewFromLegacyFilter,
   type TaskPageView,
 } from '../utils/taskViewState';
 import { formatLongTaskDate } from '../utils/taskFormDates';
 import { taskDisplayTitle } from '../utils/taskDisplayTitle';
-import { notebookStatus, type NotebookAction } from '../utils/taskNotebook';
 import { useRegisterCapturePage } from '../context/CapturePageContext';
 
 type Route = RouteProp<MainTabParamList, 'Tasks'>;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const OPEN_STATUSES = new Set(['planned', 'ready', 'blocked', 'in_progress']);
-const HISTORY_STATUSES = new Set(['completed', 'cancelled', 'skipped']);
-
-type DismissalLearningPrompt = {
-  fieldId: string;
-  templateCode: string;
-  message: string;
-};
 
 const TaskListScreen = () => {
   const navigation = useNavigation<Nav>();
@@ -75,101 +57,115 @@ const TaskListScreen = () => {
   const { t, i18n } = useTranslation(['tasks', 'common']);
   const { setShowingCachedData } = useOfflineMode();
 
-  const defaultYear = athensCalendarYear(new Date());
+  const year = athensCalendarYear(new Date());
   const [view, setView] = useState<TaskPageView>(() =>
     parseTaskView(route.params?.view || viewFromLegacyFilter(route.params?.filter))
   );
-  const [yearFilter, setYearFilter] = useState(() => parseTaskYear(route.params?.year, defaultYear));
   const [fieldFilter, setFieldFilter] = useState(() => parseTaskFieldId(route.params?.fieldId));
-  const [assigneeFilter, setAssigneeFilter] = useState(() => parseTaskAssigneeId(undefined));
   const [createdId, setCreatedId] = useState(route.params?.created || '');
+  const [scheduleOpen, setScheduleOpen] = useState(Boolean(route.params?.schedule));
+  const [schedulePrefill, setSchedulePrefill] = useState<ScheduleWorkPrefill | null>(null);
 
   useRegisterCapturePage({
     sourcePage: 'tasks',
     fieldId: fieldFilter || undefined,
   });
 
-  const [query, setQuery] = useState('');
-  const [scope, setScope] = useState<'mine' | 'everyone'>('everyone');
-
-  const [proposals, setProposals] = useState<TaskProposal[]>([]);
-  const [tasks, setTasks] = useState<FieldTask[]>([]);
+  const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [personNames, setPersonNames] = useState<Record<string, string>>({});
-  const [dismissalPrompt, setDismissalPrompt] = useState<DismissalLearningPrompt | null>(null);
-  const [learningBusy, setLearningBusy] = useState(false);
-  const [rescheduleTask, setRescheduleTask] = useState<FieldTask | null>(null);
-  const [scheduleGroup, setScheduleGroup] = useState<ProposalTemplateGroup | null>(null);
-  const [undoStartIds, setUndoStartIds] = useState<string[]>([]);
-  const [workSetup, setWorkSetup] = useState<{ resume: boolean } | null>(null);
+  const [undoCompleteId, setUndoCompleteId] = useState<string | null>(null);
+  const [followUpTask, setFollowUpTask] = useState<Task | null>(null);
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
+  const [rescheduleTask, setRescheduleTask] = useState<Task | null>(null);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [assigneeOptions, setAssigneeOptions] = useState<AssigneeOption[]>([]);
+  const [fieldPickerOpen, setFieldPickerOpen] = useState(false);
 
   useEffect(() => {
     if (route.params?.view || route.params?.filter) {
       setView(parseTaskView(route.params?.view || viewFromLegacyFilter(route.params?.filter)));
     }
-    if (route.params?.year) setYearFilter(parseTaskYear(route.params.year, defaultYear));
     if (route.params?.fieldId !== undefined) setFieldFilter(parseTaskFieldId(route.params.fieldId));
     if (route.params?.created) setCreatedId(route.params.created);
-  }, [route.params, defaultYear]);
+  }, [route.params]);
 
+  const scheduleTokenRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!fieldFilter) {
-      setWorkSetup(null);
+    if (!route.params?.schedule) {
+      scheduleTokenRef.current = null;
       return;
     }
-    let cancelled = false;
-    void (async () => {
-      if (await isWorkSetupBannerDismissed(fieldFilter)) {
-        if (!cancelled) setWorkSetup(null);
-        return;
-      }
-      try {
-        const [profile, draft] = await Promise.all([
-          getFieldWorkService().getWorkProfile(fieldFilter).catch(() => null),
-          readWorkProfileDraft(fieldFilter),
-        ]);
-        if (cancelled) return;
-        const resume = profile?.status === 'draft' || Boolean(draft?.stepId);
-        if (profile == null || profile.status === 'draft') setWorkSetup({ resume });
-        else setWorkSetup(null);
-      } catch {
-        if (!cancelled) setWorkSetup(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [fieldFilter]);
+    const token = `${route.params.fieldId || ''}|${route.params.templateCode || ''}|${route.params.created || ''}`;
+    if (scheduleTokenRef.current === token) return;
+    scheduleTokenRef.current = token;
+    setScheduleOpen(true);
+    setSchedulePrefill({
+      fieldId: route.params.fieldId || undefined,
+      templateCode: route.params.templateCode || undefined,
+      title: route.params.templateCode
+        ? taskDisplayTitle('', route.params.templateCode, i18n.language)
+        : undefined,
+    });
+    setScheduleError(null);
+  }, [route.params?.schedule, route.params?.fieldId, route.params?.templateCode, route.params?.created, i18n.language]);
 
   const fieldNames = useMemo(
     () => Object.fromEntries(fields.map((field) => [field.id, field.name])),
     [fields]
   );
 
+  const selectedField = fields.find((field) => field.id === fieldFilter);
+
   const loadData = useCallback(async () => {
     try {
       setError(null);
-      const fw = getFieldWorkService();
-      const [fieldsData, proposalsData, tasksData] = await Promise.all([
+      const tasksApi = getTaskService();
+      const [fieldsData, tasksData] = await Promise.all([
         getFieldService()
           .getFields(user?.id ?? '', user?.role ?? 'FieldOwner', 'tasks')
           .catch(() => [] as Field[]),
-        fw.listProposals({ resultYear: yearFilter }),
-        fw.listFieldTasks({ resultYear: yearFilter }),
+        tasksApi.listTasks({
+          view,
+          fieldId: fieldFilter || undefined,
+        }),
       ]);
       setFields(fieldsData);
-      setProposals(dedupeTaskProposals(proposalsData));
       setTasks(tasksData);
+
+      if (view === 'today') {
+        const fieldIds = fieldFilter
+          ? [fieldFilter]
+          : fieldsData.map((field) => field.id).slice(0, 12);
+        const suggestionGroups = await Promise.all(
+          fieldIds.map((id) =>
+            tasksApi.listSuggestions({ fieldId: id }).catch(() => [] as TaskSuggestion[])
+          )
+        );
+        const seen = new Set<string>();
+        setSuggestions(
+          suggestionGroups.flat().filter((item) => {
+            const key = `${item.fieldId}:${item.templateCode}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+        );
+      } else {
+        setSuggestions([]);
+      }
       setShowingCachedData(false);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('tasks:failedLoad'));
     } finally {
       setLoading(false);
     }
-  }, [yearFilter, user?.id, user?.role, setShowingCachedData, t]);
+  }, [view, fieldFilter, user?.id, user?.role, setShowingCachedData, t]);
 
   useEffect(() => {
     setLoading(true);
@@ -178,84 +174,12 @@ const TaskListScreen = () => {
 
   const { refreshing, onRefresh } = useRefresh(loadData);
 
-  const matchesAssignee = useCallback(
-    (task: FieldTask) => {
-      if (!assigneeFilter) return true;
-      if (assigneeFilter.startsWith('user:')) return task.assignedUserId === assigneeFilter.slice(5);
-      if (assigneeFilter.startsWith('contact:')) {
-        return task.assignedCollaboratorId === assigneeFilter.slice(8);
-      }
-      return (
-        task.assignedUserId === assigneeFilter ||
-        task.assignedCollaboratorId === assigneeFilter ||
-        task.responsibleUserId === assigneeFilter
-      );
-    },
-    [assigneeFilter]
-  );
-
-  const matchesScope = useCallback(
-    (task: FieldTask) => {
-      if (scope !== 'mine' || !user?.id) return true;
-      return (
-        task.assignedUserId === user.id ||
-        task.responsibleUserId === user.id ||
-        task.createdByUserId === user.id
-      );
-    },
-    [scope, user?.id]
-  );
-
-  const matchesQuery = useCallback(
-    (task: FieldTask) => {
-      const q = query.trim().toLowerCase();
-      if (!q) return true;
-      const title = taskDisplayTitle(task.title, task.templateCode, i18n.language).toLowerCase();
-      const field = (fieldNames[task.fieldId] || '').toLowerCase();
-      return title.includes(q) || field.includes(q);
-    },
-    [fieldNames, i18n.language, query]
-  );
-
-  const visibleProposals = useMemo(
-    () =>
-      proposals.filter((proposal) => {
-        if (fieldFilter && proposal.fieldId !== fieldFilter) return false;
-        return proposal.status === 'active' || proposal.status === 'snoozed';
-      }),
-    [proposals, fieldFilter]
-  );
-
-  const openTasks = useMemo(
-    () =>
-      tasks.filter((task) => {
-        if (fieldFilter && task.fieldId !== fieldFilter) return false;
-        if (!matchesAssignee(task)) return false;
-        if (!matchesScope(task)) return false;
-        if (!matchesQuery(task)) return false;
-        return OPEN_STATUSES.has(String(task.status).toLowerCase());
-      }),
-    [tasks, fieldFilter, matchesAssignee, matchesQuery, matchesScope]
-  );
-
-  const historyTasks = useMemo(
-    () =>
-      tasks.filter((task) => {
-        if (fieldFilter && task.fieldId !== fieldFilter) return false;
-        if (!matchesAssignee(task)) return false;
-        if (!matchesScope(task)) return false;
-        if (!matchesQuery(task)) return false;
-        return HISTORY_STATUSES.has(String(task.status).toLowerCase());
-      }),
-    [tasks, fieldFilter, matchesAssignee, matchesQuery, matchesScope]
-  );
-
   const peopleFieldKey = useMemo(
     () =>
-      [...new Set([...openTasks, ...historyTasks].map((task) => task.fieldId).filter(Boolean))]
+      [...new Set(tasks.map((task) => task.fieldId).filter(Boolean))]
         .sort()
         .join(','),
-    [openTasks, historyTasks]
+    [tasks]
   );
 
   useEffect(() => {
@@ -288,98 +212,104 @@ const TaskListScreen = () => {
     };
   }, [peopleFieldKey]);
 
-  const assignees = useMemo(() => {
-    const options: Array<{ id: string; name: string }> = [];
-    const seen = new Set<string>();
-    Object.entries(personNames).forEach(([id, name]) => {
-      if (seen.has(id)) return;
-      seen.add(id);
-      options.push({ id, name });
+  useEffect(() => {
+    const targetField = fieldFilter || fields[0]?.id;
+    if (!targetField) {
+      setAssigneeOptions([
+        {
+          key: user?.id ? `user:${user.id}` : 'later',
+          label: t('schedule.assigneeMe'),
+          group: 'self',
+        },
+        { key: 'later', label: t('schedule.decideLater'), group: 'later' },
+      ]);
+      return;
+    }
+    let cancelled = false;
+    void Promise.all([
+      fieldPeopleService.getPeople(targetField).catch(() => []),
+      getPartnerService()
+        .getContacts({ fieldId: targetField, includeUnassigned: true })
+        .catch(() => []),
+    ]).then(([people, contacts]) => {
+      if (cancelled) return;
+      const options: AssigneeOption[] = [
+        {
+          key: user?.id ? `user:${user.id}` : 'later',
+          label: t('schedule.assigneeMe'),
+          group: 'self',
+        },
+      ];
+      (Array.isArray(people) ? people : []).forEach((person) => {
+        if (person.userId === user?.id || person.role === 'Admin') return;
+        options.push({
+          key: `user:${person.userId}`,
+          label: person.displayName || person.email || t('fieldWork.form.collaborator'),
+          group: person.role === 'Family' ? 'family' : 'partner',
+        });
+      });
+      (Array.isArray(contacts) ? contacts : []).forEach((contact) => {
+        options.push({
+          key: `contact:${contact.id}`,
+          label: contact.displayName,
+          group: 'contact',
+        });
+      });
+      options.push({ key: 'later', label: t('schedule.decideLater'), group: 'later' });
+      setAssigneeOptions(options);
     });
-    return options.sort((a, b) => a.name.localeCompare(b.name, i18n.language));
-  }, [personNames, i18n.language]);
+    return () => {
+      cancelled = true;
+    };
+  }, [fieldFilter, fields, user?.id, t]);
 
-  const openTask = (task: FieldTask) => navigation.navigate('TaskDetail', { taskId: task.id });
+  const openSchedule = useCallback(
+    (prefill?: ScheduleWorkPrefill) => {
+      setSchedulePrefill(prefill || { fieldId: fieldFilter || undefined });
+      setScheduleError(null);
+      setScheduleOpen(true);
+    },
+    [fieldFilter]
+  );
 
-  const handleStart = async (task: FieldTask) => {
-    const peers = task.workGroupId
-      ? tasks.filter(
-          (item) => item.workGroupId === task.workGroupId && notebookStatus(item.status) === 'todo'
-        )
-      : [];
-    const targets = peers.length > 0 ? peers : [task];
+  const closeSchedule = useCallback(() => {
+    scheduleTokenRef.current = null;
+    setScheduleOpen(false);
+    setSchedulePrefill(null);
+    setScheduleError(null);
+  }, []);
+
+  const openTask = (task: Task) => navigation.navigate('TaskDetail', { taskId: task.id });
+
+  const handleComplete = async (task: Task) => {
     try {
       setBusyId(task.id);
-      const fw = getFieldWorkService();
-      for (const item of targets) {
-        await fw.startFieldTask(item.id);
-      }
-      const startedIds = targets.map((item) => item.id);
-      setUndoStartIds(startedIds);
+      const updated = await getTaskService().completeTask(task.id);
+      setUndoCompleteId(task.id);
+      setFollowUpTask(updated);
+      setFollowUpError(null);
       setTimeout(
-        () => setUndoStartIds((current) => (current[0] === startedIds[0] ? [] : current)),
+        () => setUndoCompleteId((current) => (current === task.id ? null : current)),
         8000
       );
-      navigation.navigate('TaskDetail', { taskId: task.id });
+      await loadData();
     } catch {
-      setError(t('fieldWork.errors.start'));
+      setError(t('complete.failed'));
     } finally {
       setBusyId(null);
     }
   };
 
-  const handleUndoStart = async () => {
-    if (undoStartIds.length === 0) return;
+  const handleUndoComplete = async () => {
+    if (!undoCompleteId) return;
     try {
-      setBusyId(undoStartIds[0]);
-      const fw = getFieldWorkService();
-      for (const id of undoStartIds) {
-        await fw.undoStartFieldTask(id);
-      }
-      setUndoStartIds([]);
+      setBusyId(undoCompleteId);
+      await getTaskService().undoComplete(undoCompleteId);
+      setUndoCompleteId(null);
+      setFollowUpTask(null);
       await loadData();
     } catch {
-      setError(t('fieldWork.errors.undoStart'));
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const handlePrimary = async (task: FieldTask, action: NotebookAction) => {
-    if (action === 'start') {
-      await handleStart(task);
-      return;
-    }
-    if (action === 'resolve') {
-      try {
-        setBusyId(task.id);
-        await getFieldWorkService().resolveFieldTask(task.id);
-        await loadData();
-      } catch {
-        setError(t('fieldWork.errors.start'));
-      } finally {
-        setBusyId(null);
-      }
-      return;
-    }
-    openTask(task);
-  };
-
-  const handleMenu = async (task: FieldTask, action: NotebookMenuAction) => {
-    if (action === 'reschedule') {
-      setRescheduleTask(task);
-      return;
-    }
-    try {
-      setBusyId(task.id);
-      const fw = getFieldWorkService();
-      if (action === 'block') await fw.blockFieldTask(task.id);
-      else if (action === 'skip') await fw.skipFieldTask(task.id);
-      else if (action === 'cancel') await fw.cancelFieldTask(task.id);
-      else if (action === 'reopen') await fw.reopenFieldTask(task.id);
-      await loadData();
-    } catch {
-      setError(t('fieldWork.errors.cancel'));
+      setError(t('complete.undoFailed'));
     } finally {
       setBusyId(null);
     }
@@ -389,7 +319,8 @@ const TaskListScreen = () => {
     if (!rescheduleTask) return;
     try {
       setBusyId(rescheduleTask.id);
-      await getFieldWorkService().rescheduleFieldTask(rescheduleTask.id, {
+      await getTaskService().patchTask(rescheduleTask.id, {
+        scheduledFor: plannedStart,
         plannedStart,
         plannedEnd: plannedEnd || plannedStart,
       });
@@ -402,84 +333,80 @@ const TaskListScreen = () => {
     }
   };
 
-  const handleScheduleGroup = async (payload: {
-    proposalIds: string[];
-    datesByProposalId: Record<string, string>;
-  }) => {
+  const handleScheduleSubmit = async (input: CreateTaskInput) => {
     try {
-      setBusyId(payload.proposalIds[0] || 'group');
-      const fw = getFieldWorkService();
-      let lastId = '';
-      for (const proposalId of payload.proposalIds) {
-        const date = payload.datesByProposalId[proposalId];
-        const result = await fw.acceptProposal(proposalId, {
-          plannedStart: date || undefined,
-          plannedEnd: date || undefined,
-        });
-        lastId = result.acceptedTaskId || lastId;
-      }
-      setScheduleGroup(null);
+      setScheduleBusy(true);
+      setScheduleError(null);
+      const created = await getTaskService().createTask(input);
+      closeSchedule();
+      setView('today');
+      setFieldFilter(created.fieldId);
+      setCreatedId(created.id);
       await loadData();
-      setView('todo');
-      if (lastId) setCreatedId(lastId);
     } catch {
-      setError(t('fieldWork.errors.schedule'));
+      setScheduleError(t('schedule.failedSave'));
+    } finally {
+      setScheduleBusy(false);
+    }
+  };
+
+  const handleDismissSuggestion = async (suggestion: TaskSuggestion) => {
+    try {
+      setBusyId(`suggestion:${suggestion.fieldId}:${suggestion.templateCode}`);
+      await getTaskService().dismissSuggestion({
+        fieldId: suggestion.fieldId,
+        templateCode: suggestion.templateCode,
+        resultYear: suggestion.resultYear,
+      });
+      await loadData();
+    } catch {
+      setError(t('suggestions.dismissFailed'));
     } finally {
       setBusyId(null);
     }
   };
 
-  const handleDismissChoice = async (group: ProposalTemplateGroup, choice: ProposalDismissChoice) => {
-    try {
-      setBusyId(group.proposals[0]?.id || null);
-      const fw = getFieldWorkService();
-      for (const proposal of group.proposals) {
-        if (choice === 'remind_later') {
-          await fw.snoozeProposal(proposal.id);
-        } else if (choice === 'already_done') {
-          await fw.dismissProposal(proposal.id, 'dismiss_for_year');
-        } else {
-          await fw.dismissProposal(proposal.id, 'not_for_this_field');
-          try {
-            const evalResult = await fw.evaluateDismissalLearning(
-              proposal.fieldId,
-              proposal.templateCode
-            );
-            if (evalResult.shouldPrompt) {
-              setDismissalPrompt({
-                fieldId: proposal.fieldId,
-                templateCode: proposal.templateCode,
-                message:
-                  evalResult.promptMessage || t('fieldWork.profile.learning.dismissalMessage'),
-              });
-            }
-          } catch {
-            /* optional */
-          }
-        }
+  const handleMenu = async (task: Task, action: NotebookMenuAction) => {
+    if (action === 'reschedule') {
+      setRescheduleTask(task);
+      return;
+    }
+    if (action === 'edit' || action === 'assign') {
+      openTask(task);
+      return;
+    }
+    if (action === 'skip') {
+      try {
+        setBusyId(task.id);
+        await getTaskService().skipTask(task.id);
+        await loadData();
+      } catch {
+        setError(t('fieldWork.errors.cancel'));
+      } finally {
+        setBusyId(null);
       }
-      await loadData();
-    } catch {
-      setError(t('fieldWork.errors.dismiss'));
-    } finally {
-      setBusyId(null);
     }
   };
 
-  const applyDismissalLearning = async (choice: DismissalLearningChoice) => {
-    if (!dismissalPrompt) return;
+  const handleSaveCompletionDetails = async (payload: { notes: string }) => {
+    if (!followUpTask) return;
     try {
-      setLearningBusy(true);
-      await getFieldWorkService().applyDismissalLearning(
-        dismissalPrompt.fieldId,
-        dismissalPrompt.templateCode,
-        choice
-      );
-      setDismissalPrompt(null);
+      setBusyId(followUpTask.id);
+      setFollowUpError(null);
+      await getTaskService().createWorkRecord({
+        fieldId: followUpTask.fieldId,
+        title: followUpTask.title,
+        templateCode: followUpTask.templateCode,
+        notes: payload.notes || undefined,
+        linkedTaskId: followUpTask.id,
+        offerPlannedTaskMatch: false,
+      });
+      setFollowUpTask(null);
+      await loadData();
     } catch {
-      setError(t('fieldWork.profile.learning.applyFailed'));
+      setFollowUpError(t('complete.saveFailed'));
     } finally {
-      setLearningBusy(false);
+      setBusyId(null);
     }
   };
 
@@ -492,20 +419,23 @@ const TaskListScreen = () => {
     if (!createdId) return;
     try {
       setBusyId(createdId);
-      await getFieldWorkService().cancelFieldTask(createdId);
+      await getTaskService().skipTask(createdId, 'undo_create');
       setCreatedId('');
       await loadData();
     } catch {
-      setError(t('fieldWork.form.failedSave'));
+      setError(t('schedule.failedSave'));
     } finally {
       setBusyId(null);
     }
   };
 
-  const years = useMemo(() => [defaultYear - 1, defaultYear, defaultYear + 1], [defaultYear]);
-  const handleCreate = () => navigation.navigate('CreateTask', { fieldId: fieldFilter || undefined });
+  const taskCounts = useMemo(() => {
+    if (view === 'done') return { today: 0, upcoming: 0, done: tasks.length };
+    if (view === 'upcoming') return { today: 0, upcoming: tasks.length, done: 0 };
+    return { today: tasks.length, upcoming: 0, done: 0 };
+  }, [tasks, view]);
 
-  if (loading && tasks.length === 0 && proposals.length === 0) {
+  if (loading && tasks.length === 0) {
     return <LoadingSpinner fullScreen />;
   }
 
@@ -520,126 +450,53 @@ const TaskListScreen = () => {
         keyboardShouldPersistTaps="handled"
       >
         <ScreenHeader
-          title={t('fieldWork.pageTitle')}
-          subtitle={t('fieldWork.pageSubtitle')}
+          title={t('page.title')}
           action={
             <HeaderIconButton
               icon="add"
-              accessibilityLabel={t('fieldWork.addTask')}
-              onPress={handleCreate}
+              accessibilityLabel={t('page.scheduleCta')}
+              onPress={() => openSchedule({ fieldId: fieldFilter || undefined })}
               active
             />
           }
         />
 
+        <Pressable
+          onPress={() => setFieldPickerOpen(true)}
+          accessibilityLabel={t('page.fieldFilter')}
+          style={[
+            styles.fieldChip,
+            {
+              borderColor: fieldFilter ? colors.oliveBorder : colors.borderLight,
+              backgroundColor: fieldFilter ? colors.primaryLight : colors.surface,
+              minHeight: Math.max(44, tapMin * 0.9),
+            },
+          ]}
+        >
+          <Ionicons name="leaf-outline" size={18} color={colors.primary} />
+          <Text
+            style={{
+              color: colors.textPrimary,
+              fontWeight: '600',
+              flex: 1,
+              fontSize: 14 * fontScaleMultiplier,
+            }}
+            numberOfLines={1}
+          >
+            {selectedField?.name || t('page.allFields')}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
+        </Pressable>
+
         <TaskViewTabs
           activeView={view}
           onChange={setView}
           views={[
-            { id: 'todo', label: t('notebook.tabs.todo'), count: openTasks.length },
-            { id: 'done', label: t('notebook.tabs.done'), count: historyTasks.length },
+            { id: 'today', label: t('page.tabs.today'), count: taskCounts.today },
+            { id: 'upcoming', label: t('page.tabs.upcoming'), count: taskCounts.upcoming },
+            { id: 'done', label: t('page.tabs.done'), count: taskCounts.done },
           ]}
         />
-
-        <View style={styles.toolbar}>
-          <View
-            style={[
-              styles.searchBox,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.borderLight,
-                minHeight: Math.max(46, tapMin * 0.92),
-                flex: 1,
-              },
-            ]}
-          >
-            <Ionicons name="search" size={18} color={colors.textTertiary} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t('notebook.search')}
-              placeholderTextColor={colors.textTertiary}
-              accessibilityLabel={t('notebook.search')}
-              style={[
-                styles.search,
-                {
-                  color: colors.textPrimary,
-                  fontSize: 15 * fontScaleMultiplier,
-                },
-              ]}
-            />
-            {query ? (
-              <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityLabel={t('common:clear', { defaultValue: 'Clear' })}>
-                <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
-              </Pressable>
-            ) : null}
-          </View>
-          <View
-            style={[styles.scope, { backgroundColor: colors.surfaceMuted, borderColor: colors.borderLight }]}
-            accessibilityRole="tablist"
-            accessibilityLabel={t('notebook.scope')}
-          >
-            {(['mine', 'everyone'] as const).map((id) => {
-              const selected = scope === id;
-              return (
-                <Pressable
-                  key={id}
-                  onPress={() => setScope(id)}
-                  style={[
-                    styles.scopeBtn,
-                    {
-                      minHeight: Math.max(36, tapMin * 0.75),
-                      backgroundColor: selected ? colors.primaryLight : 'transparent',
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      color: selected ? colors.primary : colors.textSecondary,
-                      fontWeight: selected ? '700' : '500',
-                      fontSize: 13 * fontScaleMultiplier,
-                    }}
-                  >
-                    {t(`notebook.${id}`)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <TaskContextBar
-          yearLabel={t('fieldWork.year')}
-          year={yearFilter}
-          years={years}
-          defaultYear={defaultYear}
-          fieldLabel={t('fieldFilterLabel')}
-          allFieldsLabel={t('fieldWork.allFields')}
-          fieldId={fieldFilter}
-          fields={fields}
-          moreFiltersLabel={t('fieldWork.moreFilters')}
-          assigneeLabel={t('fieldWork.allAssigneesLabel')}
-          allAssigneesLabel={t('fieldWork.allAssignees')}
-          assigneeId={assigneeFilter}
-          assignees={assignees}
-          onYearChange={setYearFilter}
-          onFieldChange={setFieldFilter}
-          onAssigneeChange={setAssigneeFilter}
-          clearYearLabel={t('fieldWork.context.clearYear')}
-          clearFieldLabel={t('fieldWork.context.clearField')}
-          clearAssigneeLabel={t('fieldWork.context.clearAssignee')}
-        />
-
-        {fieldFilter && workSetup ? (
-          <WorkSetupBanner
-            fieldId={fieldFilter}
-            resume={workSetup.resume}
-            onDismiss={() => {
-              void dismissWorkSetupBanner(fieldFilter);
-              setWorkSetup(null);
-            }}
-          />
-        ) : null}
 
         {error ? (
           <View style={[styles.errorBox, { backgroundColor: colors.errorLight }]}>
@@ -647,16 +504,19 @@ const TaskListScreen = () => {
           </View>
         ) : null}
 
-        {undoStartIds.length > 0 ? (
-          <View style={[styles.undoBanner, { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder }]}>
-            <Ionicons name="play-circle-outline" size={20} color={colors.primary} />
+        {undoCompleteId ? (
+          <View
+            style={[
+              styles.undoBanner,
+              { backgroundColor: colors.primaryLight, borderColor: colors.oliveBorder },
+            ]}
+          >
+            <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
             <Text style={{ color: colors.textPrimary, flex: 1, fontWeight: '600' }}>
-              {t('fieldWork.undoStart.message')}
+              {t('complete.undoMessage')}
             </Text>
-            <Pressable onPress={() => void handleUndoStart()}>
-              <Text style={{ color: colors.primary, fontWeight: '700' }}>
-                {t('fieldWork.undoStart.action')}
-              </Text>
+            <Pressable onPress={() => void handleUndoComplete()}>
+              <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('complete.undo')}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -665,43 +525,92 @@ const TaskListScreen = () => {
           <CreatedTaskBanner
             title={taskDisplayTitle(createdTask.title, createdTask.templateCode, i18n.language)}
             fieldName={fieldNames[createdTask.fieldId] || t('fieldWork.unknownField')}
-            dateLabel={formatLongTaskDate(createdTask.plannedStart, i18n.language)}
+            dateLabel={formatLongTaskDate(
+              createdTask.scheduledFor || createdTask.plannedStart,
+              i18n.language
+            )}
             onView={() => openTask(createdTask)}
-            onCreateAnother={handleCreate}
+            onCreateAnother={() => openSchedule({ fieldId: createdTask.fieldId })}
             onUndo={() => void handleUndoCreated()}
           />
         ) : null}
 
-        {view === 'todo' ? (
-          <TodoNotebook
-            tasks={openTasks}
-            fields={fields}
-            fieldNames={fieldNames}
-            personNames={personNames}
-            year={yearFilter}
-            busyId={busyId}
-            proposals={visibleProposals}
-            onOpen={openTask}
-            onPrimary={(task, action) => void handlePrimary(task, action)}
-            onMenu={(task, action) => void handleMenu(task, action)}
-            onScheduleGroup={setScheduleGroup}
-            onDismissChoice={(group, choice) => void handleDismissChoice(group, choice)}
-          />
-        ) : (
+        {view === 'done' ? (
           <HistoryTaskView
-            tasks={historyTasks}
+            tasks={tasks}
             fields={fields}
             fieldNames={fieldNames}
             personNames={personNames}
-            year={yearFilter}
+            year={year}
             busyId={busyId}
             onOpen={openTask}
-            onPrimary={(task, action) => void handlePrimary(task, action)}
+            onComplete={(task) => void handleComplete(task)}
             onMenu={(task, action) => void handleMenu(task, action)}
             onOpenChronologio={() => openChronologioHome(navigation)}
           />
+        ) : (
+          <TodoNotebook
+            mode={view}
+            tasks={tasks}
+            fields={fields}
+            fieldNames={fieldNames}
+            personNames={personNames}
+            year={year}
+            busyId={busyId}
+            suggestions={view === 'today' ? suggestions : []}
+            onOpen={openTask}
+            onComplete={(task) => void handleComplete(task)}
+            onMenu={(task, action) => void handleMenu(task, action)}
+            onScheduleSuggestion={(suggestion) =>
+              openSchedule({
+                fieldId: suggestion.fieldId,
+                templateCode: suggestion.templateCode,
+                title: suggestion.title,
+              })
+            }
+            onDismissSuggestion={(suggestion) => void handleDismissSuggestion(suggestion)}
+          />
         )}
       </ScrollView>
+
+      <Sheet
+        open={fieldPickerOpen}
+        onClose={() => setFieldPickerOpen(false)}
+        title={t('page.fieldFilter')}
+        edge="bottom"
+        size="sm"
+      >
+        <Pressable
+          onPress={() => {
+            setFieldFilter('');
+            setFieldPickerOpen(false);
+          }}
+          style={[styles.pickerRow, { minHeight: tapMin }]}
+        >
+          <Text style={{ color: colors.textPrimary, fontWeight: fieldFilter ? '500' : '700' }}>
+            {t('page.allFields')}
+          </Text>
+        </Pressable>
+        {fields.map((field) => (
+          <Pressable
+            key={field.id}
+            onPress={() => {
+              setFieldFilter(field.id);
+              setFieldPickerOpen(false);
+            }}
+            style={[styles.pickerRow, { minHeight: tapMin }]}
+          >
+            <Text
+              style={{
+                color: colors.textPrimary,
+                fontWeight: fieldFilter === field.id ? '700' : '500',
+              }}
+            >
+              {field.name}
+            </Text>
+          </Pressable>
+        ))}
+      </Sheet>
 
       <RescheduleTaskSheet
         task={rescheduleTask}
@@ -711,34 +620,26 @@ const TaskListScreen = () => {
         onConfirm={(start, end) => void handleReschedule(start, end)}
       />
 
-      <ScheduleGroupSheet
-        group={scheduleGroup}
-        fieldNames={fieldNames}
-        open={Boolean(scheduleGroup)}
-        busy={Boolean(busyId)}
-        onClose={() => setScheduleGroup(null)}
-        onConfirm={(payload) => void handleScheduleGroup(payload)}
+      <ScheduleWorkSheet
+        open={scheduleOpen}
+        fields={fields}
+        assigneeOptions={assigneeOptions}
+        suggestions={suggestions}
+        prefill={schedulePrefill}
+        busy={scheduleBusy}
+        error={scheduleError}
+        onClose={closeSchedule}
+        onSubmit={handleScheduleSubmit}
       />
 
-      <LearningPromptSheet
-        open={Boolean(dismissalPrompt)}
-        title={t('fieldWork.profile.learning.dismissalTitle')}
-        message={dismissalPrompt?.message || ''}
-        busy={learningBusy}
-        onClose={() => setDismissalPrompt(null)}
-        onAction={(actionId) => void applyDismissalLearning(actionId as DismissalLearningChoice)}
-        actions={[
-          {
-            id: 'dont_propose',
-            label: t('fieldWork.profile.learning.dontPropose'),
-            variant: 'caution',
-          },
-          { id: 'ask_when_indicated', label: t('fieldWork.profile.learning.askWhenIndicated') },
-          {
-            id: 'keep_proposing',
-            label: t('fieldWork.profile.learning.keepProposing'),
-          },
-        ]}
+      <CompletionFollowUpSheet
+        task={followUpTask}
+        open={Boolean(followUpTask)}
+        busy={Boolean(followUpTask && busyId === followUpTask.id)}
+        error={followUpError}
+        onClose={() => setFollowUpTask(null)}
+        onDone={() => setFollowUpTask(null)}
+        onSaveDetails={(payload) => void handleSaveCompletionDetails(payload)}
       />
     </ScreenLayout>
   );
@@ -747,38 +648,13 @@ const TaskListScreen = () => {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: spacing.base, paddingBottom: spacing['2xl'], gap: spacing.md },
-  toolbar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  searchBox: {
+  fieldChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.lg,
     paddingHorizontal: spacing.md,
-    minWidth: 160,
-  },
-  search: {
-    flex: 1,
-    paddingVertical: 10,
-  },
-  scope: {
-    flexDirection: 'row',
-    borderRadius: radii.control,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 3,
-    gap: 2,
-    flexShrink: 0,
-  },
-  scopeBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 11,
-    paddingHorizontal: 12,
   },
   errorBox: { borderRadius: radii.md, padding: spacing.md },
   undoBanner: {
@@ -788,6 +664,10 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     borderWidth: StyleSheet.hairlineWidth,
     padding: spacing.md,
+  },
+  pickerRow: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
 });
 

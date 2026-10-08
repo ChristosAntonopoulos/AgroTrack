@@ -16,6 +16,7 @@ import {
 import OwnerActivationHost from '../onboarding/OwnerActivationHost';
 import ActivationGate from '../onboarding/ActivationGate';
 import NavCoach from '../onboarding/NavCoach';
+import SkipOnboarding from '../onboarding/SkipOnboarding';
 import CaptureFab from '../Capture/CaptureFab';
 import { useIsMobile } from '../../hooks/useBreakpoint';
 import './MainLayout.css';
@@ -86,6 +87,7 @@ const MainLayoutChrome: React.FC = () => {
       {!hideAppNav ? <CaptureFab obscured={moreOpen} /> : null}
       <OwnerActivationHost />
       <NavCoach />
+      <SkipOnboarding />
     </div>
   );
 };

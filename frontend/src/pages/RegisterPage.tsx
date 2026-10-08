@@ -13,8 +13,7 @@ import {
   intentFromSearch,
   mergeInviteIntent,
   readInviteIntent,
-  rememberInviteIntent,
-} from '../utils/inviteIntent';
+  rememberInviteIntent} from '../utils/inviteIntent';
 import AuthSocialButtons from '../components/Auth/AuthSocialButtons';
 import PasswordStrength from '../components/Auth/PasswordStrength';
 import Button from '../components/Common/Button';
@@ -115,8 +114,7 @@ const RegisterPage: React.FC = () => {
           code: invite.code,
           email: invite.email,
           name: invite.displayName,
-          redirect: `/invite/${invite.token || next.token || lookup}`,
-        });
+          redirect: `/invite/${invite.token || next.token || lookup}`});
       })
       .catch(() => {
         /* The invitation page still carries the code if this lookup fails. */
@@ -132,8 +130,7 @@ const RegisterPage: React.FC = () => {
     email: emailRef,
     password: passwordRef,
     confirmPassword: confirmRef,
-    inviteCode: inviteRef,
-  };
+    inviteCode: inviteRef};
 
   const loginHref = authPathWithIntent(
     '/login',
@@ -142,8 +139,7 @@ const RegisterPage: React.FC = () => {
 
   const persistInvite = () => {
     rememberInviteIntent(intentFromSearch(searchParams), {
-      code: inviteCode.trim() || undefined,
-    });
+      code: inviteCode.trim() || undefined});
   };
 
   const focusErrors = (errors: Partial<Record<FieldKey, string>>) => {
@@ -253,8 +249,7 @@ const RegisterPage: React.FC = () => {
   const fieldClass = (key: FieldKey) => `login-field${fieldErrors[key] ? ' has-error' : ''}`;
   const errorEntries = FIELD_ORDER.filter((key) => fieldErrors[key]).map((key) => ({
     key,
-    message: fieldErrors[key] as string,
-  }));
+    message: fieldErrors[key] as string}));
   const summaryMessage =
     formError ||
     (errorEntries.length > 1

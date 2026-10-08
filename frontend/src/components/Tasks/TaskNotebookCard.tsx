@@ -1,25 +1,21 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MoreHorizontal } from 'lucide-react';
-import type { FieldTask } from '../../services/fieldWorkService';
+import { Check, MoreHorizontal } from 'lucide-react';
+import type { Task } from '../../services/taskService';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import { formatCompactTaskPeriod } from '../../utils/taskDateRange';
 import { taskDisplayTitle } from '../../utils/taskDisplayTitle';
 import {
-  checklistCount,
   leadTask,
   notebookStatus,
-  primaryActionFor,
-  weatherChangesDecision,
   whenTone,
-  type NotebookAction,
+  type NotebookMenuAction,
   type TaskUnit,
 } from '../../utils/taskNotebook';
-import { resolveWeatherKind } from '../../utils/taskWeather';
 import TaskCategoryMark from './TaskCategoryMark';
 import './TaskNotebookCard.css';
 
-export type NotebookMenuAction = 'reschedule' | 'block' | 'skip' | 'cancel' | 'reopen';
+export type { NotebookMenuAction };
 
 interface TaskNotebookCardProps {
   unit: TaskUnit;
@@ -28,9 +24,9 @@ interface TaskNotebookCardProps {
   personName?: string;
   year: number;
   busy?: boolean;
-  onOpen: (task: FieldTask) => void;
-  onPrimary: (task: FieldTask, action: NotebookAction) => void;
-  onMenu?: (task: FieldTask, action: NotebookMenuAction) => void;
+  onOpen: (task: Task) => void;
+  onComplete: (task: Task) => void;
+  onMenu?: (task: Task, action: NotebookMenuAction) => void;
 }
 
 const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
@@ -41,7 +37,7 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
   year,
   busy,
   onOpen,
-  onPrimary,
+  onComplete,
   onMenu,
 }) => {
   const { t, i18n } = useTranslation('tasks');
@@ -50,13 +46,15 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const task = leadTask(unit);
   const status = notebookStatus(task.status);
-  const action = primaryActionFor(status);
+  const done = status === 'done';
   const title = taskDisplayTitle(task.title, task.templateCode, i18n.language);
-  const several = unit.tasks.length > 1;
-  const doneFields = unit.tasks.filter((item) => notebookStatus(item.status) === 'completed').length;
-  const checks = checklistCount(task);
   const tone = whenTone(task);
-  const period = formatCompactTaskPeriod(task.plannedStart, task.plannedEnd, i18n.language, year);
+  const period = formatCompactTaskPeriod(
+    task.scheduledFor || task.plannedStart,
+    task.plannedEnd,
+    i18n.language,
+    year
+  );
   const when =
     tone === 'overdue'
       ? t('notebook.when.overdue')
@@ -64,50 +62,14 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
         ? t('notebook.when.today')
         : tone === 'tomorrow'
           ? t('notebook.when.tomorrow')
-          : tone === 'progress'
-            ? t('notebook.when.today')
-            : tone === 'none'
-              ? t('notebook.when.noDate')
-              : period || t('notebook.when.noDate');
+          : tone === 'none'
+            ? t('notebook.when.noDate')
+            : period || t('notebook.when.noDate');
 
-  const where = several
-    ? t('notebook.fieldCount', { n: unit.tasks.length })
-    : fieldName(task.fieldId);
-
-  const progress = several
-    ? t('notebook.fieldProgress', { done: doneFields, total: unit.tasks.length })
-    : checks.total > 0
-      ? t('notebook.checks', { done: checks.done, total: checks.total })
-      : null;
-
-  const showWeather = weatherChangesDecision(task);
-  const weatherKind = resolveWeatherKind(task.weatherSuitability);
-  const colors = unit.tasks.slice(0, 3).map((item) => resolveFieldColor(fieldColor?.(item.fieldId), item.fieldId));
-
-  const actionLabel =
-    action === 'start'
-      ? t('fieldWork.actions.start')
-      : action === 'continue'
-        ? t('fieldWork.actions.continueIt')
-        : action === 'resolve'
-          ? t('notebook.actions.resolve')
-          : t('fieldWork.actions.viewResult');
-
-  const statusLabel =
-    status === 'in_progress'
-      ? t('notebook.status.in_progress')
-      : status === 'blocked'
-        ? t('notebook.status.blocked')
-        : status === 'completed'
-          ? t('notebook.status.completed')
-          : status === 'skipped'
-            ? t('notebook.status.skipped')
-            : status === 'cancelled'
-              ? t('notebook.status.cancelled')
-              : null;
-
+  const where = fieldName(task.fieldId);
   const who = personName || t('notebook.unassigned');
-  const metaParts = [where, when, who, progress].filter(Boolean);
+  const metaParts = [where, when, who].filter(Boolean);
+  const color = resolveFieldColor(fieldColor?.(task.fieldId), task.fieldId);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -145,6 +107,19 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
       }`}
       data-task-id={task.id}
     >
+      <button
+        type="button"
+        className={`notebook-card-check${done ? ' is-done' : ''}`}
+        aria-label={done ? t('notebook.actions.completed') : t('notebook.actions.markDone')}
+        aria-pressed={done}
+        disabled={busy || status === 'skipped'}
+        onClick={() => {
+          if (!done) onComplete(task);
+        }}
+      >
+        {done ? <Check size={20} aria-hidden /> : null}
+      </button>
+
       <button type="button" className="notebook-card-hit" onClick={() => onOpen(task)}>
         <TaskCategoryMark templateCode={task.templateCode} />
         <span className="notebook-card-copy">
@@ -159,35 +134,14 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
               </React.Fragment>
             ))}
           </span>
-          {statusLabel || showWeather ? (
-            <span className="notebook-card-status">
-              {statusLabel ? <span>{statusLabel}</span> : null}
-              {showWeather ? (
-                <span className={`notebook-weather notebook-weather--${weatherKind}`}>
-                  {weatherKind === 'unsuitable'
-                    ? t('notebook.weather.unsuitable')
-                    : t('notebook.weather.caution')}
-                </span>
-              ) : null}
-            </span>
-          ) : null}
           <span className="notebook-card-colors" aria-hidden>
-            {colors.map((color, index) => (
-              <span key={`${color}-${index}`} style={{ background: color }} />
-            ))}
+            <span style={{ background: color }} />
           </span>
         </span>
       </button>
+
       <div className="notebook-card-actions task-row-actions">
-        <button
-          type="button"
-          className="notebook-card-primary"
-          disabled={busy}
-          onClick={() => onPrimary(task, action)}
-        >
-          {actionLabel}
-        </button>
-        {onMenu ? (
+        {onMenu && status === 'planned' ? (
           <details
             ref={menuRef}
             className="notebook-card-more"
@@ -198,21 +152,10 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
               <MoreHorizontal size={20} aria-hidden />
             </summary>
             <div id={menuId} className="notebook-card-menu" role="menu">
-              {status !== 'completed' && status !== 'cancelled' && status !== 'skipped'
-                ? menu('reschedule', t('notebook.menu.reschedule'))
-                : null}
-              {status === 'todo' || status === 'in_progress'
-                ? menu('block', t('notebook.menu.block'))
-                : null}
-              {status === 'todo' || status === 'in_progress' || status === 'blocked'
-                ? menu('skip', t('notebook.menu.skip'))
-                : null}
-              {status !== 'completed' && status !== 'cancelled' && status !== 'skipped'
-                ? menu('cancel', t('notebook.menu.cancel'))
-                : null}
-              {status === 'completed' || status === 'cancelled' || status === 'skipped'
-                ? menu('reopen', t('notebook.menu.reopen'))
-                : null}
+              {menu('reschedule', t('notebook.menu.reschedule'))}
+              {menu('assign', t('notebook.menu.assign'))}
+              {menu('edit', t('notebook.menu.edit'))}
+              {menu('skip', t('notebook.menu.skip'))}
             </div>
           </details>
         ) : null}

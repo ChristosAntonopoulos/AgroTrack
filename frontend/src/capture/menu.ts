@@ -61,7 +61,8 @@ const captureMove = (type: CaptureType): CaptureMove => ({
 /** Exact Quick Add move for a preset id. Does not look up the catalog or recents. */
 export const canonicalQuickMove = (id: string): CaptureMove | null => {
   switch (id) {
-    case 'work':
+    case 'scheduleWork':
+    case 'recordWork':
     case 'observation':
     case 'expense':
     case 'income':
@@ -129,7 +130,10 @@ export const buildCaptureMenu = (input: {
   }
 
   const grove: CaptureMove[] = [];
-  if (permissions.canRecordWork) grove.push(captureMove('work'));
+  if (permissions.canRecordWork) {
+    grove.push(captureMove('scheduleWork'));
+    grove.push(captureMove('recordWork'));
+  }
   if (permissions.canRecordObservation) grove.push(captureMove('observation'));
 
   const warehouse: CaptureMove[] = canUseWarehouse

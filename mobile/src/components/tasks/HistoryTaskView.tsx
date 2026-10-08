@@ -1,26 +1,31 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import type { Field } from '../../services/fieldService';
-import type { FieldTask } from '../../services/fieldWorkService';
-import { resolveTaskPerson } from '../../utils/plannedTaskGroups';
-import { groupWorkUnits, isRecordedWork, leadTask, type NotebookAction } from '../../utils/taskNotebook';
-import TaskNotebookCard, { type NotebookMenuAction } from './TaskNotebookCard';
+import type { Task } from '../../services/taskService';
+import {
+  groupWorkUnits,
+  isRecordedWork,
+  leadTask,
+  resolveTaskPerson,
+  type NotebookMenuAction,
+} from '../../utils/taskNotebook';
+import TaskNotebookCard from './TaskNotebookCard';
 import EmptyState from '../EmptyState';
 import { createElevation, radii, spacing } from '../../theme';
-import { Ionicons } from '@expo/vector-icons';
 
 type Props = {
-  tasks: FieldTask[];
+  tasks: Task[];
   fields: Field[];
   fieldNames: Record<string, string>;
   personNames: Record<string, string>;
   year: number;
   busyId: string | null;
-  onOpen: (task: FieldTask) => void;
-  onPrimary: (task: FieldTask, action: NotebookAction) => void;
-  onMenu: (task: FieldTask, action: NotebookMenuAction) => void;
+  onOpen: (task: Task) => void;
+  onComplete: (task: Task) => void;
+  onMenu: (task: Task, action: NotebookMenuAction) => void;
   onOpenChronologio: () => void;
 };
 
@@ -32,7 +37,7 @@ const HistoryTaskView: React.FC<Props> = ({
   year,
   busyId,
   onOpen,
-  onPrimary,
+  onComplete,
   onMenu,
   onOpenChronologio,
 }) => {
@@ -60,11 +65,11 @@ const HistoryTaskView: React.FC<Props> = ({
           <Ionicons name="book-outline" size={18} color={colors.primary} />
         </View>
         <Text style={{ color: colors.textSecondary, flex: 1, lineHeight: 20, fontSize: 13 }}>
-          {t('fieldWork.history.banner')}
+          {t('notebook.done.banner')}
         </Text>
         <Pressable onPress={onOpenChronologio} hitSlop={8} style={styles.bannerLink}>
           <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
-            {t('fieldWork.history.openChronologio')}
+            {t('notebook.done.openChronologio')}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={colors.primary} />
         </Pressable>
@@ -72,8 +77,8 @@ const HistoryTaskView: React.FC<Props> = ({
       {units.length === 0 ? (
         <EmptyState
           icon={<Ionicons name="time-outline" size={36} color={colors.primary} />}
-          title={t('fieldWork.empty.historyTitle')}
-          description={t('fieldWork.empty.historyDescription')}
+          title={t('notebook.empty.doneTitle')}
+          description={t('notebook.empty.doneDescription')}
         />
       ) : (
         <View style={styles.list}>
@@ -87,7 +92,7 @@ const HistoryTaskView: React.FC<Props> = ({
               year={year}
               busy={unit.tasks.some((task) => task.id === busyId)}
               onOpen={onOpen}
-              onPrimary={onPrimary}
+              onComplete={onComplete}
               onMenu={onMenu}
             />
           ))}
@@ -100,17 +105,17 @@ const HistoryTaskView: React.FC<Props> = ({
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
   banner: {
-    borderRadius: radii.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: spacing.md,
-    gap: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.md,
   },
   bannerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },

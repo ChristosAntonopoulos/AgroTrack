@@ -59,6 +59,7 @@ import { View, StyleSheet, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import OwnerActivationHost from '../components/onboarding/OwnerActivationHost';
 import NavCoach from '../components/onboarding/NavCoach';
+import SkipOnboarding from '../components/onboarding/SkipOnboarding';
 import OnboardingFinishedModal from '../components/onboarding/OnboardingFinishedModal';
 import ActivationGate from '../components/onboarding/ActivationGate';
 import { OwnerActivationProvider } from '../onboarding/OwnerActivationContext';
@@ -422,6 +423,7 @@ const RootNavigator = () => {
           <AppDock route={focusedRoute} />
         ) : null}
         {isAuthenticated ? <NavCoach /> : null}
+        {isAuthenticated ? <SkipOnboarding /> : null}
         {isAuthenticated ? <OnboardingFinishedModal /> : null}
         </View>
         </DockProvider>

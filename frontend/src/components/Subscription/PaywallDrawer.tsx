@@ -10,8 +10,7 @@ import { BillingPackage, OfferingsResult } from '../../billing/types';
 import {
   annualPerMonthLabel,
   annualSavingsPercent,
-  pickDefaultPackage,
-} from '../../billing/packageSelection';
+  pickDefaultPackage} from '../../billing/packageSelection';
 import { isAtProLimit, isBilledOutsideWeb } from '../../billing/subscriptionModel';
 import { trackBillingEvent } from '../../billing/billingAnalytics';
 import { LANDING_SUPPORT_EMAIL } from '../../config/landingConfig';
@@ -29,8 +28,7 @@ const PaywallDrawer: React.FC = () => {
     snapshot,
     isLoading,
     billing,
-    syncAfterPurchase,
-  } = useSubscription();
+    syncAfterPurchase} = useSubscription();
 
   const open = paywall != null;
   const [phase, setPhase] = useState<Phase>('select');
@@ -106,8 +104,7 @@ const PaywallDrawer: React.FC = () => {
     trackBillingEvent('purchase_started', {
       source: paywall?.source,
       period: selected.period,
-      package_id: selected.id,
-    });
+      package_id: selected.id});
     try {
       const outcome = await billing.purchase(selected.id);
       if (outcome.status === 'cancelled') {
@@ -206,9 +203,9 @@ const PaywallDrawer: React.FC = () => {
         </Button>
         <p className="sub-fine-print">{t('subscription:paywall.finePrint')}</p>
         <p className="sub-legal-links">
-          <Link to="/terms" target="_blank" rel="noreferrer">{t('common:legal.terms', { defaultValue: 'Όροι' })}</Link>
+          <Link to="/terms" target="_blank" rel="noreferrer">{t('common:legal.terms')}</Link>
           {' · '}
-          <Link to="/privacy" target="_blank" rel="noreferrer">{t('common:legal.privacy', { defaultValue: 'Απόρρητο' })}</Link>
+          <Link to="/privacy" target="_blank" rel="noreferrer">{t('common:legal.privacy')}</Link>
         </p>
       </div>
     ) : null;
@@ -255,8 +252,7 @@ const PaywallDrawer: React.FC = () => {
             <div className="sub-calm">
               <p>
                 {t('subscription:paywall.billedElsewhere', {
-                  provider: t(`subscription:providers.${snapshot.provider}`),
-                })}
+                  provider: t(`subscription:providers.${snapshot.provider}`)})}
               </p>
             </div>
           ) : null}

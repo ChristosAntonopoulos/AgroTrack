@@ -67,7 +67,13 @@ describe('buildQuickAddMoves', () => {
       isHarvestLive: false,
       groups: groups(false),
     });
-    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'harvest']);
+    expect(moves.map((m) => m.id)).toEqual([
+      'scheduleWork',
+      'recordWork',
+      'observation',
+      'expense',
+      'harvest',
+    ]);
   });
 
   it('prioritises harvest actions inside harvest even before campaign hydrates', () => {
@@ -97,7 +103,13 @@ describe('buildQuickAddMoves', () => {
       groups: groups(true),
       recentIds: ['sell', 'income', 'sacks'],
     });
-    expect(moves.map((m) => m.id)).toEqual(['work', 'observation', 'expense', 'harvest']);
+    expect(moves.map((m) => m.id)).toEqual([
+      'scheduleWork',
+      'recordWork',
+      'observation',
+      'expense',
+      'harvest',
+    ]);
   });
 
   it('uses money presets including sell, not sacks', () => {
@@ -120,10 +132,10 @@ describe('buildQuickAddMoves', () => {
   it('uses tasks and photos presets', () => {
     expect(
       buildQuickAddMoves({ pathname: '/tasks', groups: groups(false) }).map((m) => m.id)
-    ).toEqual(['work', 'observation', 'expense', 'harvest']);
+    ).toEqual(['scheduleWork', 'recordWork', 'observation', 'expense']);
     expect(
       buildQuickAddMoves({ pathname: '/photos', groups: groups(false) }).map((m) => m.id)
-    ).toEqual(['observation', 'work', 'expense', 'harvest']);
+    ).toEqual(['observation', 'recordWork', 'scheduleWork', 'expense']);
   });
 
   it('does not default grove to the first available field', () => {

@@ -3,10 +3,9 @@ import type { Field } from '../services/fieldService';
 import type { FieldTask } from '../services/fieldWorkService';
 import type { FieldWeather } from '../services/geospatialService';
 import type { Note } from '../services/noteService';
-import { getFieldWorkService, getNoteService } from '../services/serviceFactory';
+import { getNoteService, getTaskService } from '../services/serviceFactory';
 import { geospatialService } from '../services/geospatialService';
 import { toWeatherData, type WeatherData } from '../services/weatherService';
-import { agriculturalYearFor } from './agriculturalYear';
 import {
   buildAndRankProposals,
   buildConditionsStatus,
@@ -14,6 +13,7 @@ import {
   type BriefProposal,
 } from '../today/buildDailyBrief';
 import { isActiveTask, isTaskOverdue } from '../utils/taskListUtils';
+import { taskToFieldTask } from '../utils/taskCompat';
 
 export type AttentionKind = 'warning' | 'task' | 'proposal' | 'calm';
 
@@ -133,14 +133,14 @@ export const useTodaySummary = (input: { enabled: boolean; fieldId?: string; fie
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    const year = agriculturalYearFor(new Date());
     const scope = fieldId;
     const weatherId = scope || fields[0]?.id;
     setWeatherFieldId(weatherId);
 
     void Promise.all([
-      getFieldWorkService()
-        .listFieldTasks(scope ? { fieldId: scope, resultYear: year } : { resultYear: year })
+      getTaskService()
+        .listTasks(scope ? { view: 'all', fieldId: scope } : { view: 'all' })
+        .then((rows) => rows.map(taskToFieldTask))
         .catch(() => [] as FieldTask[]),
       getNoteService()
         .getNotes({ fieldId: scope, limit: 40 })

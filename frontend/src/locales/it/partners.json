@@ -107,15 +107,15 @@
     "helps": "Aiuta",
     "sees": "Può vedere il campo",
     "invited": "Invitato",
-    "partner": "Partner",
+    "partner": "Collaboratore",
     "contact": "contatto",
     "app": "The Olive Lot",
     "family": "Famiglia",
-    "partnerSeat": "Partner"
+    "partnerSeat": "Collaboratore"
   },
   "inviteFamilySeat": "Famiglia",
   "inviteFamilySeatHint": "Fino a 2 posti su questo campo.",
-  "invitePartnerSeat": "Partner",
+  "invitePartnerSeat": "Collaboratore",
   "invitePartnerSeatHint": "1 posto partner su questo campo.",
   "invitePartnerSeatFull": "Collaboratore — {{used}}/{{max}} posti. Nessun posto disponibile.",
   "inviteFamilySeatFull": "Famiglia — {{used}}/{{max}} posti. Nessun posto disponibile.",
@@ -224,7 +224,7 @@
     "helpingBanner": "Stai aiutando su {{field}} — accesso: {{level}}."
   },
   "ownerPartner": {
-    "title": "Partner",
+    "title": "Collaboratore",
     "lead": "{{used}}/{{max}}",
     "empty": "Invita un partner.",
     "addPartner": "Invita collaboratore",
@@ -594,14 +594,76 @@
       "money": "Denaro",
       "harvest": "Raccolto",
       "fields": "Uliveti",
-      "documents": "Documenti"
+      "documents": "Documenti",
+      "oilStore": "Magazzino olio"
     },
     "steps": {
-      "1": { "title": "Chi vuoi invitare?", "hint": "Scegli un contatto oppure inserisci email e telefono." },
-      "2": { "title": "In quali uliveti?", "hint": "Una persona può avere un rapporto con più uliveti." },
-      "3": { "title": "Che rapporto ha?", "hint": "Il rapporto non decide da solo cosa può fare." },
-      "4": { "title": "Cosa può fare?", "hint": "Scegli quanto può agire e quali aree dell'uliveto si aprono." },
-      "5": { "title": "Controllo", "hint": "Parte un invito per ogni uliveto selezionato." }
-    }
-  }
+      "1": {
+        "title": "Chi vuoi invitare?",
+        "hint": "Scegli un contatto oppure inserisci email e telefono."
+      },
+      "2": {
+        "title": "In quali uliveti?",
+        "hint": "Una persona può avere un rapporto con più uliveti.",
+        "groves": "Oliveti",
+        "grovesHint": "L’oliveto attuale è già selezionato; aggiungine altri se vuoi."
+      },
+      "3": {
+        "title": "Che rapporto ha?",
+        "hint": "Il rapporto non decide da solo cosa può fare."
+      },
+      "4": {
+        "title": "Cosa può fare?",
+        "hint": "Scegli quanto può agire e quali aree dell'uliveto si aprono."
+      },
+      "5": {
+        "title": "Controllo",
+        "hint": "Parte un invito per ogni uliveto selezionato."
+      }
+    },
+    "removeAccess": "Rimuovi l'accesso",
+    "grovesWithAccess": "Oliveti con accesso",
+    "reach": "Cellulare o email",
+    "reachPlaceholder": "69… o nome@example.com",
+    "resetPreset": "Reimposta ruolo",
+    "accessSummary": "Cosa dà questo ruolo",
+    "customizedHint": "Accesso personalizzato — il riepilogo segue i permessi selezionati.",
+    "customizedShort": "personalizzato",
+    "noModulesSelected": "Nessuna area aperta ancora.",
+    "baselineLimitsShort": "Non può invitare altri, modificare l’oliveto o diventare proprietario.",
+    "relationshipPickHint": "Scegli Collaboratore o Famiglia. I moduli si vedono prima di inviare.",
+    "relationshipPresetHint": {
+      "Collaborator": "Collaboratore: Cronologia, Foto, Attività.",
+      "Family": "Famiglia: Cronologia, Raccolta, Magazzino olio, Denaro."
+    },
+    "capability": {
+      "view": "Può visualizzare",
+      "record": "Può visualizzare e registrare",
+      "work": "Può registrare e gestire le attività",
+      "help": "Può aggiornare le attività"
+    },
+    "presetSummary": {
+      "view": {
+        "areas": "Vede Cronologia, Raccolta, Magazzino olio e Denaro.",
+        "limits": "Non aggiunge registrazioni né gestisce attività."
+      },
+      "record": {
+        "areas": "Vede e registra in Cronologia e nelle foto.",
+        "limits": "Non gestisce le attività."
+      },
+      "work": {
+        "areas": "Cronologia, Foto e Attività.",
+        "limits": "Non può invitare altri né modificare l’oliveto."
+      }
+    },
+    "inviteSentExisting": "Usano già The Olive Lot — notificati nell’app e via email.",
+    "inviteSentExistingAppOnly": "Usano già The Olive Lot — notificati nell’app. L’email non è stata inviata.",
+    "inviteSentNew": "Email di invito inviata. Possono registrarsi con il link o il codice.",
+    "inviteEmailFailed": "L’invito è stato salvato, ma l’email non è stata inviata. Controlla l’indirizzo o condividi tu il link.",
+    "willInvite": "Verrà inviato un invito a {{contact}}."
+  },
+  "assignTask": "Assegna un'attività",
+  "removeMember": "Rimuovi dall'oliveto",
+  "removeMemberFromField": "Rimuovi da {{field}}",
+  "removeMemberConfirm": "Rimuovere {{name}} da {{field}}?"
 }

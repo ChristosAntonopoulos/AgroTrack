@@ -8,12 +8,8 @@ public class FieldWorkDisplayLabelsTests
 {
     [Theory]
     [InlineData(FieldTaskStatus.Planned, "Να γίνει", "To do")]
-    [InlineData(FieldTaskStatus.Ready, "Να γίνει", "To do")]
+    [InlineData(FieldTaskStatus.Done, "Έγινε", "Done")]
     [InlineData(FieldTaskStatus.Skipped, "Παραλείφθηκε", "Skipped")]
-    [InlineData(FieldTaskStatus.InProgress, "Σε εξέλιξη", "In progress")]
-    [InlineData(FieldTaskStatus.Blocked, "Δεν μπορεί να γίνει", "Blocked")]
-    [InlineData(FieldTaskStatus.Completed, "Ολοκληρώθηκε", "Completed")]
-    [InlineData(FieldTaskStatus.Cancelled, "Ακυρώθηκε", "Cancelled")]
     public void TaskStatus_UsesGreekAndEnglishLabels(FieldTaskStatus status, string el, string en)
     {
         Assert.Equal(el, FieldWorkDisplayLabels.ForTaskStatus(status, "el"));

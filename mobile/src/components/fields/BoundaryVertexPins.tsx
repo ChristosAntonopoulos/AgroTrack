@@ -11,9 +11,9 @@ type Props = {
 };
 
 /**
- * Corner handles drawn by the map, on the same coordinates as the outline.
- * Visual size follows Mapbox GL Draw (about 4px core, 7px halo). The finger
- * target is a separate invisible radius in the stage, not a bigger circle.
+ * Corner handles for mobile boundary editing.
+ * Sized for fat-finger use (≈28–36px visual), larger than Mapbox GL Draw's
+ * desktop dots; the invisible hit radius in FieldBoundaryStage is larger still.
  */
 const BoundaryVertexPins: React.FC<Props> = ({ points, activeIndex = null }) => {
   const { colors } = useTheme();
@@ -38,17 +38,18 @@ const BoundaryVertexPins: React.FC<Props> = ({ points, activeIndex = null }) => 
       <CircleLayer
         id="boundary-vertex-halo"
         style={{
-          circleRadius: ['case', active, 9, 7],
-          circleColor: '#fff',
-          circleStrokeWidth: 1.5,
-          circleStrokeColor: '#2C3824',
+          circleRadius: ['case', active, 18, 14],
+          circleColor: '#FFFFFF',
+          circleStrokeWidth: 2,
+          circleStrokeColor: '#1F2A1C',
+          circleOpacity: 0.98,
           circlePitchAlignment: 'viewport',
         }}
       />
       <CircleLayer
         id="boundary-vertex-core"
         style={{
-          circleRadius: ['case', active, 5, 4],
+          circleRadius: ['case', active, 11, 8],
           circleColor: colors.primary,
           circlePitchAlignment: 'viewport',
         }}
