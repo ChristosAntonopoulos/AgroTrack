@@ -56,6 +56,12 @@ public class TasksController : BaseApiController
         [FromBody] CreateTaskDto dto,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(dto.IdempotencyKey)
+            && Request.Headers.TryGetValue("Idempotency-Key", out var headerKey))
+        {
+            dto.IdempotencyKey = headerKey.ToString();
+        }
+
         var task = await _tasks.CreateAsync(
             dto,
             UserContext.UserId,

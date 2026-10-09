@@ -57,6 +57,11 @@ public interface IFieldTaskRepository : IRepository<FieldTask, string>
 
     Task<FieldTask?> GetByProposalIdAsync(string proposalId, CancellationToken cancellationToken = default);
 
+    Task<FieldTask?> GetByIdempotencyKeyAsync(
+        string ownerId,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<FieldTask>> GetAllAsync(CancellationToken cancellationToken = default);
 }
 

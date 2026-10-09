@@ -1,28 +1,33 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, CalendarDays, Clock, Grid2X2, Pencil, Sun, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Grid2X2, Pencil } from 'lucide-react';
 import RightDrawer from '../Common/RightDrawer';
 import Button from '../Common/Button';
 import type { Field } from '../../services/fieldService';
-import type { CreateTaskInput, TaskSuggestion, TaskTimingBucket } from '../../services/taskService';
+import type { CreateTaskInput, TaskSuggestion } from '../../services/taskService';
 import type { AssigneeOption } from './form/AssigneeSelector';
 import AssigneeSelector from './form/AssigneeSelector';
 import TemplatePicker, { type TemplatePickerSelection } from './TemplatePicker';
 import { resolveFieldColor } from '../../utils/fieldColors';
 import TaskCategoryMark from './TaskCategoryMark';
+import {
+  getMinimalTemplate,
+  minimalTemplateChecklistLines,
+  minimalTemplateDescription,
+  minimalTemplateTitle,
+} from '../../data/minimalTaskTemplates';
 import '../Tasks/form/TaskForm.css';
 import './ScheduleWorkSheet.css';
 
-export type TimingChip = TaskTimingBucket | 'pickDate';
 export type RecurrenceChip = 'once' | 'weekly' | 'monthly';
+type FormStep = 'what' | 'field' | 'who' | 'ready';
 
 export type ScheduleWorkPrefill = {
   fieldId?: string;
   title?: string;
   templateCode?: string;
-  timingBucket?: TaskTimingBucket;
-  scheduledFor?: string;
   note?: string;
+  description?: string;
 };
 
 interface ScheduleWorkSheetProps {
@@ -37,23 +42,16 @@ interface ScheduleWorkSheetProps {
   onSubmit: (input: CreateTaskInput) => void | Promise<void>;
 }
 
-const TIMING_CHIPS: Array<{
-  id: TimingChip;
-  labelKey: string;
-  Icon: React.ComponentType<{ size?: number; 'aria-hidden'?: boolean }>;
-}> = [
-  { id: 'today', labelKey: 'schedule.when.today', Icon: Sun },
-  { id: 'tomorrow', labelKey: 'schedule.when.tomorrow', Icon: ArrowRight },
-  { id: 'thisWeek', labelKey: 'schedule.when.thisWeek', Icon: CalendarDays },
-  { id: 'pickDate', labelKey: 'schedule.when.otherDay', Icon: Calendar },
-  { id: 'later', labelKey: 'schedule.when.sometime', Icon: Clock },
-];
+const FORM_STEPS: FormStep[] = ['what', 'field', 'who', 'ready'];
 
 const RECURRENCE_CHIPS: Array<{ id: RecurrenceChip; labelKey: string }> = [
   { id: 'once', labelKey: 'schedule.repeatOnce' },
   { id: 'weekly', labelKey: 'schedule.repeatWeekly' },
   { id: 'monthly', labelKey: 'schedule.repeatMonthly' },
 ];
+
+const newIdempotencyKey = () =>
+  `task-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
 const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
   open,
@@ -68,16 +66,19 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
 }) => {
   const { t, i18n } = useTranslation('tasks');
   const [pickingTemplate, setPickingTemplate] = useState(false);
+  const [step, setStep] = useState<FormStep>('what');
+  const [direction, setDirection] = useState<1 | -1>(1);
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [templateCode, setTemplateCode] = useState<string | undefined>();
   const [fieldId, setFieldId] = useState('');
-  const [timing, setTiming] = useState<TimingChip>('today');
-  const [scheduledFor, setScheduledFor] = useState('');
   const [assigneeKey, setAssigneeKey] = useState('later');
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [note, setNote] = useState('');
   const [recurrence, setRecurrence] = useState<RecurrenceChip>('once');
+  const [repeatStart, setRepeatStart] = useState('');
   const [checklistText, setChecklistText] = useState('');
+  const idempotencyKeyRef = useRef(newIdempotencyKey());
+  const titleRef = useRef<HTMLInputElement>(null);
 
   const selfKey = useMemo(
     () => assigneeOptions.find((option) => option.group === 'self')?.key || 'later',
@@ -89,32 +90,86 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
     [fields]
   );
 
+  const selectedField = usableFields.find((field) => field.id === fieldId);
+  const selectedAssignee = assigneeOptions.find((option) => option.key === assigneeKey);
+
   useEffect(() => {
     if (!open) return;
+    idempotencyKeyRef.current = newIdempotencyKey();
     const nextField = prefill?.fieldId || usableFields[0]?.id || fields[0]?.id || '';
     setFieldId(nextField);
-    setTitle(prefill?.title || '');
-    setTemplateCode(prefill?.templateCode);
-    setTiming(prefill?.timingBucket || 'today');
-    setScheduledFor(prefill?.scheduledFor || '');
+    const code = prefill?.templateCode;
+    const meta = getMinimalTemplate(code);
+    const lang = i18n.language.startsWith('en') ? 'en' : 'el';
+    setTemplateCode(code);
+    setTitle(prefill?.title || (code ? minimalTemplateTitle(code, i18n.language) : ''));
+    setDescription(
+      prefill?.description ||
+        (code ? meta?.description[lang] || minimalTemplateDescription(code, i18n.language) : '')
+    );
+    setChecklistText(code ? minimalTemplateChecklistLines(code, i18n.language).join('\n') : '');
     setAssigneeKey(selfKey);
     setNote(prefill?.note || '');
     setRecurrence('once');
-    setChecklistText('');
-    setDetailsOpen(false);
+    setRepeatStart('');
+    setStep('what');
+    setDirection(1);
     setPickingTemplate(!prefill?.title && !prefill?.templateCode);
-  }, [open, prefill, fields, usableFields, selfKey]);
+  }, [open, prefill, fields, usableFields, selfKey, i18n.language]);
 
-  const canSubmit = Boolean(title.trim() && fieldId && !busy);
+  useEffect(() => {
+    if (!open || pickingTemplate || step !== 'what') return;
+    const timer = window.setTimeout(() => titleRef.current?.focus(), 40);
+    return () => window.clearTimeout(timer);
+  }, [open, pickingTemplate, step]);
+
+  const stepIndex = FORM_STEPS.indexOf(step);
+  const titleMissing = !title.trim();
+  const fieldMissing = !fieldId;
+  const recurrenceNeedsDate = recurrence !== 'once' && !repeatStart;
+  const canContinue =
+    step === 'what'
+      ? Boolean(title.trim())
+      : step === 'field'
+        ? Boolean(fieldId)
+        : step === 'who'
+          ? true
+          : Boolean(title.trim() && fieldId && !busy && !recurrenceNeedsDate);
+
+  const goTo = (next: FormStep) => {
+    const nextIndex = FORM_STEPS.indexOf(next);
+    setDirection(nextIndex >= stepIndex ? 1 : -1);
+    setStep(next);
+  };
+
+  const goNext = () => {
+    if (!canContinue) return;
+    const next = FORM_STEPS[stepIndex + 1];
+    if (next) goTo(next);
+  };
+
+  const goBack = () => {
+    if (stepIndex <= 0) {
+      setPickingTemplate(true);
+      return;
+    }
+    goTo(FORM_STEPS[stepIndex - 1]);
+  };
 
   const applyTemplate = (selection: TemplatePickerSelection) => {
     if (selection.kind === 'custom') {
       setTemplateCode(undefined);
-      if (!title.trim()) setTitle('');
+      setTitle('');
+      setDescription('');
+      setChecklistText('');
     } else {
       setTemplateCode(selection.templateCode);
       setTitle(selection.title);
+      setDescription(selection.description);
+      setChecklistText(selection.checklistLines.join('\n'));
     }
+    setStep('what');
+    setDirection(1);
     setPickingTemplate(false);
   };
 
@@ -128,34 +183,45 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
     }
     if (key.startsWith('contact:')) {
       const id = key.slice(8);
-      return { assigneeId: id, assignedCollaboratorId: id };
+      return { assignedCollaboratorId: id };
     }
     return { assigneeId: key, assignedUserId: key };
   };
 
   const handleSubmit = () => {
-    if (!canSubmit) return;
-    const timingBucket: TaskTimingBucket =
-      timing === 'pickDate' ? 'later' : timing === 'later' ? 'later' : timing;
+    if (!canContinue || step !== 'ready') return;
     const checklist = checklistText
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
-      .map((line, index) => ({ key: `c${index + 1}`, textValue: line, isAnswered: false }));
+      .map((line, index) => ({ key: `c${index + 1}`, label: line }));
+    const withRepeat = recurrence !== 'once' && repeatStart;
 
     void onSubmit({
       fieldId,
       title: title.trim(),
+      description: description.trim() || undefined,
       templateCode,
-      timingBucket,
-      scheduledFor: timing === 'pickDate' && scheduledFor ? scheduledFor : undefined,
+      timingBucket: 'later',
+      scheduledFor: withRepeat ? repeatStart : undefined,
+      plannedStart: withRepeat ? repeatStart : undefined,
       note: note.trim() || undefined,
       notes: note.trim() || undefined,
-      recurrence: recurrence === 'once' ? undefined : recurrence,
+      recurrence: withRepeat ? recurrence : undefined,
       checklist: checklist.length > 0 ? checklist : undefined,
+      idempotencyKey: idempotencyKeyRef.current,
       ...parseAssignee(assigneeKey),
     });
   };
+
+  const stepTitle =
+    step === 'what'
+      ? t('schedule.stepWhat')
+      : step === 'field'
+        ? t('schedule.stepField')
+        : step === 'who'
+          ? t('schedule.stepWho')
+          : t('schedule.stepReady');
 
   return (
     <RightDrawer
@@ -168,12 +234,16 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
       footer={
         pickingTemplate ? null : (
           <div className="schedule-work-footer">
-            <Button variant="outline" size="lg" onClick={onClose} disabled={busy}>
-              {t('schedule.cancel')}
-            </Button>
-            <Button variant="primary" size="lg" disabled={!canSubmit} onClick={handleSubmit}>
-              {t('schedule.submit')}
-            </Button>
+            {step === 'ready' ? (
+              <Button variant="primary" size="lg" disabled={!canContinue} onClick={handleSubmit}>
+                {t('schedule.submit')}
+              </Button>
+            ) : (
+              <Button variant="primary" size="lg" disabled={!canContinue || busy} onClick={goNext}>
+                {t('schedule.continue')}
+                <ChevronRight size={18} aria-hidden />
+              </Button>
+            )}
           </div>
         )
       }
@@ -184,134 +254,158 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
           language={i18n.language}
           onSelect={applyTemplate}
           onCancel={() => {
-            if (title.trim() || templateCode) setPickingTemplate(false);
-            else onClose();
+            if (title.trim() || templateCode) {
+              setPickingTemplate(false);
+              setStep('what');
+            } else onClose();
           }}
         />
       ) : (
         <div className="schedule-work-form">
           {error ? <p className="task-form-error" role="alert">{error}</p> : null}
 
-          <section className="schedule-section">
-            <h3 className="schedule-prompt">{t('schedule.what')}</h3>
-            <div className="schedule-title-card">
-              {templateCode ? (
-                <TaskCategoryMark templateCode={templateCode} size={22} />
-              ) : (
-                <span className="schedule-title-icon" aria-hidden>
-                  <Pencil size={20} />
-                </span>
-              )}
-              <input
-                className="schedule-title-input"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder={t('schedule.whatPlaceholder')}
-                autoFocus
-              />
-              <button
-                type="button"
-                className="schedule-pick-template"
-                onClick={() => setPickingTemplate(true)}
-              >
-                <Grid2X2 size={16} aria-hidden />
-                {t('schedule.pickTemplate')}
-              </button>
-            </div>
-          </section>
-
-          <section className="schedule-section">
-            <h3 className="schedule-prompt" id="schedule-field-label">
-              {t('schedule.field')}
-            </h3>
-            <div className="schedule-when-chips" role="radiogroup" aria-labelledby="schedule-field-label">
-              {usableFields.length === 0 ? (
-                <span className="schedule-empty-fields">{t('schedule.noFields')}</span>
-              ) : (
-                usableFields.map((field) => (
-                  <button
-                    key={field.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={fieldId === field.id}
-                    className={`task-type-chip${fieldId === field.id ? ' is-selected' : ''}`}
-                    onClick={() => setFieldId(field.id)}
-                  >
-                    <span
-                      className="schedule-field-dot"
-                      style={{ background: resolveFieldColor(field.color, field.id) }}
-                      aria-hidden
-                    />
-                    {field.name}
-                  </button>
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className="schedule-section">
-            <h3 className="schedule-prompt" id="schedule-when-label">
-              {t('schedule.when.label')}
-            </h3>
-            <div className="schedule-when-chips" role="radiogroup" aria-labelledby="schedule-when-label">
-              {TIMING_CHIPS.map(({ id, labelKey, Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="radio"
-                  aria-checked={timing === id}
-                  className={`task-type-chip${timing === id ? ' is-selected' : ''}`}
-                  onClick={() => setTiming(id)}
-                >
-                  <Icon size={16} aria-hidden />
-                  {t(labelKey)}
-                </button>
-              ))}
-            </div>
-            {timing === 'pickDate' ? (
-              <input
-                type="date"
-                className="task-form-input"
-                value={scheduledFor}
-                onChange={(event) => setScheduledFor(event.target.value)}
-              />
-            ) : null}
-          </section>
-
-          <section className="schedule-section">
-            <h3 className="schedule-prompt" id="schedule-who-label">
-              {t('schedule.who')}
-            </h3>
-            <AssigneeSelector
-              options={assigneeOptions}
-              value={assigneeKey}
-              onChange={setAssigneeKey}
-              hideLabel
-              labelId="schedule-who-label"
-            />
-          </section>
-
-          <div className="schedule-more">
+          <div className="schedule-step-bar">
             <button
               type="button"
-              className="schedule-more-toggle"
-              aria-expanded={detailsOpen}
-              onClick={() => setDetailsOpen((openNow) => !openNow)}
+              className="schedule-step-back"
+              onClick={goBack}
+              aria-label={t('schedule.back')}
             >
-              {detailsOpen ? t('schedule.lessDetails') : t('schedule.moreDetails')}
+              <ChevronLeft size={18} aria-hidden />
             </button>
-            {detailsOpen ? (
-              <div className="schedule-more-body">
+            <span className="schedule-step-progress">
+              {t('schedule.stepProgress', { current: stepIndex + 1, total: FORM_STEPS.length })}
+            </span>
+            <div className="schedule-step-dots" aria-hidden>
+              {FORM_STEPS.map((id, index) => (
+                <span
+                  key={id}
+                  className={
+                    index === stepIndex ? 'is-current' : index < stepIndex ? 'is-done' : undefined
+                  }
+                />
+              ))}
+            </div>
+          </div>
+
+          <div key={step} className="schedule-step-panel" data-dir={direction}>
+            <h3 className="schedule-step-title" id="schedule-step-title">
+              {stepTitle}
+            </h3>
+
+            {step === 'what' ? (
+              <section className="schedule-section" aria-labelledby="schedule-step-title">
+                <div className="schedule-title-card">
+                  {templateCode ? (
+                    <TaskCategoryMark templateCode={templateCode} size={22} />
+                  ) : (
+                    <span className="schedule-title-icon" aria-hidden>
+                      <Pencil size={20} />
+                    </span>
+                  )}
+                  <input
+                    ref={titleRef}
+                    className="schedule-title-input"
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder={t('schedule.whatPlaceholder')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        goNext();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="schedule-pick-template"
+                    onClick={() => setPickingTemplate(true)}
+                  >
+                    <Grid2X2 size={16} aria-hidden />
+                    {t('schedule.pickTemplate')}
+                  </button>
+                </div>
+                {titleMissing ? <p className="schedule-help">{t('schedule.needTitle')}</p> : null}
+                {description ? <p className="schedule-help">{description}</p> : null}
+              </section>
+            ) : null}
+
+            {step === 'field' ? (
+              <section className="schedule-section" aria-labelledby="schedule-step-title">
+                <div className="schedule-when-chips" role="radiogroup">
+                  {usableFields.length === 0 ? (
+                    <span className="schedule-empty-fields">{t('schedule.noFields')}</span>
+                  ) : (
+                    usableFields.map((field) => (
+                      <button
+                        key={field.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={fieldId === field.id}
+                        className={`task-type-chip${fieldId === field.id ? ' is-selected' : ''}`}
+                        onClick={() => setFieldId(field.id)}
+                      >
+                        <span
+                          className="schedule-field-dot"
+                          style={{ background: resolveFieldColor(field.color, field.id) }}
+                          aria-hidden
+                        />
+                        {field.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+                {fieldMissing ? <p className="schedule-help">{t('schedule.needField')}</p> : null}
+              </section>
+            ) : null}
+
+            {step === 'who' ? (
+              <section className="schedule-section" aria-labelledby="schedule-step-title">
+                <AssigneeSelector
+                  options={assigneeOptions}
+                  value={assigneeKey}
+                  onChange={setAssigneeKey}
+                  hideLabel
+                />
+              </section>
+            ) : null}
+
+            {step === 'ready' ? (
+              <section className="schedule-section" aria-labelledby="schedule-step-title">
+                <div className="schedule-summary">
+                  <p>
+                    <strong>{title.trim()}</strong>
+                  </p>
+                  <p className="schedule-help">
+                    {[selectedField?.name, selectedAssignee?.label || t('schedule.decideLater')]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                </div>
+
+                <label className="task-form-field">
+                  <span className="task-form-label">{t('schedule.checklist')}</span>
+                  <span className="schedule-help">{t('schedule.checklistHint')}</span>
+                  <textarea
+                    className="task-form-input"
+                    rows={3}
+                    value={checklistText}
+                    onChange={(event) => setChecklistText(event.target.value)}
+                    placeholder={t('schedule.checklistPlaceholder')}
+                  />
+                </label>
+
                 <label className="task-form-field">
                   <span className="task-form-label">{t('schedule.note')}</span>
                   <textarea
                     className="task-form-input"
-                    rows={3}
+                    rows={2}
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
                     placeholder={t('schedule.notePlaceholder')}
                   />
                 </label>
+
                 <div className="task-form-field">
                   <span className="task-form-label" id="schedule-repeat-label">
                     {t('schedule.repeat')}
@@ -334,19 +428,25 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
                       </button>
                     ))}
                   </div>
+                  {recurrence !== 'once' ? (
+                    <>
+                      <label className="task-form-field">
+                        <span className="task-form-label">{t('schedule.repeatStart')}</span>
+                        <input
+                          type="date"
+                          className="task-form-input"
+                          value={repeatStart}
+                          onChange={(event) => setRepeatStart(event.target.value)}
+                        />
+                      </label>
+                      {recurrenceNeedsDate ? (
+                        <p className="schedule-help">{t('schedule.repeatStartRequired')}</p>
+                      ) : null}
+                    </>
+                  ) : null}
                 </div>
-                <label className="task-form-field">
-                  <span className="task-form-label">{t('schedule.checklist')}</span>
-                  <textarea
-                    className="task-form-input"
-                    rows={3}
-                    value={checklistText}
-                    onChange={(event) => setChecklistText(event.target.value)}
-                    placeholder={t('schedule.checklistPlaceholder')}
-                  />
-                </label>
                 <p className="schedule-photo-hint">{t('schedule.photoHint')}</p>
-              </div>
+              </section>
             ) : null}
           </div>
         </div>

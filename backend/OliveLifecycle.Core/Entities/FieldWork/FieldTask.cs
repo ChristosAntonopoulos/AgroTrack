@@ -63,6 +63,9 @@ public class FieldTask : BaseEntity
     /// <summary>Optional recurrence rule (opaque string for Phase 1).</summary>
     public string? Recurrence { get; set; }
 
+    /// <summary>Client idempotency key for create (unique per owner when set).</summary>
+    public string? IdempotencyKey { get; set; }
+
     /// <summary>When the farmer pressed Start (legacy; not a status).</summary>
     public DateTime? StartedAt { get; set; }
 

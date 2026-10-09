@@ -423,7 +423,7 @@ const RootNavigator = () => {
           <AppDock route={focusedRoute} />
         ) : null}
         {isAuthenticated ? <NavCoach /> : null}
-        {isAuthenticated ? <SkipOnboarding /> : null}
+        {isAuthenticated ? <SkipOnboarding routeName={focusedRoute.name} /> : null}
         {isAuthenticated ? <OnboardingFinishedModal /> : null}
         </View>
         </DockProvider>

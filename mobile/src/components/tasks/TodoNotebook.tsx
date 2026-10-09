@@ -118,7 +118,8 @@ const TodoNotebook: React.FC<Props> = ({
   if (mode === 'today') {
     const overdue = renderUnits(['overdue'], t('notebook.sections.overdue'));
     const today = renderUnits(['today'], t('notebook.sections.today'));
-    const hasWork = Boolean(overdue || today);
+    const openLater = renderUnits(['later'], t('notebook.sections.open'));
+    const hasWork = Boolean(overdue || today || openLater);
     const showSuggestions = suggestions.length > 0;
     const visibleSuggestions =
       showAllSuggestions || suggestions.length <= SUGGESTION_PREVIEW
@@ -130,6 +131,7 @@ const TodoNotebook: React.FC<Props> = ({
       <View style={styles.wrap}>
         {overdue}
         {today}
+        {openLater}
         {showSuggestions ? (
           <View>
             <View style={styles.headingRow}>

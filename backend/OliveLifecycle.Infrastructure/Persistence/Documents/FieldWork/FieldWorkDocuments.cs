@@ -317,6 +317,9 @@ public class FieldTaskDocument
     [BsonElement("recurrence")]
     public string? Recurrence { get; set; }
 
+    [BsonElement("idempotencyKey")]
+    public string? IdempotencyKey { get; set; }
+
     [BsonElement("completedAt")]
     public DateTime? CompletedAt { get; set; }
 

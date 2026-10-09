@@ -67,8 +67,8 @@ const TaskNotebookCard: React.FC<Props> = ({
         : tone === 'tomorrow'
           ? t('notebook.when.tomorrow')
           : tone === 'none'
-            ? t('notebook.when.noDate')
-            : period || t('notebook.when.noDate');
+            ? ''
+            : period || '';
   const where = fieldName(task.fieldId);
   const who = personName || t('notebook.unassigned');
   const metaParts = [where, when, who].filter(Boolean);
@@ -83,8 +83,9 @@ const TaskNotebookCard: React.FC<Props> = ({
   }> = [
     { id: 'reschedule', label: t('notebook.menu.reschedule'), icon: 'calendar-outline' },
     { id: 'assign', label: t('notebook.menu.assign'), icon: 'person-outline' },
+    { id: 'repeat', label: t('notebook.menu.repeat'), icon: 'refresh-outline' },
     { id: 'edit', label: t('notebook.menu.edit'), icon: 'create-outline' },
-    { id: 'skip', label: t('notebook.menu.skip'), icon: 'play-skip-forward-outline' },
+    { id: 'complete', label: t('notebook.menu.complete'), icon: 'checkmark-circle-outline' },
   ];
 
   return (

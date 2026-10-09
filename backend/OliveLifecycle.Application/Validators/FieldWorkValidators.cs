@@ -19,6 +19,26 @@ public class CreateFieldTaskDtoValidator : AbstractValidator<CreateFieldTaskDto>
     }
 }
 
+public class CreateTaskDtoValidator : AbstractValidator<CreateTaskDto>
+{
+    public CreateTaskDtoValidator()
+    {
+        RuleFor(x => x.FieldId).NotEmpty();
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(300);
+        RuleFor(x => x.IdempotencyKey).MaximumLength(120).When(x => x.IdempotencyKey != null);
+        RuleFor(x => x.ResultYear)
+            .InclusiveBetween(2000, 2100)
+            .When(x => x.ResultYear.HasValue);
+        RuleForEach(x => x.Checklist!)
+            .ChildRules(item =>
+            {
+                item.RuleFor(i => i.Label ?? i.TextValue ?? string.Empty)
+                    .MaximumLength(200);
+            })
+            .When(x => x.Checklist is not null);
+    }
+}
+
 public class UpdateFieldTaskDtoValidator : AbstractValidator<UpdateFieldTaskDto>
 {
     public UpdateFieldTaskDtoValidator()

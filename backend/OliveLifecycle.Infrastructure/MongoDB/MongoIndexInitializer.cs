@@ -443,6 +443,16 @@ public class MongoIndexInitializer : IHostedService
         fieldTasks.Indexes.CreateOne(new CreateIndexModel<FieldTaskDocument>(
             Builders<FieldTaskDocument>.IndexKeys.Ascending(t => t.RelatedHarvestId),
             new CreateIndexOptions { Sparse = true }));
+        fieldTasks.Indexes.CreateOne(new CreateIndexModel<FieldTaskDocument>(
+            Builders<FieldTaskDocument>.IndexKeys
+                .Ascending(t => t.OwnerId)
+                .Ascending(t => t.IdempotencyKey),
+            new CreateIndexOptions<FieldTaskDocument>
+            {
+                Unique = true,
+                Name = "ownerId_idempotencyKey_1",
+                PartialFilterExpression = Builders<FieldTaskDocument>.Filter.Type(t => t.IdempotencyKey, BsonType.String)
+            }));
 
         var executions = _context.GetCollection<TaskExecutionDocument>("task_executions");
         executions.Indexes.CreateOne(new CreateIndexModel<TaskExecutionDocument>(

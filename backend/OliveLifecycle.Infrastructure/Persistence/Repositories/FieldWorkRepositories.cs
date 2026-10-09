@@ -255,6 +255,17 @@ public class FieldTaskRepository
         return document is null ? null : ToEntity(document);
     }
 
+    public async Task<FieldTask?> GetByIdempotencyKeyAsync(
+        string ownerId,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        var document = await Collection
+            .Find(t => t.OwnerId == ownerId && t.IdempotencyKey == idempotencyKey)
+            .FirstOrDefaultAsync(cancellationToken);
+        return document is null ? null : ToEntity(document);
+    }
+
     public async Task<IReadOnlyList<FieldTask>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var documents = await Collection.Find(FilterDefinition<FieldTaskDocument>.Empty)

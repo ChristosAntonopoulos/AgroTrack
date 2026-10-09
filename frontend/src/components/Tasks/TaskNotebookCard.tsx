@@ -63,8 +63,8 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
         : tone === 'tomorrow'
           ? t('notebook.when.tomorrow')
           : tone === 'none'
-            ? t('notebook.when.noDate')
-            : period || t('notebook.when.noDate');
+            ? ''
+            : period || '';
 
   const where = fieldName(task.fieldId);
   const who = personName || t('notebook.unassigned');
@@ -161,8 +161,9 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
             <div id={menuId} className="notebook-card-menu" role="menu">
               {menu('reschedule', t('notebook.menu.reschedule'))}
               {menu('assign', t('notebook.menu.assign'))}
+              {menu('repeat', t('notebook.menu.repeat'))}
               {menu('edit', t('notebook.menu.edit'))}
-              {menu('skip', t('notebook.menu.skip'))}
+              {menu('complete', t('notebook.menu.complete'))}
             </div>
           </details>
         ) : null}

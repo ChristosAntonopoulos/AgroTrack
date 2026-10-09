@@ -2,26 +2,15 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigationState, type NavigationState, type PartialState } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import AlertDialog from '../ui/AlertDialog';
 
-const focusedRouteName = (
-  state: NavigationState | PartialState<NavigationState> | undefined
-): string => {
-  if (!state || state.index == null) return '';
-  const route = state.routes[state.index];
-  if (route?.state) return focusedRouteName(route.state);
-  return route?.name ?? '';
-};
-
 /** Small corner control. Skipping asks first, then leaves the guided setup. */
-const SkipOnboarding: React.FC = () => {
+const SkipOnboarding: React.FC<{ routeName: string }> = ({ routeName }) => {
   const activation = useOwnerActivationOptional();
   const { t } = useTranslation('onboarding');
   const insets = useSafeAreaInsets();
-  const routeName = useNavigationState((state) => focusedRouteName(state));
   const [open, setOpen] = useState(false);
   // Fields puts “add grove” in the top-right. Keep skip on the left there.
   const pinLeft = routeName === 'FieldsHome';

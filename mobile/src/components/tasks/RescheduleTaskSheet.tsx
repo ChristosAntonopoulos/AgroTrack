@@ -27,7 +27,7 @@ const RescheduleTaskSheet: React.FC<Props> = ({ task, open, busy, onClose, onCon
     <Sheet
       open={open && Boolean(task)}
       onClose={onClose}
-      title={t('fieldWork.reschedule.title')}
+      title={t('notebook.menu.reschedule')}
       edge="bottom"
       size="sm"
       footer={
@@ -39,7 +39,7 @@ const RescheduleTaskSheet: React.FC<Props> = ({ task, open, busy, onClose, onCon
       }
     >
       <FormDateField
-        label={t('fieldWork.reschedule.newDate')}
+        label={t('schedule.repeatStart')}
         value={date}
         onValueChange={setDate}
       />

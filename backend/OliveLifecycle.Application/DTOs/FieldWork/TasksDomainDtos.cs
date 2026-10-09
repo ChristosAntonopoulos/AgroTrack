@@ -52,7 +52,18 @@ public class CreateTaskDto
     public string? Recurrence { get; set; }
     public int? ResultYear { get; set; }
     public string? RelatedHarvestId { get; set; }
-    public List<ChecklistAnswerDto>? Checklist { get; set; }
+    /// <summary>Create-time checklist lines (one action per item).</summary>
+    public List<CreateTaskChecklistItemDto>? Checklist { get; set; }
+    public string? IdempotencyKey { get; set; }
+}
+
+public class CreateTaskChecklistItemDto
+{
+    public string? Key { get; set; }
+    /// <summary>Preferred label for a new checklist line.</summary>
+    public string? Label { get; set; }
+    /// <summary>Accepted as label alias for older clients.</summary>
+    public string? TextValue { get; set; }
 }
 
 public class PatchTaskDto

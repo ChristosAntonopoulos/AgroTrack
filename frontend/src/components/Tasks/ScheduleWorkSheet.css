@@ -8,7 +8,121 @@
 .schedule-work-form {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 16px;
+}
+
+.schedule-step-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.schedule-step-back {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.schedule-step-back:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.schedule-step-progress {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.schedule-step-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.schedule-step-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border-subtle);
+}
+
+.schedule-step-dots span.is-done {
+  background: color-mix(in srgb, var(--color-text-secondary) 55%, var(--border-subtle));
+}
+
+.schedule-step-dots span.is-current {
+  width: 22px;
+  background: var(--color-primary);
+}
+
+.schedule-step-title {
+  margin: 4px 0 0;
+  font-size: 1.75rem;
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: var(--color-text-primary);
+}
+
+.schedule-step-panel {
+  display: grid;
+  gap: 16px;
+  animation: schedule-step-forward 180ms ease;
+}
+
+.schedule-step-panel[data-dir='-1'] {
+  animation-name: schedule-step-back;
+}
+
+.schedule-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-2, color-mix(in srgb, var(--surface-1) 92%, #f0eee6));
+  border: 1px solid var(--border-subtle);
+}
+
+.schedule-summary p {
+  margin: 0;
+}
+
+@keyframes schedule-step-forward {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes schedule-step-back {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .schedule-step-panel {
+    animation: none;
+  }
 }
 
 .schedule-section {
@@ -123,6 +237,13 @@
   flex-direction: column;
   gap: 16px;
   margin-top: 12px;
+}
+
+.schedule-help {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
 }
 
 .schedule-photo-hint {

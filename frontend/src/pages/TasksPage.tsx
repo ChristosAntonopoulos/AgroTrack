@@ -35,6 +35,7 @@ import TodoNotebook from '../components/Tasks/TodoNotebook';
 import type { NotebookMenuAction } from '../components/Tasks/TaskNotebookCard';
 import CreatedTaskBanner from '../components/Tasks/CreatedTaskBanner';
 import RescheduleTaskSheet from '../components/Tasks/RescheduleTaskSheet';
+import RepeatTaskSheet from '../components/Tasks/RepeatTaskSheet';
 import ScheduleWorkSheet, {
   type ScheduleWorkPrefill,
 } from '../components/Tasks/ScheduleWorkSheet';
@@ -85,6 +86,7 @@ const TasksPage: React.FC = () => {
   const [followUpTask, setFollowUpTask] = useState<Task | null>(null);
   const [followUpError, setFollowUpError] = useState<string | null>(null);
   const [rescheduleTask, setRescheduleTask] = useState<Task | null>(null);
+  const [repeatTask, setRepeatTask] = useState<Task | null>(null);
   const [schedulePrefill, setSchedulePrefill] = useState<ScheduleWorkPrefill | null>(null);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [scheduleBusy, setScheduleBusy] = useState(false);
@@ -460,20 +462,35 @@ const TasksPage: React.FC = () => {
       setRescheduleTask(task);
       return;
     }
+    if (action === 'repeat') {
+      setRepeatTask(task);
+      return;
+    }
     if (action === 'edit' || action === 'assign') {
       navigate(`/tasks/${task.id}`);
       return;
     }
-    if (action === 'skip') {
-      try {
-        setBusyId(task.id);
-        await getTaskService().skipTask(task.id);
-        await loadData();
-      } catch (err: unknown) {
-        setError(getApiErrorMessage(err, t) || t('fieldWork.errors.cancel'));
-      } finally {
-        setBusyId(null);
-      }
+    if (action === 'complete') {
+      await handleComplete(task);
+    }
+  };
+
+  const handleRepeat = async (input: { recurrence: string; scheduledFor: string }) => {
+    if (!repeatTask) return;
+    try {
+      setBusyId(repeatTask.id);
+      await getTaskService().patchTask(repeatTask.id, {
+        recurrence: input.recurrence,
+        scheduledFor: input.scheduledFor,
+        plannedStart: input.scheduledFor,
+        plannedEnd: input.scheduledFor,
+      });
+      setRepeatTask(null);
+      await loadData();
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fieldWork.errors.reschedule'));
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -651,6 +668,14 @@ const TasksPage: React.FC = () => {
         busy={Boolean(rescheduleTask && busyId === rescheduleTask.id)}
         onClose={() => setRescheduleTask(null)}
         onConfirm={(start, end) => void handleReschedule(start, end)}
+      />
+
+      <RepeatTaskSheet
+        task={repeatTask}
+        open={Boolean(repeatTask)}
+        busy={Boolean(repeatTask && busyId === repeatTask.id)}
+        onClose={() => setRepeatTask(null)}
+        onConfirm={(payload) => void handleRepeat(payload)}
       />
 
       <ScheduleWorkSheet

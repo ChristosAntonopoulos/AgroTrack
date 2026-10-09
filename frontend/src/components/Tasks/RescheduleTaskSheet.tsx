@@ -42,7 +42,7 @@ const RescheduleTaskSheet: React.FC<RescheduleTaskSheetProps> = ({
     <RightDrawer
       open={open && Boolean(task)}
       onClose={onClose}
-      title={t('fieldWork.reschedule.title')}
+      title={t('notebook.menu.reschedule')}
       footer={
         <div className="tasks-choice-list">
           <Button

@@ -91,11 +91,16 @@ public interface ITaskService
 
 public class TaskService : ITaskService
 {
+    private const int MaxChecklistItems = ChecklistSnapshotFactory.WorkingCheckLimit;
+    private const int MaxChecklistLabelLength = 200;
+
     private readonly IFieldTaskRepository _tasks;
     private readonly ITaskExecutionRepository _workRecords;
     private readonly IFieldWorkTaskTemplateVersionRepository _versions;
     private readonly IFieldWorkAuthorizationService _auth;
     private readonly IFieldAccessScopeService _fieldAccessScope;
+    private readonly IFieldRepository _fields;
+    private readonly ISavedContactRepository _contacts;
     private readonly IDateTimeProvider _clock;
     private readonly IFieldStatusGuard _fieldStatusGuard;
     private readonly IUserNotificationService _notifications;
@@ -106,6 +111,8 @@ public class TaskService : ITaskService
         IFieldWorkTaskTemplateVersionRepository versions,
         IFieldWorkAuthorizationService auth,
         IFieldAccessScopeService fieldAccessScope,
+        IFieldRepository fields,
+        ISavedContactRepository contacts,
         IDateTimeProvider clock,
         IFieldStatusGuard fieldStatusGuard,
         IUserNotificationService notifications)
@@ -115,6 +122,8 @@ public class TaskService : ITaskService
         _versions = versions;
         _auth = auth;
         _fieldAccessScope = fieldAccessScope;
+        _fields = fields;
+        _contacts = contacts;
         _clock = clock;
         _fieldStatusGuard = fieldStatusGuard;
         _notifications = notifications;
@@ -195,47 +204,104 @@ public class TaskService : ITaskService
         string language = "el",
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(dto.FieldId) || string.IsNullOrWhiteSpace(dto.Title))
+        if (string.IsNullOrWhiteSpace(dto.FieldId))
         {
-            throw new ValidationException("Field and title are required to schedule a task.");
+            throw new ValidationException("Field is required to schedule a task.");
+        }
+
+        var title = (dto.Title ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new ValidationException("Title is required to schedule a task.");
+        }
+
+        var idempotencyKey = NormalizeIdempotencyKey(dto.IdempotencyKey);
+        if (!string.IsNullOrEmpty(idempotencyKey))
+        {
+            var existing = await _tasks.GetByIdempotencyKeyAsync(userId, idempotencyKey, cancellationToken);
+            if (existing != null)
+            {
+                await _auth.EnsureCanViewFieldWorkAsync(existing.FieldId, userId, userRole, cancellationToken);
+                return FieldWorkMapper.ToTaskDto(existing, language);
+            }
         }
 
         await _auth.EnsureCanCreateOrEditTaskAsync(dto.FieldId, userId, userRole, cancellationToken);
         await _fieldStatusGuard.EnsureAcceptsNewRecordsAsync(dto.FieldId, cancellationToken);
 
+        var field = await _fields.GetByIdAsync(dto.FieldId, cancellationToken)
+            ?? throw new NotFoundException("Field not found.");
+
+        var collaboratorId = NullIfEmpty(dto.AssignedCollaboratorId);
+        var assignee = NullIfEmpty(dto.AssigneeId ?? dto.AssignedUserId);
+        // Contact-only assignment: mobile may send the same id as assigneeId + assignedCollaboratorId.
+        if (!string.IsNullOrEmpty(collaboratorId)
+            && string.Equals(assignee, collaboratorId, StringComparison.Ordinal))
+        {
+            assignee = null;
+        }
+
+        await ValidateAssigneesAsync(field, userId, assignee, collaboratorId, cancellationToken);
+
         var now = _clock.UtcNow;
-        var scheduledFor = dto.ScheduledFor ?? dto.PlannedStart ?? ResolveDateFromBucket(dto.TimingBucket, now);
-        var timingBucket = TaskTimingBucketExtensions.FromApiString(dto.TimingBucket)
-            ?? InferTimingBucket(scheduledFor, now);
+        // Basic create is undated (open backlog). A concrete date is only used when the client sends one
+        // (e.g. recurrence with a start point) or an explicit timing bucket other than later.
+        var explicitDate = dto.ScheduledFor ?? dto.PlannedStart;
+        TaskTimingBucket timingBucket;
+        DateTime? scheduledFor;
+        if (explicitDate.HasValue)
+        {
+            scheduledFor = explicitDate;
+            timingBucket = TaskTimingBucketExtensions.FromApiString(dto.TimingBucket)
+                ?? InferTimingBucket(explicitDate, now);
+        }
+        else
+        {
+            timingBucket = TaskTimingBucketExtensions.FromApiString(dto.TimingBucket)
+                ?? TaskTimingBucket.Later;
+            scheduledFor = timingBucket == TaskTimingBucket.Later
+                ? null
+                : ResolveDateFromBucket(dto.TimingBucket, now);
+        }
+
         var resultYear = ResultYearResolver.Resolve(scheduledFor, dto.ResultYear, now);
         var hasTemplate = !string.IsNullOrWhiteSpace(dto.TemplateCode);
+        var isCurated = CuratedTaskTemplates.IsCurated(dto.TemplateCode);
 
-        List<FieldTaskChecklistItem> checklist = [];
+        if (hasTemplate && !isCurated && FieldWorkCatalogue.GetByCode(dto.TemplateCode!) is null)
+        {
+            throw new ValidationException("Unknown template code.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.Recurrence) && scheduledFor is null)
+        {
+            throw new ValidationException("Recurrence requires a starting date.");
+        }
+
+        var checklist = BuildChecklistSnapshot(dto);
         int? templateVersion = null;
-        if (hasTemplate)
+        if (hasTemplate && !isCurated)
         {
             var version = await _versions.GetCurrentAsync(dto.TemplateCode!, cancellationToken);
-            if (version != null)
+            if (version != null && checklist.Count == 0)
             {
                 checklist = ChecklistSnapshotFactory.CopyFromTemplate(version.DefaultChecklist);
                 templateVersion = version.Version;
             }
         }
 
-        var assignee = dto.AssigneeId ?? dto.AssignedUserId;
-        var title = hasTemplate && string.IsNullOrWhiteSpace(dto.Title)
-            ? CuratedTaskTemplates.DisplayTitle(dto.TemplateCode!, language)
-            : dto.Title.Trim();
+        var description = NullIfEmpty(dto.Description)
+            ?? (isCurated ? CuratedTaskTemplates.Description(dto.TemplateCode!, language) : null);
 
         var task = new FieldTask
         {
             FieldId = dto.FieldId,
             ResultYear = resultYear,
             OwnerId = userId,
-            TemplateCode = dto.TemplateCode,
+            TemplateCode = NullIfEmpty(dto.TemplateCode),
             TemplateVersion = templateVersion,
             Title = title,
-            Description = dto.Description,
+            Description = description,
             Status = FieldTaskStatus.Planned,
             Source = hasTemplate ? TaskSource.Template : TaskSource.Custom,
             TimingBucket = timingBucket,
@@ -244,13 +310,14 @@ public class TaskService : ITaskService
             PlannedEnd = dto.PlannedEnd,
             AssigneeId = assignee,
             AssignedUserId = assignee,
-            AssignedCollaboratorId = dto.AssignedCollaboratorId,
+            AssignedCollaboratorId = collaboratorId,
             ResponsibleUserId = userId,
             ChecklistSnapshot = checklist,
             Note = dto.Note ?? dto.Notes,
             Notes = dto.Notes ?? dto.Note,
-            Recurrence = dto.Recurrence,
+            Recurrence = NullIfEmpty(dto.Recurrence),
             RelatedHarvestId = dto.RelatedHarvestId,
+            IdempotencyKey = string.IsNullOrEmpty(idempotencyKey) ? null : idempotencyKey,
             WeatherSuitability = WeatherSuitability.Unknown,
             CreatedByUserId = userId,
             CreatedAt = now,
@@ -522,27 +589,138 @@ public class TaskService : ITaskService
         });
     }
 
+    /// <summary>Ανοιχτές: overdue, due today, or unscheduled (no date).</summary>
     private static bool IsTodayOrOverdue(FieldTask task, DateTime today)
     {
         var date = (task.ScheduledFor ?? task.PlannedStart)?.Date;
         if (date is null)
         {
-            return task.TimingBucket is TaskTimingBucket.Today;
+            return true;
         }
 
         return date <= today;
     }
 
+    /// <summary>Επόμενες: only tasks with a future date.</summary>
     private static bool IsUpcoming(FieldTask task, DateTime today)
     {
         var date = (task.ScheduledFor ?? task.PlannedStart)?.Date;
         if (date is null)
         {
-            return task.TimingBucket is TaskTimingBucket.Tomorrow or TaskTimingBucket.ThisWeek or TaskTimingBucket.Later;
+            return false;
         }
 
         return date > today;
     }
+
+    private async Task ValidateAssigneesAsync(
+        Field field,
+        string actorUserId,
+        string? assigneeUserId,
+        string? collaboratorId,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(assigneeUserId))
+        {
+            var ok = string.Equals(assigneeUserId, actorUserId, StringComparison.Ordinal)
+                || string.Equals(assigneeUserId, field.OwnerId, StringComparison.Ordinal)
+                || field.People.Any(p =>
+                    string.Equals(p.UserId, assigneeUserId, StringComparison.Ordinal)
+                    && string.Equals(p.Status, FamilyMemberStatuses.Active, StringComparison.OrdinalIgnoreCase));
+            if (!ok)
+            {
+                throw new ValidationException("Assignee is not a member of this field.");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(collaboratorId))
+        {
+            var contact = await _contacts.GetByIdAsync(collaboratorId, cancellationToken);
+            if (contact is null
+                || (!string.Equals(contact.OwnerUserId, actorUserId, StringComparison.Ordinal)
+                    && !string.Equals(contact.OwnerUserId, field.OwnerId, StringComparison.Ordinal)))
+            {
+                throw new ValidationException("Assignee contact was not found.");
+            }
+        }
+    }
+
+    private static List<FieldTaskChecklistItem> BuildChecklistSnapshot(CreateTaskDto dto)
+    {
+        var fromClient = NormalizeChecklistItems(dto.Checklist);
+        if (fromClient.Count > 0)
+        {
+            return fromClient;
+        }
+
+        if (CuratedTaskTemplates.IsCurated(dto.TemplateCode))
+        {
+            return ChecklistSnapshotFactory.CopyFromTemplate(
+                CuratedTaskTemplates.ChecklistDefinitions(dto.TemplateCode!));
+        }
+
+        return [];
+    }
+
+    private static List<FieldTaskChecklistItem> NormalizeChecklistItems(
+        List<CreateTaskChecklistItemDto>? items)
+    {
+        if (items is null || items.Count == 0)
+        {
+            return [];
+        }
+
+        var result = new List<FieldTaskChecklistItem>();
+        var index = 0;
+        foreach (var item in items)
+        {
+            var label = (item.Label ?? item.TextValue ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                continue;
+            }
+
+            if (label.Length > MaxChecklistLabelLength)
+            {
+                throw new ValidationException($"Checklist item is too long (max {MaxChecklistLabelLength}).");
+            }
+
+            index++;
+            if (index > MaxChecklistItems)
+            {
+                throw new ValidationException($"Checklist may have at most {MaxChecklistItems} items.");
+            }
+
+            var key = string.IsNullOrWhiteSpace(item.Key) ? $"c{index}" : item.Key.Trim();
+            result.Add(new FieldTaskChecklistItem
+            {
+                Key = key,
+                GreekLabel = label,
+                EnglishLabel = label,
+                ItemType = ChecklistItemType.Checkbox,
+                Requirement = ChecklistItemRequirement.Optional,
+                IsEssential = true,
+                SortOrder = index,
+                IsAnswered = false
+            });
+        }
+
+        return result;
+    }
+
+    private static string NormalizeIdempotencyKey(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = key.Trim();
+        return trimmed.Length > 120 ? trimmed[..120] : trimmed;
+    }
+
+    private static string? NullIfEmpty(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static DateTime? ResolveDateFromBucket(string? bucket, DateTime now)
     {

@@ -6,7 +6,7 @@ export type NotebookStatus = 'planned' | 'done' | 'skipped';
 
 export type NotebookSection = 'overdue' | 'today' | 'tomorrow' | 'week' | 'later';
 
-export type NotebookMenuAction = 'reschedule' | 'assign' | 'edit' | 'skip';
+export type NotebookMenuAction = 'reschedule' | 'assign' | 'repeat' | 'edit' | 'complete';
 
 export type TaskUnit = {
   key: string;

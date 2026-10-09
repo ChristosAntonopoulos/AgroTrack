@@ -1,29 +1,20 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TaskSuggestion } from '../../services/taskService';
 import {
-  CURATED_TASK_TEMPLATE_CODES,
-  type TaskSuggestion,
-} from '../../services/taskService';
-import {
-  FIELD_WORK_TEMPLATE_META,
-  templateTitle,
-  type FieldWorkCategory,
-} from '../../data/fieldWorkCatalogueLabels';
+  MINIMAL_TASK_TEMPLATES,
+  minimalTemplateTitle,
+} from '../../data/minimalTaskTemplates';
 import TaskCategoryMark from './TaskCategoryMark';
 
-const CATEGORY_ORDER: FieldWorkCategory[] = [
-  'pruning',
-  'fertilisation',
-  'ground',
-  'monitoring',
-  'irrigation',
-  'harvest',
-  'inspection',
-  'other',
-];
-
 export type TemplatePickerSelection =
-  | { kind: 'template'; templateCode: string; title: string }
+  | {
+      kind: 'template';
+      templateCode: string;
+      title: string;
+      description: string;
+      checklistLines: string[];
+    }
   | { kind: 'custom' };
 
 interface TemplatePickerProps {
@@ -40,28 +31,7 @@ const TemplatePicker: React.FC<TemplatePickerProps> = ({
   onCancel,
 }) => {
   const { t } = useTranslation('tasks');
-  const [category, setCategory] = useState<FieldWorkCategory | 'all'>('all');
-
-  const curated = useMemo(
-    () =>
-      CURATED_TASK_TEMPLATE_CODES.map((code) => ({
-        code,
-        title: templateTitle(code, language),
-        category: FIELD_WORK_TEMPLATE_META[code]?.category || 'other',
-      })),
-    [language]
-  );
-
-  const categories = useMemo(() => {
-    const present = new Set(curated.map((item) => item.category));
-    return CATEGORY_ORDER.filter((item) => present.has(item));
-  }, [curated]);
-
-  const visible = curated.filter(
-    (item) => category === 'all' || item.category === category
-  );
-
-  const suggestionCodes = new Set(suggestions.map((item) => item.templateCode.toUpperCase()));
+  const lang = language.toLowerCase().startsWith('en') ? 'en' : 'el';
 
   return (
     <div className="schedule-template-picker">
@@ -71,31 +41,37 @@ const TemplatePicker: React.FC<TemplatePickerProps> = ({
             {t('schedule.templates.suggestedNow')}
           </h3>
           <ul className="schedule-picker-list">
-            {suggestions.map((item) => (
-              <li key={`${item.fieldId}-${item.templateCode}`}>
-                <button
-                  type="button"
-                  className="schedule-picker-row"
-                  onClick={() =>
-                    onSelect({
-                      kind: 'template',
-                      templateCode: item.templateCode,
-                      title: item.title || templateTitle(item.templateCode, language),
-                    })
-                  }
-                >
-                  <TaskCategoryMark templateCode={item.templateCode} />
-                  <span className="schedule-picker-copy">
-                    <span className="schedule-picker-title">
-                      {item.title || templateTitle(item.templateCode, language)}
+            {suggestions.map((item) => {
+              const meta = MINIMAL_TASK_TEMPLATES.find(
+                (row) => row.code.toUpperCase() === item.templateCode.toUpperCase()
+              );
+              const title = item.title || minimalTemplateTitle(item.templateCode, language);
+              return (
+                <li key={`${item.fieldId}-${item.templateCode}`}>
+                  <button
+                    type="button"
+                    className="schedule-picker-row"
+                    onClick={() =>
+                      onSelect({
+                        kind: 'template',
+                        templateCode: item.templateCode,
+                        title,
+                        description: meta?.description[lang] || '',
+                        checklistLines: meta?.checklist[lang] || [],
+                      })
+                    }
+                  >
+                    <TaskCategoryMark templateCode={item.templateCode} />
+                    <span className="schedule-picker-copy">
+                      <span className="schedule-picker-title">{title}</span>
+                      {item.whyNow ? (
+                        <span className="schedule-picker-why">{item.whyNow}</span>
+                      ) : null}
                     </span>
-                    {item.whyNow ? (
-                      <span className="schedule-picker-why">{item.whyNow}</span>
-                    ) : null}
-                  </span>
-                </button>
-              </li>
-            ))}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}
@@ -104,27 +80,8 @@ const TemplatePicker: React.FC<TemplatePickerProps> = ({
         <h3 id="schedule-curated" className="schedule-picker-heading">
           {t('schedule.templates.curated')}
         </h3>
-        <div className="schedule-category-chips" role="group" aria-label={t('schedule.templates.categories')}>
-          <button
-            type="button"
-            className={`task-type-chip${category === 'all' ? ' is-selected' : ''}`}
-            onClick={() => setCategory('all')}
-          >
-            {t('schedule.templates.allCategories')}
-          </button>
-          {categories.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={`task-type-chip${category === item ? ' is-selected' : ''}`}
-              onClick={() => setCategory(item)}
-            >
-              {t(`schedule.templates.category.${item}`, { defaultValue: item })}
-            </button>
-          ))}
-        </div>
         <ul className="schedule-picker-list">
-          {visible.map((item) => (
+          {MINIMAL_TASK_TEMPLATES.map((item) => (
             <li key={item.code}>
               <button
                 type="button"
@@ -133,16 +90,16 @@ const TemplatePicker: React.FC<TemplatePickerProps> = ({
                   onSelect({
                     kind: 'template',
                     templateCode: item.code,
-                    title: item.title,
+                    title: item.title[lang],
+                    description: item.description[lang],
+                    checklistLines: item.checklist[lang],
                   })
                 }
               >
                 <TaskCategoryMark templateCode={item.code} />
                 <span className="schedule-picker-copy">
-                  <span className="schedule-picker-title">{item.title}</span>
-                  {suggestionCodes.has(item.code) ? (
-                    <span className="schedule-picker-why">{t('schedule.templates.alsoSuggested')}</span>
-                  ) : null}
+                  <span className="schedule-picker-title">{item.title[lang]}</span>
+                  <span className="schedule-picker-why">{item.description[lang]}</span>
                 </span>
               </button>
             </li>

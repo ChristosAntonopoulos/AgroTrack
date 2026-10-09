@@ -71,7 +71,8 @@ export interface CreateTaskInput {
   notes?: string;
   recurrence?: string;
   resultYear?: number;
-  checklist?: Array<{ key: string; isAnswered?: boolean; textValue?: string }>;
+  checklist?: Array<{ key: string; label?: string; textValue?: string; isAnswered?: boolean }>;
+  idempotencyKey?: string;
 }
 
 export interface PatchTaskInput {
@@ -138,16 +139,7 @@ export interface CreateWorkRecordInput {
 }
 
 /** Farmer-facing curated templates for schedule picker. */
-export const CURATED_TASK_TEMPLATE_CODES = [
-  'T06',
-  'T05',
-  'T09',
-  'T14',
-  'T08',
-  'T20',
-  'T21',
-  'T23',
-] as const;
+export { CURATED_TASK_TEMPLATE_CODES } from '../data/minimalTaskTemplates';
 
 export const taskService = {
   listTasks: async (params?: {
@@ -164,7 +156,10 @@ export const taskService = {
   },
 
   createTask: async (input: CreateTaskInput): Promise<Task> => {
-    const response = await api.post<Task>('/api/v1/tasks', input);
+    const headers = input.idempotencyKey
+      ? { 'Idempotency-Key': input.idempotencyKey }
+      : undefined;
+    const response = await api.post<Task>('/api/v1/tasks', input, { headers });
     return response.data;
   },
 

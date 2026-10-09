@@ -17,6 +17,7 @@ import TodoNotebook from '../components/tasks/TodoNotebook';
 import HistoryTaskView from '../components/tasks/HistoryTaskView';
 import CreatedTaskBanner from '../components/tasks/CreatedTaskBanner';
 import RescheduleTaskSheet from '../components/tasks/RescheduleTaskSheet';
+import RepeatTaskSheet from '../components/tasks/RepeatTaskSheet';
 import ScheduleWorkSheet, {
   type ScheduleWorkPrefill,
 } from '../components/tasks/ScheduleWorkSheet';
@@ -83,6 +84,7 @@ const TaskListScreen = () => {
   const [followUpTask, setFollowUpTask] = useState<Task | null>(null);
   const [followUpError, setFollowUpError] = useState<string | null>(null);
   const [rescheduleTask, setRescheduleTask] = useState<Task | null>(null);
+  const [repeatTask, setRepeatTask] = useState<Task | null>(null);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [assigneeOptions, setAssigneeOptions] = useState<AssigneeOption[]>([]);
@@ -379,20 +381,35 @@ const TaskListScreen = () => {
       setRescheduleTask(task);
       return;
     }
+    if (action === 'repeat') {
+      setRepeatTask(task);
+      return;
+    }
     if (action === 'edit' || action === 'assign') {
       openTask(task);
       return;
     }
-    if (action === 'skip') {
-      try {
-        setBusyId(task.id);
-        await getTaskService().skipTask(task.id);
-        await loadData();
-      } catch {
-        setError(t('fieldWork.errors.cancel'));
-      } finally {
-        setBusyId(null);
-      }
+    if (action === 'complete') {
+      await handleComplete(task);
+    }
+  };
+
+  const handleRepeat = async (input: { recurrence: string; scheduledFor: string }) => {
+    if (!repeatTask) return;
+    try {
+      setBusyId(repeatTask.id);
+      await getTaskService().patchTask(repeatTask.id, {
+        recurrence: input.recurrence,
+        scheduledFor: input.scheduledFor,
+        plannedStart: input.scheduledFor,
+        plannedEnd: input.scheduledFor,
+      });
+      setRepeatTask(null);
+      await loadData();
+    } catch {
+      setError(t('fieldWork.errors.reschedule'));
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -645,6 +662,14 @@ const TaskListScreen = () => {
         busy={Boolean(rescheduleTask && busyId === rescheduleTask.id)}
         onClose={() => setRescheduleTask(null)}
         onConfirm={(start, end) => void handleReschedule(start, end)}
+      />
+
+      <RepeatTaskSheet
+        task={repeatTask}
+        open={Boolean(repeatTask)}
+        busy={Boolean(repeatTask && busyId === repeatTask.id)}
+        onClose={() => setRepeatTask(null)}
+        onConfirm={(payload) => void handleRepeat(payload)}
       />
 
       <ScheduleWorkSheet

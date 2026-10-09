@@ -9,11 +9,17 @@ import type {
   WorkRecord,
 } from '../taskService';
 import { CURATED_TASK_TEMPLATE_CODES } from '../taskService';
-import { templateTitle } from '../../data/fieldWorkCatalogueLabels';
+import {
+  getMinimalTemplate,
+  minimalTemplateChecklistLines,
+  minimalTemplateDescription,
+  minimalTemplateTitle,
+} from '../../data/minimalTaskTemplates';
 
 let mockTasks: Task[] = [];
 let mockDismissals = new Set<string>();
 let mockWorkRecords: WorkRecord[] = [];
+const mockIdempotency = new Map<string, Task>();
 
 const nowIso = () => new Date().toISOString();
 
@@ -22,13 +28,37 @@ const dismissalKey = (fieldId: string, templateCode: string, year?: number) =>
 
 const toTask = (input: CreateTaskInput, id: string): Task => {
   const bucket = (input.timingBucket || 'later') as TaskTimingBucket;
+  const meta = getMinimalTemplate(input.templateCode);
+  const checklistFromInput = (input.checklist || [])
+    .map((item, index) => {
+      const label = (item.label || item.textValue || '').trim();
+      if (!label) return null;
+      return {
+        key: item.key || `c${index + 1}`,
+        label,
+        greekLabel: label,
+        isAnswered: false,
+      };
+    })
+    .filter(Boolean) as Task['checklist'];
+  const checklist =
+    checklistFromInput.length > 0
+      ? checklistFromInput
+      : minimalTemplateChecklistLines(input.templateCode, 'el').map((label, index) => ({
+          key: `c${index + 1}`,
+          label,
+          greekLabel: label,
+          isAnswered: false,
+        }));
   return {
     id,
     fieldId: input.fieldId,
     resultYear: input.resultYear || new Date().getFullYear(),
     ownerId: 'mock-owner',
     title: input.title,
-    description: input.description,
+    description:
+      input.description ||
+      (meta ? minimalTemplateDescription(input.templateCode, 'el') : undefined),
     status: 'planned',
     statusLabel: 'Προγραμματισμένη',
     source: input.templateCode ? 'template' : 'custom',
@@ -43,7 +73,7 @@ const toTask = (input: CreateTaskInput, id: string): Task => {
     note: input.note,
     notes: input.notes || input.note,
     recurrence: input.recurrence,
-    checklist: [],
+    checklist,
     createdByUserId: 'mock-owner',
     createdAt: nowIso(),
     updatedAt: nowIso(),
@@ -52,20 +82,17 @@ const toTask = (input: CreateTaskInput, id: string): Task => {
 
 const isTodayOrOverdue = (task: Task, today: Date): boolean => {
   const raw = task.scheduledFor || task.plannedStart;
-  if (!raw) return String(task.timingBucket) === 'today';
+  if (!raw) return true;
   const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return String(task.timingBucket) === 'today';
+  if (Number.isNaN(date.getTime())) return true;
   return date <= today;
 };
 
 const isUpcoming = (task: Task, today: Date): boolean => {
   const raw = task.scheduledFor || task.plannedStart;
-  if (!raw) {
-    const bucket = String(task.timingBucket);
-    return bucket === 'tomorrow' || bucket === 'thisWeek' || bucket === 'later';
-  }
+  if (!raw) return false;
   const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return true;
+  if (Number.isNaN(date.getTime())) return false;
   return date > today;
 };
 
@@ -96,8 +123,17 @@ export const mockTaskService = {
   },
 
   createTask: async (input: CreateTaskInput): Promise<Task> => {
+    if (input.idempotencyKey && mockIdempotency.has(input.idempotencyKey)) {
+      return { ...mockIdempotency.get(input.idempotencyKey)! };
+    }
+    if (!input.title?.trim()) {
+      throw new Error('Title is required');
+    }
     const task = toTask(input, `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
     mockTasks = [task, ...mockTasks];
+    if (input.idempotencyKey) {
+      mockIdempotency.set(input.idempotencyKey, task);
+    }
     return { ...task };
   },
 
@@ -151,9 +187,7 @@ export const mockTaskService = {
     return { ...next };
   },
 
-  undoComplete: async (id: string): Promise<Task> => mockTaskService.reopenTask(id),
-
-  reopenTask: async (id: string): Promise<Task> => {
+  undoComplete: async (id: string): Promise<Task> => {
     const index = mockTasks.findIndex((item) => item.id === id);
     if (index < 0) throw new Error('Task not found');
     const next = {
@@ -162,8 +196,6 @@ export const mockTaskService = {
       statusLabel: 'Προγραμματισμένη',
       completedAt: undefined,
       completedByUserId: undefined,
-      skippedAt: undefined,
-      skippedReason: undefined,
       linkedWorkRecordId: undefined,
       updatedAt: nowIso(),
     };
@@ -171,7 +203,11 @@ export const mockTaskService = {
     return { ...next };
   },
 
+  reopenTask: async (id: string): Promise<Task> => mockTaskService.undoComplete(id),
+
   deleteTask: async (id: string): Promise<void> => {
+    const index = mockTasks.findIndex((item) => item.id === id);
+    if (index < 0) throw new Error('Task not found');
     mockTasks = mockTasks.filter((item) => item.id !== id);
   },
 
@@ -184,7 +220,7 @@ export const mockTaskService = {
       .filter((code) => !mockDismissals.has(dismissalKey(params.fieldId, code, year)))
       .map((code) => ({
         templateCode: code,
-        title: templateTitle(code, 'el'),
+        title: minimalTemplateTitle(code, 'el'),
         fieldId: params.fieldId,
         resultYear: year,
         whyNow: 'Εποχική υπενθύμιση για αυτή την περίοδο.',

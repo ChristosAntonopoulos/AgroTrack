@@ -5,6 +5,7 @@ using OliveLifecycle.Application.DTOs.FieldWork;
 using OliveLifecycle.Application.Services;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core;
+using OliveLifecycle.Core.Entities;
 using OliveLifecycle.Core.Entities.FieldWork;
 using OliveLifecycle.Core.Enums;
 using OliveLifecycle.Core.Exceptions;
@@ -37,12 +38,23 @@ public class TaskDomainServiceTests
             .Setup(n => n.NotifyAsync(It.IsAny<OliveLifecycle.Core.Entities.UserNotification>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        var fields = new Mock<IFieldRepository>();
+        fields.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string id, CancellationToken _) => new Field
+            {
+                Id = id,
+                OwnerId = "owner-1",
+                Name = "Test field"
+            });
+
         _tasksService = new TaskService(
             _tasks.Object,
             _workRecords.Object,
             _versions.Object,
             _auth.Object,
             _fieldAccessScope.Object,
+            fields.Object,
+            Mock.Of<ISavedContactRepository>(),
             _clock.Object,
             Mock.Of<IFieldStatusGuard>(),
             _notifications.Object);
@@ -78,9 +90,9 @@ public class TaskDomainServiceTests
             new CreateTaskDto
             {
                 FieldId = "field-1",
-                Title = "Κλάδεμα καρποφορίας",
+                Title = "Κλάδεμα",
                 TemplateCode = "T06",
-                TimingBucket = "today"
+                TimingBucket = "later"
             },
             "owner-1",
             Roles.FieldOwner);
@@ -91,7 +103,86 @@ public class TaskDomainServiceTests
         Assert.Equal("template", dto.Source);
         Assert.Equal("T06", dto.TemplateCode);
         Assert.Equal("owner-1", dto.OwnerId);
+        Assert.Null(created!.ScheduledFor);
+        Assert.Equal(TaskTimingBucket.Later, created.TimingBucket);
+        Assert.Equal(3, created.ChecklistSnapshot.Count);
+        Assert.False(string.IsNullOrWhiteSpace(created.Description));
         _tasks.Verify(r => r.CreateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Create_RejectsBlankTitle()
+    {
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _tasksService.CreateAsync(
+                new CreateTaskDto { FieldId = "field-1", Title = "   " },
+                "owner-1",
+                Roles.FieldOwner));
+    }
+
+    [Fact]
+    public async Task Create_IdempotentReplay_ReturnsExisting()
+    {
+        var existing = new FieldTask
+        {
+            Id = "task-existing",
+            FieldId = "field-1",
+            Title = "Κλάδεμα",
+            OwnerId = "owner-1",
+            Status = FieldTaskStatus.Planned,
+            IdempotencyKey = "key-1",
+            CreatedByUserId = "owner-1"
+        };
+        _tasks.Setup(r => r.GetByIdempotencyKeyAsync("owner-1", "key-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var dto = await _tasksService.CreateAsync(
+            new CreateTaskDto
+            {
+                FieldId = "field-1",
+                Title = "Κλάδεμα",
+                IdempotencyKey = "key-1"
+            },
+            "owner-1",
+            Roles.FieldOwner);
+
+        Assert.Equal("task-existing", dto.Id);
+        _tasks.Verify(r => r.CreateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task List_TodayIncludesUndated_UpcomingExcludesThem()
+    {
+        var undated = new FieldTask
+        {
+            Id = "u1",
+            FieldId = "field-1",
+            Title = "Open",
+            Status = FieldTaskStatus.Planned,
+            TimingBucket = TaskTimingBucket.Later,
+            ScheduledFor = null,
+            PlannedStart = null
+        };
+        var future = new FieldTask
+        {
+            Id = "f1",
+            FieldId = "field-1",
+            Title = "Later",
+            Status = FieldTaskStatus.Planned,
+            TimingBucket = TaskTimingBucket.ThisWeek,
+            ScheduledFor = new DateTime(2026, 3, 25),
+            PlannedStart = new DateTime(2026, 3, 25)
+        };
+        _tasks.Setup(r => r.QueryAsync(It.IsAny<FieldTaskQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { undated, future });
+
+        var open = await _tasksService.ListAsync("today", "field-1", "owner-1", Roles.FieldOwner);
+        var upcoming = await _tasksService.ListAsync("upcoming", "field-1", "owner-1", Roles.FieldOwner);
+
+        Assert.Contains(open, t => t.Id == "u1");
+        Assert.DoesNotContain(open, t => t.Id == "f1");
+        Assert.Contains(upcoming, t => t.Id == "f1");
+        Assert.DoesNotContain(upcoming, t => t.Id == "u1");
     }
 
     [Fact]

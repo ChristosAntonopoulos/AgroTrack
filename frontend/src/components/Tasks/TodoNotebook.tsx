@@ -109,7 +109,8 @@ const TodoNotebook: React.FC<TodoNotebookProps> = ({
       t('notebook.sections.overdue')
     );
     const today = renderUnits(['today'], 'notebook-today', t('notebook.sections.today'));
-    const hasWork = Boolean(overdue || today);
+    const openLater = renderUnits(['later'], 'notebook-open', t('notebook.sections.open'));
+    const hasWork = Boolean(overdue || today || openLater);
     const showSuggestions = suggestions.length > 0;
     const visibleSuggestions =
       showAllSuggestions || suggestions.length <= SUGGESTION_PREVIEW
@@ -121,6 +122,7 @@ const TodoNotebook: React.FC<TodoNotebookProps> = ({
       <div className="notebook-sections">
         {overdue}
         {today}
+        {openLater}
         {showSuggestions ? (
           <section aria-labelledby="notebook-suggestions">
             <h2 id="notebook-suggestions" className="notebook-section-title">
