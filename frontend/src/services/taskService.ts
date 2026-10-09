@@ -73,6 +73,10 @@ export interface CreateTaskInput {
   resultYear?: number;
   checklist?: Array<{ key: string; label?: string; textValue?: string; isAnswered?: boolean }>;
   idempotencyKey?: string;
+  /** Create already Done (record completed work). */
+  alreadyDone?: boolean;
+  /** Completion time when alreadyDone; ISO string. */
+  completedAt?: string;
 }
 
 export interface PatchTaskInput {

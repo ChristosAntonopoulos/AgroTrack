@@ -31,7 +31,12 @@ describe('deep-link intents', () => {
     );
     expect(taskPeekPath('t1')).toBe('/tasks/t1');
     expect(taskCompletePath('t1')).toBe('/tasks/t1/complete');
-    expect(taskFormPath({ fieldId: 'f1' })).toBe('/tasks/new?fieldId=f1');
+    expect(taskFormPath({ fieldId: 'f1' })).toBe(
+      '/tasks?view=today&schedule=1&fieldId=f1'
+    );
+    expect(taskFormPath({ fieldId: 'f1', alreadyDone: true })).toBe(
+      '/tasks?view=done&schedule=1&alreadyDone=1&fieldId=f1'
+    );
     expect(moneyPath({ year: 2026, fieldId: 'f1', tx: 'tx-9' })).toBe(
       '/money?year=2026&fieldId=f1&tx=tx-9'
     );

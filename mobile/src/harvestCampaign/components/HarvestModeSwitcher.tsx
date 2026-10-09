@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
-import { appFonts, motion, spacing } from '../../theme';
+import { appFonts, motion, radii, spacing } from '../../theme';
 import type { HarvestModeView } from '../types';
 
 type Props = {
@@ -15,7 +15,7 @@ type Props = {
 };
 
 /**
- * Today / Totals — quiet text tabs, not a second chrome layer.
+ * Today / Totals — clear segmented choice, readable outdoors and in dark mode.
  */
 export function HarvestModeSwitcher({
   value,
@@ -41,7 +41,14 @@ export function HarvestModeSwitcher({
     <View
       accessibilityRole="tablist"
       accessibilityLabel={ariaLabel}
-      style={[styles.track, { minHeight: Math.max(40, tapMin - 4) }]}
+      style={[
+        styles.track,
+        {
+          minHeight: Math.max(44, tapMin - 4),
+          backgroundColor: colors.surfaceMuted,
+          borderColor: colors.border,
+        },
+      ]}
     >
       {options.map((opt) => {
         const selected = value === opt.id;
@@ -58,7 +65,7 @@ export function HarvestModeSwitcher({
               styles.option,
               {
                 minHeight: Math.max(36, tapMin - 12),
-                borderBottomColor: selected ? colors.primary : 'transparent',
+                backgroundColor: selected ? colors.primary : 'transparent',
                 opacity: pressed && !selected ? motion.pressOpacity : 1,
               },
             ]}
@@ -67,9 +74,9 @@ export function HarvestModeSwitcher({
               style={[
                 styles.label,
                 {
-                  color: selected ? colors.textPrimary : colors.textSecondary,
+                  color: selected ? colors.onOlive : colors.textPrimary,
                   fontSize: 15 * scale,
-                  fontWeight: selected ? '700' : '600',
+                  fontWeight: selected ? '800' : '700',
                 },
               ]}
               numberOfLines={1}
@@ -87,15 +94,21 @@ const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    gap: spacing.md,
+    gap: 4,
+    padding: 4,
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
   },
   option: {
-    paddingHorizontal: 2,
-    paddingVertical: 6,
-    borderBottomWidth: 2,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    borderRadius: radii.md,
   },
   label: {
-    fontFamily: appFonts.semibold,
+    fontFamily: appFonts.bold,
     letterSpacing: -0.1,
   },
 });

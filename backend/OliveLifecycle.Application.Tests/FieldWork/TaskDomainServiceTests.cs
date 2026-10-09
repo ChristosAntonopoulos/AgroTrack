@@ -121,6 +121,59 @@ public class TaskDomainServiceTests
     }
 
     [Fact]
+    public async Task Create_AlreadyDone_CreatesDoneTaskWithoutWorkRecord()
+    {
+        FieldTask? created = null;
+        _tasks.Setup(r => r.CreateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((FieldTask t, CancellationToken _) =>
+            {
+                t.Id = "task-done-1";
+                created = t;
+                return t;
+            });
+
+        var completedAt = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc);
+        var dto = await _tasksService.CreateAsync(
+            new CreateTaskDto
+            {
+                FieldId = "field-1",
+                Title = "Ψεκασμός",
+                AlreadyDone = true,
+                CompletedAt = completedAt,
+                TimingBucket = "later"
+            },
+            "owner-1",
+            Roles.FieldOwner);
+
+        Assert.NotNull(created);
+        Assert.Equal("task-done-1", dto.Id);
+        Assert.Equal("done", dto.Status);
+        Assert.Equal(completedAt, created!.CompletedAt);
+        Assert.Equal("owner-1", created.CompletedByUserId);
+        Assert.Null(created.Recurrence);
+        Assert.Null(created.ScheduledFor);
+        Assert.Contains(created.Activity, h => h.Action == "completed");
+        _workRecords.Verify(r => r.CreateAsync(It.IsAny<TaskExecution>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Create_AlreadyDone_RejectsRecurrence()
+    {
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            _tasksService.CreateAsync(
+                new CreateTaskDto
+                {
+                    FieldId = "field-1",
+                    Title = "Ψεκασμός",
+                    AlreadyDone = true,
+                    Recurrence = "weekly",
+                    ScheduledFor = new DateTime(2026, 3, 10)
+                },
+                "owner-1",
+                Roles.FieldOwner));
+    }
+
+    [Fact]
     public async Task Create_IdempotentReplay_ReturnsExisting()
     {
         var existing = new FieldTask

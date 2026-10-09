@@ -65,6 +65,8 @@ const TasksPage: React.FC = () => {
   const createdId = searchParams.get('created') || '';
   const selectedTaskId = searchParams.get('task') || '';
   const scheduleOpen = searchParams.get('schedule') === '1';
+  const scheduleMode =
+    searchParams.get('alreadyDone') === '1' ? ('alreadyDone' as const) : ('schedule' as const);
   const templateCodeParam = searchParams.get('templateCode') || '';
   const year = athensCalendarYear(new Date());
 
@@ -103,9 +105,22 @@ const TasksPage: React.FC = () => {
       fieldId?: string;
       taskId?: string | null;
       schedule?: boolean | null;
+      alreadyDone?: boolean | null;
       templateCode?: string | null;
       created?: string | null;
     }) => {
+      const nextSchedule =
+        next.schedule === null
+          ? false
+          : next.schedule !== undefined
+            ? next.schedule
+            : scheduleOpen;
+      const nextAlreadyDone =
+        next.alreadyDone === null
+          ? false
+          : next.alreadyDone !== undefined
+            ? next.alreadyDone
+            : scheduleMode === 'alreadyDone';
       const params = buildTaskSearchParams({
         view: next.view ?? view,
         fieldId: next.fieldId !== undefined ? next.fieldId : fieldFilter,
@@ -115,12 +130,8 @@ const TasksPage: React.FC = () => {
             : next.taskId !== undefined
               ? next.taskId
               : selectedTaskId || undefined,
-        schedule:
-          next.schedule === null
-            ? false
-            : next.schedule !== undefined
-              ? next.schedule
-              : scheduleOpen,
+        schedule: nextSchedule,
+        alreadyDone: nextSchedule ? nextAlreadyDone : false,
         templateCode:
           next.templateCode === null
             ? undefined
@@ -139,6 +150,7 @@ const TasksPage: React.FC = () => {
     [
       createdId,
       fieldFilter,
+      scheduleMode,
       scheduleOpen,
       selectedTaskId,
       setSearchParams,
@@ -148,7 +160,7 @@ const TasksPage: React.FC = () => {
   );
 
   const closeSchedule = useCallback(() => {
-    writeParams({ schedule: null, templateCode: null });
+    writeParams({ schedule: null, alreadyDone: null, templateCode: null });
     setSchedulePrefill(null);
     setScheduleError(null);
   }, [writeParams]);
@@ -159,6 +171,7 @@ const TasksPage: React.FC = () => {
       setScheduleError(null);
       writeParams({
         schedule: true,
+        alreadyDone: false,
         fieldId: prefill?.fieldId ?? fieldFilter,
         templateCode: prefill?.templateCode || null,
       });
@@ -253,6 +266,7 @@ const TasksPage: React.FC = () => {
       fieldId: fieldFilter || undefined,
       taskId: selectedTaskId || undefined,
       schedule: scheduleOpen,
+      alreadyDone: scheduleOpen && scheduleMode === 'alreadyDone',
       templateCode: templateCodeParam || undefined,
       created: undefined,
     });
@@ -260,6 +274,7 @@ const TasksPage: React.FC = () => {
   }, [
     createdId,
     fieldFilter,
+    scheduleMode,
     scheduleOpen,
     selectedTaskId,
     setSearchParams,
@@ -427,15 +442,21 @@ const TasksPage: React.FC = () => {
       closeSchedule();
       setBannerTaskId(created.id);
       writeParams({
-        view: 'today',
+        view: input.alreadyDone ? 'done' : 'today',
         fieldId: created.fieldId,
         created: null,
         schedule: null,
+        alreadyDone: null,
         templateCode: null,
       });
       await loadData();
     } catch (err: unknown) {
-      setScheduleError(getApiErrorMessage(err, t) || t('schedule.failedSave'));
+      setScheduleError(
+        getApiErrorMessage(err, t) ||
+          (scheduleMode === 'alreadyDone'
+            ? t('schedule.done.failedSave')
+            : t('schedule.failedSave'))
+      );
     } finally {
       setScheduleBusy(false);
     }
@@ -680,6 +701,7 @@ const TasksPage: React.FC = () => {
 
       <ScheduleWorkSheet
         open={scheduleOpen}
+        mode={scheduleMode}
         fields={fields}
         assigneeOptions={assigneeOptions}
         suggestions={suggestions}

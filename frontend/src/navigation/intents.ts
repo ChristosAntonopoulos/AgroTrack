@@ -46,10 +46,13 @@ export const taskFormPath = (opts?: {
   proposalId?: string;
   templateCode?: string;
   view?: 'today' | 'upcoming' | 'done';
+  /** Record completed work — same sheet, creates a Done task. */
+  alreadyDone?: boolean;
 }): string =>
   `/tasks${qs([
-    ['view', opts?.view || 'today'],
+    ['view', opts?.alreadyDone ? 'done' : opts?.view || 'today'],
     ['schedule', 1],
+    ['alreadyDone', opts?.alreadyDone ? 1 : undefined],
     ['fieldId', opts?.fieldId],
     ['templateCode', opts?.templateCode],
     ['proposalId', opts?.proposalId],

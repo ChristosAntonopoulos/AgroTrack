@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Button from '../../components/ui/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { formatKg } from '../../utils/harvestUtils';
-import { createElevation, harvestPipelinePalette, radii, spacing } from '../../theme';
+import { createElevation, getHarvestPipelinePalette, radii, spacing } from '../../theme';
 import { HarvestSheetShell } from '../components/HarvestSheetShell';
 import { formatHarvestYieldPercent } from '../utils/harvestCalculations';
 
@@ -32,7 +32,8 @@ export const HarvestCompleteSheet: React.FC<{
   onFinish,
 }) => {
   const { t } = useTranslation('fields');
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const pipeline = getHarvestPipelinePalette(isDark);
 
   const metric = (label: string, bg: string) => (
     <View
@@ -40,6 +41,8 @@ export const HarvestCompleteSheet: React.FC<{
         styles.metric,
         {
           backgroundColor: bg,
+          borderWidth: isDark ? 1 : 0,
+          borderColor: isDark ? colors.border : 'transparent',
           ...createElevation(colors, 'sm'),
         },
       ]}
@@ -73,11 +76,11 @@ export const HarvestCompleteSheet: React.FC<{
       <View style={styles.metrics}>
         {metric(
           t('harvestCampaign.complete.olives', { kg: formatKg(officialKg) }),
-          harvestPipelinePalette.fruit.bg
+          pipeline.fruit.bg
         )}
         {metric(
           t('harvestCampaign.complete.oil', { kg: formatKg(oilKg) }),
-          harvestPipelinePalette.oil.bg
+          pipeline.oil.bg
         )}
         {yieldPct != null ? (
           <View

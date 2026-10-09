@@ -65,6 +65,9 @@ const TaskListScreen = () => {
   const [fieldFilter, setFieldFilter] = useState(() => parseTaskFieldId(route.params?.fieldId));
   const [createdId, setCreatedId] = useState(route.params?.created || '');
   const [scheduleOpen, setScheduleOpen] = useState(Boolean(route.params?.schedule));
+  const [scheduleMode, setScheduleMode] = useState<'schedule' | 'alreadyDone'>(
+    route.params?.alreadyDone ? 'alreadyDone' : 'schedule'
+  );
   const [schedulePrefill, setSchedulePrefill] = useState<ScheduleWorkPrefill | null>(null);
 
   useRegisterCapturePage({
@@ -104,10 +107,11 @@ const TaskListScreen = () => {
       scheduleTokenRef.current = null;
       return;
     }
-    const token = `${route.params.fieldId || ''}|${route.params.templateCode || ''}|${route.params.created || ''}`;
+    const token = `${route.params.fieldId || ''}|${route.params.templateCode || ''}|${route.params.created || ''}|${route.params.alreadyDone ? '1' : '0'}`;
     if (scheduleTokenRef.current === token) return;
     scheduleTokenRef.current = token;
     setScheduleOpen(true);
+    setScheduleMode(route.params.alreadyDone ? 'alreadyDone' : 'schedule');
     setSchedulePrefill({
       fieldId: route.params.fieldId || undefined,
       templateCode: route.params.templateCode || undefined,
@@ -116,7 +120,14 @@ const TaskListScreen = () => {
         : undefined,
     });
     setScheduleError(null);
-  }, [route.params?.schedule, route.params?.fieldId, route.params?.templateCode, route.params?.created, i18n.language]);
+  }, [
+    route.params?.schedule,
+    route.params?.alreadyDone,
+    route.params?.fieldId,
+    route.params?.templateCode,
+    route.params?.created,
+    i18n.language,
+  ]);
 
   const fieldNames = useMemo(
     () => Object.fromEntries(fields.map((field) => [field.id, field.name])),
@@ -277,6 +288,7 @@ const TaskListScreen = () => {
     (prefill?: ScheduleWorkPrefill) => {
       setSchedulePrefill(prefill || { fieldId: fieldFilter || undefined });
       setScheduleError(null);
+      setScheduleMode('schedule');
       setScheduleOpen(true);
     },
     [fieldFilter]
@@ -285,6 +297,7 @@ const TaskListScreen = () => {
   const closeSchedule = useCallback(() => {
     scheduleTokenRef.current = null;
     setScheduleOpen(false);
+    setScheduleMode('schedule');
     setSchedulePrefill(null);
     setScheduleError(null);
   }, []);
@@ -349,12 +362,16 @@ const TaskListScreen = () => {
       setScheduleError(null);
       const created = await getTaskService().createTask(input);
       closeSchedule();
-      setView('today');
+      setView(input.alreadyDone ? 'done' : 'today');
       setFieldFilter(created.fieldId);
       setCreatedId(created.id);
       await loadData();
     } catch {
-      setScheduleError(t('schedule.failedSave'));
+      setScheduleError(
+        scheduleMode === 'alreadyDone'
+          ? t('schedule.done.failedSave')
+          : t('schedule.failedSave')
+      );
     } finally {
       setScheduleBusy(false);
     }
@@ -674,6 +691,7 @@ const TaskListScreen = () => {
 
       <ScheduleWorkSheet
         open={scheduleOpen}
+        mode={scheduleMode}
         fields={fields}
         assigneeOptions={assigneeOptions}
         suggestions={suggestions}

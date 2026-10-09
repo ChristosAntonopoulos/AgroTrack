@@ -31,6 +31,7 @@ export const buildTaskSearchParams = (input: {
   fieldId?: string;
   taskId?: string;
   schedule?: boolean;
+  alreadyDone?: boolean;
   templateCode?: string;
   created?: string;
 }): URLSearchParams => {
@@ -44,6 +45,9 @@ export const buildTaskSearchParams = (input: {
   }
   if (input.schedule) {
     params.set('schedule', '1');
+  }
+  if (input.alreadyDone) {
+    params.set('alreadyDone', '1');
   }
   if (input.templateCode) {
     params.set('templateCode', input.templateCode);

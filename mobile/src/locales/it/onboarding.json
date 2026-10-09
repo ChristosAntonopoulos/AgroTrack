@@ -65,7 +65,7 @@
     "title": "Scrivi la prima nota",
     "body": "Una nota breve avvia la Cronologia di questo oliveto.",
     "cta": "Scrivi la nota",
-    "prefill": "🌱 Il mio primo sguardo all’oliveto — qui inizia la Cronologia."
+    "prefill": "L’oliveto è quieto oggi. Le foglie sono verdi, e questa prima nota è l’inizio della sua storia."
   },
   "spatial": {
     "kicker": "Poco prima della Cronologia",
@@ -132,7 +132,7 @@
   "finished": {
     "kicker": "Ci sei",
     "title": "La storia del tuo campo inizia qui 🌿",
-    "body": "Quella prima nota è l’inizio della storia di questo oliveto. Sei libero di esplorare — benvenuto in The Olive Lot.",
+    "body": "La prima nota è salvata. Ora puoi muoverti liberamente nell’app — benvenuto in The Olive Lot.",
     "cta": "Inizia a esplorare",
     "savedToast": "Prima nota salvata — la Cronologia è iniziata."
   },

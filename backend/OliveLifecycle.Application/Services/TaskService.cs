@@ -264,7 +264,6 @@ public class TaskService : ITaskService
                 : ResolveDateFromBucket(dto.TimingBucket, now);
         }
 
-        var resultYear = ResultYearResolver.Resolve(scheduledFor, dto.ResultYear, now);
         var hasTemplate = !string.IsNullOrWhiteSpace(dto.TemplateCode);
         var isCurated = CuratedTaskTemplates.IsCurated(dto.TemplateCode);
 
@@ -273,10 +272,30 @@ public class TaskService : ITaskService
             throw new ValidationException("Unknown template code.");
         }
 
-        if (!string.IsNullOrWhiteSpace(dto.Recurrence) && scheduledFor is null)
+        if (dto.AlreadyDone && !string.IsNullOrWhiteSpace(dto.Recurrence))
+        {
+            throw new ValidationException("Recurrence is not allowed when recording completed work.");
+        }
+
+        if (!dto.AlreadyDone && !string.IsNullOrWhiteSpace(dto.Recurrence) && scheduledFor is null)
         {
             throw new ValidationException("Recurrence requires a starting date.");
         }
+
+        DateTime? completedAt = null;
+        if (dto.AlreadyDone)
+        {
+            completedAt = dto.CompletedAt?.ToUniversalTime() ?? now;
+            if (completedAt > now.AddDays(1))
+            {
+                throw new ValidationException("CompletedAt cannot be in the future.");
+            }
+            // Already-done tasks are undated plans; completion time is the source of truth.
+            scheduledFor = null;
+            timingBucket = TaskTimingBucket.Later;
+        }
+
+        var resultYear = ResultYearResolver.Resolve(completedAt ?? scheduledFor, dto.ResultYear, now);
 
         var checklist = BuildChecklistSnapshot(dto);
         int? templateVersion = null;
@@ -302,12 +321,12 @@ public class TaskService : ITaskService
             TemplateVersion = templateVersion,
             Title = title,
             Description = description,
-            Status = FieldTaskStatus.Planned,
+            Status = dto.AlreadyDone ? FieldTaskStatus.Done : FieldTaskStatus.Planned,
             Source = hasTemplate ? TaskSource.Template : TaskSource.Custom,
             TimingBucket = timingBucket,
             ScheduledFor = scheduledFor,
             PlannedStart = scheduledFor,
-            PlannedEnd = dto.PlannedEnd,
+            PlannedEnd = dto.AlreadyDone ? null : dto.PlannedEnd,
             AssigneeId = assignee,
             AssignedUserId = assignee,
             AssignedCollaboratorId = collaboratorId,
@@ -315,18 +334,26 @@ public class TaskService : ITaskService
             ChecklistSnapshot = checklist,
             Note = dto.Note ?? dto.Notes,
             Notes = dto.Notes ?? dto.Note,
-            Recurrence = NullIfEmpty(dto.Recurrence),
+            Recurrence = dto.AlreadyDone ? null : NullIfEmpty(dto.Recurrence),
             RelatedHarvestId = dto.RelatedHarvestId,
             IdempotencyKey = string.IsNullOrEmpty(idempotencyKey) ? null : idempotencyKey,
             WeatherSuitability = WeatherSuitability.Unknown,
+            CompletedAt = completedAt,
+            CompletedByUserId = dto.AlreadyDone ? userId : null,
             CreatedByUserId = userId,
             CreatedAt = now,
             UpdatedAt = now
         };
         Record(task, "created", userId, now);
+        if (dto.AlreadyDone)
+        {
+            Record(task, "completed", userId, completedAt ?? now, "already_done");
+        }
 
         var created = await _tasks.CreateAsync(task, cancellationToken);
-        if (!string.IsNullOrWhiteSpace(assignee) && !string.Equals(assignee, userId, StringComparison.Ordinal))
+        if (!dto.AlreadyDone
+            && !string.IsNullOrWhiteSpace(assignee)
+            && !string.Equals(assignee, userId, StringComparison.Ordinal))
         {
             await _notifications.NotifyAsync(new UserNotification
             {

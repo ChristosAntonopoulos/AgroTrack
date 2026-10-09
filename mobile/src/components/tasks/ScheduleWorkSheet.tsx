@@ -24,6 +24,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { radii, spacing, typography } from '../../theme';
 
 export type RecurrenceChip = 'once' | 'weekly' | 'monthly';
+export type ScheduleWorkMode = 'schedule' | 'alreadyDone';
 type FormStep = 'what' | 'field' | 'who' | 'ready';
 
 export type ScheduleWorkPrefill = {
@@ -32,6 +33,7 @@ export type ScheduleWorkPrefill = {
   templateCode?: string;
   note?: string;
   description?: string;
+  completedAt?: string;
 };
 
 type Props = {
@@ -40,10 +42,32 @@ type Props = {
   assigneeOptions: AssigneeOption[];
   suggestions?: TaskSuggestion[];
   prefill?: ScheduleWorkPrefill | null;
+  /** schedule = open backlog; alreadyDone = create Done instantly */
+  mode?: ScheduleWorkMode;
   busy?: boolean;
   error?: string | null;
   onClose: () => void;
   onSubmit: (input: CreateTaskInput) => void | Promise<void>;
+};
+
+const todayDateInput = () => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const toDateInputValue = (iso?: string) => {
+  if (!iso) return todayDateInput();
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return todayDateInput();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const completedAtIsoFromDateInput = (dateValue: string) => {
+  const d = new Date(`${dateValue}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return new Date().toISOString();
+  return d.toISOString();
 };
 
 const FORM_STEPS: FormStep[] = ['what', 'field', 'who', 'ready'];
@@ -63,12 +87,18 @@ const ScheduleWorkSheet: React.FC<Props> = ({
   assigneeOptions,
   suggestions = [],
   prefill,
+  mode = 'schedule',
   busy,
   error,
   onClose,
   onSubmit,
 }) => {
   const { t, i18n } = useTranslation('tasks');
+  const isDoneMode = mode === 'alreadyDone';
+  const tx = (key: string) =>
+    isDoneMode
+      ? t(`schedule.done.${key}`, { defaultValue: t(`schedule.${key}`) })
+      : t(`schedule.${key}`);
   const { colors, tapMin, fontScaleMultiplier } = useTheme();
   const [pickingTemplate, setPickingTemplate] = useState(false);
   const [step, setStep] = useState<FormStep>('what');
@@ -80,6 +110,7 @@ const ScheduleWorkSheet: React.FC<Props> = ({
   const [note, setNote] = useState('');
   const [recurrence, setRecurrence] = useState<RecurrenceChip>('once');
   const [repeatStart, setRepeatStart] = useState('');
+  const [completedDate, setCompletedDate] = useState(todayDateInput());
   const [checklistText, setChecklistText] = useState('');
   const idempotencyKeyRef = useRef(newIdempotencyKey());
 
@@ -117,14 +148,16 @@ const ScheduleWorkSheet: React.FC<Props> = ({
     setNote(prefill?.note || '');
     setRecurrence('once');
     setRepeatStart('');
+    setCompletedDate(toDateInputValue(prefill?.completedAt));
     setStep('what');
     setPickingTemplate(!prefill?.title && !prefill?.templateCode);
-  }, [open, prefill, fields, usableFields, selfKey, i18n.language]);
+  }, [open, prefill, fields, usableFields, selfKey, i18n.language, mode]);
 
   const stepIndex = FORM_STEPS.indexOf(step);
   const titleMissing = !title.trim();
   const fieldMissing = !fieldId;
-  const recurrenceNeedsDate = recurrence !== 'once' && !repeatStart;
+  const recurrenceNeedsDate = !isDoneMode && recurrence !== 'once' && !repeatStart;
+  const completedDateMissing = isDoneMode && !completedDate;
   const canContinue =
     step === 'what'
       ? Boolean(title.trim())
@@ -132,7 +165,7 @@ const ScheduleWorkSheet: React.FC<Props> = ({
         ? Boolean(fieldId)
         : step === 'who'
           ? true
-          : Boolean(title.trim() && fieldId && !busy && !recurrenceNeedsDate);
+          : Boolean(title.trim() && fieldId && !busy && !recurrenceNeedsDate && !completedDateMissing);
 
   const goTo = (next: FormStep) => setStep(next);
 
@@ -189,7 +222,7 @@ const ScheduleWorkSheet: React.FC<Props> = ({
       .filter(Boolean)
       .map((line, index) => ({ key: `c${index + 1}`, label: line }));
 
-    const withRepeat = recurrence !== 'once' && repeatStart;
+    const withRepeat = !isDoneMode && recurrence !== 'once' && repeatStart;
 
     void onSubmit({
       fieldId,
@@ -204,18 +237,20 @@ const ScheduleWorkSheet: React.FC<Props> = ({
       recurrence: withRepeat ? recurrence : undefined,
       checklist: checklist.length > 0 ? checklist : undefined,
       idempotencyKey: idempotencyKeyRef.current,
+      alreadyDone: isDoneMode || undefined,
+      completedAt: isDoneMode ? completedAtIsoFromDateInput(completedDate) : undefined,
       ...parseAssignee(assigneeKey),
     });
   };
 
   const stepTitle =
     step === 'what'
-      ? t('schedule.stepWhat')
+      ? tx('stepWhat')
       : step === 'field'
         ? t('schedule.stepField')
         : step === 'who'
-          ? t('schedule.stepWho')
-          : t('schedule.stepReady');
+          ? tx('stepWho')
+          : tx('stepReady');
 
   return (
     <Sheet
@@ -223,14 +258,14 @@ const ScheduleWorkSheet: React.FC<Props> = ({
       onClose={onClose}
       edge="bottom"
       size="lg"
-      title={pickingTemplate ? t('schedule.templates.title') : t('schedule.title')}
-      subtitle={pickingTemplate ? t('schedule.templates.subtitle') : t('schedule.formHint')}
+      title={pickingTemplate ? t('schedule.templates.title') : tx('title')}
+      subtitle={pickingTemplate ? t('schedule.templates.subtitle') : tx('formHint')}
       footer={
         pickingTemplate ? null : (
           <View style={styles.footer}>
             {step === 'ready' ? (
               <Button
-                title={t('schedule.submit')}
+                title={tx('submit')}
                 onPress={handleSubmit}
                 disabled={!canContinue}
                 loading={busy}
@@ -326,7 +361,7 @@ const ScheduleWorkSheet: React.FC<Props> = ({
                 <TextInput
                   value={title}
                   onChangeText={setTitle}
-                  placeholder={t('schedule.whatPlaceholder')}
+                  placeholder={tx('whatPlaceholder')}
                   placeholderTextColor={colors.textTertiary}
                   style={[
                     styles.titleInput,
@@ -359,7 +394,7 @@ const ScheduleWorkSheet: React.FC<Props> = ({
               </View>
               {titleMissing ? (
                 <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                  {t('schedule.needTitle')}
+                  {tx('needTitle')}
                 </Text>
               ) : null}
               {description ? (
@@ -459,7 +494,7 @@ const ScheduleWorkSheet: React.FC<Props> = ({
               <TextInput
                 value={note}
                 onChangeText={setNote}
-                placeholder={t('schedule.notePlaceholder')}
+                placeholder={tx('notePlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 multiline
                 style={[
@@ -473,33 +508,43 @@ const ScheduleWorkSheet: React.FC<Props> = ({
                 ]}
               />
 
-              <Text style={[styles.softLabel, { color: colors.textSecondary }]}>
-                {t('schedule.repeat')}
-              </Text>
-              <TaskChoiceChips
-                options={RECURRENCE_CHIPS.map((chip) => ({
-                  id: chip.id,
-                  label: t(chip.labelKey),
-                }))}
-                value={recurrence}
-                onChange={setRecurrence}
-              />
-              {recurrence !== 'once' ? (
+              {isDoneMode ? (
+                <FormDateField
+                  label={t('schedule.completedAt')}
+                  value={completedDate}
+                  onValueChange={setCompletedDate}
+                />
+              ) : (
                 <>
-                  <FormDateField
-                    label={t('schedule.repeatStart')}
-                    value={repeatStart}
-                    onValueChange={setRepeatStart}
+                  <Text style={[styles.softLabel, { color: colors.textSecondary }]}>
+                    {t('schedule.repeat')}
+                  </Text>
+                  <TaskChoiceChips
+                    options={RECURRENCE_CHIPS.map((chip) => ({
+                      id: chip.id,
+                      label: t(chip.labelKey),
+                    }))}
+                    value={recurrence}
+                    onChange={setRecurrence}
                   />
-                  {recurrenceNeedsDate ? (
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                      {t('schedule.repeatStartRequired')}
-                    </Text>
+                  {recurrence !== 'once' ? (
+                    <>
+                      <FormDateField
+                        label={t('schedule.repeatStart')}
+                        value={repeatStart}
+                        onValueChange={setRepeatStart}
+                      />
+                      {recurrenceNeedsDate ? (
+                        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                          {t('schedule.repeatStartRequired')}
+                        </Text>
+                      ) : null}
+                    </>
                   ) : null}
                 </>
-              ) : null}
+              )}
               <Text style={{ color: colors.textTertiary, fontSize: 13 }}>
-                {t('schedule.photoHint')}
+                {tx('photoHint')}
               </Text>
             </View>
           ) : null}

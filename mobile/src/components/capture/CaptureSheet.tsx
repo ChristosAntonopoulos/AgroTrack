@@ -53,7 +53,6 @@ import {
   getHarvestService,
   getNoteService,
   getFileService,
-  getTaskService,
 } from '../../services/serviceFactory';
 import type { Field } from '../../services/fieldService';
 import type { RootStackParamList } from '../../navigation/types';
@@ -61,7 +60,6 @@ import { radii } from '../../theme';
 import { readLastMoneyFieldId } from '../../finance/lastField';
 import { getFocusedRoute } from '../../navigation/dockRoute';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
-import RecordCompletedWorkSheet from '../tasks/RecordCompletedWorkSheet';
 
 const MAX_PHOTOS = 5;
 
@@ -116,6 +114,11 @@ const CaptureSheet: React.FC<Props> = ({
 
   const coachingFirstObservation =
     Boolean(activation?.awaitingFirstObservation) && !activation?.completion.firstObservation;
+  const coachingGroveId = coachingFirstObservation
+    ? context.fieldId || activation?.primaryField?.id || ''
+    : '';
+  const coachingGroveRef = useRef(coachingGroveId);
+  coachingGroveRef.current = coachingGroveId;
 
   const initialStep = (preferredType?: CaptureType): DrawerStep => {
     // First History note: always land on the chooser so they tap Observation themselves.
@@ -153,9 +156,6 @@ const CaptureSheet: React.FC<Props> = ({
   const sessionGenRef = useRef(0);
 
   const [body, setBody] = useState('');
-  const [recordOpen, setRecordOpen] = useState(false);
-  const [recordBusy, setRecordBusy] = useState(false);
-  const [recordError, setRecordError] = useState<string | null>(null);
   const [oliveKg, setOliveKg] = useState('');
   const [oilKg, setOilKg] = useState('');
   const [harvestNotes, setHarvestNotes] = useState('');
@@ -217,8 +217,6 @@ const CaptureSheet: React.FC<Props> = ({
         : context.description || ''
     );
     setPhotos([]);
-    setRecordOpen(false);
-    setRecordError(null);
     setOliveKg('');
     setOilKg('');
     setHarvestNotes('');
@@ -238,15 +236,17 @@ const CaptureSheet: React.FC<Props> = ({
         if (sessionGenRef.current !== sessionGen) return;
         setRecentIds(recent);
         setLastCaptureFieldId(lastCapture);
+        const groveId = coachingGroveRef.current;
         if (!user?.id) {
           setFields([]);
           setFieldId(
-            resolveCaptureFieldId({
-              contextFieldId: context.fieldId,
-              lastCaptureFieldId: lastCapture,
-              lastMoneyFieldId: lastMoney,
-              availableIds: [],
-            })
+            groveId ||
+              resolveCaptureFieldId({
+                contextFieldId: context.fieldId,
+                lastCaptureFieldId: lastCapture,
+                lastMoneyFieldId: lastMoney,
+                availableIds: [],
+              })
           );
           return;
         }
@@ -254,18 +254,21 @@ const CaptureSheet: React.FC<Props> = ({
           const list = await getFieldService().getFields(user.id, user.role || '');
           if (sessionGenRef.current !== sessionGen) return;
           setFields(list);
+          const ids = list.map((f) => f.id);
           setFieldId(
-            resolveCaptureFieldId({
-              contextFieldId: context.fieldId,
-              lastCaptureFieldId: lastCapture,
-              lastMoneyFieldId: lastMoney,
-              availableIds: list.map((f) => f.id),
-            })
+            groveId && ids.includes(groveId)
+              ? groveId
+              : resolveCaptureFieldId({
+                  contextFieldId: groveId || context.fieldId,
+                  lastCaptureFieldId: lastCapture,
+                  lastMoneyFieldId: lastMoney,
+                  availableIds: ids,
+                })
           );
         } catch {
           if (sessionGenRef.current !== sessionGen) return;
           setFields([]);
-          setFieldId(context.fieldId || '');
+          setFieldId(groveId || context.fieldId || '');
         }
       } finally {
         if (sessionGenRef.current === sessionGen) setChooserReady(true);
@@ -284,6 +287,12 @@ const CaptureSheet: React.FC<Props> = ({
     coachingFirstObservation,
     t,
   ]);
+
+  // Grove can arrive after the sheet opens. Keep the lesson on the grove they just drew.
+  useEffect(() => {
+    if (!open || !coachingGroveId) return;
+    setFieldId(coachingGroveId);
+  }, [open, coachingGroveId]);
 
   useEffect(() => {
     return () => {
@@ -620,19 +629,41 @@ const CaptureSheet: React.FC<Props> = ({
           view: 'today',
           fieldId: fieldId || context.fieldId || undefined,
           schedule: true,
+          alreadyDone: false,
         },
       });
       return;
     }
     if (type === 'recordWork') {
       onClose();
-      setRecordError(null);
-      setRecordOpen(true);
+      navigation.navigate('Main', {
+        screen: 'Tasks',
+        params: {
+          view: 'done',
+          fieldId: fieldId || context.fieldId || undefined,
+          schedule: true,
+          alreadyDone: true,
+        },
+      });
       return;
     }
     setReturnTo(isChooser ? step : returnTo);
     setStep(type);
   };
+
+  // preferredType schedule/record: leave capture and open the shared task sheet.
+  useEffect(() => {
+    if (!open || !chooserReady) return;
+    if (context.preferredType === 'scheduleWork' || context.preferredType === 'work') {
+      selectType('scheduleWork');
+      return;
+    }
+    if (context.preferredType === 'recordWork') {
+      selectType('recordWork');
+    }
+    // Intentionally only when preferredType / chooser readiness changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, chooserReady, context.preferredType]);
 
   const pickMove = (move: CaptureMove) => {
     void rememberCaptureMove(move.id);
@@ -1079,44 +1110,6 @@ const CaptureSheet: React.FC<Props> = ({
       )}
     </Sheet>
 
-    <RecordCompletedWorkSheet
-      open={recordOpen}
-      fields={fields}
-      prefillFieldId={fieldId || context.fieldId}
-      busy={recordBusy}
-      error={recordError}
-      onClose={() => {
-        setRecordOpen(false);
-        setRecordError(null);
-      }}
-      onSubmit={async (input) => {
-        setRecordBusy(true);
-        setRecordError(null);
-        try {
-          return await getTaskService().createWorkRecord(input);
-        } catch (err) {
-          setRecordError(err instanceof Error ? err.message : t('capture:recordWork.saveFailed'));
-          throw err;
-        } finally {
-          setRecordBusy(false);
-        }
-      }}
-      onLinkTask={async (taskId, workRecordId) => {
-        await getTaskService().linkWorkRecord(taskId, workRecordId);
-      }}
-      onFinished={(record) => {
-        onSaved(
-          {
-            type: 'recordWork',
-            fieldId: record.fieldId,
-            sourceId: record.id,
-            description: record.title,
-            occurredOn: record.completedAt,
-          },
-          t('capture:recordWork.saved')
-        );
-      }}
-    />
     </>
   );
 };

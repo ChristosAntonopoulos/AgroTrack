@@ -20,6 +20,7 @@ import '../Tasks/form/TaskForm.css';
 import './ScheduleWorkSheet.css';
 
 export type RecurrenceChip = 'once' | 'weekly' | 'monthly';
+export type ScheduleWorkMode = 'schedule' | 'alreadyDone';
 type FormStep = 'what' | 'field' | 'who' | 'ready';
 
 export type ScheduleWorkPrefill = {
@@ -28,6 +29,7 @@ export type ScheduleWorkPrefill = {
   templateCode?: string;
   note?: string;
   description?: string;
+  completedAt?: string;
 };
 
 interface ScheduleWorkSheetProps {
@@ -36,11 +38,33 @@ interface ScheduleWorkSheetProps {
   assigneeOptions: AssigneeOption[];
   suggestions?: TaskSuggestion[];
   prefill?: ScheduleWorkPrefill | null;
+  /** schedule = open backlog; alreadyDone = create Done instantly */
+  mode?: ScheduleWorkMode;
   busy?: boolean;
   error?: string | null;
   onClose: () => void;
   onSubmit: (input: CreateTaskInput) => void | Promise<void>;
 }
+
+const todayDateInput = () => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const toDateInputValue = (iso?: string) => {
+  if (!iso) return todayDateInput();
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return todayDateInput();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const completedAtIsoFromDateInput = (dateValue: string) => {
+  const d = new Date(`${dateValue}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return new Date().toISOString();
+  return d.toISOString();
+};
 
 const FORM_STEPS: FormStep[] = ['what', 'field', 'who', 'ready'];
 
@@ -59,12 +83,18 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
   assigneeOptions,
   suggestions = [],
   prefill,
+  mode = 'schedule',
   busy,
   error,
   onClose,
   onSubmit,
 }) => {
   const { t, i18n } = useTranslation('tasks');
+  const isDoneMode = mode === 'alreadyDone';
+  const tx = (key: string) =>
+    isDoneMode
+      ? t(`schedule.done.${key}`, { defaultValue: t(`schedule.${key}`) })
+      : t(`schedule.${key}`);
   const [pickingTemplate, setPickingTemplate] = useState(false);
   const [step, setStep] = useState<FormStep>('what');
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -76,6 +106,7 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
   const [note, setNote] = useState('');
   const [recurrence, setRecurrence] = useState<RecurrenceChip>('once');
   const [repeatStart, setRepeatStart] = useState('');
+  const [completedDate, setCompletedDate] = useState(todayDateInput());
   const [checklistText, setChecklistText] = useState('');
   const idempotencyKeyRef = useRef(newIdempotencyKey());
   const titleRef = useRef<HTMLInputElement>(null);
@@ -112,10 +143,11 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
     setNote(prefill?.note || '');
     setRecurrence('once');
     setRepeatStart('');
+    setCompletedDate(toDateInputValue(prefill?.completedAt));
     setStep('what');
     setDirection(1);
     setPickingTemplate(!prefill?.title && !prefill?.templateCode);
-  }, [open, prefill, fields, usableFields, selfKey, i18n.language]);
+  }, [open, prefill, fields, usableFields, selfKey, i18n.language, mode]);
 
   useEffect(() => {
     if (!open || pickingTemplate || step !== 'what') return;
@@ -126,7 +158,8 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
   const stepIndex = FORM_STEPS.indexOf(step);
   const titleMissing = !title.trim();
   const fieldMissing = !fieldId;
-  const recurrenceNeedsDate = recurrence !== 'once' && !repeatStart;
+  const recurrenceNeedsDate = !isDoneMode && recurrence !== 'once' && !repeatStart;
+  const completedDateMissing = isDoneMode && !completedDate;
   const canContinue =
     step === 'what'
       ? Boolean(title.trim())
@@ -134,7 +167,7 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
         ? Boolean(fieldId)
         : step === 'who'
           ? true
-          : Boolean(title.trim() && fieldId && !busy && !recurrenceNeedsDate);
+          : Boolean(title.trim() && fieldId && !busy && !recurrenceNeedsDate && !completedDateMissing);
 
   const goTo = (next: FormStep) => {
     const nextIndex = FORM_STEPS.indexOf(next);
@@ -195,7 +228,7 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
       .map((line) => line.trim())
       .filter(Boolean)
       .map((line, index) => ({ key: `c${index + 1}`, label: line }));
-    const withRepeat = recurrence !== 'once' && repeatStart;
+    const withRepeat = !isDoneMode && recurrence !== 'once' && repeatStart;
 
     void onSubmit({
       fieldId,
@@ -210,18 +243,20 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
       recurrence: withRepeat ? recurrence : undefined,
       checklist: checklist.length > 0 ? checklist : undefined,
       idempotencyKey: idempotencyKeyRef.current,
+      alreadyDone: isDoneMode || undefined,
+      completedAt: isDoneMode ? completedAtIsoFromDateInput(completedDate) : undefined,
       ...parseAssignee(assigneeKey),
     });
   };
 
   const stepTitle =
     step === 'what'
-      ? t('schedule.stepWhat')
+      ? tx('stepWhat')
       : step === 'field'
         ? t('schedule.stepField')
         : step === 'who'
-          ? t('schedule.stepWho')
-          : t('schedule.stepReady');
+          ? tx('stepWho')
+          : tx('stepReady');
 
   return (
     <RightDrawer
@@ -229,14 +264,14 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
       onClose={onClose}
       size="md"
       className="schedule-work-sheet"
-      title={pickingTemplate ? t('schedule.templates.title') : t('schedule.title')}
-      subtitle={pickingTemplate ? t('schedule.templates.subtitle') : t('schedule.formHint')}
+      title={pickingTemplate ? t('schedule.templates.title') : tx('title')}
+      subtitle={pickingTemplate ? t('schedule.templates.subtitle') : tx('formHint')}
       footer={
         pickingTemplate ? null : (
           <div className="schedule-work-footer">
             {step === 'ready' ? (
               <Button variant="primary" size="lg" disabled={!canContinue} onClick={handleSubmit}>
-                {t('schedule.submit')}
+                {tx('submit')}
               </Button>
             ) : (
               <Button variant="primary" size="lg" disabled={!canContinue || busy} onClick={goNext}>
@@ -308,7 +343,7 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
                     className="schedule-title-input"
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
-                    placeholder={t('schedule.whatPlaceholder')}
+                    placeholder={tx('whatPlaceholder')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault();
@@ -325,7 +360,7 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
                     {t('schedule.pickTemplate')}
                   </button>
                 </div>
-                {titleMissing ? <p className="schedule-help">{t('schedule.needTitle')}</p> : null}
+                {titleMissing ? <p className="schedule-help">{tx('needTitle')}</p> : null}
                 {description ? <p className="schedule-help">{description}</p> : null}
               </section>
             ) : null}
@@ -402,50 +437,62 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
                     rows={2}
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
-                    placeholder={t('schedule.notePlaceholder')}
+                    placeholder={tx('notePlaceholder')}
                   />
                 </label>
 
-                <div className="task-form-field">
-                  <span className="task-form-label" id="schedule-repeat-label">
-                    {t('schedule.repeat')}
-                  </span>
-                  <div
-                    className="schedule-when-chips"
-                    role="radiogroup"
-                    aria-labelledby="schedule-repeat-label"
-                  >
-                    {RECURRENCE_CHIPS.map((chip) => (
-                      <button
-                        key={chip.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={recurrence === chip.id}
-                        className={`task-type-chip${recurrence === chip.id ? ' is-selected' : ''}`}
-                        onClick={() => setRecurrence(chip.id)}
-                      >
-                        {t(chip.labelKey)}
-                      </button>
-                    ))}
+                {isDoneMode ? (
+                  <label className="task-form-field">
+                    <span className="task-form-label">{t('schedule.completedAt')}</span>
+                    <input
+                      type="date"
+                      className="task-form-input"
+                      value={completedDate}
+                      onChange={(event) => setCompletedDate(event.target.value)}
+                    />
+                  </label>
+                ) : (
+                  <div className="task-form-field">
+                    <span className="task-form-label" id="schedule-repeat-label">
+                      {t('schedule.repeat')}
+                    </span>
+                    <div
+                      className="schedule-when-chips"
+                      role="radiogroup"
+                      aria-labelledby="schedule-repeat-label"
+                    >
+                      {RECURRENCE_CHIPS.map((chip) => (
+                        <button
+                          key={chip.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={recurrence === chip.id}
+                          className={`task-type-chip${recurrence === chip.id ? ' is-selected' : ''}`}
+                          onClick={() => setRecurrence(chip.id)}
+                        >
+                          {t(chip.labelKey)}
+                        </button>
+                      ))}
+                    </div>
+                    {recurrence !== 'once' ? (
+                      <>
+                        <label className="task-form-field">
+                          <span className="task-form-label">{t('schedule.repeatStart')}</span>
+                          <input
+                            type="date"
+                            className="task-form-input"
+                            value={repeatStart}
+                            onChange={(event) => setRepeatStart(event.target.value)}
+                          />
+                        </label>
+                        {recurrenceNeedsDate ? (
+                          <p className="schedule-help">{t('schedule.repeatStartRequired')}</p>
+                        ) : null}
+                      </>
+                    ) : null}
                   </div>
-                  {recurrence !== 'once' ? (
-                    <>
-                      <label className="task-form-field">
-                        <span className="task-form-label">{t('schedule.repeatStart')}</span>
-                        <input
-                          type="date"
-                          className="task-form-input"
-                          value={repeatStart}
-                          onChange={(event) => setRepeatStart(event.target.value)}
-                        />
-                      </label>
-                      {recurrenceNeedsDate ? (
-                        <p className="schedule-help">{t('schedule.repeatStartRequired')}</p>
-                      ) : null}
-                    </>
-                  ) : null}
-                </div>
-                <p className="schedule-photo-hint">{t('schedule.photoHint')}</p>
+                )}
+                <p className="schedule-photo-hint">{tx('photoHint')}</p>
               </section>
             ) : null}
           </div>

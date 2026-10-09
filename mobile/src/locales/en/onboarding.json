@@ -65,7 +65,7 @@
     "title": "Write the first note",
     "body": "One short note starts History for this grove.",
     "cta": "Write the note",
-    "prefill": "🌱 My first look at the grove — History begins here."
+    "prefill": "The grove looks calm today. The leaves are green, and this first note is where its story begins."
   },
   "spatial": {
     "kicker": "Just before History",
@@ -132,7 +132,7 @@
   "finished": {
     "kicker": "You’re in",
     "title": "Your field history starts here 🌿",
-    "body": "That first note is the beginning of this grove’s story. You’re free to roam — welcome to The Olive Lot.",
+    "body": "That first note is saved. You can roam freely around the app now — welcome to The Olive Lot.",
     "cta": "Start exploring",
     "savedToast": "First note saved — History has begun."
   },

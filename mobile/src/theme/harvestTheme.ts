@@ -7,6 +7,19 @@ export const harvestPipelinePalette = {
   oil: { bg: '#F0E6C8', icon: '#8F6A14' },
 } as const;
 
+/** Dark-mode pipeline chips — muted fills so light text stays readable. */
+export const harvestPipelinePaletteDark = {
+  sacks: { bg: 'rgba(208, 165, 107, 0.20)', icon: '#E0B57A' },
+  fruit: { bg: 'rgba(141, 138, 83, 0.28)', icon: '#C4C17A' },
+  oil: { bg: 'rgba(208, 165, 107, 0.16)', icon: '#D0A56B' },
+} as const;
+
+export type HarvestPipelineKey = keyof typeof harvestPipelinePalette;
+
+export function getHarvestPipelinePalette(isDark: boolean) {
+  return isDark ? harvestPipelinePaletteDark : harvestPipelinePalette;
+}
+
 /** Form accents for harvest sheets — soft fill + strong action color. */
 export const harvestFormAccent = {
   sacks: { soft: '#F4E7D6', strong: '#8F4F18', key: 'sacks' as const },

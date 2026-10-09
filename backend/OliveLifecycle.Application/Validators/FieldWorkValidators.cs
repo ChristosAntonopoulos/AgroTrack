@@ -36,6 +36,14 @@ public class CreateTaskDtoValidator : AbstractValidator<CreateTaskDto>
                     .MaximumLength(200);
             })
             .When(x => x.Checklist is not null);
+        RuleFor(x => x.Recurrence)
+            .Empty()
+            .When(x => x.AlreadyDone)
+            .WithMessage("Recurrence is not allowed when recording completed work.");
+        RuleFor(x => x.CompletedAt)
+            .Must(completedAt => !completedAt.HasValue || completedAt.Value <= DateTime.UtcNow.AddDays(1))
+            .When(x => x.AlreadyDone)
+            .WithMessage("CompletedAt cannot be in the future.");
     }
 }
 

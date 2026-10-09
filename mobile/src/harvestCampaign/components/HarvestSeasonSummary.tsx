@@ -5,7 +5,14 @@ import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
 import Button from '../../components/ui/Button';
 import { useTheme } from '../../context/ThemeContext';
-import { appFonts, createElevation, harvestPipelinePalette, radii, spacing } from '../../theme';
+import {
+  appFonts,
+  createElevation,
+  getHarvestPipelinePalette,
+  radii,
+  spacing,
+  type HarvestPipelineKey,
+} from '../../theme';
 import { formatKg } from '../../utils/harvestUtils';
 import { HARVEST_ACTION_ICONS } from '../harvestActions';
 import { farmerOilLitres } from '../oilSaleLots';
@@ -33,7 +40,7 @@ type Props = {
 };
 
 type PipelineStep = {
-  key: keyof typeof harvestPipelinePalette;
+  key: HarvestPipelineKey;
   title: string;
   value: string;
   detail: string;
@@ -63,7 +70,8 @@ export function HarvestSeasonSummary({
   onStop,
 }: Props) {
   const { t } = useTranslation('fields');
-  const { colors, fontScaleMultiplier: scale, tapMin } = useTheme();
+  const { colors, isDark, fontScaleMultiplier: scale, tapMin } = useTheme();
+  const pipelinePalette = getHarvestPipelinePalette(isDark);
 
   const sackTotal = useMemo(
     () => campaign.sacks.reduce((sum, row) => sum + (Number(row.sacks) || 0), 0),
@@ -116,7 +124,12 @@ export function HarvestSeasonSummary({
     <View style={styles.root}>
       <View style={styles.pipeline}>
         {steps.map((step, index) => {
-          const tone = harvestPipelinePalette[step.key];
+          const tone = pipelinePalette[step.key];
+          const titleColor = step.alert
+            ? isDark
+              ? colors.warning
+              : colors.warningDark
+            : tone.icon;
           return (
             <React.Fragment key={step.key}>
               {index > 0 ? (
@@ -134,6 +147,8 @@ export function HarvestSeasonSummary({
                   {
                     minHeight: Math.max(108, tapMin + 56),
                     backgroundColor: step.alert ? colors.warningLight : tone.bg,
+                    borderWidth: isDark ? 1 : 0,
+                    borderColor: isDark ? colors.border : 'transparent',
                     ...createElevation(colors, 'sm'),
                     opacity: pressed && step.onPress ? 0.92 : 1,
                   },
@@ -142,20 +157,18 @@ export function HarvestSeasonSummary({
                 <View
                   style={[
                     styles.stepIcon,
-                    { backgroundColor: colors.surfaceElevated },
+                    {
+                      backgroundColor: isDark ? colors.surface : colors.surfaceElevated,
+                    },
                   ]}
                 >
-                  <Ionicons
-                    name={step.icon}
-                    size={22}
-                    color={step.alert ? colors.warningDark : tone.icon}
-                  />
+                  <Ionicons name={step.icon} size={22} color={titleColor} />
                 </View>
                 <Text
                   style={[
                     styles.stepTitle,
                     {
-                      color: step.alert ? colors.warningDark : tone.icon,
+                      color: titleColor,
                       fontSize: 12 * scale,
                     },
                   ]}
@@ -214,7 +227,7 @@ export function HarvestSeasonSummary({
                 <Text
                   style={[
                     styles.insightLabel,
-                    { color: '#A94E2D', fontSize: 11 * scale },
+                    { color: colors.eventHarvest, fontSize: 11 * scale },
                   ]}
                 >
                   {t('harvestCampaign.dashboard.yieldLabel')}

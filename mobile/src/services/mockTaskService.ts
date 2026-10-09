@@ -50,6 +50,9 @@ const toTask = (input: CreateTaskInput, id: string): Task => {
           greekLabel: label,
           isAnswered: false,
         }));
+  const completedAt = input.alreadyDone
+    ? input.completedAt || nowIso()
+    : undefined;
   return {
     id,
     fieldId: input.fieldId,
@@ -59,21 +62,23 @@ const toTask = (input: CreateTaskInput, id: string): Task => {
     description:
       input.description ||
       (meta ? minimalTemplateDescription(input.templateCode, 'el') : undefined),
-    status: 'planned',
-    statusLabel: 'Προγραμματισμένη',
+    status: input.alreadyDone ? 'done' : 'planned',
+    statusLabel: input.alreadyDone ? 'Ολοκληρωμένη' : 'Προγραμματισμένη',
     source: input.templateCode ? 'template' : 'custom',
     templateCode: input.templateCode,
     timingBucket: bucket,
-    scheduledFor: input.scheduledFor || input.plannedStart,
-    plannedStart: input.plannedStart || input.scheduledFor,
-    plannedEnd: input.plannedEnd,
+    scheduledFor: input.alreadyDone ? undefined : input.scheduledFor || input.plannedStart,
+    plannedStart: input.alreadyDone ? undefined : input.plannedStart || input.scheduledFor,
+    plannedEnd: input.alreadyDone ? undefined : input.plannedEnd,
     assigneeId: input.assigneeId || input.assignedUserId,
     assignedUserId: input.assignedUserId,
     assignedCollaboratorId: input.assignedCollaboratorId,
     note: input.note,
     notes: input.notes || input.note,
-    recurrence: input.recurrence,
+    recurrence: input.alreadyDone ? undefined : input.recurrence,
     checklist,
+    completedAt,
+    completedByUserId: input.alreadyDone ? 'mock-owner' : undefined,
     createdByUserId: 'mock-owner',
     createdAt: nowIso(),
     updatedAt: nowIso(),

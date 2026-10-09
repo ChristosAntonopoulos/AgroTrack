@@ -34,7 +34,6 @@ import { readLastMoneyFieldId } from '../../finance/lastField';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import MoneyCaptureForm from './MoneyCaptureForm';
 import PhotoCaptureForm from './PhotoCaptureForm';
-import RecordCompletedWorkSheet from '../Tasks/RecordCompletedWorkSheet';
 import './Capture.css';
 import '../../harvestCampaign/HarvestSheets.css';
 
@@ -60,13 +59,13 @@ const isChooserStep = (step: DrawerStep): step is ChooserStep =>
 const initialStepFromContext = (preferredType?: CaptureType): DrawerStep => {
   if (preferredType === 'photo') return 'observation';
   if (preferredType === 'expense' || preferredType === 'income') return preferredType;
-  if (preferredType === 'recordWork') return 'recordWork';
-  // scheduleWork navigates away; harvest/money stay on chooser until picked.
+  // scheduleWork / recordWork navigate away; harvest/money stay on chooser until picked.
   if (
     preferredType &&
     preferredType !== 'harvest' &&
     preferredType !== 'money' &&
-    preferredType !== 'scheduleWork'
+    preferredType !== 'scheduleWork' &&
+    preferredType !== 'recordWork'
   ) {
     return preferredType;
   }
@@ -672,6 +671,16 @@ const CaptureDrawer: React.FC<Props> = ({
         navigate(taskFormPath({ fieldId: fieldId || context.fieldId }));
         return;
       }
+      if (move.type === 'recordWork') {
+        onClose();
+        navigate(
+          taskFormPath({
+            fieldId: fieldId || context.fieldId,
+            alreadyDone: true,
+          })
+        );
+        return;
+      }
       if (move.type === 'photo') {
         onContextChange({
           ...context,
@@ -719,15 +728,26 @@ const CaptureDrawer: React.FC<Props> = ({
 
   const isMoneyStep = step === 'money' || step === 'expense' || step === 'income';
   const isPhotoStep = step === 'photo';
-  const isRecordWorkStep = step === 'recordWork';
   const isChoosing = isChooserStep(step);
   const selectedFieldName = fields.find((f) => f.id === fieldId)?.name;
 
-  // preferredType scheduleWork: leave capture and open the schedule sheet.
+  // preferredType scheduleWork / recordWork: leave capture and open the shared sheet.
   useEffect(() => {
-    if (!open || !chooserReady || context.preferredType !== 'scheduleWork') return;
-    onClose();
-    navigate(taskFormPath({ fieldId: fieldId || context.fieldId }));
+    if (!open || !chooserReady) return;
+    if (context.preferredType === 'scheduleWork') {
+      onClose();
+      navigate(taskFormPath({ fieldId: fieldId || context.fieldId }));
+      return;
+    }
+    if (context.preferredType === 'recordWork') {
+      onClose();
+      navigate(
+        taskFormPath({
+          fieldId: fieldId || context.fieldId,
+          alreadyDone: true,
+        })
+      );
+    }
   }, [
     open,
     chooserReady,
@@ -780,7 +800,7 @@ const CaptureDrawer: React.FC<Props> = ({
       }
       bodyClassName={isMoneyStep ? 'oa-drawer-body--flush' : undefined}
       footer={
-        chooserReady && !isChoosing && !isMoneyStep && !isPhotoStep && !isRecordWorkStep ? (
+        chooserReady && !isChoosing && !isMoneyStep && !isPhotoStep ? (
           <button
             type="button"
             className="capture-save-btn"
@@ -888,27 +908,6 @@ const CaptureDrawer: React.FC<Props> = ({
                 onFieldChange={onFieldChange}
                 onSaved={onSaved}
                 onDirty={markDirty}
-              />
-            ) : isRecordWorkStep ? (
-              <RecordCompletedWorkSheet
-                fields={fields}
-                fieldId={fieldId}
-                defaultCompletedAt={occurredAt}
-                onFieldChange={onFieldChange}
-                onDirty={markDirty}
-                onSaved={(record) => {
-                  onSaved(
-                    {
-                      type: 'recordWork',
-                      fieldId: record.fieldId,
-                      sourceId: record.id,
-                      description: record.title,
-                      occurredOn: record.completedAt,
-                    },
-                    t('capture:recordWork.saved'),
-                    { reopen: reopenQuickContext() }
-                  );
-                }}
               />
             ) : !isChoosing ? (
                 <div className={`capture-form${step === 'observation' ? ' capture-form--observation' : ''}`}>

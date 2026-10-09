@@ -217,10 +217,11 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
   }, [user?.id, user?.role]);
 
   const scopedFieldId = fieldMode ? fieldId : filterFieldId || undefined;
-  const observationFieldId =
-    activation?.awaitingFirstObservation && !activation.completion.firstObservation
-      ? scopedFieldId || activation.primaryField?.id
-      : undefined;
+  const coachingFirstObservation =
+    Boolean(activation?.awaitingFirstObservation) && !activation?.completion.firstObservation;
+  const observationFieldId = coachingFirstObservation
+    ? scopedFieldId || activation?.primaryField?.id
+    : undefined;
 
   const chronologioCaptureDate = useMemo(
     () =>
@@ -234,7 +235,7 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
 
   useRegisterCapturePage({
     sourcePage: fieldMode ? 'grove' : 'chronologio',
-    fieldId: scopedFieldId || undefined,
+    fieldId: scopedFieldId || observationFieldId || undefined,
     occurredAt: chronologioCaptureDate.occurredAt,
     dateDefaultedToToday: chronologioCaptureDate.dateDefaultedToToday,
     dateNeedsChoice: chronologioCaptureDate.dateNeedsChoice,
@@ -279,8 +280,6 @@ const ChronologioScreen = ({ fieldId: fieldIdProp, embedded }: ChronologioViewPr
     return named[0] ?? null;
   }, [fields, fieldId]);
   const starterNeedsBoundary = Boolean(starterGrove && !fieldHasBoundary(starterGrove));
-  const coachingFirstObservation =
-    Boolean(activation?.awaitingFirstObservation) && !activation?.completion.firstObservation;
   // During the first-note lesson the dock + owns the path — hide the competing CTA card.
   const showStarter =
     booted &&

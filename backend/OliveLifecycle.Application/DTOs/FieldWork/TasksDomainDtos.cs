@@ -55,6 +55,10 @@ public class CreateTaskDto
     /// <summary>Create-time checklist lines (one action per item).</summary>
     public List<CreateTaskChecklistItemDto>? Checklist { get; set; }
     public string? IdempotencyKey { get; set; }
+    /// <summary>When true, create the task already Done (record completed work).</summary>
+    public bool AlreadyDone { get; set; }
+    /// <summary>Completion time when AlreadyDone; defaults to UTC now.</summary>
+    public DateTime? CompletedAt { get; set; }
 }
 
 public class CreateTaskChecklistItemDto

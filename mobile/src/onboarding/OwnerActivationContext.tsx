@@ -127,6 +127,13 @@ export const OwnerActivationProvider: React.FC<{
   }, []);
   const [routeName, setRouteName] = useState('');
   const [routeMode, setRouteMode] = useState('');
+  /**
+   * Route the coach actually follows. Navigation emits intermediate screens
+   * while Fields slides back to the launcher and History opens, and painting
+   * those made the spotlight jump up and down.
+   */
+  const [coachRouteName, setCoachRouteName] = useState('');
+  const [coachRouteMode, setCoachRouteMode] = useState('');
   const [guideRect, setGuideRect] = useState<GuideRect | null>(null);
   const [boundaryCoachPhase, setBoundaryCoachPhase] = useState<BoundaryCoachPhase>('locate');
   const [journeyFinished, setJourneyFinished] = useState(false);
@@ -214,6 +221,14 @@ export const OwnerActivationProvider: React.FC<{
       unsub();
     };
   }, [navRef, isAuthenticated]);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setCoachRouteName(routeName);
+      setCoachRouteMode(routeMode);
+    }, 280);
+    return () => clearTimeout(handle);
+  }, [routeName, routeMode]);
 
   const primaryField = useMemo(() => pickActivationField(fields, userId), [fields, userId]);
 
@@ -369,16 +384,24 @@ export const OwnerActivationProvider: React.FC<{
       return 'locatePlace';
     }
 
-    if (persisted.navCoachPhase === 'home' && routeName !== 'Launcher') return 'homeButton';
-    if (persisted.navCoachPhase === 'history' && routeName === 'Launcher') return 'historyCard';
+    const teachingNav =
+      persisted.navCoachPhase === 'home' || persisted.navCoachPhase === 'history';
+    const onHistory =
+      coachRouteName === 'ChronologioTab' ||
+      coachRouteName === 'Chronologio' ||
+      (coachRouteName === 'FieldDetail' && coachRouteMode === 'chronologio');
+
+    // Launcher, including the moment we arrive and before the phase is saved.
+    if (teachingNav && coachRouteName === 'Launcher') return 'historyCard';
+    if (persisted.navCoachPhase === 'home' && !onHistory) return 'homeButton';
 
     // History is open: teach + → Observation → save. Capture sheet owns the later cues.
-    if (persisted.awaitingFirstObservation && !persisted.firstObservationDoneAt) {
-      const onHistory =
-        routeName === 'ChronologioTab' ||
-        routeName === 'Chronologio' ||
-        (routeName === 'FieldDetail' && routeMode === 'chronologio');
-      if (onHistory) return 'addButton';
+    if (
+      (persisted.awaitingFirstObservation || teachingNav) &&
+      !persisted.firstObservationDoneAt &&
+      onHistory
+    ) {
+      return 'addButton';
     }
 
     return null;
@@ -394,7 +417,8 @@ export const OwnerActivationProvider: React.FC<{
     completion.createGrove,
     completion.drawBoundary,
     routeName,
-    routeMode,
+    coachRouteName,
+    coachRouteMode,
     spotlightScreen,
     boundaryCoachPhase,
     capture?.isOpen,
@@ -463,29 +487,30 @@ export const OwnerActivationProvider: React.FC<{
   }, [persisted.navCoachPhase, continueToHome]);
 
   // Launcher reached via the home mark — next pulse is History.
+  // Uses the settled route so a transition flicker cannot skip the History card.
   useEffect(() => {
     if (persisted.navCoachPhase !== 'home') return;
     if (
-      routeName === 'ChronologioTab' ||
-      routeName === 'Chronologio' ||
-      (routeName === 'FieldDetail' && routeMode === 'chronologio')
+      coachRouteName === 'ChronologioTab' ||
+      coachRouteName === 'Chronologio' ||
+      (coachRouteName === 'FieldDetail' && coachRouteMode === 'chronologio')
     ) {
       arriveAtHistory();
       return;
     }
-    if (routeName !== 'Launcher') return;
+    if (coachRouteName !== 'Launcher') return;
     continueToHistory();
-  }, [persisted.navCoachPhase, routeName, routeMode, continueToHistory, arriveAtHistory]);
+  }, [persisted.navCoachPhase, coachRouteName, coachRouteMode, continueToHistory, arriveAtHistory]);
 
   useEffect(() => {
     if (persisted.navCoachPhase !== 'history') return;
     const onHistory =
-      routeName === 'ChronologioTab' ||
-      routeName === 'Chronologio' ||
-      (routeName === 'FieldDetail' && routeMode === 'chronologio');
+      coachRouteName === 'ChronologioTab' ||
+      coachRouteName === 'Chronologio' ||
+      (coachRouteName === 'FieldDetail' && coachRouteMode === 'chronologio');
     if (!onHistory) return;
     arriveAtHistory();
-  }, [persisted.navCoachPhase, routeName, routeMode, arriveAtHistory]);
+  }, [persisted.navCoachPhase, coachRouteName, coachRouteMode, arriveAtHistory]);
 
   const reportGuideTarget = useCallback((id: CoachTargetId, rect: Omit<GuideRect, 'id'>) => {
     setGuideRect((prev) => {

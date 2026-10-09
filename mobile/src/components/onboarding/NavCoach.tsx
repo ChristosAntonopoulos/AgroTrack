@@ -31,7 +31,8 @@ const NavCoach: React.FC = () => {
   const beat = activation?.guideBeat ?? null;
   const journeyId = beat ? journeyStep(beat) : null;
   const rect = activation?.guideRect ?? null;
-  const armed = Boolean(beat && rect);
+  const [painted, setPainted] = useState<NonNullable<typeof rect> | null>(null);
+  const armed = Boolean(beat && painted);
 
   const syncHost = useCallback(() => {
     measureViewInWindow(hostRef.current, (next) => {
@@ -43,6 +44,17 @@ const NavCoach: React.FC = () => {
   useEffect(() => {
     tipBelowRef.current = null;
   }, [beat]);
+
+  // Wait until the target stops moving. A sliding screen used to drag the
+  // ring and flip the tip from above the hole to below it.
+  useEffect(() => {
+    if (!beat || !rect || rect.id !== beat) {
+      setPainted(null);
+      return;
+    }
+    const handle = setTimeout(() => setPainted(rect), 180);
+    return () => clearTimeout(handle);
+  }, [beat, rect]);
 
   useEffect(() => {
     if (!armed) return;
@@ -71,7 +83,7 @@ const NavCoach: React.FC = () => {
   // The host stays mounted so its frame is known before the first lesson paints.
   // Drawing owns the whole map. The cue sits in the bottom sheet, not over the pins.
   const hole =
-    beat && beat !== 'drawBoundary' && rect && host ? cutOut(rect, host) : null;
+    beat && beat !== 'drawBoundary' && painted && host ? cutOut(painted, host) : null;
 
   // Opacity only: a scaled ring would leave its border outside the cut-out edge
   // and read as a second, ghost outline.

@@ -38,6 +38,8 @@ export type MainTabParamList = {
     year?: string;
     created?: string;
     schedule?: boolean;
+    /** Opens schedule sheet in already-done mode (record completed work). */
+    alreadyDone?: boolean;
     templateCode?: string;
   } | undefined;
   More: undefined;

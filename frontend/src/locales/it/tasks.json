@@ -53,6 +53,7 @@
     "checklistHint": "Un'azione per riga.",
     "checklistPlaceholder": "Un passo per riga",
     "photoHint": "Puoi aggiungere foto quando il lavoro è finito.",
+    "completedAt": "Quando è stato fatto?",
     "templates": {
       "title": "Scegli un modello",
       "subtitle": "Il modello compila titolo, descrizione e elenco — non crea ancora il lavoro.",
@@ -60,6 +61,21 @@
       "curated": "Modelli",
       "alsoSuggested": "Consigliato ora",
       "writeOwn": "Altro lavoro"
+    },
+    "done": {
+      "title": "Registra lavoro fatto",
+      "formHint": "Come programmare — va subito tra i Completati.",
+      "submit": "Segna fatto",
+      "failedSave": "Impossibile registrare il lavoro completato.",
+      "what": "Cosa è stato fatto?",
+      "whatPlaceholder": "es. Potatura, trattamento…",
+      "needTitle": "Scrivi cosa è stato fatto.",
+      "who": "Chi l’ha fatto?",
+      "stepWhat": "Cosa è stato fatto?",
+      "stepWho": "Chi l’ha fatto?",
+      "stepReady": "Pronto a segnare come fatto?",
+      "notePlaceholder": "Qualcosa di utile su cosa è successo",
+      "photoHint": "Puoi aggiungere foto più tardi dall’elenco Completati."
     }
   },
   "suggestions": {

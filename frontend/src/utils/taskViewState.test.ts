@@ -51,4 +51,16 @@ describe('task view URL state', () => {
     expect(params.get('schedule')).toBe('1');
     expect(params.get('templateCode')).toBe('T06');
   });
+
+  it('can open already-done create via query', () => {
+    const params = buildTaskSearchParams({
+      view: 'done',
+      fieldId: 'field-1',
+      schedule: true,
+      alreadyDone: true,
+    });
+    expect(params.get('schedule')).toBe('1');
+    expect(params.get('alreadyDone')).toBe('1');
+    expect(params.get('view')).toBe('done');
+  });
 });

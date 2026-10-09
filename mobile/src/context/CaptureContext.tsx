@@ -22,6 +22,17 @@ type CaptureApi = {
 
 const Ctx = createContext<CaptureApi | null>(null);
 
+type SheetBindings = {
+  open: boolean;
+  context: CaptureCtx;
+  onClose: () => void;
+  onContextChange: (ctx: CaptureCtx) => void;
+  onSaved: (detail: CaptureSavedDetail, message: string, options?: CaptureSavedOptions) => void;
+};
+
+/** Sheet state, so the sheet can render inside the onboarding provider. */
+const SheetBindingsContext = createContext<SheetBindings | null>(null);
+
 const CaptureProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { t } = useTranslation(['capture', 'common']);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -100,17 +111,36 @@ const CaptureProviderInner: React.FC<{ children: React.ReactNode }> = ({ childre
     [openCapture, closeCapture, open]
   );
 
+  const sheet = useMemo<SheetBindings>(
+    () => ({
+      open,
+      context,
+      onClose: closeCapture,
+      onContextChange: setContext,
+      onSaved,
+    }),
+    [open, context, closeCapture, onSaved]
+  );
+
   return (
     <Ctx.Provider value={value}>
-      {children}
-      <CaptureSheet
-        open={open}
-        context={context}
-        onClose={closeCapture}
-        onContextChange={setContext}
-        onSaved={onSaved}
-      />
+      <SheetBindingsContext.Provider value={sheet}>{children}</SheetBindingsContext.Provider>
     </Ctx.Provider>
+  );
+};
+
+/** Renders the capture sheet where onboarding context is available. */
+export const CaptureSheetHost: React.FC = () => {
+  const sheet = useContext(SheetBindingsContext);
+  if (!sheet) return null;
+  return (
+    <CaptureSheet
+      open={sheet.open}
+      context={sheet.context}
+      onClose={sheet.onClose}
+      onContextChange={sheet.onContextChange}
+      onSaved={sheet.onSaved}
+    />
   );
 };
 

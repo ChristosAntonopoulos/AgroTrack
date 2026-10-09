@@ -8,7 +8,7 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { CaptureProvider } from '../context/CaptureContext';
+import { CaptureProvider, CaptureSheetHost } from '../context/CaptureContext';
 import { DialogProvider } from '../context/DialogContext';
 import { InAppMessageProvider } from '../context/InAppMessageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -423,6 +423,7 @@ const RootNavigator = () => {
           <AppDock route={focusedRoute} />
         ) : null}
         {isAuthenticated ? <NavCoach /> : null}
+        {isAuthenticated ? <CaptureSheetHost /> : null}
         {isAuthenticated ? <SkipOnboarding routeName={focusedRoute.name} /> : null}
         {isAuthenticated ? <OnboardingFinishedModal /> : null}
         </View>

@@ -971,6 +971,7 @@
     "checklistHint": "One action per line.",
     "checklistPlaceholder": "One step per line",
     "photoHint": "You can add photos when the work is done.",
+    "completedAt": "When was it done?",
     "templates": {
       "title": "Choose a template",
       "subtitle": "A template fills title, description, and checklist — it does not create the task yet.",
@@ -978,6 +979,21 @@
       "curated": "Templates",
       "alsoSuggested": "Suggested now",
       "writeOwn": "Other work"
+    },
+    "done": {
+      "title": "Record work done",
+      "formHint": "Same as scheduling — this goes straight to Done.",
+      "submit": "Mark done",
+      "failedSave": "Could not record completed work.",
+      "what": "What was done?",
+      "whatPlaceholder": "e.g. Pruning, spraying…",
+      "needTitle": "Write what was done.",
+      "who": "Who did it?",
+      "stepWhat": "What was done?",
+      "stepWho": "Who did it?",
+      "stepReady": "Ready to mark done?",
+      "notePlaceholder": "Anything useful about what happened",
+      "photoHint": "You can add photos later from the Done list."
     }
   },
   "suggestions": {
