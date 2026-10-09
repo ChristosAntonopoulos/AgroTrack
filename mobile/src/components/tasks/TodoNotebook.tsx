@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -21,6 +21,7 @@ import EmptyState from '../EmptyState';
 import { spacing } from '../../theme';
 
 const UPCOMING_SECTIONS: NotebookSection[] = ['tomorrow', 'week', 'later'];
+const SUGGESTION_PREVIEW = 2;
 
 type Props = {
   mode: 'today' | 'upcoming';
@@ -54,7 +55,8 @@ const TodoNotebook: React.FC<Props> = ({
   onDismissSuggestion,
 }) => {
   const { t } = useTranslation('tasks');
-  const { colors } = useTheme();
+  const { colors, tapMin, fontScaleMultiplier } = useTheme();
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const colorByField = useMemo(
     () => Object.fromEntries(fields.map((field) => [field.id, field.color])),
     [fields]
@@ -118,6 +120,11 @@ const TodoNotebook: React.FC<Props> = ({
     const today = renderUnits(['today'], t('notebook.sections.today'));
     const hasWork = Boolean(overdue || today);
     const showSuggestions = suggestions.length > 0;
+    const visibleSuggestions =
+      showAllSuggestions || suggestions.length <= SUGGESTION_PREVIEW
+        ? suggestions
+        : suggestions.slice(0, SUGGESTION_PREVIEW);
+    const hasMoreSuggestions = suggestions.length > SUGGESTION_PREVIEW;
 
     return (
       <View style={styles.wrap}>
@@ -131,7 +138,7 @@ const TodoNotebook: React.FC<Props> = ({
               </Text>
             </View>
             <View style={styles.list}>
-              {suggestions.map((suggestion, index) => (
+              {visibleSuggestions.map((suggestion, index) => (
                 <SuggestionCard
                   key={`${suggestion.fieldId}-${suggestion.templateCode}-${index}`}
                   suggestion={suggestion}
@@ -142,6 +149,25 @@ const TodoNotebook: React.FC<Props> = ({
                 />
               ))}
             </View>
+            {hasMoreSuggestions ? (
+              <Pressable
+                onPress={() => setShowAllSuggestions((open) => !open)}
+                style={[styles.moreBtn, { minHeight: Math.max(44, tapMin * 0.9) }]}
+                accessibilityRole="button"
+              >
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontWeight: '700',
+                    fontSize: 15 * fontScaleMultiplier,
+                  }}
+                >
+                  {showAllSuggestions
+                    ? t('notebook.sections.showFewerSuggestions')
+                    : t('notebook.sections.seeAllSuggestions')}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
         {!hasWork && !showSuggestions ? (
@@ -200,6 +226,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   list: { gap: spacing.sm },
+  moreBtn: {
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    paddingVertical: 4,
+  },
 });
 
 export default TodoNotebook;

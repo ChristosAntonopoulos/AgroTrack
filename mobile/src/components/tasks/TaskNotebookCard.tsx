@@ -100,27 +100,40 @@ const TaskNotebookCard: React.FC<Props> = ({
       ]}
     >
       <View style={styles.row}>
-        <Pressable
-          onPress={() => {
-            if (!done) onComplete(task);
-          }}
-          disabled={busy || status === 'skipped'}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: done, disabled: busy || status === 'skipped' }}
-          accessibilityLabel={done ? t('notebook.actions.completed') : t('notebook.actions.markDone')}
-          style={[
-            styles.check,
-            {
-              minHeight: Math.max(48, tapMin),
-              minWidth: Math.max(48, tapMin),
-              borderColor: done ? colors.primary : colors.borderLight,
-              backgroundColor: done ? colors.primary : colors.surface,
-              opacity: busy ? 0.6 : 1,
-            },
-          ]}
-        >
-          {done ? <Ionicons name="checkmark" size={22} color={colors.onOlive} /> : null}
-        </Pressable>
+        <View style={styles.checkBlock}>
+          <Pressable
+            onPress={() => {
+              if (!done) onComplete(task);
+            }}
+            disabled={busy || status === 'skipped'}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: done, disabled: busy || status === 'skipped' }}
+            accessibilityLabel={done ? t('notebook.actions.completed') : t('notebook.actions.markDone')}
+            style={[
+              styles.check,
+              {
+                minHeight: Math.max(48, tapMin),
+                minWidth: Math.max(48, tapMin),
+                borderColor: done ? colors.primary : colors.borderLight,
+                backgroundColor: done ? colors.primary : colors.surface,
+                opacity: busy ? 0.6 : 1,
+              },
+            ]}
+          >
+            {done ? <Ionicons name="checkmark" size={22} color={colors.onOlive} /> : null}
+          </Pressable>
+          {!done && status === 'planned' ? (
+            <Text
+              style={[
+                styles.checkCue,
+                { color: colors.textSecondary, fontSize: 11 * fontScaleMultiplier },
+              ]}
+              numberOfLines={2}
+            >
+              {t('notebook.actions.markDone')}
+            </Text>
+          ) : null}
+        </View>
 
         <Pressable
           onPress={() => onOpen(task)}
@@ -223,11 +236,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 10,
   },
+  checkBlock: {
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: 72,
+  },
   check: {
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 14,
     borderWidth: 2,
+  },
+  checkCue: {
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 13,
   },
   hit: {
     flex: 1,

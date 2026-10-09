@@ -11,7 +11,7 @@ import { useRefresh } from '../hooks/useRefresh';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import ScreenHeader from '../components/layout/ScreenHeader';
 import HeaderIconButton from '../components/layout/HeaderIconButton';
-import LoadingSpinner from '../components/LoadingSpinner';
+import FieldColorMark from '../components/fields/FieldColorMark';
 import TaskViewTabs from '../components/tasks/TaskViewTabs';
 import TodoNotebook from '../components/tasks/TodoNotebook';
 import HistoryTaskView from '../components/tasks/HistoryTaskView';
@@ -74,6 +74,7 @@ const TaskListScreen = () => {
   const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
+  const [taskCounts, setTaskCounts] = useState({ today: 0, upcoming: 0, done: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -126,17 +127,24 @@ const TaskListScreen = () => {
     try {
       setError(null);
       const tasksApi = getTaskService();
-      const [fieldsData, tasksData] = await Promise.all([
+      const listOpts = { fieldId: fieldFilter || undefined };
+      const [fieldsData, todayData, upcomingData, doneData] = await Promise.all([
         getFieldService()
           .getFields(user?.id ?? '', user?.role ?? 'FieldOwner', 'tasks')
           .catch(() => [] as Field[]),
-        tasksApi.listTasks({
-          view,
-          fieldId: fieldFilter || undefined,
-        }),
+        tasksApi.listTasks({ view: 'today', ...listOpts }),
+        tasksApi.listTasks({ view: 'upcoming', ...listOpts }),
+        tasksApi.listTasks({ view: 'done', ...listOpts }),
       ]);
       setFields(fieldsData);
-      setTasks(tasksData);
+      setTaskCounts({
+        today: todayData.length,
+        upcoming: upcomingData.length,
+        done: doneData.length,
+      });
+      setTasks(
+        view === 'done' ? doneData : view === 'upcoming' ? upcomingData : todayData
+      );
 
       if (view === 'today') {
         const fieldIds = fieldFilter
@@ -429,15 +437,7 @@ const TaskListScreen = () => {
     }
   };
 
-  const taskCounts = useMemo(() => {
-    if (view === 'done') return { today: 0, upcoming: 0, done: tasks.length };
-    if (view === 'upcoming') return { today: 0, upcoming: tasks.length, done: 0 };
-    return { today: tasks.length, upcoming: 0, done: 0 };
-  }, [tasks, view]);
-
-  if (loading && tasks.length === 0) {
-    return <LoadingSpinner fullScreen />;
-  }
+  const showSkeleton = loading && tasks.length === 0;
 
   return (
     <ScreenLayout style={styles.screen} tabBarInset>
@@ -473,7 +473,11 @@ const TaskListScreen = () => {
             },
           ]}
         >
-          <Ionicons name="leaf-outline" size={18} color={colors.primary} />
+          {selectedField ? (
+            <FieldColorMark color={selectedField.color} fieldId={selectedField.id} size={10} />
+          ) : (
+            <FieldColorMark hollow size={10} />
+          )}
           <Text
             style={{
               color: colors.textPrimary,
@@ -492,19 +496,40 @@ const TaskListScreen = () => {
           activeView={view}
           onChange={setView}
           views={[
-            { id: 'today', label: t('page.tabs.today'), count: taskCounts.today },
-            { id: 'upcoming', label: t('page.tabs.upcoming'), count: taskCounts.upcoming },
-            { id: 'done', label: t('page.tabs.done'), count: taskCounts.done },
+            {
+              id: 'today',
+              label: t('page.tabs.today'),
+              count: showSkeleton ? 0 : taskCounts.today,
+            },
+            {
+              id: 'upcoming',
+              label: t('page.tabs.upcoming'),
+              count: showSkeleton ? 0 : taskCounts.upcoming,
+            },
+            {
+              id: 'done',
+              label: t('page.tabs.done'),
+              count: showSkeleton ? 0 : taskCounts.done,
+            },
           ]}
         />
 
-        {error ? (
+        {showSkeleton ? (
+          <View style={styles.skeleton} accessibilityState={{ busy: true }}>
+            <View style={[styles.skeletonSection, { backgroundColor: colors.surfaceMuted }]} />
+            <View style={[styles.skeletonCard, { backgroundColor: colors.surfaceMuted }]} />
+            <View style={[styles.skeletonCard, { backgroundColor: colors.surfaceMuted }]} />
+            <View style={[styles.skeletonCard, { backgroundColor: colors.surfaceMuted }]} />
+          </View>
+        ) : null}
+
+        {!showSkeleton && error ? (
           <View style={[styles.errorBox, { backgroundColor: colors.errorLight }]}>
             <Text style={{ color: colors.error }}>{error}</Text>
           </View>
         ) : null}
 
-        {undoCompleteId ? (
+        {!showSkeleton && undoCompleteId ? (
           <View
             style={[
               styles.undoBanner,
@@ -521,7 +546,7 @@ const TaskListScreen = () => {
           </View>
         ) : null}
 
-        {createdTask ? (
+        {!showSkeleton && createdTask ? (
           <CreatedTaskBanner
             title={taskDisplayTitle(createdTask.title, createdTask.templateCode, i18n.language)}
             fieldName={fieldNames[createdTask.fieldId] || t('fieldWork.unknownField')}
@@ -535,7 +560,7 @@ const TaskListScreen = () => {
           />
         ) : null}
 
-        {view === 'done' ? (
+        {!showSkeleton && view === 'done' ? (
           <HistoryTaskView
             tasks={tasks}
             fields={fields}
@@ -548,7 +573,9 @@ const TaskListScreen = () => {
             onMenu={(task, action) => void handleMenu(task, action)}
             onOpenChronologio={() => openChronologioHome(navigation)}
           />
-        ) : (
+        ) : null}
+
+        {!showSkeleton && view !== 'done' ? (
           <TodoNotebook
             mode={view}
             tasks={tasks}
@@ -570,7 +597,7 @@ const TaskListScreen = () => {
             }
             onDismissSuggestion={(suggestion) => void handleDismissSuggestion(suggestion)}
           />
-        )}
+        ) : null}
       </ScrollView>
 
       <Sheet
@@ -669,6 +696,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
   },
+  skeleton: { gap: spacing.sm, marginTop: 4 },
+  skeletonSection: { height: 18, width: '36%', borderRadius: 8 },
+  skeletonCard: { height: 78, borderRadius: radii.xl },
 });
 
 export default TaskListScreen;

@@ -663,13 +663,13 @@ input.people-search {
 }
 
 .invite-progress {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
   gap: 0.35rem;
   margin: 0 0 0.35rem;
 }
 
 .invite-progress-seg {
+  flex: 1;
   height: 0.28rem;
   border: 0;
   border-radius: 999px;
@@ -703,7 +703,7 @@ input.people-search {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  min-height: 2.4rem;
+  min-height: var(--tap-min, 44px);
   border: 0;
   border-radius: 11px;
   background: transparent;
@@ -792,8 +792,38 @@ input.people-search {
   padding: 0.7rem 0;
 }
 
-.invite-input input::placeholder {
+.invite-input input::placeholder,
+.invite-input textarea::placeholder {
   color: color-mix(in srgb, var(--text-secondary, #66705f) 78%, transparent);
+}
+
+.invite-input-area {
+  align-items: flex-start;
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
+}
+
+.invite-input textarea,
+.invite-input select {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary, inherit);
+  font: inherit;
+  font-size: 0.98rem;
+}
+
+.invite-input textarea {
+  resize: vertical;
+  min-height: 5.5rem;
+  padding: 0.65rem 0;
+}
+
+.invite-input select {
+  min-height: 2.75rem;
+  padding: 0.7rem 0;
 }
 
 .invite-contact-list,
@@ -825,7 +855,8 @@ input.people-search {
   background: color-mix(in srgb, var(--olive-primary, #5c7a3a) 10%, var(--surface-1, #fff));
 }
 
-.invite-option.is-taken {
+.invite-option.is-taken,
+.invite-option:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -999,6 +1030,194 @@ input.people-search {
 
 .invite-footer .btn {
   min-width: 7.5rem;
+}
+
+.people-money {
+  --money-border: var(--border-default, var(--color-border));
+  --money-border-strong: var(--border-strong, var(--color-border));
+  --money-input: var(--bg-input, var(--surface-1, #fff));
+  --money-text-primary: var(--text-primary, var(--color-text-primary));
+  --money-text-secondary: var(--text-secondary, var(--color-text-secondary));
+  --money-accent: var(--olive-primary, var(--color-primary));
+  --money-accent-soft: var(--olive-soft, color-mix(in srgb, var(--olive-primary) 12%, transparent));
+  --money-expense: var(--olive-primary, var(--color-primary));
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+}
+
+.oa-drawer-footer .people-money {
+  width: 100%;
+}
+
+.people-money .money-footer-actions {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+}
+
+.people-money .money-primary-action {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+}
+
+.people-money .money-primary-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.people-money .money-text-link {
+  width: 100%;
+  justify-content: center;
+  color: var(--olive-primary, var(--color-primary));
+}
+
+.people-money .money-text-link:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.people-money .money-form-label input,
+.people-money .money-form-label select,
+.people-money .money-form-label textarea {
+  color: var(--money-text-primary);
+}
+
+.people-money .money-form-label > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.people-money .money-form-label em {
+  font-style: normal;
+  font-weight: 500;
+}
+
+.people-money .money-split-toggle {
+  margin: 0;
+}
+
+.partners-sheet-body {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+  min-width: 0;
+}
+
+.invite-input svg {
+  flex-shrink: 0;
+}
+
+.contact-sheet-form,
+.contact-more-body,
+.contact-access {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.contact-access {
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--border-subtle, var(--color-border));
+}
+
+.contact-sheet-form .partner-phone-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.contact-sheet-form .partners-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.contact-sheet-form .partners-fieldset legend {
+  padding: 0;
+  font-weight: 700;
+}
+
+.contact-sheet-form .partners-chip-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.contact-sheet-form .partners-select-chip {
+  appearance: none;
+  border: 1px solid var(--color-border, #d5d8d0);
+  background: var(--color-surface, #fff);
+  color: var(--color-text-primary);
+  border-radius: 999px;
+  min-height: var(--tap-min, 44px);
+  padding: 0.35rem 0.9rem;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.contact-sheet-form .partners-select-chip.is-on {
+  border-color: var(--olive-border, var(--olive-primary));
+  background: var(--olive-soft, color-mix(in srgb, var(--olive-primary, #5c7a3a) 12%, #fff));
+  box-shadow: inset 0 0 0 1px var(--olive-border, var(--olive-primary));
+}
+
+.contact-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  justify-self: stretch;
+  border: 0;
+  background: transparent;
+  color: var(--olive-primary, var(--color-primary));
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  padding: 0;
+  min-height: var(--tap-min, 44px);
+  cursor: pointer;
+}
+
+.contact-more-toggle svg {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.contact-more-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.contact-sheet-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.oa-drawer-footer .contact-sheet-footer .btn {
+  flex: 0 1 auto;
+  min-width: 8.75rem;
+}
+
+@media (max-width: 768px) {
+  .oa-drawer-footer .contact-sheet-footer {
+    flex-direction: column-reverse;
+  }
+
+  .oa-drawer-footer .contact-sheet-footer .btn {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 .perm-panel,

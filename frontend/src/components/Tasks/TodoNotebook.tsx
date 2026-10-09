@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Field } from '../../services/fieldService';
 import type { Task, TaskSuggestion } from '../../services/taskService';
@@ -34,6 +34,7 @@ interface TodoNotebookProps {
 }
 
 const UPCOMING_SECTIONS: NotebookSection[] = ['tomorrow', 'week', 'later'];
+const SUGGESTION_PREVIEW = 2;
 
 const TodoNotebook: React.FC<TodoNotebookProps> = ({
   mode,
@@ -51,6 +52,7 @@ const TodoNotebook: React.FC<TodoNotebookProps> = ({
   onDismissSuggestion,
 }) => {
   const { t } = useTranslation('tasks');
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const colorByField = useMemo(
     () => Object.fromEntries(fields.map((field) => [field.id, field.color])),
     [fields]
@@ -109,6 +111,11 @@ const TodoNotebook: React.FC<TodoNotebookProps> = ({
     const today = renderUnits(['today'], 'notebook-today', t('notebook.sections.today'));
     const hasWork = Boolean(overdue || today);
     const showSuggestions = suggestions.length > 0;
+    const visibleSuggestions =
+      showAllSuggestions || suggestions.length <= SUGGESTION_PREVIEW
+        ? suggestions
+        : suggestions.slice(0, SUGGESTION_PREVIEW);
+    const hasMoreSuggestions = suggestions.length > SUGGESTION_PREVIEW;
 
     return (
       <div className="notebook-sections">
@@ -120,7 +127,7 @@ const TodoNotebook: React.FC<TodoNotebookProps> = ({
               {t('notebook.sections.suggestions')}
             </h2>
             <ul className="notebook-section-list">
-              {suggestions.map((suggestion, index) => (
+              {visibleSuggestions.map((suggestion, index) => (
                 <li key={`${suggestion.fieldId}-${suggestion.templateCode}-${index}`}>
                   <SuggestionCard
                     suggestion={suggestion}
@@ -132,6 +139,17 @@ const TodoNotebook: React.FC<TodoNotebookProps> = ({
                 </li>
               ))}
             </ul>
+            {hasMoreSuggestions ? (
+              <button
+                type="button"
+                className="notebook-suggestions-more"
+                onClick={() => setShowAllSuggestions((open) => !open)}
+              >
+                {showAllSuggestions
+                  ? t('notebook.sections.showFewerSuggestions')
+                  : t('notebook.sections.seeAllSuggestions')}
+              </button>
+            ) : null}
           </section>
         ) : null}
         {!hasWork && !showSuggestions ? (

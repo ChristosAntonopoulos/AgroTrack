@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Search, User, UserPlus } from 'lucide-react';
-import Button from '../Common/Button';
+import { Check, ChevronLeft } from 'lucide-react';
 import PartnersSheet from '../Partners/PartnersSheet';
+import '../money/Money.css';
 import { FieldModule, ManagedContact, fieldPeopleService } from '../../services/fieldPeopleService';
 import { getApiErrorMessage } from '../../utils/translateApiError';
 import { isDeliverableEmail } from '../../utils/emailValidation';
@@ -48,7 +48,7 @@ const looksLikePhone = (value: string) => !looksLikeEmail(value) && /\d{6}/.test
 
 /**
  * Invite flow: Who → Access → Review.
- * Contact is a single “mobile or email” field.
+ * A new app user needs an email. Phone alone cannot receive the invitation.
  */
 const InvitePersonSheet: React.FC<Props> = ({
   open = true,
@@ -62,18 +62,15 @@ const InvitePersonSheet: React.FC<Props> = ({
   onClose,
   onSent}) => {
   const { t } = useTranslation(['partners', 'common', 'errors', 'auth']);
-  const knownPerson = Boolean(initialEmail || initialPhone);
+  const knownPerson = Boolean(initialEmail.trim());
   const multiGrove = fields.length > 1;
   const stepOrder = [1, 2, 3];
   const openingStep = knownPerson ? 2 : 1;
   const [step, setStep] = useState(openingStep);
-  const [mode, setMode] = useState<WhoMode>(
-    initialEmail || initialPhone || initialName ? 'new' : contacts.length > 0 ? 'search' : 'new'
-  );
+  const [mode, setMode] = useState<WhoMode>('new');
   const [query, setQuery] = useState('');
   const [name, setName] = useState(initialName);
-  const seedReach = initialEmail || initialPhone;
-  const [reach, setReach] = useState(seedReach);
+  const [reach, setReach] = useState(initialEmail);
   const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState(initialPhone);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -92,6 +89,7 @@ const InvitePersonSheet: React.FC<Props> = ({
   useEffect(() => {
     if (!open) return;
     setStep(openingStep);
+    setMode('new');
     setAttempted(false);
     setError('');
     setSuccessHint('');
@@ -132,20 +130,16 @@ const InvitePersonSheet: React.FC<Props> = ({
   }, [people, typedEmail]);
 
   const selectedContact = contacts.find((contact) => contact.id === selectedContactId) || null;
-  const needsExtraReach =
-    Boolean(selectedContact) && !selectedContact?.email && !selectedContact?.phone && !reach.trim();
+  const needsExtraReach = Boolean(selectedContact) && !selectedContact?.email && !looksLikeEmail(reach);
 
   const chooseContact = (contact: ManagedContact) => {
     setSelectedContactId(contact.id);
     setName(contact.displayName);
     setEmail(contact.email || '');
     setPhone(contact.phone || '');
-    setReach(contact.email || contact.phone || '');
+    setReach(contact.email || '');
     setQuery('');
     setAttempted(false);
-    if (!contact.email && !contact.phone) {
-      setMode('new');
-    }
   };
 
   const startNew = () => {
@@ -153,23 +147,15 @@ const InvitePersonSheet: React.FC<Props> = ({
     setSelectedContactId(null);
     setAttempted(false);
     if (!name && query && !looksLikeEmail(query) && !looksLikePhone(query)) setName(query.trim());
-    if (!reach && (looksLikeEmail(query) || looksLikePhone(query))) setReach(query.trim());
+    if (!reach && looksLikeEmail(query)) setReach(query.trim());
   };
 
-  const applyReach = (value: string) => {
+  const applyEmail = (value: string) => {
     setReach(value);
     setSelectedContactId(null);
     setAttempted(false);
-    if (looksLikeEmail(value)) {
-      setEmail(value.trim());
-      setPhone('');
-    } else if (looksLikePhone(value)) {
-      setPhone(value.trim());
-      setEmail('');
-    } else {
-      setEmail('');
-      setPhone('');
-    }
+    setPhone('');
+    setEmail(value.trim());
   };
 
   const pickRelationship = (next: Relationship) => {
@@ -183,11 +169,7 @@ const InvitePersonSheet: React.FC<Props> = ({
   };
 
   const canLeaveStep = () => {
-    if (step === 1) {
-      if (!typedEmail && !typedPhone) return false;
-      if (typedEmail && !isDeliverableEmail(typedEmail)) return false;
-      return true;
-    }
+    if (step === 1) return Boolean(typedEmail) && isDeliverableEmail(typedEmail);
     if (step === 2) return fieldIds.some((id) => !takenFieldIds.has(id));
     return true;
   };
@@ -233,10 +215,15 @@ const InvitePersonSheet: React.FC<Props> = ({
     const targets = fieldIds.filter((id) => !takenFieldIds.has(id));
     if (targets.length === 0) return;
     const inviteEmail = (email.trim() || typedEmail) || undefined;
-    if (inviteEmail && !isDeliverableEmail(inviteEmail)) {
+    if (!inviteEmail || !isDeliverableEmail(inviteEmail)) {
       setAttempted(true);
-      setError(t('errors:emailInvalid', { defaultValue: t('auth:login.emailInvalid') }));
+      setError(
+        inviteEmail
+          ? t('errors:emailInvalid', { defaultValue: t('auth:login.emailInvalid') })
+          : t('partners:peoplePage.needReach')
+      );
       setStep(1);
+      setMode('new');
       return;
     }
     setSending(true);
@@ -287,7 +274,6 @@ const InvitePersonSheet: React.FC<Props> = ({
   const lastStep = stepOrder[stepOrder.length - 1];
   const selectedFields = fields.filter((field) => fieldIds.includes(field.id) && !takenFieldIds.has(field.id));
   const who = name.trim() || typedEmail || typedPhone;
-  const reachReady = Boolean(typedEmail || typedPhone);
 
   return (
     <PartnersSheet
@@ -298,38 +284,28 @@ const InvitePersonSheet: React.FC<Props> = ({
       subtitle={t(`partners:peoplePage.steps.${step}.hint`)}
       onClose={onClose}
       footer={
-        successHint ? (
-          <div className="invite-footer">
-            <span className="invite-footer-spacer" />
-            <Button variant="primary" onClick={onClose}>
-              {t('common:done')}
-            </Button>
-          </div>
-        ) : (
-          <div className="invite-footer">
-            {stepPos > 0 ? (
-              <Button variant="ghost" onClick={goBack} disabled={sending}>
-                {t('common:back')}
-              </Button>
-            ) : (
-              <span className="invite-footer-spacer" />
-            )}
-            {step !== lastStep ? (
-              <Button variant="primary" onClick={goNext} disabled={sending}>
+        <div className="people-money">
+          <div className="money-footer-actions">
+            {successHint ? (
+              <button type="button" className="money-primary-action" onClick={onClose}>
+                {t('common:done')}
+              </button>
+            ) : step !== lastStep ? (
+              <button type="button" className="money-primary-action" onClick={goNext} disabled={sending}>
                 {t('common:next')}
-              </Button>
+              </button>
             ) : (
-              <Button
-                variant="primary"
+              <button
+                type="button"
+                className="money-primary-action"
                 onClick={() => void send()}
-                loading={sending}
-                disabled={selectedFields.length === 0}
+                disabled={sending || selectedFields.length === 0}
               >
                 {t('partners:peoplePage.sendInvite')}
-              </Button>
+              </button>
             )}
           </div>
-        )
+        </div>
       }
     >
       {error ? <p className="people-error">{error}</p> : null}
@@ -340,32 +316,39 @@ const InvitePersonSheet: React.FC<Props> = ({
       ) : null}
 
       {!successHint ? (
-        <>
-          <div
-            className="invite-progress"
-            role="progressbar"
-            aria-valuemin={1}
-            aria-valuemax={stepOrder.length}
-            aria-valuenow={stepPos + 1}
-          >
-            {stepOrder.map((number, index) => {
-              const state = number === step ? 'is-on' : index < stepPos ? 'is-done' : '';
-              return (
-                <button
+        <div className="people-money">
+          <div className="money-step-bar">
+            {stepPos > 0 ? (
+              <button
+                type="button"
+                className="money-step-back"
+                onClick={goBack}
+                disabled={sending}
+                aria-label={t('common:back')}
+              >
+                <ChevronLeft size={18} aria-hidden />
+              </button>
+            ) : (
+              <span className="money-step-back is-spacer" aria-hidden />
+            )}
+            <div
+              className="money-step-dots"
+              role="progressbar"
+              aria-valuemin={1}
+              aria-valuemax={stepOrder.length}
+              aria-valuenow={stepPos + 1}
+              aria-label={t('partners:peoplePage.inviteStep', {
+                step: stepPos + 1,
+                total: stepOrder.length,
+              })}
+            >
+              {stepOrder.map((number, index) => (
+                <span
                   key={number}
-                  type="button"
-                  className={`invite-progress-seg ${state}`.trim()}
-                  aria-label={t('partners:peoplePage.inviteStep', {
-                    step: index + 1,
-                    total: stepOrder.length})}
-                  aria-current={number === step ? 'step' : undefined}
-                  disabled={index > stepPos}
-                  onClick={() => {
-                    if (index < stepPos) setStep(number);
-                  }}
+                  className={number === step ? 'is-current' : index < stepPos ? 'is-done' : ''}
                 />
-              );
-            })}
+              ))}
+            </div>
           </div>
 
           {step > 1 ? (
@@ -385,55 +368,50 @@ const InvitePersonSheet: React.FC<Props> = ({
 
           {step === 1 ? (
             <div className="invite-form">
-              <div className="invite-mode" role="tablist" aria-label={t('partners:peoplePage.steps.1.title')}>
+              <div className="money-split-toggle" role="tablist" aria-label={t('partners:peoplePage.steps.1.title')}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === 'new'}
+                  className={mode === 'new' ? 'is-on' : ''}
+                  onClick={startNew}
+                >
+                  {t('partners:peoplePage.newContact')}
+                </button>
                 <button
                   type="button"
                   role="tab"
                   aria-selected={mode === 'search'}
-                  className={`invite-mode-btn${mode === 'search' ? ' is-on' : ''}`}
+                  className={mode === 'search' ? 'is-on' : ''}
                   onClick={() => {
                     setMode('search');
                     setAttempted(false);
                   }}
                 >
-                  <Search size={16} aria-hidden />
                   {t('partners:peoplePage.fromContacts')}
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === 'new'}
-                  className={`invite-mode-btn${mode === 'new' ? ' is-on' : ''}`}
-                  onClick={startNew}
-                >
-                  <UserPlus size={16} aria-hidden />
-                  {t('partners:peoplePage.newContact')}
                 </button>
               </div>
 
               {mode === 'search' ? (
                 <div className="invite-panel">
-                  <label className="invite-field" htmlFor="invite-query">
-                    <span>{t('partners:peoplePage.searchLabel')}</span>
-                    <span className="invite-input">
-                      <Search size={18} aria-hidden />
-                      <input
-                        id="invite-query"
-                        type="search"
-                        value={query}
-                        onChange={(event) => {
-                          setQuery(event.target.value);
-                          setSelectedContactId(null);
-                          setAttempted(false);
-                        }}
-                        placeholder={t('partners:peoplePage.searchPlaceholder')}
-                        autoComplete="off"
-                        autoFocus
-                      />
-                    </span>
+                  <label className="money-form-label" htmlFor="invite-query">
+                    {t('partners:peoplePage.searchLabel')}
+                    <input
+                      id="invite-query"
+                      type="search"
+                      value={query}
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setSelectedContactId(null);
+                        setAttempted(false);
+                      }}
+                      placeholder={t('partners:peoplePage.searchPlaceholder')}
+                      autoComplete="off"
+                      autoFocus
+                    />
                   </label>
 
-                  {selectedContact && reachReady ? (
+                  {selectedContact ? (
                     <div className="invite-selected">
                       <div>
                         <strong>{selectedContact.displayName}</strong>
@@ -444,19 +422,17 @@ const InvitePersonSheet: React.FC<Props> = ({
                   ) : null}
 
                   {needsExtraReach ? (
-                    <label className="invite-field" htmlFor="invite-reach-extra">
-                      <span>{t('partners:peoplePage.reach')}</span>
-                      <span className="invite-input">
-                        <input
-                          id="invite-reach-extra"
-                          type="text"
-                          inputMode="email"
-                          value={reach}
-                          onChange={(event) => applyReach(event.target.value)}
-                          placeholder={t('partners:peoplePage.reachPlaceholder')}
-                          autoComplete="off"
-                        />
-                      </span>
+                    <label className="money-form-label" htmlFor="invite-reach-extra">
+                      {t('partners:peoplePage.email')}
+                      <input
+                        id="invite-reach-extra"
+                        type="email"
+                        inputMode="email"
+                        value={reach}
+                        onChange={(event) => applyEmail(event.target.value)}
+                        placeholder={t('partners:peoplePage.emailPlaceholder')}
+                        autoComplete="email"
+                      />
                     </label>
                   ) : null}
 
@@ -501,41 +477,35 @@ const InvitePersonSheet: React.FC<Props> = ({
                 </div>
               ) : (
                 <div className="invite-panel">
-                  <label className="invite-field" htmlFor="invite-name">
-                    <span>{t('partners:peoplePage.name')}</span>
-                    <span className="invite-input">
-                      <User size={18} aria-hidden />
-                      <input
-                        id="invite-name"
-                        type="text"
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        placeholder={t('partners:peoplePage.namePlaceholder')}
-                        autoComplete="name"
-                        autoFocus
-                      />
-                    </span>
+                  <label className="money-form-label" htmlFor="invite-name">
+                    {t('partners:peoplePage.name')}
+                    <input
+                      id="invite-name"
+                      type="text"
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder={t('partners:peoplePage.namePlaceholder')}
+                      autoComplete="name"
+                      autoFocus
+                    />
                   </label>
 
-                  <label className="invite-field" htmlFor="invite-reach">
-                    <span>{t('partners:peoplePage.reach')}</span>
-                    <span className="invite-input">
-                      <input
-                        id="invite-reach"
-                        type="text"
-                        inputMode="email"
-                        value={reach}
-                        onChange={(event) => applyReach(event.target.value)}
-                        placeholder={t('partners:peoplePage.reachPlaceholder')}
-                        autoComplete="off"
-                      />
-                    </span>
+                  <label className="money-form-label" htmlFor="invite-reach">
+                    {t('partners:peoplePage.email')}
+                    <input
+                      id="invite-reach"
+                      type="email"
+                      inputMode="email"
+                      value={reach}
+                      onChange={(event) => applyEmail(event.target.value)}
+                      placeholder={t('partners:peoplePage.emailPlaceholder')}
+                      autoComplete="email"
+                    />
                   </label>
 
-                  {reachReady && !emailInvalid ? (
+                  {typedEmail && !emailInvalid ? (
                     <p className="invite-confirm">
-                      {t('partners:peoplePage.willInvite', {
-                        contact: typedEmail || typedPhone})}
+                      {t('partners:peoplePage.willInvite', { contact: typedEmail })}
                     </p>
                   ) : null}
 
@@ -554,7 +524,7 @@ const InvitePersonSheet: React.FC<Props> = ({
                 </div>
               )}
 
-              {attempted && !typedEmail && !typedPhone ? (
+              {attempted && !typedEmail ? (
                 <p className="people-error" role="alert">
                   {t('partners:peoplePage.needReach')}
                 </p>
@@ -688,7 +658,7 @@ const InvitePersonSheet: React.FC<Props> = ({
               </div>
             </div>
           ) : null}
-        </>
+        </div>
       ) : null}
     </PartnersSheet>
   );

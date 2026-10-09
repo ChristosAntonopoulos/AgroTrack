@@ -5,25 +5,26 @@
   "allFields": "All fields",
   "page": {
     "title": "Tasks",
-    "scheduleCta": "+ Schedule work",
+    "scheduleCta": "Schedule work",
     "fieldFilter": "Grove",
     "allFields": "All groves",
     "viewsAria": "Task views",
     "tabs": {
-      "today": "Today",
+      "today": "Open",
       "upcoming": "Upcoming",
       "done": "Done"
     }
   },
   "schedule": {
     "title": "Schedule work",
+    "formHint": "A few simple choices — like income and expenses.",
     "cancel": "Cancel",
     "submit": "Schedule",
     "failedSave": "Could not schedule work.",
     "what": "What needs doing?",
     "whatPlaceholder": "e.g. Pruning, trap check…",
     "pickTemplate": "Templates",
-    "field": "In the grove",
+    "field": "Which grove?",
     "noFields": "Create a grove first",
     "when": {
       "label": "When?",
@@ -33,7 +34,7 @@
       "otherDay": "Another day",
       "sometime": "Sometime"
     },
-    "who": "Who?",
+    "who": "Who will do it?",
     "assigneeMe": "Me",
     "decideLater": "Later",
     "moreDetails": "More details",
@@ -41,6 +42,9 @@
     "note": "Note",
     "notePlaceholder": "Anything useful for the work",
     "repeat": "Repeat",
+    "repeatOnce": "Once",
+    "repeatWeekly": "Every week",
+    "repeatMonthly": "Every month",
     "repeatPlaceholder": "e.g. Every week",
     "checklist": "Checklist",
     "checklistPlaceholder": "One step per line",
@@ -1093,6 +1097,8 @@
       "thisWeek": "This week",
       "later": "Later",
       "suggestions": "Suggestions for now",
+      "seeAllSuggestions": "See all suggestions",
+      "showFewerSuggestions": "Show fewer suggestions",
       "attention": "Needs attention",
       "next": "Next"
     },

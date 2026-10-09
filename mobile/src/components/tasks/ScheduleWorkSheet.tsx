@@ -1,19 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import Sheet from '../ui/Sheet';
 import Button from '../ui/Button';
 import FormDateField from '../forms/FormDateField';
+import FieldColorMark from '../fields/FieldColorMark';
 import type { Field } from '../../services/fieldService';
 import type { CreateTaskInput, TaskSuggestion, TaskTimingBucket } from '../../services/taskService';
 import type { AssigneeOption } from './form/AssigneeSelector';
 import AssigneeSelector from './form/AssigneeSelector';
 import TemplatePicker, { type TemplatePickerSelection } from './TemplatePicker';
 import { TaskChoiceChips } from './TaskChoiceChips';
+import TaskCategoryGlyph from './TaskCategoryGlyph';
+import { resolveTaskCategoryAccent } from '../../utils/taskCategoryAccents';
 import { useTheme } from '../../context/ThemeContext';
-import { spacing } from '../../theme';
+import { radii, spacing, typography } from '../../theme';
 
 export type TimingChip = TaskTimingBucket | 'pickDate';
+export type RecurrenceChip = 'once' | 'weekly' | 'monthly';
 
 export type ScheduleWorkPrefill = {
   fieldId?: string;
@@ -36,12 +41,22 @@ type Props = {
   onSubmit: (input: CreateTaskInput) => void | Promise<void>;
 };
 
-const TIMING_CHIPS: Array<{ id: TimingChip; labelKey: string }> = [
-  { id: 'today', labelKey: 'schedule.when.today' },
-  { id: 'tomorrow', labelKey: 'schedule.when.tomorrow' },
-  { id: 'thisWeek', labelKey: 'schedule.when.thisWeek' },
-  { id: 'pickDate', labelKey: 'schedule.when.otherDay' },
-  { id: 'later', labelKey: 'schedule.when.sometime' },
+const TIMING_CHIPS: Array<{
+  id: TimingChip;
+  labelKey: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+}> = [
+  { id: 'today', labelKey: 'schedule.when.today', icon: 'sunny-outline' },
+  { id: 'tomorrow', labelKey: 'schedule.when.tomorrow', icon: 'arrow-forward-outline' },
+  { id: 'thisWeek', labelKey: 'schedule.when.thisWeek', icon: 'calendar-outline' },
+  { id: 'pickDate', labelKey: 'schedule.when.otherDay', icon: 'calendar-number-outline' },
+  { id: 'later', labelKey: 'schedule.when.sometime', icon: 'time-outline' },
+];
+
+const RECURRENCE_CHIPS: Array<{ id: RecurrenceChip; labelKey: string }> = [
+  { id: 'once', labelKey: 'schedule.repeatOnce' },
+  { id: 'weekly', labelKey: 'schedule.repeatWeekly' },
+  { id: 'monthly', labelKey: 'schedule.repeatMonthly' },
 ];
 
 const ScheduleWorkSheet: React.FC<Props> = ({
@@ -66,7 +81,7 @@ const ScheduleWorkSheet: React.FC<Props> = ({
   const [assigneeKey, setAssigneeKey] = useState('later');
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [note, setNote] = useState('');
-  const [recurrence, setRecurrence] = useState('');
+  const [recurrence, setRecurrence] = useState<RecurrenceChip>('once');
   const [checklistText, setChecklistText] = useState('');
 
   const selfKey = useMemo(
@@ -74,9 +89,14 @@ const ScheduleWorkSheet: React.FC<Props> = ({
     [assigneeOptions]
   );
 
+  const usableFields = useMemo(
+    () => fields.filter((field) => (field.status || 'Active') !== 'Draft'),
+    [fields]
+  );
+
   useEffect(() => {
     if (!open) return;
-    const nextField = prefill?.fieldId || fields[0]?.id || '';
+    const nextField = prefill?.fieldId || usableFields[0]?.id || fields[0]?.id || '';
     setFieldId(nextField);
     setTitle(prefill?.title || '');
     setTemplateCode(prefill?.templateCode);
@@ -84,11 +104,11 @@ const ScheduleWorkSheet: React.FC<Props> = ({
     setScheduledFor(prefill?.scheduledFor || '');
     setAssigneeKey(selfKey);
     setNote(prefill?.note || '');
-    setRecurrence('');
+    setRecurrence('once');
     setChecklistText('');
     setDetailsOpen(false);
     setPickingTemplate(!prefill?.title && !prefill?.templateCode);
-  }, [open, prefill, fields, selfKey]);
+  }, [open, prefill, fields, usableFields, selfKey]);
 
   const canSubmit = Boolean(title.trim() && fieldId && !busy);
 
@@ -136,11 +156,16 @@ const ScheduleWorkSheet: React.FC<Props> = ({
       scheduledFor: timing === 'pickDate' && scheduledFor ? scheduledFor : undefined,
       note: note.trim() || undefined,
       notes: note.trim() || undefined,
-      recurrence: recurrence.trim() || undefined,
+      recurrence: recurrence === 'once' ? undefined : recurrence,
       checklist: checklist.length > 0 ? checklist : undefined,
       ...parseAssignee(assigneeKey),
     });
   };
+
+  const promptStyle = [
+    styles.prompt,
+    { color: colors.textPrimary, fontSize: 18 * fontScaleMultiplier },
+  ];
 
   return (
     <Sheet
@@ -149,7 +174,7 @@ const ScheduleWorkSheet: React.FC<Props> = ({
       edge="bottom"
       size="lg"
       title={pickingTemplate ? t('schedule.templates.title') : t('schedule.title')}
-      subtitle={pickingTemplate ? t('schedule.templates.subtitle') : undefined}
+      subtitle={pickingTemplate ? t('schedule.templates.subtitle') : t('schedule.formHint')}
       footer={
         pickingTemplate ? null : (
           <View style={styles.footer}>
@@ -189,63 +214,87 @@ const ScheduleWorkSheet: React.FC<Props> = ({
             </Text>
           ) : null}
 
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('schedule.what')}</Text>
-            <View style={styles.titleRow}>
+          <View style={styles.section}>
+            <Text style={promptStyle}>{t('schedule.what')}</Text>
+            <View
+              style={[
+                styles.titleCard,
+                {
+                  borderColor: colors.borderLight,
+                  backgroundColor: colors.surfaceMuted,
+                },
+              ]}
+            >
+              {templateCode ? (
+                <TaskCategoryGlyph
+                  templateCode={templateCode}
+                  accent={resolveTaskCategoryAccent(templateCode)}
+                  size={40}
+                />
+              ) : (
+                <View style={[styles.iconWell, { backgroundColor: colors.surface }]}>
+                  <Ionicons name="create-outline" size={22} color={colors.primary} />
+                </View>
+              )}
               <TextInput
                 value={title}
                 onChangeText={setTitle}
                 placeholder={t('schedule.whatPlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 style={[
-                  styles.input,
+                  styles.titleInput,
                   {
-                    flex: 1,
                     color: colors.textPrimary,
-                    borderColor: colors.borderLight,
-                    backgroundColor: colors.surface,
-                    fontSize: 16 * fontScaleMultiplier,
+                    fontSize: 17 * fontScaleMultiplier,
                     minHeight: Math.max(48, tapMin * 0.95),
                   },
                 ]}
               />
               <Pressable
                 onPress={() => setPickingTemplate(true)}
+                accessibilityLabel={t('schedule.pickTemplate')}
                 style={[
                   styles.templateBtn,
                   {
-                    minHeight: Math.max(48, tapMin * 0.95),
-                    borderColor: colors.borderLight,
-                    backgroundColor: colors.surfaceMuted,
+                    minHeight: Math.max(44, tapMin * 0.9),
+                    borderColor: colors.oliveBorder,
+                    backgroundColor: colors.primaryLight,
                   },
                 ]}
               >
-                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
+                <Ionicons name="grid-outline" size={16} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>
                   {t('schedule.pickTemplate')}
                 </Text>
               </Pressable>
             </View>
           </View>
 
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('schedule.field')}</Text>
+          <View style={styles.section}>
+            <Text style={promptStyle}>{t('schedule.field')}</Text>
             <TaskChoiceChips
               options={
-                fields.length === 0
+                usableFields.length === 0
                   ? [{ id: '', label: t('schedule.noFields') }]
-                  : fields.map((field) => ({ id: field.id, label: field.name }))
+                  : usableFields.map((field) => ({
+                      id: field.id,
+                      label: field.name,
+                      leading: <FieldColorMark color={field.color} fieldId={field.id} size={10} />,
+                    }))
               }
               value={fieldId}
               onChange={setFieldId}
             />
           </View>
 
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
-              {t('schedule.when.label')}
-            </Text>
+          <View style={styles.section}>
+            <Text style={promptStyle}>{t('schedule.when.label')}</Text>
             <TaskChoiceChips
-              options={TIMING_CHIPS.map((chip) => ({ id: chip.id, label: t(chip.labelKey) }))}
+              options={TIMING_CHIPS.map((chip) => ({
+                id: chip.id,
+                label: t(chip.labelKey),
+                icon: chip.icon,
+              }))}
               value={timing}
               onChange={setTiming}
             />
@@ -258,8 +307,8 @@ const ScheduleWorkSheet: React.FC<Props> = ({
             ) : null}
           </View>
 
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('schedule.who')}</Text>
+          <View style={styles.section}>
+            <Text style={promptStyle}>{t('schedule.who')}</Text>
             <AssigneeSelector
               options={assigneeOptions}
               value={assigneeKey}
@@ -267,16 +316,28 @@ const ScheduleWorkSheet: React.FC<Props> = ({
             />
           </View>
 
-          <Pressable onPress={() => setDetailsOpen((openNow) => !openNow)}>
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>
+          <Pressable
+            onPress={() => setDetailsOpen((openNow) => !openNow)}
+            style={[styles.moreToggle, { minHeight: Math.max(44, tapMin * 0.88) }]}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: detailsOpen }}
+          >
+            <Ionicons
+              name={detailsOpen ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={colors.primary}
+            />
+            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 15 }}>
               {detailsOpen ? t('schedule.lessDetails') : t('schedule.moreDetails')}
             </Text>
           </Pressable>
 
           {detailsOpen ? (
             <View style={styles.more}>
-              <View style={styles.field}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>{t('schedule.note')}</Text>
+              <View style={styles.section}>
+                <Text style={[styles.softLabel, { color: colors.textSecondary }]}>
+                  {t('schedule.note')}
+                </Text>
                 <TextInput
                   value={note}
                   onChangeText={setNote}
@@ -294,28 +355,21 @@ const ScheduleWorkSheet: React.FC<Props> = ({
                   ]}
                 />
               </View>
-              <View style={styles.field}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>
+              <View style={styles.section}>
+                <Text style={[styles.softLabel, { color: colors.textSecondary }]}>
                   {t('schedule.repeat')}
                 </Text>
-                <TextInput
+                <TaskChoiceChips
+                  options={RECURRENCE_CHIPS.map((chip) => ({
+                    id: chip.id,
+                    label: t(chip.labelKey),
+                  }))}
                   value={recurrence}
-                  onChangeText={setRecurrence}
-                  placeholder={t('schedule.repeatPlaceholder')}
-                  placeholderTextColor={colors.textTertiary}
-                  style={[
-                    styles.input,
-                    {
-                      color: colors.textPrimary,
-                      borderColor: colors.borderLight,
-                      backgroundColor: colors.surface,
-                      minHeight: Math.max(48, tapMin * 0.95),
-                    },
-                  ]}
+                  onChange={setRecurrence}
                 />
               </View>
-              <View style={styles.field}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>
+              <View style={styles.section}>
+                <Text style={[styles.softLabel, { color: colors.textSecondary }]}>
                   {t('schedule.checklist')}
                 </Text>
                 <TextInput
@@ -345,23 +399,56 @@ const ScheduleWorkSheet: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  form: { gap: spacing.md },
-  field: { gap: spacing.sm },
-  label: { fontSize: 13, fontWeight: '700' },
-  titleRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  form: { gap: spacing.lg },
+  section: { gap: spacing.sm },
+  prompt: {
+    ...typography.styles.h3,
+    fontSize: 18,
+    lineHeight: 24,
+    letterSpacing: -0.2,
+  },
+  softLabel: { fontSize: 13, fontWeight: '700' },
+  titleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.xl,
+    padding: 10,
+  },
+  iconWell: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 8,
+    fontWeight: '600',
+  },
+  templateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: radii.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 10,
+  },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   area: { minHeight: 88, textAlignVertical: 'top' },
-  templateBtn: {
+  moreToggle: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 12,
+    gap: 6,
+    alignSelf: 'flex-start',
   },
   more: { gap: spacing.md },
   footer: { flexDirection: 'row', gap: 8 },

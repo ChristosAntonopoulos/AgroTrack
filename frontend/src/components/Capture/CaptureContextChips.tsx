@@ -58,18 +58,14 @@ const CaptureContextChips: React.FC<Props> = ({
   const fieldLabel =
     friendlyFieldLabel(selected?.name || fieldId) || t('capture:fieldPrompt');
 
+  const fieldAccent = selected
+    ? resolveFieldColor(selected.color, selected.id)
+    : fieldId
+      ? resolveFieldColor(undefined, fieldId)
+      : null;
+
   return (
     <div className={`capture-context-chips${compact ? ' is-compact' : ''}`}>
-      {!compact ? (
-        <span
-          className="capture-quick-swatch"
-          style={{
-            background: resolveFieldColor(selected?.color, fieldId || selected?.id),
-          }}
-          aria-hidden
-        />
-      ) : null}
-
       <div className="capture-context-chips-row">
         <div className="capture-context-chip-wrap">
           <button
@@ -79,6 +75,13 @@ const CaptureContextChips: React.FC<Props> = ({
             aria-haspopup="listbox"
             onClick={() => setFieldOpen((v) => !v)}
           >
+            {fieldAccent ? (
+              <span
+                className="capture-context-chip-swatch"
+                style={{ background: fieldAccent }}
+                aria-hidden
+              />
+            ) : null}
             <span className="capture-context-chip-label">{fieldLabel}</span>
             <ChevronDown size={16} aria-hidden />
           </button>

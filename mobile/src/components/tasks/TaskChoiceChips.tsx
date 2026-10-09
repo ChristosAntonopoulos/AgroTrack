@@ -10,6 +10,9 @@ import type { ProposalChipKind } from '../../utils/proposalPresentation';
 export type ChoiceOption<T extends string = string> = {
   id: T;
   label: string;
+  /** Optional leading mark (field colour, icon well, etc.). */
+  leading?: React.ReactNode;
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
 };
 
 export function TaskChoiceChips<T extends string>({
@@ -35,7 +38,7 @@ export function TaskChoiceChips<T extends string>({
             style={[
               styles.choice,
               {
-                minHeight: Math.max(40, tapMin * 0.85),
+                minHeight: Math.max(44, tapMin * 0.88),
                 borderColor: selected ? colors.oliveBorder : colors.borderLight,
                 backgroundColor: selected ? colors.primaryLight : colors.surface,
               },
@@ -43,12 +46,20 @@ export function TaskChoiceChips<T extends string>({
             accessibilityRole="button"
             accessibilityState={{ selected }}
           >
+            {option.leading ? <View style={styles.leading}>{option.leading}</View> : null}
+            {option.icon ? (
+              <Ionicons
+                name={option.icon}
+                size={16}
+                color={selected ? colors.primary : colors.textSecondary}
+              />
+            ) : null}
             <Text
               style={[
                 styles.choiceLabel,
                 {
                   color: selected ? colors.primary : colors.textSecondary,
-                  fontSize: 13 * fontScaleMultiplier,
+                  fontSize: 14 * fontScaleMultiplier,
                   fontWeight: selected ? '700' : '600',
                 },
               ]}
@@ -158,12 +169,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   choice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderWidth: 1,
     borderRadius: radii.full,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     justifyContent: 'center',
   },
+  leading: { alignItems: 'center', justifyContent: 'center' },
   choiceLabel: {
     ...typography.styles.caption,
   },

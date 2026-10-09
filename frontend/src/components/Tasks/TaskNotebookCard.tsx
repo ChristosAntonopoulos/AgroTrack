@@ -107,18 +107,25 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
       }`}
       data-task-id={task.id}
     >
-      <button
-        type="button"
-        className={`notebook-card-check${done ? ' is-done' : ''}`}
-        aria-label={done ? t('notebook.actions.completed') : t('notebook.actions.markDone')}
-        aria-pressed={done}
-        disabled={busy || status === 'skipped'}
-        onClick={() => {
-          if (!done) onComplete(task);
-        }}
-      >
-        {done ? <Check size={20} aria-hidden /> : null}
-      </button>
+      <div className="notebook-card-check-block">
+        <button
+          type="button"
+          className={`notebook-card-check${done ? ' is-done' : ''}`}
+          aria-label={done ? t('notebook.actions.completed') : t('notebook.actions.markDone')}
+          aria-pressed={done}
+          disabled={busy || status === 'skipped'}
+          onClick={() => {
+            if (!done) onComplete(task);
+          }}
+        >
+          {done ? <Check size={20} aria-hidden /> : null}
+        </button>
+        {!done && status === 'planned' ? (
+          <span className="notebook-card-check-cue" aria-hidden>
+            {t('notebook.actions.markDone')}
+          </span>
+        ) : null}
+      </div>
 
       <button type="button" className="notebook-card-hit" onClick={() => onOpen(task)}>
         <TaskCategoryMark templateCode={task.templateCode} />

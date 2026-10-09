@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Calendar, CalendarDays, Clock, Grid2X2, Pencil, Sun, ArrowRight } from 'lucide-react';
 import RightDrawer from '../Common/RightDrawer';
 import Button from '../Common/Button';
 import type { Field } from '../../services/fieldService';
@@ -7,10 +8,13 @@ import type { CreateTaskInput, TaskSuggestion, TaskTimingBucket } from '../../se
 import type { AssigneeOption } from './form/AssigneeSelector';
 import AssigneeSelector from './form/AssigneeSelector';
 import TemplatePicker, { type TemplatePickerSelection } from './TemplatePicker';
+import { resolveFieldColor } from '../../utils/fieldColors';
+import TaskCategoryMark from './TaskCategoryMark';
 import '../Tasks/form/TaskForm.css';
 import './ScheduleWorkSheet.css';
 
 export type TimingChip = TaskTimingBucket | 'pickDate';
+export type RecurrenceChip = 'once' | 'weekly' | 'monthly';
 
 export type ScheduleWorkPrefill = {
   fieldId?: string;
@@ -33,12 +37,22 @@ interface ScheduleWorkSheetProps {
   onSubmit: (input: CreateTaskInput) => void | Promise<void>;
 }
 
-const TIMING_CHIPS: Array<{ id: TimingChip; labelKey: string }> = [
-  { id: 'today', labelKey: 'schedule.when.today' },
-  { id: 'tomorrow', labelKey: 'schedule.when.tomorrow' },
-  { id: 'thisWeek', labelKey: 'schedule.when.thisWeek' },
-  { id: 'pickDate', labelKey: 'schedule.when.otherDay' },
-  { id: 'later', labelKey: 'schedule.when.sometime' },
+const TIMING_CHIPS: Array<{
+  id: TimingChip;
+  labelKey: string;
+  Icon: React.ComponentType<{ size?: number; 'aria-hidden'?: boolean }>;
+}> = [
+  { id: 'today', labelKey: 'schedule.when.today', Icon: Sun },
+  { id: 'tomorrow', labelKey: 'schedule.when.tomorrow', Icon: ArrowRight },
+  { id: 'thisWeek', labelKey: 'schedule.when.thisWeek', Icon: CalendarDays },
+  { id: 'pickDate', labelKey: 'schedule.when.otherDay', Icon: Calendar },
+  { id: 'later', labelKey: 'schedule.when.sometime', Icon: Clock },
+];
+
+const RECURRENCE_CHIPS: Array<{ id: RecurrenceChip; labelKey: string }> = [
+  { id: 'once', labelKey: 'schedule.repeatOnce' },
+  { id: 'weekly', labelKey: 'schedule.repeatWeekly' },
+  { id: 'monthly', labelKey: 'schedule.repeatMonthly' },
 ];
 
 const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
@@ -62,7 +76,7 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
   const [assigneeKey, setAssigneeKey] = useState('later');
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [note, setNote] = useState('');
-  const [recurrence, setRecurrence] = useState('');
+  const [recurrence, setRecurrence] = useState<RecurrenceChip>('once');
   const [checklistText, setChecklistText] = useState('');
 
   const selfKey = useMemo(
@@ -70,9 +84,14 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
     [assigneeOptions]
   );
 
+  const usableFields = useMemo(
+    () => fields.filter((field) => (field.status || 'Active') !== 'Draft'),
+    [fields]
+  );
+
   useEffect(() => {
     if (!open) return;
-    const nextField = prefill?.fieldId || fields[0]?.id || '';
+    const nextField = prefill?.fieldId || usableFields[0]?.id || fields[0]?.id || '';
     setFieldId(nextField);
     setTitle(prefill?.title || '');
     setTemplateCode(prefill?.templateCode);
@@ -80,11 +99,11 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
     setScheduledFor(prefill?.scheduledFor || '');
     setAssigneeKey(selfKey);
     setNote(prefill?.note || '');
-    setRecurrence('');
+    setRecurrence('once');
     setChecklistText('');
     setDetailsOpen(false);
     setPickingTemplate(!prefill?.title && !prefill?.templateCode);
-  }, [open, prefill, fields, selfKey]);
+  }, [open, prefill, fields, usableFields, selfKey]);
 
   const canSubmit = Boolean(title.trim() && fieldId && !busy);
 
@@ -132,7 +151,7 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
       scheduledFor: timing === 'pickDate' && scheduledFor ? scheduledFor : undefined,
       note: note.trim() || undefined,
       notes: note.trim() || undefined,
-      recurrence: recurrence.trim() || undefined,
+      recurrence: recurrence === 'once' ? undefined : recurrence,
       checklist: checklist.length > 0 ? checklist : undefined,
       ...parseAssignee(assigneeKey),
     });
@@ -144,22 +163,15 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
       onClose={onClose}
       size="md"
       className="schedule-work-sheet"
-      title={
-        pickingTemplate ? t('schedule.templates.title') : t('schedule.title')
-      }
-      subtitle={pickingTemplate ? t('schedule.templates.subtitle') : undefined}
+      title={pickingTemplate ? t('schedule.templates.title') : t('schedule.title')}
+      subtitle={pickingTemplate ? t('schedule.templates.subtitle') : t('schedule.formHint')}
       footer={
         pickingTemplate ? null : (
           <div className="schedule-work-footer">
             <Button variant="outline" size="lg" onClick={onClose} disabled={busy}>
               {t('schedule.cancel')}
             </Button>
-            <Button
-              variant="primary"
-              size="lg"
-              disabled={!canSubmit}
-              onClick={handleSubmit}
-            >
+            <Button variant="primary" size="lg" disabled={!canSubmit} onClick={handleSubmit}>
               {t('schedule.submit')}
             </Button>
           </div>
@@ -180,11 +192,18 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
         <div className="schedule-work-form">
           {error ? <p className="task-form-error" role="alert">{error}</p> : null}
 
-          <label className="task-form-field">
-            <span className="task-form-label">{t('schedule.what')}</span>
-            <div className="schedule-title-row">
+          <section className="schedule-section">
+            <h3 className="schedule-prompt">{t('schedule.what')}</h3>
+            <div className="schedule-title-card">
+              {templateCode ? (
+                <TaskCategoryMark templateCode={templateCode} size={22} />
+              ) : (
+                <span className="schedule-title-icon" aria-hidden>
+                  <Pencil size={20} />
+                </span>
+              )}
               <input
-                className="task-form-input"
+                className="schedule-title-input"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder={t('schedule.whatPlaceholder')}
@@ -195,44 +214,57 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
                 className="schedule-pick-template"
                 onClick={() => setPickingTemplate(true)}
               >
+                <Grid2X2 size={16} aria-hidden />
                 {t('schedule.pickTemplate')}
               </button>
             </div>
-          </label>
+          </section>
 
-          <label className="task-form-field">
-            <span className="task-form-label">{t('schedule.field')}</span>
-            <select
-              className="task-form-input"
-              value={fieldId}
-              onChange={(event) => setFieldId(event.target.value)}
-            >
-              {fields.length === 0 ? (
-                <option value="">{t('schedule.noFields')}</option>
-              ) : null}
-              {fields.map((field) => (
-                <option key={field.id} value={field.id}>
-                  {field.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <section className="schedule-section">
+            <h3 className="schedule-prompt" id="schedule-field-label">
+              {t('schedule.field')}
+            </h3>
+            <div className="schedule-when-chips" role="radiogroup" aria-labelledby="schedule-field-label">
+              {usableFields.length === 0 ? (
+                <span className="schedule-empty-fields">{t('schedule.noFields')}</span>
+              ) : (
+                usableFields.map((field) => (
+                  <button
+                    key={field.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={fieldId === field.id}
+                    className={`task-type-chip${fieldId === field.id ? ' is-selected' : ''}`}
+                    onClick={() => setFieldId(field.id)}
+                  >
+                    <span
+                      className="schedule-field-dot"
+                      style={{ background: resolveFieldColor(field.color, field.id) }}
+                      aria-hidden
+                    />
+                    {field.name}
+                  </button>
+                ))
+              )}
+            </div>
+          </section>
 
-          <div className="task-form-field">
-            <span className="task-form-label" id="schedule-when-label">
+          <section className="schedule-section">
+            <h3 className="schedule-prompt" id="schedule-when-label">
               {t('schedule.when.label')}
-            </span>
+            </h3>
             <div className="schedule-when-chips" role="radiogroup" aria-labelledby="schedule-when-label">
-              {TIMING_CHIPS.map((chip) => (
+              {TIMING_CHIPS.map(({ id, labelKey, Icon }) => (
                 <button
-                  key={chip.id}
+                  key={id}
                   type="button"
                   role="radio"
-                  aria-checked={timing === chip.id}
-                  className={`task-type-chip${timing === chip.id ? ' is-selected' : ''}`}
-                  onClick={() => setTiming(chip.id)}
+                  aria-checked={timing === id}
+                  className={`task-type-chip${timing === id ? ' is-selected' : ''}`}
+                  onClick={() => setTiming(id)}
                 >
-                  {t(chip.labelKey)}
+                  <Icon size={16} aria-hidden />
+                  {t(labelKey)}
                 </button>
               ))}
             </div>
@@ -244,12 +276,12 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
                 onChange={(event) => setScheduledFor(event.target.value)}
               />
             ) : null}
-          </div>
+          </section>
 
-          <div className="task-form-field">
-            <span className="task-form-label" id="schedule-who-label">
+          <section className="schedule-section">
+            <h3 className="schedule-prompt" id="schedule-who-label">
               {t('schedule.who')}
-            </span>
+            </h3>
             <AssigneeSelector
               options={assigneeOptions}
               value={assigneeKey}
@@ -257,7 +289,7 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
               hideLabel
               labelId="schedule-who-label"
             />
-          </div>
+          </section>
 
           <div className="schedule-more">
             <button
@@ -280,15 +312,29 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
                     placeholder={t('schedule.notePlaceholder')}
                   />
                 </label>
-                <label className="task-form-field">
-                  <span className="task-form-label">{t('schedule.repeat')}</span>
-                  <input
-                    className="task-form-input"
-                    value={recurrence}
-                    onChange={(event) => setRecurrence(event.target.value)}
-                    placeholder={t('schedule.repeatPlaceholder')}
-                  />
-                </label>
+                <div className="task-form-field">
+                  <span className="task-form-label" id="schedule-repeat-label">
+                    {t('schedule.repeat')}
+                  </span>
+                  <div
+                    className="schedule-when-chips"
+                    role="radiogroup"
+                    aria-labelledby="schedule-repeat-label"
+                  >
+                    {RECURRENCE_CHIPS.map((chip) => (
+                      <button
+                        key={chip.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={recurrence === chip.id}
+                        className={`task-type-chip${recurrence === chip.id ? ' is-selected' : ''}`}
+                        onClick={() => setRecurrence(chip.id)}
+                      >
+                        {t(chip.labelKey)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <label className="task-form-field">
                   <span className="task-form-label">{t('schedule.checklist')}</span>
                   <textarea

@@ -76,6 +76,7 @@ const TasksPage: React.FC = () => {
   const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
+  const [taskCounts, setTaskCounts] = useState({ today: 0, upcoming: 0, done: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -167,16 +168,21 @@ const TasksPage: React.FC = () => {
     try {
       setError(null);
       const tasksApi = getTaskService();
-      const [fieldsData, tasksData] = await Promise.all([
+      const listOpts = { fieldId: fieldFilter || undefined };
+      const [fieldsData, todayData, upcomingData, doneData] = await Promise.all([
         getFieldService().getFields('tasks').catch(() => [] as Field[]),
-        tasksApi.listTasks({
-          view,
-          fieldId: fieldFilter || undefined,
-        }),
+        tasksApi.listTasks({ view: 'today', ...listOpts }),
+        tasksApi.listTasks({ view: 'upcoming', ...listOpts }),
+        tasksApi.listTasks({ view: 'done', ...listOpts }),
       ]);
 
       setFields(fieldsData);
-      setTasks(tasksData);
+      setTaskCounts({
+        today: todayData.length,
+        upcoming: upcomingData.length,
+        done: doneData.length,
+      });
+      setTasks(view === 'done' ? doneData : view === 'upcoming' ? upcomingData : todayData);
 
       if (view === 'today') {
         const fieldIds = fieldFilter
@@ -516,13 +522,6 @@ const TasksPage: React.FC = () => {
       setBusyId(null);
     }
   };
-
-  const taskCounts = useMemo(() => {
-    // Suggestions never count. Counts reflect loaded view list sizes for open views.
-    if (view === 'done') return { today: 0, upcoming: 0, done: tasks.length };
-    if (view === 'upcoming') return { today: 0, upcoming: tasks.length, done: 0 };
-    return { today: tasks.length, upcoming: 0, done: 0 };
-  }, [tasks, view]);
 
   const showSkeleton = pageGuard.loading || loading;
 

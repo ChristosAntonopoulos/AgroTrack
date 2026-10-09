@@ -290,8 +290,10 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
     }
   }, [fields, optimisticGroveFieldId]);
 
+  // Wait for fields hydrate — empty list briefly looks like “needs setup” and
+  // flashes «Ρύθμιση ελαιώνα» over Tasks / other modules.
   const visible =
-    eligible && (persisted.forceShow || !setupUnlocked);
+    fieldsHydrated && eligible && (persisted.forceShow || !setupUnlocked);
 
   const activeStep = useMemo((): OwnerActivationStepId | null => {
     for (const step of OWNER_ACTIVATION_STEPS) {

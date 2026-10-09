@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Handshake, Users } from 'lucide-react';
+import { Handshake, Users } from 'lucide-react';
 import Button from '../Common/Button';
+import '../money/Money.css';
+import '../Capture/Capture.css';
 import { Field } from '../../services/fieldService';
 import {
   SavedContact,
@@ -45,6 +47,8 @@ type Props = {
   onInvitePartner?: (prefill: InvitePrefill, fieldId: string) => void;
 };
 
+const FORM_ID = 'saved-contact-form';
+
 const SavedContactSheet: React.FC<Props> = ({
   open = true,
   fieldId,
@@ -71,15 +75,19 @@ const SavedContactSheet: React.FC<Props> = ({
       : [];
   const [serviceCategoryIds, setServiceCategoryIds] = useState<string[]>(existing?.serviceCategoryIds || []);
   const [source, setSource] = useState<'Manual' | 'PhoneBook'>(existing?.source || 'Manual');
+  const [entry, setEntry] = useState<'manual' | 'phone'>(existing?.source === 'PhoneBook' ? 'phone' : 'manual');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(Boolean(existing?.email || existing?.notes));
+  const [detailsOpen, setDetailsOpen] = useState(
+    Boolean(existing?.notes || (existing?.serviceCategoryIds && existing.serviceCategoryIds.length > 0))
+  );
   const [pickedFieldId, setPickedFieldId] = useState('');
   const canPick = canPickDeviceContact();
   const inviteTarget = fieldId || pickedFieldId || inviteFields[0]?.id || '';
   const seats = inviteTarget ? seatsByField[inviteTarget] : undefined;
   const showFieldPicker = !fieldId && inviteFields.length > 1;
+  const showEntryMode = canPick && !existing;
 
   const toggleCategory = (id: string) => {
     setServiceCategoryIds((current) =>
@@ -88,6 +96,7 @@ const SavedContactSheet: React.FC<Props> = ({
   };
 
   const fromPhone = async () => {
+    setEntry('phone');
     try {
       const picked = await pickDeviceContact();
       if (!picked) return;
@@ -95,8 +104,8 @@ const SavedContactSheet: React.FC<Props> = ({
       if (picked.phone) setPhone(picked.phone);
       if (picked.email) setEmail(picked.email);
       setSource('PhoneBook');
-      if (picked.email) setDetailsOpen(true);
     } catch {
+      setEntry('manual');
       setError(t('partners:contactPickerUnavailable'));
     }
   };
@@ -159,205 +168,269 @@ const SavedContactSheet: React.FC<Props> = ({
     onInvitePartner?.(prefill(), inviteTarget);
   };
 
+  const fieldLabel =
+    fields
+      .filter((field) => fieldIds.includes(field.id))
+      .map((field) => field.name)
+      .join(', ') || fieldId;
+
   return (
     <PartnersSheet
       open={open}
+      kicker={t('partners:notebookKicker')}
       title={existing ? t('partners:editContact') : t('partners:newContact')}
       subtitle={t('partners:saveContactHint')}
       onClose={onClose}
       footer={
-        <div className="partners-sheet-actions">
-          <Button type="button" loading={saving} disabled={!name.trim()} onClick={() => void save()}>
-            {existing ? t('partners:saveContactEdit') : t('partners:saveContactCreate')}
-          </Button>
-          {existing ? (
-            <Button type="button" variant="outline" onClick={() => void remove()} loading={deleting}>
-              {t('partners:deleteContact')}
-            </Button>
-          ) : null}
-          <Button type="button" variant="ghost" onClick={onClose}>
-            {t('common:cancel')}
-          </Button>
+        <div className="people-money">
+          <div className="money-footer-actions">
+            <button
+              type="submit"
+              form={FORM_ID}
+              className="money-primary-action"
+              disabled={!name.trim() || saving || deleting}
+            >
+              {existing ? t('partners:saveContactEdit') : t('partners:saveContactCreate')}
+            </button>
+            {existing ? (
+              <button type="button" className="money-text-link" onClick={() => void remove()} disabled={deleting || saving}>
+                {t('partners:deleteContact')}
+              </button>
+            ) : (
+              <button type="button" className="money-text-link" onClick={onClose} disabled={saving}>
+                {t('common:cancel')}
+              </button>
+            )}
+          </div>
         </div>
       }
     >
-      <div className="contact-sheet-layout">
-        {canPick ? (
-          <Button type="button" variant="outline" className="btn-full-width" onClick={() => void fromPhone()}>
-            {t('partners:fromPhone')}
-          </Button>
-        ) : null}
-
-        {fieldIds.length > 0 ? (
-          <p className="partners-field-context">
-            {t('partners:fieldContext', {
-              field: fields
-                .filter((field) => fieldIds.includes(field.id))
-                .map((field) => field.name)
-                .join(', ') || fieldId,
-            })}
-          </p>
-        ) : null}
-
-        <section className="contact-panel" aria-labelledby="contact-notebook-title">
-          <p className="contact-panel-kicker" id="contact-notebook-title">
-            {t('partners:notebookKicker')}
-          </p>
-          <form
-            className="partners-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void save();
-            }}
-          >
-            <label>
-              <span>{t('partners:inviteName')}</span>
-              <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required autoFocus />
-            </label>
-            <label>
-              <span className="contact-label-row">
-                {t('partners:invitePhone')}
-                <em className="contact-optional">{t('partners:phoneOptional')}</em>
-              </span>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                autoComplete="tel"
-                inputMode="tel"
-              />
-            </label>
-            <PhoneActions phone={phone} />
-            <p className="partners-field-hint">{t('partners:saveLaterHint')}</p>
-
-            {categories.length > 0 ? (
-              <fieldset className="partners-fieldset">
-                <legend>{t('partners:whatTheyDo')}</legend>
-                <p className="partners-field-hint">{t('partners:importPhone.skillsHint')}</p>
-                <div className="partners-chip-select">
-                  {categories
-                    .filter((c) => c.isProminent || serviceCategoryIds.includes(c.id))
-                    .map((category) => {
-                      const on = serviceCategoryIds.includes(category.id);
-                      return (
-                        <button
-                          key={category.id}
-                          type="button"
-                          className={`partners-select-chip ${on ? 'is-on' : ''}`}
-                          aria-pressed={on}
-                          onClick={() => toggleCategory(category.id)}
-                        >
-                          {categoryName(category, i18n.language)}
-                        </button>
-                      );
-                    })}
-                </div>
-              </fieldset>
-            ) : null}
-
+      <div className="contact-sheet-form people-money">
+        {showEntryMode ? (
+          <div className="money-split-toggle" role="tablist" aria-label={t('partners:newContact')}>
             <button
               type="button"
-              className="partners-details-toggle contact-details-toggle"
-              aria-expanded={detailsOpen}
-              onClick={() => setDetailsOpen((openNow) => !openNow)}
+              role="tab"
+              aria-selected={entry === 'phone'}
+              className={entry === 'phone' ? 'is-on' : ''}
+              onClick={() => void fromPhone()}
             >
-              <span>{detailsOpen ? t('partners:hideDetails') : t('partners:addLaterDetails')}</span>
-              <ChevronDown size={18} aria-hidden />
+              {t('partners:peoplePage.fromContacts')}
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={entry === 'manual'}
+              className={entry === 'manual' ? 'is-on' : ''}
+              onClick={() => setEntry('manual')}
+            >
+              {t('partners:peoplePage.newContact')}
+            </button>
+          </div>
+        ) : null}
 
-            {detailsOpen ? (
-              <div className="partners-form-details">
-                <label>
-                  <span className="contact-label-row">
-                    {t('partners:inviteEmail')}
-                    <em className="contact-optional">{t('partners:phoneOptional')}</em>
-                  </span>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-                </label>
-                <label>
-                  <span>{t('partners:contactNotes')}</span>
-                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
-                </label>
-              </div>
-            ) : null}
+        {fieldIds.length > 0 && fieldLabel ? (
+          <p className="invite-confirm">{t('partners:fieldContext', { field: fieldLabel })}</p>
+        ) : null}
 
-            {error ? <div className="error-message">{error}</div> : null}
-          </form>
-        </section>
+        <form
+          id={FORM_ID}
+          className="invite-panel"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void save();
+          }}
+        >
+          <label className="money-form-label" htmlFor="contact-name">
+            {t('partners:peoplePage.name')}
+            <input
+              id="contact-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('partners:peoplePage.namePlaceholder')}
+              autoComplete="name"
+              required
+              autoFocus
+            />
+          </label>
+
+          <label className="money-form-label" htmlFor="contact-phone">
+            <span>
+              {t('partners:invitePhone')}
+              <em>{t('partners:phoneOptional')}</em>
+            </span>
+            <input
+              id="contact-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder={t('partners:peoplePage.phonePlaceholder')}
+              autoComplete="tel"
+              inputMode="tel"
+            />
+          </label>
+
+          <label className="money-form-label" htmlFor="contact-email">
+            <span>
+              {t('partners:inviteEmail')}
+              <em>{t('partners:phoneOptional')}</em>
+            </span>
+            <input
+              id="contact-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t('partners:peoplePage.emailPlaceholder')}
+              autoComplete="email"
+              inputMode="email"
+            />
+          </label>
+
+          <PhoneActions phone={phone} email={email} />
+          <p className="invite-confirm">{t('partners:saveLaterHint')}</p>
+
+          <button
+            type="button"
+            className="capture-more-toggle"
+            aria-expanded={detailsOpen}
+            onClick={() => setDetailsOpen((openNow) => !openNow)}
+          >
+            {detailsOpen ? t('partners:hideDetails') : t('partners:addLaterDetails')}
+          </button>
+
+          {detailsOpen ? (
+            <div className="contact-more-body">
+              {categories.length > 0 ? (
+                <fieldset className="partners-fieldset">
+                  <legend>{t('partners:whatTheyDo')}</legend>
+                  <p className="invite-confirm">{t('partners:importPhone.skillsHint')}</p>
+                  <div className="partners-chip-select">
+                    {categories
+                      .filter((c) => c.isProminent || serviceCategoryIds.includes(c.id))
+                      .map((category) => {
+                        const on = serviceCategoryIds.includes(category.id);
+                        return (
+                          <button
+                            key={category.id}
+                            type="button"
+                            className={`partners-select-chip ${on ? 'is-on' : ''}`}
+                            aria-pressed={on}
+                            onClick={() => toggleCategory(category.id)}
+                          >
+                            {categoryName(category, i18n.language)}
+                          </button>
+                        );
+                      })}
+                  </div>
+                </fieldset>
+              ) : null}
+
+              <label className="money-form-label" htmlFor="contact-notes">
+                {t('partners:contactNotes')}
+                <textarea
+                  id="contact-notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                />
+              </label>
+            </div>
+          ) : null}
+
+          {error ? (
+            <p className="people-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </form>
 
         {onInviteFamily || onInvitePartner ? (
-        <section className="contact-panel contact-panel-app" aria-labelledby="contact-app-access-title">
-          <h3 id="contact-app-access-title">{t('partners:appAccessTitle')}</h3>
-          <p className="partners-field-hint">{t('partners:appAccessHint')}</p>
+          <section className="contact-access" aria-labelledby="contact-app-access-title">
+            <h3 className="perm-label" id="contact-app-access-title">
+              {t('partners:appAccessTitle')}
+            </h3>
+            <p className="perm-hint">{t('partners:appAccessHint')}</p>
 
-          {inviteFields.length === 0 ? (
-            <>
-              <p className="partners-inline-hint">
-                {hasFields ? t('partners:team.viewOnly') : t('partners:appAccessNeedField')}
-              </p>
-              {!hasFields ? (
-                <Button as={Link} to="/fields/new" variant="outline" onClick={onClose}>
-                  {t('partners:appAccessAddField')}
-                </Button>
-              ) : null}
-            </>
-          ) : (
-            <>
-              {showFieldPicker ? (
-                <label className="contact-field-pick">
-                  <span>{t('partners:appAccessPickField')}</span>
-                  <select value={inviteTarget} onChange={(event) => setPickedFieldId(event.target.value)}>
-                    {inviteFields.map((field) => (
-                      <option key={field.id} value={field.id}>
-                        {field.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-              <div className="partners-choice-grid contact-app-actions">
-                <button
-                  type="button"
-                  className="partners-choice-card"
-                  disabled={!seats?.canInviteFamily}
-                  onClick={inviteFamily}
-                >
-                  <span className="partners-choice-icon" aria-hidden>
-                    <Users size={22} />
-                  </span>
-                  <span className="partners-choice-title">{t('partners:inviteFamilySeat')}</span>
-                  <span className="partners-choice-desc">
-                    {seats?.canInviteFamily
-                      ? t('partners:inviteFamilySeatHint')
-                      : t('partners:inviteFamilySeatFull', {
-                          used: seats?.familyUsed ?? 0,
-                          max: seats?.familyMax ?? 2,
-                        })}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="partners-choice-card"
-                  disabled={!seats?.canInvitePartner}
-                  onClick={invitePartner}
-                >
-                  <span className="partners-choice-icon" aria-hidden>
-                    <Handshake size={22} />
-                  </span>
-                  <span className="partners-choice-title">{t('partners:invitePartnerSeat')}</span>
-                  <span className="partners-choice-desc">
-                    {seats?.canInvitePartner
-                      ? t('partners:invitePartnerSeatHint')
-                      : t('partners:invitePartnerSeatFull', {
-                          used: seats?.partnerUsed ?? 0,
-                          max: seats?.partnerMax ?? 1,
-                        })}
-                  </span>
-                </button>
-              </div>
-            </>
-          )}
-        </section>
+            {inviteFields.length === 0 ? (
+              <>
+                <p className="perm-hint">
+                  {hasFields ? t('partners:team.viewOnly') : t('partners:appAccessNeedField')}
+                </p>
+                {!hasFields ? (
+                  <Button as={Link} to="/fields/new" variant="outline" size="lg" onClick={onClose}>
+                    {t('partners:appAccessAddField')}
+                  </Button>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {showFieldPicker ? (
+                  <label className="money-form-label" htmlFor="contact-invite-field">
+                    {t('partners:appAccessPickField')}
+                    <select
+                      id="contact-invite-field"
+                      value={inviteTarget}
+                      onChange={(event) => setPickedFieldId(event.target.value)}
+                    >
+                      {inviteFields.map((field) => (
+                        <option key={field.id} value={field.id}>
+                          {field.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <ul className="invite-option-list">
+                  <li>
+                    <button
+                      type="button"
+                      className="invite-option"
+                      disabled={!seats?.canInviteFamily}
+                      onClick={inviteFamily}
+                    >
+                      <span className="invite-contact-avatar" aria-hidden>
+                        <Users size={16} />
+                      </span>
+                      <span className="invite-option-copy">
+                        <strong>{t('partners:inviteFamilySeat')}</strong>
+                        <span>
+                          {seats?.canInviteFamily
+                            ? t('partners:inviteFamilySeatHint')
+                            : t('partners:inviteFamilySeatFull', {
+                                used: seats?.familyUsed ?? 0,
+                                max: seats?.familyMax ?? 2,
+                              })}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      className="invite-option"
+                      disabled={!seats?.canInvitePartner}
+                      onClick={invitePartner}
+                    >
+                      <span className="invite-contact-avatar" aria-hidden>
+                        <Handshake size={16} />
+                      </span>
+                      <span className="invite-option-copy">
+                        <strong>{t('partners:invitePartnerSeat')}</strong>
+                        <span>
+                          {seats?.canInvitePartner
+                            ? t('partners:invitePartnerSeatHint')
+                            : t('partners:invitePartnerSeatFull', {
+                                used: seats?.partnerUsed ?? 0,
+                                max: seats?.partnerMax ?? 1,
+                              })}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                </ul>
+              </>
+            )}
+          </section>
         ) : null}
       </div>
     </PartnersSheet>

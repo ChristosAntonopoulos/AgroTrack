@@ -538,12 +538,12 @@
     "cannotChangeGrove": "modificare l'uliveto",
     "cannotOwn": "diventarne proprietario",
     "alreadyAccess": "Ha già accesso",
-    "needReach": "Serve un'email o un telefono per inviare l'invito.",
+    "needReach": "Serve un'email per inviare l'invito.",
     "searchLabel": "Cerca contatto",
     "searchPlaceholder": "Nome, email o telefono",
     "searchHint": "Scegli un contatto salvato oppure scrivi una nuova email.",
     "fromContacts": "Dai contatti",
-    "newContactHint": "Nome, email o telefono per l'invito.",
+    "newContactHint": "Nome ed email per l'invito.",
     "namePlaceholder": "Elena Papadaki",
     "emailPlaceholder": "name@example.com",
     "phonePlaceholder": "69…",
@@ -600,7 +600,7 @@
     "steps": {
       "1": {
         "title": "Chi vuoi invitare?",
-        "hint": "Scegli un contatto oppure inserisci email e telefono."
+        "hint": "Nome ed email."
       },
       "2": {
         "title": "In quali uliveti?",

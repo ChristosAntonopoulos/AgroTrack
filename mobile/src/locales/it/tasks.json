@@ -2,25 +2,26 @@
   "failedLoad": "Impossibile caricare i lavori",
   "page": {
     "title": "Lavori",
-    "scheduleCta": "+ Programma un lavoro",
+    "scheduleCta": "Programma un lavoro",
     "fieldFilter": "Oliveto",
     "allFields": "Tutti gli oliveti",
     "viewsAria": "Viste lavori",
     "tabs": {
-      "today": "Oggi",
+      "today": "Aperti",
       "upcoming": "Prossimi",
       "done": "Fatti"
     }
   },
   "schedule": {
     "title": "Programma un lavoro",
+    "formHint": "Poche scelte semplici — come entrate e uscite.",
     "cancel": "Annulla",
     "submit": "Programma",
     "failedSave": "Impossibile programmare.",
     "what": "Cosa bisogna fare?",
     "whatPlaceholder": "es. Potatura, controllo trappole…",
     "pickTemplate": "Modelli",
-    "field": "Nell'oliveto",
+    "field": "In quale oliveto?",
     "noFields": "Crea prima un oliveto",
     "when": {
       "label": "Quando?",
@@ -30,7 +31,7 @@
       "otherDay": "Altro giorno",
       "sometime": "Prima o poi"
     },
-    "who": "Chi?",
+    "who": "Chi lo farà?",
     "assigneeMe": "Io",
     "decideLater": "Più tardi",
     "moreDetails": "Altri dettagli",
@@ -38,6 +39,9 @@
     "note": "Nota",
     "notePlaceholder": "Qualcosa di utile per il lavoro",
     "repeat": "Ripeti",
+    "repeatOnce": "Una volta",
+    "repeatWeekly": "Ogni settimana",
+    "repeatMonthly": "Ogni mese",
     "repeatPlaceholder": "es. Ogni settimana",
     "checklist": "Elenco",
     "checklistPlaceholder": "Un passo per riga",

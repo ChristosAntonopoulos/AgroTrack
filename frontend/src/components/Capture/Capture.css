@@ -563,7 +563,7 @@
 .capture-context-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
   max-width: 100%;
   min-height: 36px;
   padding: 0.35rem 0.65rem;
@@ -576,6 +576,14 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   cursor: pointer;
+}
+
+.capture-context-chip-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(34, 40, 31, 0.16);
 }
 
 .capture-context-chip.is-empty {
@@ -645,10 +653,11 @@
 }
 
 .capture-context-field-swatch {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
   flex-shrink: 0;
+  border: 1px solid rgba(34, 40, 31, 0.16);
 }
 
 .capture-catalog-grid {
@@ -754,12 +763,11 @@
 }
 
 .capture-quick-swatch {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
   flex-shrink: 0;
-  border: 1px solid rgba(34, 40, 31, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(34, 40, 31, 0.16);
 }
 
 .capture-quick-context-text {

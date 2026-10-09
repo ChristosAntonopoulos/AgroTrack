@@ -581,12 +581,12 @@
     "cannotChangeGrove": "να αλλάζει τον ελαιώνα",
     "cannotOwn": "να γίνει ιδιοκτήτης",
     "alreadyAccess": "Ήδη έχει πρόσβαση",
-    "needReach": "Βάλε κινητό ή email, για να σταλεί η πρόσκληση.",
+    "needReach": "Βάλε email, για να σταλεί η πρόσκληση.",
     "searchLabel": "Αναζήτηση επαφής",
     "searchPlaceholder": "Όνομα, email ή τηλέφωνο",
     "searchHint": "Διάλεξε υπάρχουσα επαφή ή γράψε νέο email.",
     "fromContacts": "Από επαφές",
-    "newContactHint": "Όνομα και κινητό ή email για την πρόσκληση.",
+    "newContactHint": "Όνομα και email για την πρόσκληση.",
     "namePlaceholder": "Ελένη Παπαδάκη",
     "emailPlaceholder": "name@example.com",
     "phonePlaceholder": "69…",
@@ -644,7 +644,7 @@
     "steps": {
       "1": {
         "title": "Ποιον προσθέτεις;",
-        "hint": "Όνομα και κινητό ή email."
+        "hint": "Όνομα και email."
       },
       "2": {
         "title": "Τι πρόσβαση έχει;",

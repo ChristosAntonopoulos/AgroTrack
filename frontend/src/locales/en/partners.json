@@ -581,12 +581,12 @@
     "cannotChangeGrove": "change the grove",
     "cannotOwn": "become the owner",
     "alreadyAccess": "Already has access",
-    "needReach": "Add a mobile number or email so the invitation can be sent.",
+    "needReach": "Add an email so the invitation can be sent.",
     "searchLabel": "Search contacts",
     "searchPlaceholder": "Name, email, or phone",
     "searchHint": "Choose a saved contact or type a new email.",
     "fromContacts": "From contacts",
-    "newContactHint": "Name and mobile or email for the invitation.",
+    "newContactHint": "Name and email for the invitation.",
     "namePlaceholder": "Elena Papadaki",
     "emailPlaceholder": "name@example.com",
     "phonePlaceholder": "69…",
@@ -642,7 +642,7 @@
       "documents": "Documents"
     },
     "steps": {
-      "1": { "title": "Who are you adding?", "hint": "Name and mobile or email." },
+      "1": { "title": "Who are you adding?", "hint": "Name and email." },
       "2": {
         "title": "What access do they get?",
         "hint": "Relationship, a simple role, and groves if needed.",

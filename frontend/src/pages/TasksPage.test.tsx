@@ -135,8 +135,8 @@ const task = (overrides: Partial<Task> = {}): Task => ({
   statusLabel: 'Προγραμματισμένη',
   source: 'custom',
   timingBucket: 'today',
-  scheduledFor: '2026-10-08',
-  plannedStart: '2026-10-08',
+  scheduledFor: '2026-10-09',
+  plannedStart: '2026-10-09',
   checklist: [],
   createdByUserId: 'owner-1',
   createdAt: '2026-06-01T00:00:00Z',
@@ -183,11 +183,11 @@ describe('TasksPage Phase 2 shell', () => {
     ]);
   });
 
-  it('defaults to today with three tabs', async () => {
+  it('defaults to open tab with three tabs', async () => {
     renderTasks();
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Σήμερα', selected: true })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Ανοιχτές', selected: true })).toBeInTheDocument();
     });
     expect(screen.getAllByRole('tab')).toHaveLength(3);
     expect(screen.getByRole('tab', { name: 'Επόμενες' })).toBeInTheDocument();
@@ -204,7 +204,7 @@ describe('TasksPage Phase 2 shell', () => {
     expect(screen.getByRole('heading', { name: 'Προτάσεις για τώρα' })).toBeInTheDocument();
     expect(screen.getAllByText('Εποχική υπενθύμιση.').length).toBeGreaterThan(0);
     // Tab count reflects tasks only (2), not suggestions
-    expect(screen.getByRole('tab', { name: 'Σήμερα' })).toHaveAccessibleDescription('2');
+    expect(screen.getByRole('tab', { name: 'Ανοιχτές' })).toHaveAccessibleDescription('2');
   });
 
   it('opens schedule sheet from the header CTA', async () => {
