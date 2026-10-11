@@ -8,8 +8,6 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "",
-        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "",
         "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID": "pro"
       }
     },
@@ -19,8 +17,6 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "",
-        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "",
         "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID": "pro"
       }
     },
@@ -32,8 +28,6 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.theolivelot.com",
         "EXPO_PUBLIC_SHOW_DEMO_LOGIN": "true",
-        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "",
-        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "",
         "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID": "pro"
       },
       "credentialsSource": "remote"

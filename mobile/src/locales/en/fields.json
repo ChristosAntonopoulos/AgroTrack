@@ -884,7 +884,7 @@
     },
     "since": "Since {{date}}",
     "start": "Start harvest",
-    "begin": "Start harvest",
+    "begin": "Start this harvest",
     "stop": "Finish harvest",
     "pause": "Pause",
     "resume": "Resume",
@@ -900,6 +900,13 @@
       "readyLine": "Sacks in the grove. Kilograms at the mill. Oil when it is pressed.",
       "confirmStart": "Begin today",
       "goToFields": "Go to fields"
+    },
+    "startGate": {
+      "title": "You can view this harvest",
+      "viewOnly": "Only someone with work access can start a new harvest on these fields.",
+      "helpOnly": "Help access can follow the season, but cannot start a new harvest.",
+      "noProduce": "Your access does not allow starting a harvest. Ask the field owner to grant work access.",
+      "generic": "You do not have permission to start a harvest on these fields."
     },
     "opening": {
       "title": "A good harvest",

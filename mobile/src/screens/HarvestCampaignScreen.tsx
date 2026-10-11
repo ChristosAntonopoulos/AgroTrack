@@ -932,7 +932,13 @@ const HarvestCampaignScreen = () => {
   }));
 
   return (
-    <ScreenLayout tabBarInset canvasOpacity={0.08} canvasSettle>
+    <ScreenLayout
+      tabBarInset
+      canvasOpacity={0.08}
+      canvasSettle
+      scroll={!isLive}
+      contentContainerStyle={!isLive ? { paddingBottom: spacing.xl } : undefined}
+    >
       <HarvestCampaignHeader
         title={t('fields:harvestCampaign.title')}
         season={seasonShort}
@@ -1025,12 +1031,16 @@ const HarvestCampaignScreen = () => {
             fields={startFields}
             pickedIds={pickedIds}
             canStart={harvestCaps.canStart}
+            seasonLabel={seasonShort}
+            restrictionKey={harvestCaps.editRestrictionReasonKey}
             startLabel={
               doneBanner
                 ? t('fields:harvestCampaign.complete.startAgain', {
                     defaultValue: t('fields:harvestCampaign.start'),
                   })
-                : t('fields:harvestCampaign.start')
+                : t('fields:harvestCampaign.begin', {
+                    defaultValue: t('fields:harvestCampaign.start'),
+                  })
             }
             onBegin={() => {
               setDoneBanner(false);

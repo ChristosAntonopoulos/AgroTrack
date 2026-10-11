@@ -57,7 +57,8 @@ export const getHarvestCapabilities = (opts: HarvestCapabilityInput): HarvestCap
   const canView = opts.hasAnyFieldAccess && harvestModule;
   const canProduce =
     canView && !viewOnly && !helpOnly && (canOwn || (canWork && harvestModule) || capture.canRecordHarvest);
-  const canStart = canView && canOwn && !viewOnly;
+  // Anyone who can log harvest days must be able to open the season — not only field admins.
+  const canStart = canProduce;
   const canCompleteSeason = canOwn && canView && !viewOnly;
   const canReopenSeason = canOwn && canView && !viewOnly;
   const canPause = canOwn && canView && !viewOnly;

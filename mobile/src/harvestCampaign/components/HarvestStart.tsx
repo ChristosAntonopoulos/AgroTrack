@@ -21,6 +21,8 @@ type Props = {
   pickedIds: string[];
   canStart: boolean;
   startLabel: string;
+  seasonLabel?: string;
+  restrictionKey?: 'viewOnly' | 'helpOnly' | 'noProduce' | null;
   onBegin: () => void;
   onToggle: (id: string) => void;
   onSelectAll: () => void;
@@ -61,6 +63,8 @@ export const HarvestStart: React.FC<Props> = ({
   pickedIds,
   canStart,
   startLabel,
+  seasonLabel,
+  restrictionKey,
   onBegin,
   onToggle,
   onSelectAll,
@@ -74,21 +78,71 @@ export const HarvestStart: React.FC<Props> = ({
   const { colors, tapMin } = useTheme();
 
   if (step === 0) {
+    const restrictionCopy =
+      restrictionKey === 'viewOnly'
+        ? t('harvestCampaign.startGate.viewOnly')
+        : restrictionKey === 'helpOnly'
+          ? t('harvestCampaign.startGate.helpOnly')
+          : restrictionKey === 'noProduce'
+            ? t('harvestCampaign.startGate.noProduce')
+            : t('harvestCampaign.startGate.generic');
+
     return (
-      <HarvestCard tone="hero" accent>
-        <View style={styles.welcome}>
-          <View style={[styles.mark, { backgroundColor: colors.eventHarvestSoft }]}>
-            <Ionicons name="basket-outline" size={32} color={colors.eventHarvest} />
+      <View style={styles.welcomeStack}>
+        <HarvestCard tone="hero" accent>
+          <View style={styles.welcome}>
+            <View style={[styles.mark, { backgroundColor: colors.eventHarvestSoft }]}>
+              <Ionicons name="basket-outline" size={34} color={colors.eventHarvest} />
+            </View>
+            {seasonLabel ? (
+              <Text style={[styles.seasonChip, { color: colors.eventHarvest }]}>{seasonLabel}</Text>
+            ) : null}
+            <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>
+              {t('harvestCampaign.opening.title')}
+            </Text>
+            <Text style={[styles.welcomeBody, { color: colors.textSecondary }]}>
+              {t('harvestCampaign.leadIdle')}
+            </Text>
+            <View style={styles.previewRow}>
+              {BEATS.map((beat) => (
+                <View
+                  key={beat.key}
+                  style={[
+                    styles.previewBeat,
+                    {
+                      backgroundColor: colors.eventHarvestSoft,
+                      borderColor: colors.borderLight,
+                    },
+                  ]}
+                >
+                  <Ionicons name={beat.icon} size={20} color={colors.eventHarvest} />
+                  <Text style={[styles.previewLabel, { color: colors.textPrimary }]}>
+                    {t(`harvestCampaign.addMenu.title.${beat.key}`)}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
-          <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>
-            {t('harvestCampaign.opening.title')}
-          </Text>
-          <Text style={[styles.welcomeBody, { color: colors.textSecondary }]}>
-            {t('harvestCampaign.opening.body')}
-          </Text>
-          {canStart ? <Button title={startLabel} onPress={onBegin} fullWidth /> : null}
-        </View>
-      </HarvestCard>
+        </HarvestCard>
+
+        {canStart ? (
+          <Button title={startLabel} onPress={onBegin} size="large" fullWidth />
+        ) : (
+          <HarvestCard tone="nudge">
+            <Text style={[styles.gateTitle, { color: colors.textPrimary }]}>
+              {t('harvestCampaign.startGate.title')}
+            </Text>
+            <Text style={[styles.gateBody, { color: colors.textSecondary }]}>{restrictionCopy}</Text>
+            {fields.length === 0 ? (
+              <Button
+                title={t('harvestCampaign.setup.goToFields')}
+                onPress={onGoToFields}
+                fullWidth
+              />
+            ) : null}
+          </HarvestCard>
+        )}
+      </View>
     );
   }
 
@@ -179,7 +233,7 @@ export const HarvestStart: React.FC<Props> = ({
       <Text style={[styles.body, { color: colors.textSecondary }]}>
         {t('harvestCampaign.setup.readyLine')}
       </Text>
-      <Button title={t('harvestCampaign.setup.confirmStart')} onPress={onConfirm} fullWidth />
+      <Button title={t('harvestCampaign.setup.confirmStart')} onPress={onConfirm} size="large" fullWidth />
       <Button title={t('common:back')} variant="ghost" onPress={onBack} fullWidth />
     </View>
   );
@@ -187,14 +241,21 @@ export const HarvestStart: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   stack: { gap: spacing.sm },
-  welcome: { gap: spacing.md, alignItems: 'center' },
+  welcomeStack: { gap: spacing.md },
+  welcome: { gap: spacing.sm, alignItems: 'center' },
   mark: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xs,
+  },
+  seasonChip: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   welcomeTitle: {
     fontSize: 28,
@@ -207,6 +268,37 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'center',
     marginBottom: spacing.xs,
+  },
+  previewRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignSelf: 'stretch',
+    marginTop: spacing.xs,
+  },
+  previewBeat: {
+    flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
+  },
+  previewLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  gateTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  gateBody: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: spacing.sm,
   },
   dots: { flexDirection: 'row', gap: 6, marginBottom: spacing.xs },
   dot: { width: 22, height: 4, borderRadius: radii.full },

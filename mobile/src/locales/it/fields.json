@@ -658,7 +658,7 @@
     },
     "since": "Dal {{date}}",
     "start": "Inizia raccolta",
-    "begin": "Iniziamo oggi",
+    "begin": "Inizia questa raccolta",
     "stop": "Termina raccolta",
     "pause": "Pausa",
     "resume": "Riprendi",
@@ -673,7 +673,14 @@
       "startHint": "Durante la raccolta puoi annotare sacchi, chili, persone, spese e olio.",
       "readyLine": "Sacchi in campo. Chili al frantoio. Olio quando esce.",
       "confirmStart": "Iniziamo oggi",
-      "goToFields": "Go to fields"
+      "goToFields": "Vai ai campi"
+    },
+    "startGate": {
+      "title": "Puoi vedere questa raccolta",
+      "viewOnly": "Solo chi ha accesso di lavoro può avviare una nuova raccolta su questi campi.",
+      "helpOnly": "Con accesso di aiuto puoi seguire la stagione, ma non avviare una nuova raccolta.",
+      "noProduce": "Il tuo accesso non consente di avviare una raccolta. Chiedi al proprietario l’accesso di lavoro.",
+      "generic": "Non hai il permesso di avviare una raccolta su questi campi."
     },
     "opening": {
       "title": "Buona raccolta",

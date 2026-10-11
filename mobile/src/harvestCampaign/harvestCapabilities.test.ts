@@ -43,8 +43,37 @@ describe('getHarvestCapabilities', () => {
     });
 
     expect(caps.canAddSacks).toBe(true);
+    expect(caps.canStart).toBe(true);
     expect(caps.canAddExpense).toBe(true);
     expect(caps.canMutateDay).toBe(true);
     expect(caps.captureKinds).toEqual(['sacks', 'mill', 'oil', 'people', 'expense', 'note']);
+  });
+
+  it('lets work seats start a harvest even without field-admin rights', () => {
+    const caps = getHarvestCapabilities({
+      hasAnyFieldAccess: true,
+      canOwn: false,
+      canWork: true,
+      accessLevel: 'work',
+      familyModules: new Set(['harvest', 'chronologio']),
+      harvestModuleGranted: true,
+    });
+
+    expect(caps.canAddSacks).toBe(true);
+    expect(caps.canStart).toBe(true);
+    expect(caps.editRestrictionReasonKey).toBeNull();
+  });
+
+  it('blocks start for view-only seats', () => {
+    const caps = getHarvestCapabilities({
+      hasAnyFieldAccess: true,
+      canOwn: false,
+      canWork: false,
+      accessLevel: 'view',
+      familyModules: new Set(['harvest']),
+      harvestModuleGranted: true,
+    });
+
+    expect(caps.canStart).toBe(false);
   });
 });
