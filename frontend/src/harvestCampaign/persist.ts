@@ -20,7 +20,9 @@ import type {
 } from './types';
 import { oilAmountToKg } from './totals';
 import { newHarvestEntryId } from './storage';
-import { upsertOilLotFromEntry } from '../myOil/syncOilLots';
+import { buildOilConfirmTarget, upsertOilLotFromEntry } from '../myOil/syncOilLots';
+import { isMockDataEnabled } from '../config/apiConfig';
+import { oilStockService, type ConfirmHarvestRecordInput } from '../services/oilStockService';
 
 const firstFieldId = (campaign: HarvestCampaign, preferred?: string | null) =>
   preferred || campaign.fieldOrder[0];
@@ -155,42 +157,62 @@ export async function persistOilRecord(
     relatedOliveKg && relatedOliveKg > 0
       ? Math.round((oilKg / relatedOliveKg) * 1000) / 10
       : undefined;
-  const ids: string[] = [];
+  const harvestRecords: ConfirmHarvestRecordInput[] = [];
+  for (const share of effectiveShares) {
+    const portion = allocated.get(share.fieldId) ?? 0;
+    if (portion <= 0 && oilKg > 0) continue;
+    const litres =
+      entry.unit === 'litres' && totalWeight > 0
+        ? Math.round((entry.amount * share.weight) / totalWeight * 1000) / 1000
+        : undefined;
+    harvestRecords.push({
+      fieldId: share.fieldId,
+      harvestDate: atNoon(entry.date),
+      harvestMethod: HARVEST_METHOD_OIL,
+      oliveKg: 0,
+      oilKg: Math.round(portion * 1000) / 1000,
+      oilLitres: litres,
+      oilYieldPercent: yieldPct,
+      notes: shareNote(entry.note, share.weight, totalWeight, effectiveShares.length),
+      batchId,
+      allocationWeight: share.weight,
+    });
+  }
+  if (harvestRecords.length === 0) return undefined;
 
+  // Errors propagate on purpose: a swallowed failure used to leave harvest rows with no oil
+  // in My Oil. The caller decides how to tell the farmer and keep the sheet open.
+  const oilEntry = { ...entry, batchId };
+  const target = buildOilConfirmTarget(oilEntry, []);
+  if (target && !isMockDataEnabled()) {
+    // One server call: harvest rows + oil lot/pressing, with the harvest rows voided server-side
+    // if the oil step fails. The key makes a network retry land on the same pressing.
+    const result = await oilStockService.confirmHarvestOil({
+      harvestRecords,
+      ...target,
+      idempotencyKey: `harvest-oil:${batchId}`,
+    });
+    const ids = result.harvestRecordIds;
+    return { batchId, harvestRecordIds: ids, harvestRecordId: ids[0] };
+  }
+
+  // Mock data keeps the two-step path; an entry with no oil to file only has harvest rows.
+  const ids: string[] = [];
   try {
-    for (const share of effectiveShares) {
-      const portion = allocated.get(share.fieldId) ?? 0;
-      if (portion <= 0 && oilKg > 0) continue;
-      const litres =
-        entry.unit === 'litres' && totalWeight > 0
-          ? Math.round((entry.amount * share.weight) / totalWeight * 1000) / 1000
-          : undefined;
-      const created = await getHarvestService().create({
-        fieldId: share.fieldId,
-        harvestDate: atNoon(entry.date),
-        harvestMethod: HARVEST_METHOD_OIL,
-        oliveKg: 0,
-        oilKg: Math.round(portion * 1000) / 1000,
-        oilLitres: litres,
-        oilYieldPercent: yieldPct,
-        notes: shareNote(entry.note, share.weight, totalWeight, effectiveShares.length),
-        batchId,
-        allocationWeight: share.weight,
-      });
+    for (const record of harvestRecords) {
+      const created = await getHarvestService().create(record);
       ids.push(created.id);
     }
-    if (ids.length === 0) return undefined;
-    try {
-      await upsertOilLotFromEntry({ ...entry, batchId, harvestRecordIds: ids }, ids);
-    } catch {
-      /* harvest records are saved; packing sync can retry from My Oil */
+    if (target) {
+      await upsertOilLotFromEntry({ ...oilEntry, harvestRecordIds: ids }, ids);
     }
-    return { batchId, harvestRecordIds: ids, harvestRecordId: ids[0] };
-  } catch {
-    return ids.length > 0
-      ? { batchId, harvestRecordIds: ids, harvestRecordId: ids[0] }
-      : undefined;
+  } catch (error) {
+    await Promise.allSettled(
+      ids.map((id) => getHarvestService().void(id, 'Oil record failed; rolled back'))
+    );
+    throw error;
   }
+  return { batchId, harvestRecordIds: ids, harvestRecordId: ids[0] };
 }
 
 export async function persistPeopleRecord(

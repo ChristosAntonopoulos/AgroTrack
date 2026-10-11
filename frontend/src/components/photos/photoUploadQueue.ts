@@ -439,6 +439,7 @@ export const createPhotoUploadQueue = (deps?: {
       replace(localId, { ...activate(job), result: undefined, progress: job.receivedBytes && job.size
         ? Math.round((job.receivedBytes / job.size) * 100)
         : 0 });
+      queue.pump();
     },
     remove: (localId) => {
       const target = jobs.find((job) => job.localId === localId);

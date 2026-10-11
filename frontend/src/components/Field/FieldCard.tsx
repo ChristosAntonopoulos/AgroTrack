@@ -30,6 +30,8 @@ interface FieldCardProps {
   onSelect?: (fieldId: string) => void;
   onHover?: (fieldId: string | null) => void;
   showActivityDate?: boolean;
+  /** QA-015: subscription writability. Omitted when unknown (no badge). */
+  writable?: boolean;
 }
 
 const FieldCard: React.FC<FieldCardProps> = ({
@@ -40,8 +42,9 @@ const FieldCard: React.FC<FieldCardProps> = ({
   selected,
   onSelect,
   onHover,
-  showActivityDate = false}) => {
-  const { t, i18n } = useTranslation(['fields']);
+  showActivityDate = false,
+  writable}) => {
+  const { t, i18n } = useTranslation(['fields', 'common']);
   const navigate = useNavigate();
   const accent = resolveFieldColor(field.color, field.id);
   const locale = normalizeLocale(i18n.language);
@@ -104,6 +107,14 @@ const FieldCard: React.FC<FieldCardProps> = ({
               {role
                 ? t(`fields:card.role.${role}`)
                 : t('fields:card.sharedBadge')}
+            </span>
+          ) : null}
+          {writable !== undefined ? (
+            <span
+              className={`field-card-badge field-card-badge--${writable ? 'editable' : 'readonly'}`}
+              data-testid="field-card-access"
+            >
+              {t(writable ? 'common:editableBadge' : 'common:readOnlyBadge')}
             </span>
           ) : null}
         </div>

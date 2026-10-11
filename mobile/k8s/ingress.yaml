@@ -1,0 +1,25 @@
+# In-cluster Ingress for control panel URL discovery. TLS termination is on host Caddy.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oleachron-mobile-web-ingress
+  namespace: oleachron-mobile
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - theolivelot-mobile.conceptatlas.eu
+      secretName: oleachron-mobile-web-tls
+  rules:
+    - host: theolivelot-mobile.conceptatlas.eu
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: olive-lifecycle-mobile-web-service
+                port:
+                  number: 80

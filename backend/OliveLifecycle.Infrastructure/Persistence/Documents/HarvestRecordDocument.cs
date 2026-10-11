@@ -84,6 +84,10 @@ public class HarvestRecordDocument
     [BsonElement("voidedBy")]
     public string? VoidedBy { get; set; }
 
+    [BsonElement("idempotencyKey")]
+    [BsonIgnoreIfNull]
+    public string? IdempotencyKey { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

@@ -25,6 +25,8 @@ public class CreateHarvestRecordDto
     /// <summary>Shared lot id when this row is one share of a multi-field mill/oil ticket.</summary>
     public string? BatchId { get; set; }
     public double? AllocationWeight { get; set; }
+    /// <summary>Optional client key; replay returns the existing harvest (QA Phase 0).</summary>
+    public string? IdempotencyKey { get; set; }
 }
 
 public class HarvestRecordDetailDto

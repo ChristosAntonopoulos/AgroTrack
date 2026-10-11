@@ -16,6 +16,30 @@ export type ChronologioReturnState = {
   zoom?: ChronologioZoom;
 };
 
+/**
+ * QA-050: identity of the data a Chronologio panel shows. Only the period parts that the zoom
+ * actually fetches are included, so switching zoom is "loading" immediately (never stale Months)
+ * and an unrelated focus change cannot leave the panel stuck loading.
+ */
+export const chronologioViewScope = (input: {
+  zoom: ChronologioZoom;
+  axis: string;
+  periodYear: number;
+  monthYear: number;
+  month: number;
+  fieldId?: string;
+  category: string;
+  lifecycleYear: string;
+}): string => {
+  const period =
+    input.zoom === 'year'
+      ? String(input.periodYear)
+      : input.zoom === 'month'
+        ? `${input.monthYear}-${input.month}`
+        : '';
+  return `${input.zoom}|${input.axis}|${period}|${input.fieldId || ''}|${input.category}|${input.lifecycleYear}`;
+};
+
 export const chronologioScrollKey = (input: {
   zoom: ChronologioZoom;
   focusDate: string;

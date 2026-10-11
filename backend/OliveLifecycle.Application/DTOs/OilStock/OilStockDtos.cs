@@ -1,3 +1,4 @@
+using OliveLifecycle.Application.DTOs.Harvest;
 using OliveLifecycle.Core.OilStock;
 
 namespace OliveLifecycle.Application.DTOs.OilStock;
@@ -125,6 +126,8 @@ public sealed class OilCommitmentDto
     public decimal? Amount { get; set; }
     public string Currency { get; set; } = "EUR";
     public string? FinancialTransactionId { get; set; }
+    /// <summary>unpaid | receivable | paid | cancelled. Only meaningful when <see cref="IsSale"/>.</summary>
+    public string PaymentStatus { get; set; } = "paid";
     public IReadOnlyList<OilLotAllocationDto> Allocations { get; set; } = [];
     public DateTime? PromisedFor { get; set; }
     public string? Notes { get; set; }
@@ -152,6 +155,22 @@ public sealed class CreateOilCommitmentDto
     public string? FinancialTransactionId { get; set; }
     /// <summary>Optional manual lot picks. Empty = FIFO auto-allocate.</summary>
     public List<OilLotAllocationDto>? Allocations { get; set; }
+
+    /// <summary>
+    /// Sales only. <c>null</c>/<c>true</c> = money was received (income is posted now, backward compatible).
+    /// <c>false</c> = sold on credit: no income is posted and the commitment becomes a receivable
+    /// until <c>collect-payment</c>.
+    /// </summary>
+    public bool? IsPaid { get; set; }
+
+    /// <summary>Optional replay key: a retry with the same key returns the original commitment.</summary>
+    public string? IdempotencyKey { get; set; }
+}
+
+public sealed class CollectOilPaymentDto
+{
+    /// <summary>When the money arrived. Defaults to now.</summary>
+    public DateTime? PaidOn { get; set; }
 }
 
 public sealed class DeliverOilCommitmentDto
@@ -266,6 +285,45 @@ public sealed class CreateOilPressingDto
     /// Who takes home how much. Empty means: file all farmer litres into the grove admin cellar.
     /// </summary>
     public List<OilPressingAllocationDto>? Allocations { get; set; }
+
+    /// <summary>Optional replay key: a retry with the same key returns the original pressing.</summary>
+    public string? IdempotencyKey { get; set; }
+}
+
+/// <summary>
+/// Harvest records + the oil they produced, saved as one unit. Exactly one of
+/// <see cref="Pressing"/> (mill ticket, server files the lots) or <see cref="Lot"/> (explicit tins
+/// into one cellar) says where the oil goes.
+/// </summary>
+public sealed class ConfirmHarvestOilDto
+{
+    /// <summary>Harvest rows to create. Voided again if the oil step fails.</summary>
+    public List<CreateHarvestRecordDto>? HarvestRecords { get; set; }
+
+    /// <summary>Harvest rows that already exist and only need linking to the oil.</summary>
+    public List<string>? HarvestRecordIds { get; set; }
+
+    public CreateOilPressingDto? Pressing { get; set; }
+    public UpsertOilLotDto? Lot { get; set; }
+
+    /// <summary>Replay key. Reused as the pressing's key so a retry never duplicates oil.</summary>
+    public string? IdempotencyKey { get; set; }
+}
+
+public sealed class ConfirmHarvestOilResultDto
+{
+    public IReadOnlyList<string> HarvestRecordIds { get; set; } = [];
+    public OilPressingDto? Pressing { get; set; }
+    public OilLotDto? Lot { get; set; }
+}
+
+/// <summary>Outcome of the harvest-oil orphan repair (QA-027).</summary>
+public sealed class ReconcileHarvestOilResultDto
+{
+    /// <summary>Batches that had harvest oil but no cellar oil and were filed now.</summary>
+    public IReadOnlyList<string> ReconciledBatchIds { get; set; } = [];
+    /// <summary>Batches left alone because they could not be filed (see logs / retry).</summary>
+    public IReadOnlyList<string> FailedBatchIds { get; set; } = [];
 }
 
 /// <summary>Admin pushes oil from their cellar into another platform user's cellar.</summary>

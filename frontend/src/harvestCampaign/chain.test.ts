@@ -1,7 +1,14 @@
 import { emptyCampaign, type HarvestCampaign } from './types';
 import { unconfirmedSacks } from './storage';
 import { campaignTotals, oilAmountToKg } from './totals';
-import { pendingSacksByDay, suggestMillIncludes, harvestChainStatus } from './chain';
+import { pendingSacksByDay, suggestMillIncludes, harvestChainStatus, sumSacks } from './chain';
+
+describe('QA_026 sack display', () => {
+  it('sums sackCount rather than counting records', () => {
+    expect(sumSacks([{ sacks: 12 }])).toBe(12);
+    expect(sumSacks([{ sacks: 12 }, { sacks: 3 }])).toBe(15);
+  });
+});
 
 describe('harvest chain helpers', () => {
   const base: HarvestCampaign = {

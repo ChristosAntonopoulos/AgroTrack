@@ -117,6 +117,7 @@ public static class OilStockMapper
         Status = document.Status ?? OilPressingStatuses.Confirmed,
         HarvestRecordIds = document.HarvestRecordIds ?? [],
         Notes = document.Notes,
+        IdempotencyKey = document.IdempotencyKey,
         Allocations = (document.Allocations ?? [])
             .Select(a => new PressingAllocation
             {
@@ -149,6 +150,7 @@ public static class OilStockMapper
         Status = entity.Status,
         HarvestRecordIds = entity.HarvestRecordIds,
         Notes = entity.Notes,
+        IdempotencyKey = entity.IdempotencyKey,
         Allocations = entity.Allocations
             .Select(a => new PressingAllocationDocument
             {
@@ -164,6 +166,19 @@ public static class OilStockMapper
         UpdatedAt = entity.UpdatedAt
     };
 
+    /// <summary>Documents saved before payment tracking: infer it from what money exists.</summary>
+    private static string ResolvePaymentStatus(OilCommitmentDocument document)
+    {
+        if (!string.IsNullOrWhiteSpace(document.PaymentStatus)) return document.PaymentStatus;
+        if (document.Cancelled) return OilPaymentStatuses.Cancelled;
+        if (!document.IsSale || !string.IsNullOrWhiteSpace(document.FinancialTransactionId))
+        {
+            return OilPaymentStatuses.Paid;
+        }
+
+        return document.Amount is > 0 ? OilPaymentStatuses.Unpaid : OilPaymentStatuses.Paid;
+    }
+
     public static OilCommitment ToEntity(OilCommitmentDocument document) => new()
     {
         Id = document.Id,
@@ -177,6 +192,8 @@ public static class OilStockMapper
         Amount = document.Amount,
         Currency = document.Currency,
         FinancialTransactionId = document.FinancialTransactionId,
+        PaymentStatus = ResolvePaymentStatus(document),
+        IdempotencyKey = document.IdempotencyKey,
         Allocations = (document.Allocations ?? [])
             .Select(a => new OilLotAllocation
             {
@@ -204,6 +221,8 @@ public static class OilStockMapper
         Amount = entity.Amount,
         Currency = entity.Currency,
         FinancialTransactionId = entity.FinancialTransactionId,
+        PaymentStatus = entity.PaymentStatus,
+        IdempotencyKey = entity.IdempotencyKey,
         Allocations = entity.Allocations
             .Select(a => new OilLotAllocationDocument
             {

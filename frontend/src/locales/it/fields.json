@@ -1135,7 +1135,7 @@
     "groveDone": "Terminato",
     "home": {
       "day": "Giorno {{day}}",
-      "whatAdd": "Aggiungi a questo giorno"
+      "whatAdd": "Aggiungi registrazione"
     },
     "addMenu": {
       "start": "Inizia da qui",
@@ -1476,7 +1476,7 @@
       "unitOilLitres": "L olio",
       "days": "Giorni",
       "empty": "Aggiungi sacchi, olive o olio per vedere il percorso.",
-      "emptyHint": "Inizia con + nella scheda Giorno.",
+      "emptyHint": "Inizia con Aggiungi registrazione nella scheda Giorno.",
       "needsMill": "senza pesata",
       "needsOil": "senza olio",
       "stagePendingWeigh": "In attesa di pesata",
@@ -1548,7 +1548,7 @@
       "kicker": "Questo giorno",
       "title": "Cosa hai registrato",
       "closedHint": "Riapri la giornata per modificare o aggiungere registrazioni.",
-      "empty": "Nessuna registrazione per questo giorno. Usa «Aggiungi a questo giorno» per sacchi, chili al frantoio, olio o persone.",
+      "empty": "Nessuna registrazione per questo giorno. Tocca «Aggiungi registrazione» per aggiungere sacchi, chili al frantoio, olio o persone.",
       "edit": "Modifica",
       "remove": "Elimina",
       "rowMenu": "Azioni registrazione",
@@ -1709,6 +1709,10 @@
   "sortAttention": "Serve attenzione",
   "emptySearchTitle": "Nessun campo corrispondente",
   "emptySearchDescription": "Prova un altro termine di ricerca o cancella il filtro.",
+  "emptyArchivedTitle": "Nessun campo archiviato",
+  "emptyArchivedDescription": "I campi che archivi compariranno qui.",
+  "emptyFilterTitle": "Nessun campo in questa vista",
+  "emptyFilterDescription": "Cambia il filtro qui sopra per vedere altri campi.",
   "summary": {
     "fields": "campi",
     "activeTasks": "attività attive",

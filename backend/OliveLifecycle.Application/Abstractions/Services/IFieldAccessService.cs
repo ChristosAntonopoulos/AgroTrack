@@ -1,3 +1,5 @@
+using OliveLifecycle.Core.Entities;
+
 namespace OliveLifecycle.Application.Abstractions.Services;
 
 public interface IFieldAccessService
@@ -45,5 +47,18 @@ public interface IFieldAccessService
         string userId,
         string module,
         bool requireCreateLevel = false,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// QA-044: throws ForbiddenException(FIELD_NOT_WRITABLE) when the billing plan
+    /// makes this grove view-only for the owner (free-plan single editable field).
+    /// </summary>
+    Task EnsureFieldWritableForWriteAsync(
+        string fieldId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Whether the billing owner's plan currently allows writes on this grove.</summary>
+    Task<bool> IsFieldWritableUnderSubscriptionAsync(
+        Field field,
         CancellationToken cancellationToken = default);
 }

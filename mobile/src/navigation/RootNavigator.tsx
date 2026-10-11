@@ -55,7 +55,7 @@ import {
   takePendingInviteToken,
   takePendingPartnerInviteToken,
 } from '../utils/pendingInvite';
-import { View, StyleSheet, AppState } from 'react-native';
+import { View, StyleSheet, AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import OwnerActivationHost from '../components/onboarding/OwnerActivationHost';
 import NavCoach from '../components/onboarding/NavCoach';
@@ -160,62 +160,69 @@ const RootNavigator = () => {
           'theolivelot://',
           'https://theolivelot.com',
           'https://www.theolivelot.com',
+          'https://theolivelot-mobile.conceptatlas.eu',
+          ...(Platform.OS === 'web' && typeof window !== 'undefined' ? [window.location.origin] : []),
         ],
         config: {
-          screens: {
-            InviteAccept: 'invite/:token',
-            FamilyInviteAccept: 'family-invite/:token',
-            PartnerInviteAccept: 'partner-invite/:token',
-            Auth: {
-              screens: {
-                Login: 'login',
-                Register: 'register',
-                ForgotPassword: 'forgot-password',
-                ResetPassword: 'reset-password',
-                Legal: 'legal/:kind',
+          // Invite URLs exist on both the signed-out and signed-in stacks, but only one
+          // stack is mounted. Registering both patterns at once makes the web router throw.
+          screens: isAuthenticated
+            ? {
                 InviteAccept: 'invite/:token',
-                SessionExpired: 'expired',
-              },
-            },
-            Main: {
-              screens: {
-                Launcher: 'workspace',
-                ChronologioTab: 'today',
-                Fields: {
+                FamilyInviteAccept: 'family-invite/:token',
+                PartnerInviteAccept: 'partner-invite/:token',
+                Main: {
                   screens: {
-                    FieldsHome: 'fields',
-                    HarvestCampaign: 'harvest',
+                    Launcher: 'workspace',
+                    ChronologioTab: 'today',
+                    Fields: {
+                      screens: {
+                        FieldsHome: 'fields',
+                        HarvestCampaign: 'harvest',
+                      },
+                    },
+                    Tasks: 'tasks',
+                    More: 'more',
                   },
                 },
-                Tasks: 'tasks',
-                More: 'more',
+                FieldDetail: 'fields/:fieldId',
+                Chronologio: 'chronologio/:fieldId?',
+                FieldWeatherVegetation: 'fields/:fieldId/weather-vegetation',
+                Money: 'money',
+                MyOil: {
+                  path: 'my-oil',
+                  parse: {
+                    field: (value: string) => value || undefined,
+                  },
+                },
+                Photos: 'photos',
+                Analytics: 'analytics',
+                Reports: 'reports',
+                ThisHarvest: 'this-harvest',
+                ThisHarvestReview: 'this-harvest/review',
+                Notifications: 'notifications',
+                Partners: 'partners',
+                NotesList: 'notes',
+                Calendar: 'calendar',
+                Settings: 'settings',
+                Subscription: 'subscription',
+                Help: 'help',
+                Feedback: 'feedback',
+                Dashboard: 'dashboard',
+              }
+            : {
+                Auth: {
+                  screens: {
+                    Login: 'login',
+                    Register: 'register',
+                    ForgotPassword: 'forgot-password',
+                    ResetPassword: 'reset-password',
+                    Legal: 'legal/:kind',
+                    InviteAccept: 'invite/:token',
+                    SessionExpired: 'expired',
+                  },
+                },
               },
-            },
-            FieldDetail: 'fields/:fieldId',
-            Chronologio: 'chronologio/:fieldId?',
-            FieldWeatherVegetation: 'fields/:fieldId/weather-vegetation',
-            Money: 'money',
-            MyOil: {
-              path: 'my-oil',
-              parse: {
-                field: (value: string) => value || undefined,
-              },
-            },
-            Photos: 'photos',
-            Analytics: 'analytics',
-            Reports: 'reports',
-            ThisHarvest: 'this-harvest',
-            ThisHarvestReview: 'this-harvest/review',
-            Notifications: 'notifications',
-            Partners: 'partners',
-            NotesList: 'notes',
-            Calendar: 'calendar',
-            Settings: 'settings',
-            Subscription: 'subscription',
-            Help: 'help',
-            Feedback: 'feedback',
-            Dashboard: 'dashboard',
-          },
         },
       }}
     >

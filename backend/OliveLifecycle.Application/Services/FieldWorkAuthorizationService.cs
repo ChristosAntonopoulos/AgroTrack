@@ -90,6 +90,7 @@ public class FieldWorkAuthorizationService : IFieldWorkAuthorizationService
         string userRole,
         CancellationToken cancellationToken = default)
     {
+        await _fieldAccess.EnsureFieldWritableForWriteAsync(fieldId, cancellationToken);
         var access = await ResolveAsync(fieldId, userId, userRole, cancellationToken);
         if (!access.CanCreateTasks)
         {
@@ -194,12 +195,17 @@ public class FieldWorkAuthorizationService : IFieldWorkAuthorizationService
             return OwnerAccess();
         }
 
-        var isOwner = await _fieldAccess.CanUserModifyFieldAsync(fieldId, userId, cancellationToken)
-            || FieldPeopleRules.IsAdmin(field, userId);
-
-        if (isOwner)
+        // QA-044: Admin seat alone must not bypass free-plan view-only. Writes require a writable grove.
+        var isAdminSeat = FieldPeopleRules.IsAdmin(field, userId);
+        var groveWritable = await _fieldAccess.IsFieldWritableUnderSubscriptionAsync(field, cancellationToken);
+        if (isAdminSeat && groveWritable)
         {
             return OwnerAccess();
+        }
+
+        if (isAdminSeat && !groveWritable)
+        {
+            return ViewOnlyOwnerAccess();
         }
 
         var familyCanCreate = await _fieldAccess.CanFamilyWriteModuleAsync(
@@ -249,5 +255,18 @@ public class FieldWorkAuthorizationService : IFieldWorkAuthorizationService
         CanEditWorkProfile = true,
         IsOwner = true,
         FinancialCapabilities = FinancialCapabilities.OwnerAll
+    };
+
+    /// <summary>Owner of a subscription view-only grove: read and operate assigned work only.</summary>
+    private static FieldWorkAccess ViewOnlyOwnerAccess() => new()
+    {
+        CanView = true,
+        CanManageProposals = false,
+        CanCreateTasks = false,
+        CanOperateAssignedTasks = true,
+        CanRecordPhenology = false,
+        CanEditWorkProfile = false,
+        IsOwner = true,
+        FinancialCapabilities = []
     };
 }

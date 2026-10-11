@@ -18,6 +18,8 @@ data:
   Cors__AllowedOrigins__1: "https://www.theolivelot.com"
   Cors__AllowedOrigins__2: "https://theolivelot.gr"
   Cors__AllowedOrigins__3: "https://www.theolivelot.gr"
+  Cors__AllowedOrigins__4: "https://theolivelot-mobile.conceptatlas.eu"
+  Cors__AllowedOrigins__5: "http://185.193.66.50:31849"
   App__PublicWebBaseUrl: "https://theolivelot.com"
   App__SupportEmail: "support@theolivelot.com"
   Email__SmtpHost: "smtp-gr.securemail.pro"

@@ -60,6 +60,7 @@
   "assignOutcomeContact": "The task will be recorded with this person as responsible. The app will not send a notification.",
   "assignOutcomeCollaborator": "This collaborator will see the assignment in the app.",
   "moreActions": "More",
+  "identityRef": "Ref. {{ref}}",
   "inviteExpiresOn": "Expires {{date}}",
   "inviteLifecycle": {
     "pending": "Pending",
@@ -85,6 +86,7 @@
   "whatTheyDo": "What they do",
   "editContact": "Edit contact",
   "deleteContact": "Delete contact",
+  "deleteContactConfirm": "Delete {{name}} from your contacts? This cannot be undone.",
   "inviteToOleachron": "Invite to The Olive Lot",
   "unassignedContacts": "Contacts without a field",
   "unassignedContactsHint": "Saved, but not connected to a field yet.",
@@ -165,7 +167,7 @@
     "cancelInviteConfirm": "Cancel the invite for {{name}}?",
     "checklistTitle": "Member status",
     "checklist": {
-      "hasContact": "Name and email",
+      "hasContact": "Email (name optional)",
       "inviteSent": "Invite sent",
       "accepted": "Accepted / signed in",
       "hasModules": "At least one part enabled",
@@ -490,7 +492,9 @@
     "reachPlaceholder": "69… or name@example.com",
     "newContact": "New contact",
     "name": "Name",
+    "nameOptional": "Name (optional)",
     "email": "Email",
+    "emailRequired": "Email (required)",
     "phone": "Phone",
     "customize": "Custom access",
     "resetPreset": "Reset role",
@@ -586,7 +590,7 @@
     "searchPlaceholder": "Name, email, or phone",
     "searchHint": "Choose a saved contact or type a new email.",
     "fromContacts": "From contacts",
-    "newContactHint": "Name and email for the invitation.",
+    "newContactHint": "Email is required for the invitation. Name is optional.",
     "namePlaceholder": "Elena Papadaki",
     "emailPlaceholder": "name@example.com",
     "phonePlaceholder": "69…",
@@ -599,6 +603,7 @@
     "willRegister": "An invitation will be sent to {{contact}}.",
     "willInvite": "An invitation will be sent to {{contact}}.",
     "registerAccount": "An invitation will be sent to {{email}}. The account is created when they accept it.",
+    "registerAccountExisting": "{{email}} already has an account. They will see this invitation in the app and can accept it there.",
     "registerAccountPhone": "An invitation will be sent to {{phone}}. The account is created when they accept it.",
     "changePerson": "Change",
     "groveSelected": "Selected",
@@ -642,7 +647,7 @@
       "documents": "Documents"
     },
     "steps": {
-      "1": { "title": "Who are you adding?", "hint": "Name and email." },
+      "1": { "title": "Who are you adding?", "hint": "Email is required. Name is optional." },
       "2": {
         "title": "What access do they get?",
         "hint": "Relationship, a simple role, and groves if needed.",

@@ -45,6 +45,10 @@
   "logout": "Esci",
   "logoutAria": "Esci",
   "familyCollaboratorBadge": "Collaboratore di {{owner}}",
+  "partnerOfBadge": "Partner di {{owner}}",
+  "familyOfBadge": "Famiglia di {{owner}}",
+  "readOnlyBadge": "Solo visualizzazione",
+  "editableBadge": "Modificabile",
   "roles": {
     "FieldOwner": "Proprietario dell’uliveto",
     "Producer": "Partner di campo",

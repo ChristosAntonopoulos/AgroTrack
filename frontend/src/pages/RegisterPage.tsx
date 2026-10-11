@@ -256,11 +256,12 @@ const RegisterPage: React.FC = () => {
       ? t('auth:register.errorSummary', { count: errorEntries.length })
       : errorEntries[0]?.message || null);
 
+  // QA-023: SPA legal routes so Terms/Privacy follow the active i18n locale (not a Greek-only static page).
   const legalLinks = (
     <p className="register-legal">
       {t('auth:register.legalPrefix')}{' '}
       <Link to="/terms">{t('auth:login.terms')}</Link> {t('auth:register.legalAnd')}{' '}
-      <a href="/privacy/">{t('auth:login.privacy')}</a>.
+      <Link to="/privacy">{t('auth:login.privacy')}</Link>.
     </p>
   );
 

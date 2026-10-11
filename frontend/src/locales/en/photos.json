@@ -172,7 +172,9 @@
   },
   "card": {
     "aria": "Photo {{index}} of {{total}}, {{field}}, {{date}} {{time}}",
-    "needsInfo": "Needs more detail — location or field was not in the photo."
+    "missingField": "No grove chosen",
+    "missingLocation": "No location in the photo",
+    "fixInfo": "Open to fix"
   },
   "select": {
     "toggle": "Select",

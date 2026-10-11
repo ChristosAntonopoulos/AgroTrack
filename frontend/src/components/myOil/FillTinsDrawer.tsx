@@ -4,6 +4,7 @@ import { Minus, Package, Plus, Sprout, Warehouse } from 'lucide-react';
 import Button from '../Common/Button';
 import RightDrawer from '../Common/RightDrawer';
 import { formatOilNumber } from '../../myOil/formatOilPack';
+import { fifoBulkLots } from '../../myOil/packSource';
 import type { OilLot } from '../../services/oilStockService';
 
 type Props = {
@@ -31,13 +32,8 @@ export function FillTinsDrawer({
   const { t, i18n } = useTranslation(['myOil', 'common']);
   const locale = i18n.language;
 
-  const withBulk = useMemo(
-    () =>
-      [...lots]
-        .filter((l) => l.packing.bulkLitres > 0.05)
-        .sort((a, b) => new Date(a.pressedOn).getTime() - new Date(b.pressedOn).getTime()),
-    [lots]
-  );
+  // QA-037: FIFO (oldest loose oil first) so "no harvest link" is deterministic.
+  const withBulk = useMemo(() => fifoBulkLots(lots), [lots]);
 
   const [step, setStep] = useState<Step>('source');
   const [sourceKey, setSourceKey] = useState<string>(AUTO_SOURCE);
@@ -251,6 +247,14 @@ export function FillTinsDrawer({
                     {wantsHarvestLink ? formatLotDate(resolvedLot.pressedOn) : t('fill.autoTitle')}
                   </strong>
                   {wantsHarvestLink && fieldLabel(resolvedLot) ? <em>{fieldLabel(resolvedLot)}</em> : null}
+                  {!wantsHarvestLink ? (
+                    <em>
+                      {t('fill.autoPicked', {
+                        date: formatLotDate(resolvedLot.pressedOn),
+                        amount: formatOilNumber(resolvedLot.packing.bulkLitres, locale),
+                      })}
+                    </em>
+                  ) : null}
                 </span>
               </div>
             ) : null}

@@ -78,6 +78,8 @@ const FieldSeatCard: React.FC<Props> = ({
         ? t('partners:connection.owner')
         : t('partners:connection.family');
 
+  const identityRef = (person.userId || person.inviteId || '').slice(-4).toUpperCase();
+
   const openEdit = () => {
     setModules([...person.modules]);
     setAccessLevel(person.accessLevel);
@@ -138,13 +140,22 @@ const FieldSeatCard: React.FC<Props> = ({
       >
         <div className="partner-person-main">
           <div className="partner-person-identity">
-            <span className="partner-avatar" aria-hidden>
+            <span
+              className="partner-avatar"
+              aria-hidden
+              title={[roleChip, person.email || person.phone || identityRef].filter(Boolean).join(' · ')}
+            >
               {initials(displayName)}
             </span>
             <div className="partner-person-text">
               <h3>{displayName}</h3>
+              {/* QA-018: role + email/phone (or short ref) keep same-named people distinguishable. */}
+              <p className="partner-person-phone partner-person-role">{roleChip}</p>
               {person.phone ? <p className="partner-person-phone">{person.phone}</p> : null}
               {person.email ? <p className="partner-person-phone">{person.email}</p> : null}
+              {!person.email && !person.phone && identityRef ? (
+                <p className="partner-person-phone">{t('partners:identityRef', { ref: identityRef })}</p>
+              ) : null}
             </div>
           </div>
           <div className="partner-chips">

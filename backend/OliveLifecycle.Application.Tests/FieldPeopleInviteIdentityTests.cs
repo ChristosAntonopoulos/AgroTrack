@@ -123,6 +123,31 @@ public class FieldPeopleInviteIdentityTests
     }
 
     [Fact]
+    public async Task QA039_LookupInvitee_ExistingEmail_ReportsHasAccount()
+    {
+        _fields.Setup(r => r.GetByOwnerIdAsync("admin-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Field> { AdminField() });
+        _users.Setup(r => r.GetByEmailAsync("elena@example.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = "user-elena", Email = "elena@example.com" });
+
+        var existing = await _service.LookupInviteeAsync("admin-1", " Elena@Example.com ");
+        var unknown = await _service.LookupInviteeAsync("admin-1", "new.person@example.com");
+
+        Assert.True(existing.HasAccount);
+        Assert.False(unknown.HasAccount);
+    }
+
+    [Fact]
+    public async Task QA039_LookupInvitee_NonOwner_IsForbidden()
+    {
+        _fields.Setup(r => r.GetByOwnerIdAsync("stranger", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Field>());
+
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            _service.LookupInviteeAsync("stranger", "elena@example.com"));
+    }
+
+    [Fact]
     public async Task AcceptInvite_WrongEmail_ThrowsMismatch()
     {
         var invite = new FieldInvite

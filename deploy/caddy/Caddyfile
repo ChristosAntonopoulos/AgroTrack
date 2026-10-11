@@ -12,3 +12,9 @@ theolivelot.com, www.theolivelot.com, theolivelot.gr, www.theolivelot.gr {
 api.theolivelot.com, api.theolivelot.gr {
 	reverse_proxy 127.0.0.1:31847
 }
+
+# Browser build of the mobile app. Host is free on the shared cluster;
+# *.conceptatlas.eu already resolves to this VPS.
+theolivelot-mobile.conceptatlas.eu {
+	reverse_proxy 127.0.0.1:31849
+}

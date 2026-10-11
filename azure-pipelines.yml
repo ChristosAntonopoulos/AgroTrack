@@ -25,6 +25,11 @@ parameters:
     type: boolean
     default: true
 
+  - name: deployMobileWeb
+    displayName: 'Deploy mobile app as a website'
+    type: boolean
+    default: true
+
   # Destructive: drops the OliveLifecycle Mongo database so API seed recreates field-centric demos.
   # Keep false so routine CI does not wipe prod data. Opt in only for a deliberate reseed.
   - name: wipeProductionDatabase
@@ -74,6 +79,22 @@ variables:
     value: 'frontend/Dockerfile'
   - name: frontendDockerContext
     value: 'frontend'
+  - name: mobileWebNamespace
+    value: 'oleachron-mobile'
+  - name: mobileWebNodePort
+    value: '31849'
+  - name: mobileWebHost
+    value: 'theolivelot-mobile.conceptatlas.eu'
+  - name: mobileWebBaseUrl
+    value: 'https://theolivelot-mobile.conceptatlas.eu'
+  - name: mobileWebImageName
+    value: 'oleachron-mobile-web'
+  - name: fullMobileWebImageName
+    value: '$(dockerRegistry)/$(mobileWebImageName)'
+  - name: mobileWebDockerfilePath
+    value: 'mobile/Dockerfile'
+  - name: mobileWebDockerContext
+    value: 'mobile'
   - name: apkFilename
     value: 'theolivelot.apk'
   # Self-hosted agent has Docker but no buildx. Classic builder only.
@@ -286,6 +307,163 @@ stages:
         echo "Confirmed on Docker Hub: $IMAGE"
       displayName: 'Verify frontend tag on Docker Hub'
 
+# Static Expo web export. Independent of the Android APK.
+- stage: MobileWebImage
+  displayName: 'Build and push mobile web image'
+  dependsOn: []
+  condition: eq('${{ parameters.deployMobileWeb }}', true)
+  jobs:
+  - job: PushMobileWeb
+    displayName: 'Build and push mobile web Docker image'
+    pool:
+      name: 'Default'
+    steps:
+    - checkout: self
+      displayName: 'Checkout mobile sources'
+
+    - script: |
+        set -euo pipefail
+        if [ -z "${DOCKER_USERNAME:-}" ] || [ -z "${DOCKER_PASSWORD:-}" ]; then
+          echo "ERROR: DOCKER_USERNAME / DOCKER_PASSWORD are empty."
+          echo "Link Library variable group 'Agrotrack-Secrets' to this pipeline (YAML: variables.group)."
+          exit 1
+        fi
+        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      displayName: 'Login to Docker Hub'
+      env:
+        DOCKER_USERNAME: $(DOCKER_USERNAME)
+        DOCKER_PASSWORD: $(DOCKER_PASSWORD)
+
+    - script: |
+        set -euo pipefail
+        IMAGE="$(fullMobileWebImageName):$(imageTag)"
+        echo "Building $IMAGE ..."
+        docker build \
+          -t "$IMAGE" \
+          -t $(fullMobileWebImageName):latest \
+          --build-arg EXPO_PUBLIC_API_URL=$(backendApiUrl) \
+          --build-arg EXPO_PUBLIC_SHOW_DEMO_LOGIN=true \
+          -f $(mobileWebDockerfilePath) $(mobileWebDockerContext)
+        docker push "$IMAGE"
+        docker push $(fullMobileWebImageName):latest
+        echo "Pushed $IMAGE"
+      displayName: 'Build and push mobile web image'
+      env:
+        DOCKER_BUILDKIT: '0'
+
+    - script: |
+        set -euo pipefail
+        IMAGE="$(fullMobileWebImageName):$(imageTag)"
+        TAG="$(imageTag)"
+        REPO="$(mobileWebImageName)"
+        USER="$(dockerRegistry)"
+        echo "Verifying Docker Hub has $IMAGE ..."
+        CODE=$(curl -s -o /tmp/hub-mobile-web-tag.json -w "%{http_code}" \
+          "https://hub.docker.com/v2/repositories/${USER}/${REPO}/tags/${TAG}/")
+        if [ "$CODE" != "200" ]; then
+          echo "ERROR: Docker Hub returned HTTP $CODE for ${USER}/${REPO}:${TAG}"
+          cat /tmp/hub-mobile-web-tag.json || true
+          echo "Mobile web push did not land; refusing to continue to Deploy."
+          exit 1
+        fi
+        echo "Confirmed on Docker Hub: $IMAGE"
+      displayName: 'Verify mobile web tag on Docker Hub'
+
+- stage: DeployMobileWeb
+  displayName: 'Deploy mobile web to Kubernetes'
+  dependsOn:
+    - MobileWebImage
+  condition: and(succeeded('MobileWebImage'), eq('${{ parameters.deployMobileWeb }}', true))
+  jobs:
+  - deployment: DeployMobileWeb
+    displayName: 'Deploy mobile web'
+    environment: 'production'
+    pool:
+      name: 'Default'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+            displayName: 'Checkout mobile web manifests'
+
+          - script: |
+              set -euo pipefail
+              HOST="$(mobileWebHost)"
+              PORT="$(mobileWebNodePort)"
+              NS="$(mobileWebNamespace)"
+              echo "Checking ${HOST} and nodePort ${PORT} are not owned by another program..."
+
+              kubectl get ingress -A -o go-template='{{range .items}}{{.metadata.namespace}}{{"\t"}}{{range .spec.rules}}{{.host}}{{" "}}{{end}}{{"\n"}}{{end}}' > /tmp/ingress-hosts.txt
+              while IFS="$(printf '\t')" read -r ns hosts; do
+                [ -n "${ns:-}" ] || continue
+                for h in $hosts; do
+                  if [ "$h" = "$HOST" ] && [ "$ns" != "$NS" ]; then
+                    echo "ERROR: ${HOST} is already used by namespace ${ns}"
+                    exit 1
+                  fi
+                done
+              done < /tmp/ingress-hosts.txt
+
+              kubectl get svc -A -o go-template='{{range .items}}{{.metadata.namespace}}{{"\t"}}{{.metadata.name}}{{"\t"}}{{range .spec.ports}}{{.nodePort}}{{" "}}{{end}}{{"\n"}}{{end}}' > /tmp/svc-ports.txt
+              while IFS="$(printf '\t')" read -r ns name ports; do
+                [ -n "${ns:-}" ] || continue
+                for p in $ports; do
+                  if [ "$p" = "$PORT" ] && [ "$ns" != "$NS" ]; then
+                    echo "ERROR: nodePort ${PORT} is already used by ${ns}/${name}"
+                    exit 1
+                  fi
+                done
+              done < /tmp/svc-ports.txt
+
+              echo "Host and nodePort are free (or already ours)."
+            displayName: 'Refuse host or port owned by another app'
+
+          - script: |
+              set -euo pipefail
+              kubectl create namespace $(mobileWebNamespace) --dry-run=client -o yaml | kubectl apply -f -
+              sed -i "s|PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG|$(fullMobileWebImageName):$(imageTag)|g" mobile/k8s/deployment.yaml
+              kubectl apply -f mobile/k8s/deployment.yaml
+              kubectl apply -f mobile/k8s/service.yaml
+              kubectl apply -f mobile/k8s/ingress.yaml
+            displayName: 'Apply mobile web deployment, service, and ingress'
+
+          - script: |
+              set -euo pipefail
+              kubectl apply -f backend/k8s/configmap.yaml
+              kubectl rollout restart deployment/olive-lifecycle-api -n $(backendNamespace)
+              kubectl rollout status deployment/olive-lifecycle-api -n $(backendNamespace) --timeout=600s
+            displayName: 'Allow the mobile web origin on the API'
+
+          - script: |
+              set -euo pipefail
+              if [ "$(id -u)" -eq 0 ]; then
+                bash deploy/caddy/install.sh
+              elif sudo -n true 2>/dev/null; then
+                sudo bash deploy/caddy/install.sh
+              else
+                echo "WARNING: agent cannot reload Caddy (not root)."
+                echo "HTTPS $(mobileWebBaseUrl) stays unpublished until someone runs: sudo bash deploy/caddy/install.sh"
+                echo "NodePort remains at http://$(kubernetesNodeIp):$(mobileWebNodePort)"
+                exit 0
+              fi
+            displayName: 'Install Caddy site for the mobile web host'
+
+          - script: |
+              set +e
+              kubectl rollout status deployment/olive-lifecycle-mobile-web -n $(mobileWebNamespace) --timeout=600s
+              status=$?
+              if [ "$status" -ne 0 ]; then
+                echo "=== Mobile web rollout did not finish ==="
+                kubectl get pods -n $(mobileWebNamespace) -o wide
+                kubectl describe deployment olive-lifecycle-mobile-web -n $(mobileWebNamespace)
+                kubectl describe pods -n $(mobileWebNamespace) -l app=olive-lifecycle-mobile-web
+                exit "$status"
+              fi
+              echo "Mobile web:  $(mobileWebBaseUrl)"
+              echo "NodePort:    http://$(kubernetesNodeIp):$(mobileWebNodePort)"
+            displayName: 'Wait for mobile web deployment rollout'
+
 - stage: Deploy
   displayName: 'Deploy to Kubernetes'
   dependsOn:
@@ -486,8 +664,11 @@ stages:
               echo "=== Deployment Status ==="
               kubectl get pods -n $(backendNamespace) -l app=olive-lifecycle-api
               kubectl get pods -n $(frontendNamespace) -l app=olive-lifecycle-frontend
+              kubectl get pods -n $(mobileWebNamespace) -l app=olive-lifecycle-mobile-web || true
               echo "Backend API:  $(backendApiUrl)"
               echo "Frontend:     $(frontendBaseUrl)"
+              echo "Mobile web:   $(mobileWebBaseUrl)"
+              echo "Mobile port:  http://$(kubernetesNodeIp):$(mobileWebNodePort)"
             displayName: 'Display deployment status and URLs'
 
 # Health Check stage disabled while iterating. Re-enable for real production.

@@ -7,6 +7,10 @@ import type {
   HarvestSackEntry,
 } from './types';
 
+/** QA-026: total sacks across entries (a batch of 12 sacks is 12, not 1 record). */
+export const sumSacks = (entries: ReadonlyArray<Pick<HarvestSackEntry, 'sacks'>>): number =>
+  entries.reduce((sum, row) => sum + (row.sacks || 0), 0);
+
 export type PendingSacksDayGroup = {
   date: string;
   sacks: HarvestSackEntry[];

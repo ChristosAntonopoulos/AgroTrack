@@ -147,6 +147,28 @@ export const movementActionKey = (kind: string): string => {
   }
 };
 
+/**
+ * QA-004: label key for a movement. Separates "oil added to storage" and signed corrections
+ * from harvest production so a stock count never reads as "Production".
+ */
+export const movementLabelKey = (
+  m: Pick<StockMovement, 'kind' | 'litresDelta' | 'reversalOfMovementId'>,
+  lot?: { harvestRecordIds?: string[]; fieldIds?: string[]; sourcePressingId?: string | null } | null
+): string => {
+  if (m.reversalOfMovementId) return 'reversal';
+  const action = movementActionKey(m.kind);
+  if (action === 'produced') {
+    const fromHarvest =
+      !lot || !!lot.sourcePressingId || !!lot.harvestRecordIds?.length || !!lot.fieldIds?.length;
+    return fromHarvest ? 'produced' : 'addedToStorage';
+  }
+  if (action === 'corrected') {
+    if (m.litresDelta > 0.05) return 'correctionFound';
+    if (m.litresDelta < -0.05) return 'correctionMissing';
+  }
+  return action;
+};
+
 export const groupMovementsByDay = (
   movements: StockMovement[],
   locale: string,

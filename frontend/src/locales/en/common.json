@@ -47,6 +47,10 @@
   "logout": "Logout",
   "logoutAria": "Logout",
   "familyCollaboratorBadge": "Collaborator of {{owner}}",
+  "partnerOfBadge": "Partner of {{owner}}",
+  "familyOfBadge": "Family of {{owner}}",
+  "readOnlyBadge": "View only",
+  "editableBadge": "Editable",
   "roles": {
     "FieldOwner": "Grove owner",
     "Producer": "Field partner",

@@ -56,6 +56,7 @@
   "assignOutcomeContact": "Il lavoro verrà registrato con questa persona come responsabile. L’app non invierà una notifica.",
   "assignOutcomeCollaborator": "Il collaboratore vedrà l’assegnazione nell’app.",
   "moreActions": "Altro",
+  "identityRef": "Rif. {{ref}}",
   "inviteExpiresOn": "Scade {{date}}",
   "inviteLifecycle": {
     "pending": "In attesa",
@@ -81,6 +82,7 @@
   "whatTheyDo": "Cosa fanno",
   "editContact": "Modifica contatto",
   "deleteContact": "Elimina contatto",
+  "deleteContactConfirm": "Eliminare {{name}} dai tuoi contatti? Non si può annullare.",
   "inviteToOleachron": "Invita su The Olive Lot",
   "unassignedContacts": "Contatti senza campo",
   "unassignedContactsHint": "Salvati, ma non ancora collegati a un campo.",
@@ -151,7 +153,7 @@
     "cancelInviteConfirm": "Annullare l’invito per {{name}}?",
     "checklistTitle": "Stato del membro",
     "checklist": {
-      "hasContact": "Nome ed email",
+      "hasContact": "Email (nome facoltativo)",
       "inviteSent": "Invito inviato",
       "accepted": "Accettato / collegato",
       "hasModules": "Almeno una parte attiva",
@@ -482,7 +484,9 @@
     "emailOrPhone": "Email o telefono",
     "newContact": "Nuovo contatto",
     "name": "Nome",
+    "nameOptional": "Nome (facoltativo)",
     "email": "Email",
+    "emailRequired": "Email (obbligatoria)",
     "phone": "Telefono",
     "customize": "Personalizza accesso",
     "relationshipTitle": "Rapporto",
@@ -543,7 +547,7 @@
     "searchPlaceholder": "Nome, email o telefono",
     "searchHint": "Scegli un contatto salvato oppure scrivi una nuova email.",
     "fromContacts": "Dai contatti",
-    "newContactHint": "Nome ed email per l'invito.",
+    "newContactHint": "L'email è obbligatoria per l'invito. Il nome è facoltativo.",
     "namePlaceholder": "Elena Papadaki",
     "emailPlaceholder": "name@example.com",
     "phonePlaceholder": "69…",
@@ -554,7 +558,8 @@
     "switchToNew": "Invita con una nuova email",
     "switchToContacts": "Scegli dai tuoi contatti",
     "willRegister": "Si registrerà su The Olive Lot con {{contact}}.",
-    "registerAccount": "Creerà un account con {{email}} e tornerà a questo invito.",
+    "registerAccount": "Verrà inviato un invito a {{email}}. L'account viene creato quando lo accetta.",
+    "registerAccountExisting": "{{email}} ha già un account. Vedrà l'invito nell'app e potrà accettarlo da lì.",
     "registerAccountPhone": "Riceverà il link al {{phone}} e creerà un account per accettarlo.",
     "changePerson": "Cambia",
     "groveSelected": "Selezionato",
@@ -600,7 +605,7 @@
     "steps": {
       "1": {
         "title": "Chi vuoi invitare?",
-        "hint": "Nome ed email."
+        "hint": "L'email è obbligatoria. Il nome è facoltativo."
       },
       "2": {
         "title": "In quali uliveti?",

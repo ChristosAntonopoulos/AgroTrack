@@ -85,6 +85,9 @@ const InvitePersonSheet: React.FC<Props> = ({
   const [error, setError] = useState('');
   const [successHint, setSuccessHint] = useState('');
   const [attempted, setAttempted] = useState(false);
+  /** QA-039: null = unknown (not checked / lookup failed). */
+  const [inviteeHasAccount, setInviteeHasAccount] = useState<boolean | null>(null);
+  const [checkingAccount, setCheckingAccount] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -94,6 +97,18 @@ const InvitePersonSheet: React.FC<Props> = ({
     setError('');
     setSuccessHint('');
   }, [open, openingStep]);
+
+  // QA-039: a pre-filled person skips step 1, so check the account up front.
+  useEffect(() => {
+    if (!open || !knownPerson) return undefined;
+    let cancelled = false;
+    void fieldPeopleService.lookupInvitee(initialEmail.trim()).then((hasAccount) => {
+      if (!cancelled) setInviteeHasAccount(hasAccount);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, knownPerson, initialEmail]);
 
   const typedEmail =
     email.trim() ||
@@ -134,6 +149,7 @@ const InvitePersonSheet: React.FC<Props> = ({
 
   const chooseContact = (contact: ManagedContact) => {
     setSelectedContactId(contact.id);
+    setInviteeHasAccount(null);
     setName(contact.displayName);
     setEmail(contact.email || '');
     setPhone(contact.phone || '');
@@ -152,6 +168,7 @@ const InvitePersonSheet: React.FC<Props> = ({
 
   const applyEmail = (value: string) => {
     setReach(value);
+    setInviteeHasAccount(null);
     setSelectedContactId(null);
     setAttempted(false);
     setPhone('');
@@ -174,7 +191,7 @@ const InvitePersonSheet: React.FC<Props> = ({
     return true;
   };
 
-  const goNext = () => {
+  const goNext = async () => {
     if (!canLeaveStep()) {
       setAttempted(true);
       if (step === 1) setMode('new');
@@ -182,6 +199,11 @@ const InvitePersonSheet: React.FC<Props> = ({
     }
     setAttempted(false);
     if (step === 1) {
+      // QA-039: learn whether the invitee already has an account before the review step.
+      setCheckingAccount(true);
+      const hasAccount = await fieldPeopleService.lookupInvitee(typedEmail);
+      setInviteeHasAccount(hasAccount);
+      setCheckingAccount(false);
       if (typedEmail) setEmail(typedEmail);
       if (typedPhone) setPhone(typedPhone);
       setFieldIds((current) => {
@@ -193,6 +215,13 @@ const InvitePersonSheet: React.FC<Props> = ({
       });
     }
     const next = stepOrder[stepOrder.indexOf(step) + 1];
+    // QA-039: if access was opened with a pre-filled email, finish lookup before review.
+    if (next === 3 && typedEmail && inviteeHasAccount === null) {
+      setCheckingAccount(true);
+      const hasAccount = await fieldPeopleService.lookupInvitee(typedEmail);
+      setInviteeHasAccount(hasAccount);
+      setCheckingAccount(false);
+    }
     if (next) setStep(next);
   };
 
@@ -291,7 +320,12 @@ const InvitePersonSheet: React.FC<Props> = ({
                 {t('common:done')}
               </button>
             ) : step !== lastStep ? (
-              <button type="button" className="money-primary-action" onClick={goNext} disabled={sending}>
+              <button
+                type="button"
+                className="money-primary-action"
+                onClick={() => void goNext()}
+                disabled={sending || checkingAccount}
+              >
                 {t('common:next')}
               </button>
             ) : (
@@ -478,7 +512,7 @@ const InvitePersonSheet: React.FC<Props> = ({
               ) : (
                 <div className="invite-panel">
                   <label className="money-form-label" htmlFor="invite-name">
-                    {t('partners:peoplePage.name')}
+                    {t('partners:peoplePage.nameOptional')}
                     <input
                       id="invite-name"
                       type="text"
@@ -491,7 +525,7 @@ const InvitePersonSheet: React.FC<Props> = ({
                   </label>
 
                   <label className="money-form-label" htmlFor="invite-reach">
-                    {t('partners:peoplePage.email')}
+                    {t('partners:peoplePage.emailRequired')}
                     <input
                       id="invite-reach"
                       type="email"
@@ -500,6 +534,8 @@ const InvitePersonSheet: React.FC<Props> = ({
                       onChange={(event) => applyEmail(event.target.value)}
                       placeholder={t('partners:peoplePage.emailPlaceholder')}
                       autoComplete="email"
+                      required
+                      aria-required="true"
                     />
                   </label>
 
@@ -630,7 +666,12 @@ const InvitePersonSheet: React.FC<Props> = ({
               <div className="invite-preview-card">
                 <p className="invite-confirm">
                   {typedEmail
-                    ? t('partners:peoplePage.registerAccount', { email: typedEmail })
+                    ? t(
+                        inviteeHasAccount === true
+                          ? 'partners:peoplePage.registerAccountExisting'
+                          : 'partners:peoplePage.registerAccount',
+                        { email: typedEmail }
+                      )
                     : t('partners:peoplePage.registerAccountPhone', { phone: typedPhone })}
                 </p>
                 <p className="invite-preview-lead">

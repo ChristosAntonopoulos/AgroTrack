@@ -11,6 +11,8 @@ export const getAvailableCaptureActions = (opts: {
   canWork?: boolean;
   familyModules?: ReadonlySet<string> | null;
   accessLevel?: FieldAccessLevel | null;
+  /** False when the grove is view-only under the free plan (QA-042). Undefined = unknown/writable. */
+  fieldWritable?: boolean;
 }): CapturePermissions => {
   const access = opts.hasAnyFieldAccess;
   const accessLevel = opts.accessLevel ?? null;
@@ -18,7 +20,8 @@ export const getAvailableCaptureActions = (opts: {
   const restrictByModules = modules != null;
   const has = (module: string) => !restrictByModules || modules.has(module);
 
-  if (accessLevel === 'view') {
+  // Subscription view-only wins over seat rights: the API would answer FIELD_NOT_WRITABLE anyway.
+  if (accessLevel === 'view' || opts.fieldWritable === false) {
     return {
       canRecordObservation: false,
       canRecordPhoto: false,

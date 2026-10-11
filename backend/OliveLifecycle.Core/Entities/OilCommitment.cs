@@ -23,9 +23,32 @@ public class OilCommitment : BaseEntity
     public string Currency { get; set; } = "EUR";
     public string? FinancialTransactionId { get; set; }
 
+    /// <summary>
+    /// <see cref="OilPaymentStatuses"/>. Only meaningful for sales; non-sale promises stay <c>paid</c>.
+    /// </summary>
+    public string PaymentStatus { get; set; } = OilPaymentStatuses.Paid;
+
+    /// <summary>Client-supplied replay key so a retried create returns the original commitment.</summary>
+    public string? IdempotencyKey { get; set; }
+
     public List<OilLotAllocation> Allocations { get; set; } = [];
 
     public DateTime? PromisedFor { get; set; }
     public string? Notes { get; set; }
     public bool Cancelled { get; set; }
+}
+
+/// <summary>How a sale commitment stands on money: unpaid | receivable | paid | cancelled.</summary>
+public static class OilPaymentStatuses
+{
+    /// <summary>Sale with an amount but no income posted (e.g. Money posting failed).</summary>
+    public const string Unpaid = "unpaid";
+
+    /// <summary>Sold on credit: the buyer owes the money, no income posted yet.</summary>
+    public const string Receivable = "receivable";
+
+    /// <summary>Income is posted (or nothing is owed).</summary>
+    public const string Paid = "paid";
+
+    public const string Cancelled = "cancelled";
 }

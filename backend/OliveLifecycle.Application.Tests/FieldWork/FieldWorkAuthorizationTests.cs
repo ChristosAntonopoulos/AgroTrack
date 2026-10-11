@@ -21,6 +21,9 @@ public class FieldWorkAuthorizationTests
 
     public FieldWorkAuthorizationTests()
     {
+        _fieldAccess.Setup(a => a.IsFieldWritableUnderSubscriptionAsync(
+                It.IsAny<Field>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         _service = new FieldWorkAuthorizationService(
             _fields.Object,
             _fieldAccess.Object,

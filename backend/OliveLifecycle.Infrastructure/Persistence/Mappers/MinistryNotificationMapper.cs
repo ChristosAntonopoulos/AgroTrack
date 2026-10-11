@@ -87,6 +87,7 @@ public static class HarvestRecordMapper
         VoidReason = document.VoidReason,
         VoidedAt = document.VoidedAt,
         VoidedBy = document.VoidedBy,
+        IdempotencyKey = document.IdempotencyKey,
         CreatedAt = document.CreatedAt,
         UpdatedAt = document.UpdatedAt
     };
@@ -119,6 +120,7 @@ public static class HarvestRecordMapper
         VoidReason = entity.VoidReason,
         VoidedAt = entity.VoidedAt,
         VoidedBy = entity.VoidedBy,
+        IdempotencyKey = entity.IdempotencyKey,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };

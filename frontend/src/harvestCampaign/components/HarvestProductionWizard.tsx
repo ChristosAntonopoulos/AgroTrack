@@ -243,7 +243,8 @@ export const HarvestProductionWizard: React.FC<{
               void run('oil', async () => {
                 const id = await onSaveOil(input, oilIdRef.current || undefined);
                 oilIdRef.current = id;
-              });
+                // A failed save rejects, so the wizard stays on this step instead of advancing.
+              }).catch(() => undefined);
             }}
           />
         </div>

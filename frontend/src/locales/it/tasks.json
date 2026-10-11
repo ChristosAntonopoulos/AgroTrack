@@ -150,6 +150,9 @@
     "doneOutcome": "Fatto",
     "doneBody": "Il lavoro è completato.",
     "doneOn": "Completato il {{date}}",
+    "checklist": "Lista di controllo",
+    "checklistProgress": "{{done}} di {{total}} completati",
+    "scheduledFor": "Programmata {{period}}",
     "skippedOutcome": "Saltato",
     "skippedBody": "Il lavoro è stato saltato.",
     "saveNote": "Salva nota"
@@ -1127,6 +1130,7 @@
       "noDate": "Ancora senza data"
     },
     "unassigned": "Non assegnato",
+    "assignedElsewhere": "Assegnata",
     "actions": {
       "markDone": "Segna come fatto",
       "completed": "Fatto",

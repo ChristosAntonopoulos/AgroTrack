@@ -10,3 +10,6 @@ export const taskDisplayTitle = (title: string | undefined, templateCode?: strin
   }
   return templateTitle(templateCode, language);
 };
+
+/** QA-048: mirrors TaskService.MaxTitleLength on the backend. */
+export const TASK_TITLE_MAX_LENGTH = 120;

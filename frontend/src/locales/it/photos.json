@@ -172,7 +172,9 @@
   },
   "card": {
     "aria": "Foto {{index}} di {{total}}, {{field}}, {{date}} {{time}}",
-    "needsInfo": "Servono altri dettagli — nella foto non c'è posizione o campo."
+    "missingField": "Nessun oliveto scelto",
+    "missingLocation": "Nessuna posizione nella foto",
+    "fixInfo": "Apri per correggere"
   },
   "select": {
     "toggle": "Seleziona",

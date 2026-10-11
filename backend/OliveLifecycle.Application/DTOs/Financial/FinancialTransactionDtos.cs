@@ -99,6 +99,12 @@ public class UpdateFinancialTransactionDto
 public class VoidFinancialTransactionDto
 {
     public string Reason { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Set when My Oil cancel-sale voids the linked income as part of the atomic reversal (QA-047).
+    /// Direct Money voids of oil-sale income are refused without this flag.
+    /// </summary>
+    public bool LinkedOilSaleCancel { get; set; }
 }
 
 public class FinancialTransactionListDto

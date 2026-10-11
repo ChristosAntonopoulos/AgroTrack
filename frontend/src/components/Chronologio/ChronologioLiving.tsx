@@ -54,6 +54,7 @@ import {
 import { agriculturalYearFor } from '../../chronologio/agriculturalYear';
 import {
   chronologioScrollKey,
+  chronologioViewScope,
   isChronologioReturnState,
   saveChronologioFocus,
   saveChronologioJournalScroll,
@@ -354,6 +355,12 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
       }
       setError(null);
       setJournalHasMore(false);
+      // QA-050: drop the other views' data right away so no stale Months/Days linger under Years.
+      if (living.zoom !== 'year') {
+        setMonthSummaries([]);
+        setYearEntries([]);
+      }
+      if (living.zoom !== 'month') setMonthEntries([]);
       try {
         const years = await fetchYears();
         if (cancelled) return;
@@ -428,7 +435,16 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
           setRefreshing(false);
           setBooted(true);
           setReadyScope(
-            `${living.zoom}|${living.axis}|${living.periodYear}|${living.monthYear}-${living.month}|${living.filters.fieldId || ''}|${living.filters.category}|${living.filters.lifecycleYear}`
+            chronologioViewScope({
+              zoom: living.zoom,
+              axis: living.axis,
+              periodYear: living.periodYear,
+              monthYear: living.monthYear,
+              month: living.month,
+              fieldId: living.filters.fieldId,
+              category: living.filters.category,
+              lifecycleYear: living.filters.lifecycleYear,
+            })
           );
         }
       }
@@ -899,7 +915,16 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
     () => yearEntries.filter((entry) => entryMatchesChronologioTypes(entry, living.filters.category)),
     [living.filters.category, yearEntries]
   );
-  const viewScope = `${living.zoom}|${living.axis}|${living.periodYear}|${living.monthYear}-${living.month}|${living.filters.fieldId || ''}|${living.filters.category}|${living.filters.lifecycleYear}`;
+  const viewScope = chronologioViewScope({
+    zoom: living.zoom,
+    axis: living.axis,
+    periodYear: living.periodYear,
+    monthYear: living.monthYear,
+    month: living.month,
+    fieldId: living.filters.fieldId,
+    category: living.filters.category,
+    lifecycleYear: living.filters.lifecycleYear,
+  });
   const panelBusy = booted && readyScope !== null && readyScope !== viewScope;
 
   const today = useTodaySummary({
@@ -1185,7 +1210,8 @@ const ChronologioLiving: React.FC<Props> = ({ fieldId, embedded = false }) => {
                 aria-labelledby={`chrono-tab-${viewFromZoom(living.zoom)}`}
                 initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+                // QA-050: no exit fade — the previous view (e.g. Months) must not stay visible
+                // while the next one (Years) is loading.
                 transition={transition}
               >
                 {panelBusy ? (

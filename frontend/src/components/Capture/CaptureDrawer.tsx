@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, FileText, Mic, X } from 'lucide-react';
 import RightDrawer from '../Common/RightDrawer';
 import type { CaptureContext, CaptureSavedDetail, CaptureSavedOptions, CaptureType } from '../../capture/types';
@@ -12,13 +12,14 @@ import { fileUploadService } from '../../services/fileUploadService';
 import type { Field } from '../../services/fieldService';
 import { useAuth } from '../../context/AuthContext';
 import { useActiveFieldAccess } from '../../hooks/useActiveFieldAccess';
+import { useAccessContext } from '../../hooks/useAccessContext';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
 import { getHarvestCapabilities } from '../../harvestCampaign/harvestCapabilities';
 import { millKgNeedingOil, pendingSackTotal } from '../../harvestCampaign/chain';
 import type { HarvestCaptureKind } from '../../harvestCampaign/types';
 import { buildCaptureMenu, type CaptureMove } from '../../capture/menu';
 import { buildQuickAddMoves } from '../../capture/quickAdd';
-import { resolveCaptureFieldId } from '../../capture/fieldContext';
+import { isInheritedCaptureField, resolveCaptureFieldId } from '../../capture/fieldContext';
 import {
   readLastCaptureFieldId,
   readRecentCaptureMoves,
@@ -147,6 +148,14 @@ const CaptureDrawer: React.FC<Props> = ({
   const [oilKg, setOilKg] = useState('');
   const [harvestNotes, setHarvestNotes] = useState('');
 
+  // QA-042: the grove being recorded into (form field, else active field) is view-only on the free plan.
+  const { context: accessContext } = useAccessContext();
+  const fieldReadOnly = useMemo(() => {
+    const target = fieldId || activeField.fieldId;
+    const snapshot = accessContext?.fields.find((f) => f.fieldId === target);
+    return (snapshot?.capabilities ?? activeField.capabilities)?.isSubscriptionReadOnly === true;
+  }, [accessContext, fieldId, activeField.fieldId, activeField.capabilities]);
+
   const permissions = useMemo(
     () =>
       getAvailableCaptureActions({
@@ -161,8 +170,9 @@ const CaptureDrawer: React.FC<Props> = ({
           user?.role === 'Administrator',
         familyModules: activeField.modules,
         accessLevel: activeField.accessLevel,
+        fieldWritable: fieldReadOnly ? false : undefined,
       }),
-    [fields, user, activeField.modules, activeField.accessLevel]
+    [fields, user, activeField.modules, activeField.accessLevel, fieldReadOnly]
   );
 
   const yieldPct = useMemo(() => {
@@ -819,6 +829,12 @@ const CaptureDrawer: React.FC<Props> = ({
           </div>
         ) : (
           <>
+        {fieldReadOnly ? (
+          <p className="capture-error" role="status" data-testid="capture-view-only-hint">
+            {t('capture:viewOnlyGrove')}{' '}
+            <Link to="/fields">{t('capture:switchEditableGrove')}</Link>
+          </p>
+        ) : null}
         {error && isChoosing ? <p className="capture-error">{error}</p> : null}
         {step === 'quick' ? (
           <CaptureQuickAdd
@@ -834,6 +850,15 @@ const CaptureDrawer: React.FC<Props> = ({
               setStep('catalog');
             }}
             hints={quickHints}
+            fieldHint={
+              !fieldId
+                ? t('capture:groveChoose')
+                : isInheritedCaptureField(context.fieldId, location.pathname)
+                  ? t('capture:groveInherited', {
+                      name: friendlyFieldLabel(selectedFieldName || fieldId) || '',
+                    })
+                  : undefined
+            }
           />
         ) : null}
         {step === 'catalog' ? (

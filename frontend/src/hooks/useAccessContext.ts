@@ -8,14 +8,20 @@ import { useAuth } from '../context/AuthContext';
 let cachedContext: AccessContext | null = null;
 let cachedUserId: string | null = null;
 let inflight: Promise<AccessContext> | null = null;
+let cachedAt = 0;
+
+/** QA-040: a seat/role change made elsewhere must show up without a full re-login. */
+export const ACCESS_CONTEXT_TTL_MS = 60_000;
 
 const loadAccessContext = async (userId: string): Promise<AccessContext> => {
-  if (cachedContext && cachedUserId === userId) return cachedContext;
+  const fresh = Date.now() - cachedAt < ACCESS_CONTEXT_TTL_MS;
+  if (cachedContext && cachedUserId === userId && fresh) return cachedContext;
   if (inflight && cachedUserId === userId) return inflight;
 
   cachedUserId = userId;
   inflight = fieldPeopleService.getAccessContext().then((ctx) => {
     cachedContext = ctx;
+    cachedAt = Date.now();
     inflight = null;
     return ctx;
   });
@@ -77,6 +83,18 @@ export const useAccessContext = (): {
     return () => {
       cancelled = true;
     };
+  }, [isAuthenticated, user?.userId]);
+
+  // Re-read access (TTL-gated) whenever the tab becomes visible again.
+  useEffect(() => {
+    if (!isAuthenticated || !user?.userId) return undefined;
+    const userId = user.userId;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      void loadAccessContext(userId).then((next) => setContext(next));
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [isAuthenticated, user?.userId]);
 
   return { context, loading, refresh };

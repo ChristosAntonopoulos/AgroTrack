@@ -56,6 +56,8 @@ export type OilCommitment = {
   amount?: number | null;
   currency: string;
   financialTransactionId?: string | null;
+  /** Only meaningful for sales. `receivable` = sold on credit, income not posted yet. */
+  paymentStatus?: 'unpaid' | 'receivable' | 'paid' | 'cancelled' | string;
   allocations: OilLotAllocation[];
   promisedFor?: string | null;
   notes?: string | null;
@@ -163,6 +165,41 @@ export type CreateOilPressingInput = {
   notes?: string;
   /** Empty allocations file into the grove admin cellar (admin-first). */
   allocations?: { cellarOwnerUserId: string; litres: number }[];
+  /** A retry with the same key returns the original pressing instead of a duplicate. */
+  idempotencyKey?: string;
+};
+
+/** Harvest rows to create alongside the oil, mirroring the harvest create payload. */
+export type ConfirmHarvestRecordInput = {
+  fieldId: string;
+  harvestDate?: string;
+  harvestMethod?: string;
+  oliveKg: number;
+  oilKg?: number;
+  oilLitres?: number;
+  oilYieldPercent?: number;
+  notes?: string;
+  batchId?: string;
+  allocationWeight?: number;
+};
+
+/**
+ * Harvest records + their oil saved as one unit. Send `pressing` (mill ticket) or `lot`
+ * (explicit tins into one cellar). The server voids the harvest rows it created if the oil
+ * step fails, so a rejected call leaves nothing half-saved.
+ */
+export type ConfirmHarvestOilInput = {
+  harvestRecords?: ConfirmHarvestRecordInput[];
+  harvestRecordIds?: string[];
+  pressing?: CreateOilPressingInput;
+  lot?: UpsertOilLotInput;
+  idempotencyKey?: string;
+};
+
+export type ConfirmHarvestOilResult = {
+  harvestRecordIds: string[];
+  pressing?: OilPressing | null;
+  lot?: OilLot | null;
 };
 
 export type OilCellarCandidate = {
@@ -220,6 +257,10 @@ export type CreateOilCommitmentInput = {
   /** Link an income already posted via Money capture — skips creating a second FT. */
   financialTransactionId?: string;
   allocations?: { oilLotId: string; pack: { tin16: number; tin17: number; bulkLitres: number } }[];
+  /** Sales only. false = sold on credit: no income is posted until collectPayment. Default true. */
+  isPaid?: boolean;
+  /** A retry with the same key returns the original commitment instead of a duplicate. */
+  idempotencyKey?: string;
 };
 
 const emptyPack = (): OilPack => ({ tin16: 0, tin17: 0, bulkLitres: 0, litres: 0 });
@@ -347,6 +388,17 @@ export const oilStockService = {
     return asPressing(data);
   },
 
+  /** Create harvest rows and file their oil in one server call (rolled back server-side on failure). */
+  async confirmHarvestOil(input: ConfirmHarvestOilInput): Promise<ConfirmHarvestOilResult> {
+    const { data } = await api.post('/api/v1/oil-pressings/confirm-harvest-oil', input);
+    const raw = data as ConfirmHarvestOilResult;
+    return {
+      harvestRecordIds: raw.harvestRecordIds || [],
+      pressing: raw.pressing ? asPressing(raw.pressing) : null,
+      lot: raw.lot ? asLot(raw.lot) : null,
+    };
+  },
+
   async allocatePressing(
     id: string,
     allocations: { cellarOwnerUserId: string; litres: number }[]
@@ -399,6 +451,13 @@ export const oilStockService = {
     return asCommitment(data);
   },
 
+  /** Receive the money for a credit sale. Posts the income once; calling again is safe. */
+  async collectPayment(id: string, paidOn?: string): Promise<OilCommitment> {
+    const { data } = await api.post(`/api/v1/oil-commitments/${id}/collect-payment`, { paidOn });
+    return asCommitment(data);
+  },
+
+  /** Cancels a reservation, or a sale together with its income and delivered oil. */
   async cancelCommitment(id: string): Promise<void> {
     await api.post(`/api/v1/oil-commitments/${id}/cancel`);
   },
@@ -411,7 +470,7 @@ export const oilStockService = {
     }));
   },
 
-  /** Undo one movement. Money posted next to a sale is left in place. */
+  /** Undo one movement. Undoing a sale also voids its income in Money. */
   async reverseMovement(id: string): Promise<StockMovement> {
     const { data } = await api.post(`/api/v1/stock-movements/${id}/reverse`);
     const raw = data as StockMovement;

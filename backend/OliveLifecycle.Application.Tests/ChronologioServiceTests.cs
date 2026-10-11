@@ -33,6 +33,10 @@ public class ChronologioServiceTests
     private readonly Mock<IFieldWeatherExtremeEventRepository> _weatherExtremes = new();
     private readonly Mock<IGeospatialStorageService> _storage = new();
     private readonly Mock<IPhotoContentUrlSigner> _photoUrlSigner = new();
+    private readonly Mock<IOilCellarRepository> _oilCellars = new();
+    private readonly Mock<IOilLotRepository> _oilLots = new();
+    private readonly Mock<IOilCommitmentRepository> _oilCommitments = new();
+    private readonly Mock<IStockMovementRepository> _stockMovements = new();
     private readonly ChronologioService _service;
 
     public ChronologioServiceTests()
@@ -84,6 +88,10 @@ public class ChronologioServiceTests
             _weatherExtremes.Object,
             _storage.Object,
             _photoUrlSigner.Object,
+            _oilCellars.Object,
+            _oilLots.Object,
+            _oilCommitments.Object,
+            _stockMovements.Object,
             NullLogger<ChronologioService>.Instance);
 
         _users.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
@@ -352,6 +360,51 @@ public class ChronologioServiceTests
         Assert.Contains("4820", harvest.Summary);
         Assert.Contains("επίσημο βάρος", harvest.Summary);
         Assert.DoesNotContain("olives", harvest.Summary);
+    }
+
+    [Fact]
+    public async Task QA_028_GetForFieldAsync_KeepsOilMethodHarvestWithZeroOliveKg()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+
+        HarvestRecord OilRow(string id, decimal litres) => new()
+        {
+            Id = id,
+            FieldId = "field-1",
+            HarvestDate = new DateTime(2026, 11, 18, 9, 0, 0, DateTimeKind.Utc),
+            ResultYear = 2026,
+            HarvestMethod = "oil",
+            OliveKg = 0,
+            OilLitres = litres,
+            Status = FinancialEntryStatus.Posted,
+            CreatedAt = new DateTime(2026, 11, 18, 18, 0, 0, DateTimeKind.Utc)
+        };
+
+        _harvests.Setup(r => r.GetByFieldIdAsync("field-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { OilRow("oil-1", 30m) });
+
+        var single = await _service.GetForFieldAsync(
+            "field-1", "owner-1", Roles.FieldOwner, new ChronologioQuery());
+
+        var entry = Assert.Single(single, e => e.SourceType == ChronologioSourceTypes.Harvest);
+        Assert.False(entry.Details.Harvest!.HasOfficialWeight);
+        Assert.Equal(0, entry.Details.Harvest.OliveKg);
+        Assert.Equal(30m, entry.Details.Harvest.OilLitres);
+        // The oil is the whole record, so the line must say so instead of "0 kg olives".
+        Assert.Contains("30 L", entry.Summary);
+        Assert.DoesNotContain("0 kg olives", entry.Summary);
+
+        // Two oil rows on one day fold into a single entry that still totals the litres.
+        _harvests.Setup(r => r.GetByFieldIdAsync("field-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { OilRow("oil-1", 30m), OilRow("oil-2", 20m) });
+
+        var folded = await _service.GetForFieldAsync(
+            "field-1", "owner-1", Roles.FieldOwner, new ChronologioQuery());
+
+        var day = Assert.Single(folded, e => e.SourceType == ChronologioSourceTypes.Harvest);
+        Assert.Equal(50m, day.Details.Harvest!.OilLitres);
+        Assert.Contains("50 L", day.Summary);
     }
 
     [Fact]
@@ -1100,6 +1153,97 @@ public class ChronologioServiceTests
         Assert.Equal(0, apr.ExpenseCount);
         Assert.Equal(1, apr.NoteCount);
         Assert.Equal(42m, apr.ExpenseTotal);
+    }
+
+    [Fact]
+    public async Task QA_051_GetForFieldAsync_IncludesOilLedgerEvents_AndMonthCountsMatch()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+        SetupOilLedger(lotFieldIds: ["field-1"]);
+
+        var entries = await _service.GetForFieldAsync(
+            "field-1", "owner-1", Roles.FieldOwner, new ChronologioQuery());
+
+        var oil = entries.Where(e => e.SourceType == ChronologioSourceTypes.OilMovement).ToList();
+        // Harvest-born production is represented by the harvest entry, so 5 of 6 movements surface.
+        Assert.Equal(5, oil.Count);
+        Assert.Contains(oil, e => e.Title == "Πώληση λαδιού");
+        Assert.Contains(oil, e => e.Title == "Δώρο λαδιού");
+        Assert.Contains(oil, e => e.Title == "Κράτηση λαδιού");
+        Assert.Contains(oil, e => e.Title == "Διόρθωση αποθέματος (λιγότερο)");
+        Assert.Contains(oil, e => e.Title == "Αντιλογισμός κίνησης λαδιού");
+        Assert.DoesNotContain(oil, e => e.Title.Contains("προστέθηκε"));
+
+        var months = await _service.GetMonthSummariesForFieldAsync(
+            "field-1", "owner-1", Roles.FieldOwner,
+            new ChronologioSummaryQuery { Axis = ChronologioAxis.Calendar, PeriodYear = 2026 });
+        Assert.Equal(oil.Count, months.Sum(m => m.OilCount));
+    }
+
+    [Fact]
+    public async Task QA_051_FieldlessOilAppearsOnlyInUserScope()
+    {
+        AllowField("field-1", "Grove A");
+        SetupEmptySources("field-1");
+        SetupOilLedger(lotFieldIds: []);
+
+        var perField = await _service.GetForFieldAsync(
+            "field-1", "owner-1", Roles.FieldOwner, new ChronologioQuery());
+        Assert.DoesNotContain(perField, e => e.SourceType == ChronologioSourceTypes.OilMovement);
+
+        var user = await _service.GetForUserAsync("owner-1", Roles.FieldOwner, new ChronologioQuery());
+        Assert.Contains(user, e => e.SourceType == ChronologioSourceTypes.OilMovement);
+    }
+
+    private void SetupOilLedger(IReadOnlyList<string> lotFieldIds)
+    {
+        _oilCellars.Setup(r => r.GetByOwnerPersonIdAsync("owner-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OilCellar { Id = "cellar-1", OwnerPersonId = "owner-1" });
+        _oilLots.Setup(r => r.GetByCellarIdAsync(
+                "cellar-1", It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new OilLot
+                {
+                    Id = "lot-1",
+                    CellarId = "cellar-1",
+                    OwnerUserId = "owner-1",
+                    FieldIds = lotFieldIds.ToList(),
+                    HarvestRecordIds = ["harvest-1"]
+                },
+                new OilLot { Id = "lot-direct", CellarId = "cellar-1", OwnerUserId = "owner-1", FieldIds = lotFieldIds.ToList() }
+            });
+        _oilCommitments.Setup(r => r.GetByCellarIdAsync(
+                "cellar-1", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { new OilCommitment { Id = "c-1", CounterpartyName = "Γιάννης" } });
+
+        StockMovement Move(string id, StockMovementKind kind, decimal litres, string lot = "lot-direct", string? reversalOf = null) =>
+            new()
+            {
+                Id = id,
+                CellarId = "cellar-1",
+                OwnerUserId = "owner-1",
+                OilLotId = lot,
+                OilCommitmentId = "c-1",
+                Kind = kind,
+                LitresDelta = litres,
+                ReversalOfMovementId = reversalOf,
+                OccurredOn = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc),
+                CreatedAt = new DateTime(2026, 4, 12, 10, 0, 0, DateTimeKind.Utc)
+            };
+
+        _stockMovements.Setup(r => r.GetByCellarIdAsync(
+                "cellar-1", It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                Move("m-produced", StockMovementKind.Produced, 100, lot: "lot-1"),
+                Move("m-sold", StockMovementKind.Sold, -32),
+                Move("m-gift", StockMovementKind.Gifted, -16),
+                Move("m-hold", StockMovementKind.Reserved, 0),
+                Move("m-correction", StockMovementKind.Correction, -5),
+                Move("m-reversal", StockMovementKind.Sold, 32, reversalOf: "m-sold")
+            });
     }
 
     [Fact]

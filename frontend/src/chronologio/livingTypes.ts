@@ -5,7 +5,7 @@ import type {
   ChronologioPeriodSummary,
   ChronologioSummaryFilters,
 } from '../services/chronologioService';
-import { agriculturalYearBounds, agriculturalYearFor } from './agriculturalYear';
+import { AGRICULTURAL_YEAR_START_MONTH, agriculturalYearBounds, agriculturalYearFor } from './agriculturalYear';
 
 export type ChronologioZoom = 'years' | 'year' | 'month';
 export type ChronologioView = 'days' | 'months' | 'years';
@@ -51,7 +51,8 @@ export const livingZoomFromSearch = (view: string | null, zoom: string | null): 
 
 export const viewFromZoom = (zoom: ChronologioZoom): ChronologioView => ZOOM_TO_VIEW[zoom];
 
-export const SEASON_START_MONTH = 9;
+/** QA-006: legacy 'season' axis now shares the Feb–Jan CropSeason (see utils/harvestSeason.ts). */
+export const SEASON_START_MONTH = AGRICULTURAL_YEAR_START_MONTH;
 
 export const stepZoom = (zoom: ChronologioZoom, delta: 1 | -1): ChronologioZoom => {
   const i = ZOOM_ORDER.indexOf(zoom);

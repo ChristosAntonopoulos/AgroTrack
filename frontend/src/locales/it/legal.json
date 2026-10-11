@@ -12,7 +12,7 @@
       {
         "heading": "1. Chi siamo (titolare del trattamento)",
         "paragraphs": [
-          "Titolare: gli operatori di The Olive Lot, con marchio The Olive Lot. Paese: Grecia. Privacy e supporto: support@theolivelot.com.",
+          "Titolare: gli operatori di The Olive Lot / Oleachron, con marchio The Olive Lot. Paese: Grecia. Privacy e supporto: support@theolivelot.com.",
           "Quando sarà costituita una società greca registrata, questa sezione indicherà la ragione sociale esatta. Fino ad allora le richieste privacy sono gestite dagli operatori di The Olive Lot. L’identità sviluppatore su Google Play per The Olive Lot / com.theolivelot.app corrisponde a questa identità di prodotto."
         ]
       },
@@ -63,7 +63,7 @@
         "heading": "7. I tuoi diritti",
         "paragraphs": [
           "Accesso; portabilità (esportazione); rettifica; cancellazione; opposizione/limitazione; revoca dei permessi opzionali del dispositivo; reclamo all’autorità di controllo — in Grecia, l’Autorità ellenica per la protezione dei dati (dpa.gr).",
-          "Usa Impostazioni per esportare ed Elimina account, oppure scrivi a support@theolivelot.com."
+          "Impostazioni → Scarica i miei dati esporta profilo, preferenze, campi e notifiche. Attività, raccolto, olio, registri di denaro e foto non sono in quel file; scrivi a support@theolivelot.com per richiederli. Puoi anche usare Elimina account o scriverci."
         ]
       },
       {
@@ -100,14 +100,52 @@
   },
   "terms": {
     "title": "Termini di utilizzo",
-    "updated": "",
-    "intro": "",
-    "sections": [],
-    "points": [
-      "The Olive Lot è in sviluppo attivo. Funzioni e limiti possono cambiare.",
-      "Sei responsabile di ciò che registri e di chi inviti sul campo.",
-      "Non condividere l’account. Se perdi l’accesso, contattaci.",
-      "L’uso del servizio implica l’accettazione di questi termini e dell’Informativa sulla privacy su https://theolivelot.com/privacy/."
-    ]
+    "updated": "Ultimo aggiornamento: ottobre 2026",
+    "intro": "Questi termini regolano l’uso di The Olive Lot, un’app di registro per olivicoltori. Creando un account o usando il servizio li accetti.",
+    "sections": [
+      {
+        "heading": "1. Il servizio",
+        "paragraphs": [
+          "The Olive Lot ti aiuta a tenere i registri dei tuoi campi: lavori, raccolta, olio, denaro, foto e le persone con cui lavori. È in sviluppo attivo, quindi funzioni e limiti possono cambiare."
+        ]
+      },
+      {
+        "heading": "2. Il tuo account",
+        "paragraphs": [
+          "Fornisci dati corretti e tieni privata la password. Non condividere l’account: invita le persone sul tuo campo. Se perdi l’accesso, contattaci."
+        ]
+      },
+      {
+        "heading": "3. I tuoi registri e la tua responsabilità",
+        "paragraphs": [
+          "Sei responsabile di ciò che registri e di chi inviti sul campo. I registri sono uno strumento di lavoro e non sostituiscono adempimenti ufficiali, fiscali o normativi."
+        ]
+      },
+      {
+        "heading": "4. Persone invitate",
+        "paragraphs": [
+          "Le persone che inviti vedono solo i campi e i moduli che concedi loro. Puoi modificare o rimuovere il loro accesso in qualsiasi momento."
+        ]
+      },
+      {
+        "heading": "5. Uso corretto",
+        "paragraphs": [
+          "Non abusare del servizio, non cercare di accedere ai dati di altri e non caricare contenuti illeciti."
+        ]
+      },
+      {
+        "heading": "6. Dati e privacy",
+        "paragraphs": [
+          "Come trattiamo i tuoi dati è descritto nell’Informativa sulla privacy su https://theolivelot.com/privacy/. Puoi esportare o eliminare i tuoi dati dalle Impostazioni."
+        ]
+      },
+      {
+        "heading": "7. Modifiche e contatti",
+        "paragraphs": [
+          "Possiamo aggiornare questi termini; le modifiche importanti saranno mostrate nell’app. L’uso del servizio implica l’accettazione di questi termini e dell’Informativa sulla privacy."
+        ]
+      }
+    ],
+    "points": []
   }
 }

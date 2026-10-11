@@ -173,16 +173,29 @@ export const resolveNavItemLabel = (item: NavItem, _role: AppRole, t: TFunction<
   t(opts?.mobile && item.mobileLabelKey ? item.mobileLabelKey : item.labelKey);
 
 /**
- * Optional active-field context for callers. Module membership no longer hides
- * product nav — permissions filter field data inside each module instead.
+ * Active-field context for nav visibility. Owners/Admins always see every module; on a
+ * Partner/Family seat (QA-008) the money-bearing modules hide unless the seat grants them.
  */
 export type ActiveFieldNavGate = {
-  /** @deprecated Unused for nav visibility; kept so Sidebar/MobileBottomNav call sites stay stable. */
+  /** Modules granted on the active field (collaborator seats only). */
   modules?: ReadonlySet<string> | null;
-  /** @deprecated Unused for nav visibility. */
   isAdminOnActive?: boolean;
-  /** @deprecated Unused for nav visibility. */
   canViewHarvest?: boolean;
+  /** True on a Partner/Family seat of the active field. */
+  isCollaboratorOnActive?: boolean;
+};
+
+/** Collaborator-only module gates: path → modules that unlock it (any of). */
+const COLLABORATOR_NAV_MODULES: Record<string, string[]> = {
+  '/harvest': ['harvest'],
+  '/money': ['money'],
+  '/my-oil': ['harvest', 'money'],
+};
+
+const collaboratorMayOpen = (path: string, gate?: ActiveFieldNavGate | null): boolean => {
+  const needed = COLLABORATOR_NAV_MODULES[path];
+  if (!needed || !gate?.isCollaboratorOnActive || gate.isAdminOnActive || !gate.modules) return true;
+  return needed.some((module) => gate.modules!.has(module));
 };
 
 /** Shared visibility filter for sidebar and mobile bottom nav. */
@@ -190,11 +203,12 @@ export const filterNavItemsForUser = (
   items: NavItem[],
   userRole: AppRole,
   mockMode: boolean,
-  _gate?: ActiveFieldNavGate | null
+  gate?: ActiveFieldNavGate | null
 ): NavItem[] => {
   return items.filter((item) => {
     if (!item.roles.includes(userRole)) return false;
     if (item.mockOnly && !mockMode) return false;
+    if (!collaboratorMayOpen(item.path, gate)) return false;
     // Ministry and Reports stay reachable by URL but out of the sidebar.
     if (item.path === '/ministry' || item.path === '/reports') {
       return false;

@@ -150,6 +150,9 @@
     "doneOutcome": "Done",
     "doneBody": "This task is complete.",
     "doneOn": "Completed {{date}}",
+    "checklist": "Checklist",
+    "checklistProgress": "{{done}} of {{total}} done",
+    "scheduledFor": "Planned {{period}}",
     "skippedOutcome": "Skipped",
     "skippedBody": "This task was skipped.",
     "saveNote": "Save note"
@@ -1128,6 +1131,7 @@
       "noDate": "No date yet"
     },
     "unassigned": "Unassigned",
+    "assignedElsewhere": "Assigned",
     "actions": {
       "markDone": "Mark done",
       "completed": "Done",

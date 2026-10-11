@@ -5,7 +5,7 @@ import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import Button from '../components/Common/Button';
 import RightDrawer from '../components/Common/RightDrawer';
-import LoadingSpinner from '../components/Common/LoadingSpinner';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import EmptyState from '../components/Common/EmptyState';
 import { OilStockTabs } from '../components/myOil/OilStockTabs';
 import { OilStockHero } from '../components/myOil/OilStockHero';
@@ -52,7 +52,7 @@ import {
   stockCountDeltas,
   type PackDelta} from '../myOil/stockCount';
 import { groupLotsByGrove, type GroveOilGroup } from '../myOil/groupLotsByGrove';
-import { agriculturalYearFor } from '../chronologio/agriculturalYear';
+import { formatSeasonLabel, getSeasonStartYear } from '../utils/harvestSeason';
 import { clampPackInput, emptyOilPackInput, packLitresOf, type OilPackInput } from '../myOil/packInput';
 import { directStorageLot } from '../myOil/directLot';
 import { fieldLabelMap } from '../utils/fieldLabels';
@@ -65,7 +65,7 @@ import './MyOilPage.css';
 const MyOilPage: React.FC = () => {
   const { t, i18n } = useTranslation(['myOil', 'common']);
   const { user } = useAuth();
-  const pageGuard = useModulePageGuard({ module: 'money' });
+  const pageGuard = useModulePageGuard({ module: 'myOil' });
   const [searchParams, setSearchParams] = useSearchParams();
   const focusFieldId = (searchParams.get('field') || searchParams.get('fieldId') || '').trim() || null;
 
@@ -101,8 +101,7 @@ const MyOilPage: React.FC = () => {
   const editDrawer = useDrawerPresence(editGroup);
   const partialDrawer = useDrawerPresence(partialFor);
 
-  const seasonStart = agriculturalYearFor(new Date());
-  const seasonLabel = `${seasonStart}/${String(seasonStart + 1).slice(-2)}`;
+  const seasonLabel = formatSeasonLabel(getSeasonStartYear());
 
   const packLabels = useMemo(
     () => ({
@@ -331,7 +330,7 @@ const MyOilPage: React.FC = () => {
     return (
       <PageContainer maxWidth="full" padding="none">
         <div className="my-oil-page">
-          <LoadingSpinner />
+          <PageSkeleton />
         </div>
       </PageContainer>
     );
@@ -352,7 +351,7 @@ const MyOilPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <LoadingSpinner />
+          <PageSkeleton />
         ) : error ? (
           <EmptyState
             title={t('error')}
@@ -471,6 +470,7 @@ const MyOilPage: React.FC = () => {
                 formatDate={formatDate}
                 onDeliver={onDeliverTap}
                 onCancel={(c) => void run(() => oilStockService.cancelCommitment(c.id))}
+                onCollectPayment={(c) => void run(() => oilStockService.collectPayment(c.id))}
                 onGive={() => openGive('hold')}
               />
             ) : null}

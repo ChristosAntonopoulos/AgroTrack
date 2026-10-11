@@ -1,6 +1,6 @@
 import { buildCaptureMenu } from './menu';
 import { buildQuickAddMoves, catalogSectionOrder, resolveQuickAddContext } from './quickAdd';
-import { resolveCaptureFieldId } from './fieldContext';
+import { isInheritedCaptureField, resolveCaptureFieldId } from './fieldContext';
 import type { CapturePermissions } from './types';
 
 const owner: CapturePermissions = {
@@ -149,7 +149,22 @@ describe('buildQuickAddMoves', () => {
 });
 
 describe('resolveCaptureFieldId', () => {
-  it('prefers context, then route, then active, then remembered', () => {
+  it('QA_024_global_capture_requires_an_explicit_field', () => {
+    expect(
+      resolveCaptureFieldId({
+        pathname: '/chronologio',
+        activeFieldId: 'active',
+        lastCaptureFieldId: 'last',
+        lastMoneyFieldId: 'money',
+        availableIds: ['active', 'last', 'money'],
+      })
+    ).toBe('');
+    expect(isInheritedCaptureField(undefined, '/money')).toBe(false);
+    expect(isInheritedCaptureField(undefined, '/fields/abc')).toBe(true);
+    expect(isInheritedCaptureField('ctx', '/money')).toBe(true);
+  });
+
+  it('prefers context, then route', () => {
     expect(
       resolveCaptureFieldId({
         contextFieldId: 'ctx',

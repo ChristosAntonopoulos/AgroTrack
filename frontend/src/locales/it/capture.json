@@ -6,6 +6,10 @@
   "allRecords": "Tutte le registrazioni",
   "moreRecords": "Altre registrazioni",
   "loadingContext": "Caricamento…",
+  "viewOnlyGrove": "Questo oliveto è solo in visualizzazione nel piano gratuito, quindi non puoi registrare qui.",
+  "groveChoose": "Scegli un oliveto qui sotto prima di registrare.",
+  "groveInherited": "Registrazione in {{name}}. Cambia l'oliveto qui sotto se serve.",
+  "switchEditableGrove": "Cambia l'oliveto modificabile",
   "whatToRecord": "Cosa vuoi registrare?",
   "alsoRecord": "Anche",
   "recentSection": "Recenti",
@@ -50,8 +54,8 @@
   },
   "types": {
     "observation": {
-      "title": "Nota",
-      "description": "Una nota di testo dall’oliveto"
+      "title": "Osservazione",
+      "description": "Un’osservazione scritta dall’oliveto"
     },
     "photo": {
       "title": "Foto",
@@ -115,7 +119,7 @@
   "observation": {
     "placeholder": "Cosa hai notato?",
     "addPhoto": "Aggiungi foto",
-    "saved": "Nota registrata."
+    "saved": "Osservazione registrata."
   },
   "photo": {
     "saved": "{{count}} foto caricate.",

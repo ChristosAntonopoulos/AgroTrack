@@ -43,6 +43,9 @@ public static class ChronologioEventTypes
     public const string CollaboratorPartnerAccepted = "collaborator.partnerAccepted";
 
     public const string ActivityGeneric = "activity.recorded";
+
+    /// <summary>Oil stock movement; the movement kind is in details.activity.activityType.</summary>
+    public const string OilMovementRecorded = "oil.movement";
 }
 
 /// <summary>
@@ -60,4 +63,7 @@ public static class ChronologioSourceTypes
     public const string Activity = "Activity";
     public const string WeatherReview = "WeatherReview";
     public const string WeatherExtremeEvent = "WeatherExtremeEvent";
+
+    /// <summary>Personal-cellar stock movement (sold, gifted, reserved, correction, reversal…).</summary>
+    public const string OilMovement = "OilMovement";
 }

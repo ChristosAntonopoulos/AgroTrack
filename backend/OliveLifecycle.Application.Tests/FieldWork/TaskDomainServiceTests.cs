@@ -111,6 +111,50 @@ public class TaskDomainServiceTests
     }
 
     [Fact]
+    public async Task QA_025_Create_PersistsClientChecklistLines()
+    {
+        FieldTask? created = null;
+        _tasks.Setup(r => r.CreateAsync(It.IsAny<FieldTask>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((FieldTask t, CancellationToken _) =>
+            {
+                t.Id = "task-qa025";
+                created = t;
+                return t;
+            });
+
+        var dto = await _tasksService.CreateAsync(
+            new CreateTaskDto
+            {
+                FieldId = "field-1",
+                Title = "Ψεκασμός",
+                TemplateCode = "T06",
+                Checklist =
+                [
+                    new CreateTaskChecklistItemDto { Key = "c1", Label = "Check weather" },
+                    new CreateTaskChecklistItemDto { Key = "c2", Label = "Clean sprayer" }
+                ]
+            },
+            "owner-1",
+            Roles.FieldOwner);
+
+        Assert.Equal(2, created!.ChecklistSnapshot.Count);
+        Assert.Equal(2, dto.Checklist.Count);
+        Assert.All(created.ChecklistSnapshot, item => Assert.False(item.IsAnswered));
+    }
+
+    [Fact]
+    public async Task QA_048_Create_RejectsTitleOverMaxLength()
+    {
+        var ex = await Assert.ThrowsAsync<ValidationException>(() =>
+            _tasksService.CreateAsync(
+                new CreateTaskDto { FieldId = "field-1", Title = new string('x', TaskService.MaxTitleLength + 1) },
+                "owner-1",
+                Roles.FieldOwner));
+
+        Assert.Contains(TaskService.MaxTitleLength.ToString(), ex.Message);
+    }
+
+    [Fact]
     public async Task Create_RejectsBlankTitle()
     {
         await Assert.ThrowsAsync<ValidationException>(() =>

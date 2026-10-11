@@ -6,7 +6,19 @@ import { isDeviceOnline, isNetworkError } from '../utils/networkStatus';
 
 export type FieldPersonRole = 'Admin' | 'Partner' | 'Family';
 export type FieldAccessLevel = 'view' | 'help' | 'work';
-export type FieldModule = 'fields' | 'tasks' | 'photos' | 'documents' | 'money' | 'chronologio' | 'harvest';
+/**
+ * 'myOil' is the personal cellar: never granted per grove, derived by the page guard
+ * (owners always; collaborators when they can see harvest or money) — see useModulePageGuard.
+ */
+export type FieldModule =
+  | 'fields'
+  | 'tasks'
+  | 'photos'
+  | 'documents'
+  | 'money'
+  | 'chronologio'
+  | 'harvest'
+  | 'myOil';
 
 /** @deprecated Prefer FieldModule — kept for invite/access copy compatibility */
 export type FamilyModule = FieldModule;
@@ -546,6 +558,19 @@ export const fieldPeopleService = {
   getManagedPeople: async (): Promise<ManagedPeople> => {
     const response = await api.get<ManagedPeople>('/api/v1/me/managed-people');
     return normalizeManaged(response.data);
+  },
+
+  /** QA-039: does this email already have an account? Resolves null when unknown (offline/mock/error). */
+  lookupInvitee: async (email: string): Promise<boolean | null> => {
+    if (isMockMode()) return null;
+    try {
+      const response = await api.get<{ hasAccount?: boolean }>('/api/v1/me/invitee-lookup', {
+        params: { email },
+      });
+      return typeof response.data?.hasAccount === 'boolean' ? response.data.hasAccount : null;
+    } catch {
+      return null;
+    }
   },
 
   createInvites: async (payload: CreateMultiFieldInvitePayload): Promise<FieldInvite[]> => {

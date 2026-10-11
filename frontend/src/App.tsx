@@ -62,6 +62,8 @@ import HarvestCampaignPage from './pages/HarvestCampaignPage';
 import ThisHarvestReviewPage from './pages/ThisHarvestReviewPage';
 import InviteAcceptPage from './pages/InviteAcceptPage';
 import AccessDeniedPage from './pages/AccessDeniedPage';
+import NotFoundPage from './pages/NotFoundPage';
+import { AppErrorBoundary, RouteErrorPage } from './components/Common/AppErrorBoundary';
 import './App.css';
 
 const FieldPeopleRedirect: React.FC = () => {
@@ -93,7 +95,7 @@ const FieldChronologioRedirect: React.FC = () => {
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <>
+    <Route errorElement={<RouteErrorPage />}>
       <Route path="/" element={<LandingPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />
@@ -171,12 +173,14 @@ const router = createBrowserRouter(
         <Route path="admin/campaigns/:id" element={<CampaignEditorPage />} />
         <Route path="admin/feedback" element={<FeedbackInboxPage />} />
       </Route>
-    </>
+      <Route path="*" element={<NotFoundPage />} />
+    </Route>
   )
 );
 
 function App() {
   return (
+    <AppErrorBoundary>
     <ThemeProvider>
       <LocaleProvider>
         <AuthProvider>
@@ -194,6 +198,7 @@ function App() {
         </AuthProvider>
       </LocaleProvider>
     </ThemeProvider>
+    </AppErrorBoundary>
   );
 }
 

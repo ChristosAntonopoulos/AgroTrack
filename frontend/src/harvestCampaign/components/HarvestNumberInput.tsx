@@ -74,6 +74,8 @@ type StepperProps = {
   step?: number;
   suffix: string;
   label: string;
+  /** QA-052: shown (aria-live) when the typed value exceeds `max`; receives the max. */
+  overMaxMessage?: (max: number) => string;
 };
 
 /**
@@ -88,12 +90,18 @@ export const HarvestNumberStepper: React.FC<StepperProps> = ({
   step = 1,
   suffix,
   label,
+  overMaxMessage,
 }) => {
   const [draft, setDraft] = useState(() => String(value));
+  // Remembers that a blur clamped the typed number, so the user is told why it changed.
+  const [clamped, setClamped] = useState(false);
 
   useEffect(() => {
     setDraft(String(value));
   }, [value]);
+
+  const typed = parseHarvestDecimal(draft);
+  const overMax = max != null && ((typed != null && typed > max) || clamped);
 
   const clamp = (raw: number) => {
     const next = clampMin(raw, min);
@@ -112,6 +120,7 @@ export const HarvestNumberStepper: React.FC<StepperProps> = ({
       return;
     }
     const next = clamp(parsed);
+    setClamped(max != null && parsed > max);
     onChange(next);
     setDraft(String(next));
   };
@@ -137,9 +146,13 @@ export const HarvestNumberStepper: React.FC<StepperProps> = ({
           <input
             inputMode="decimal"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setClamped(false);
+              setDraft(e.target.value);
+            }}
             onBlur={() => commitDraft(draft)}
             aria-label={label}
+            aria-invalid={overMax && Boolean(overMaxMessage)}
           />
           <span className="hc-amount-suffix" aria-hidden>
             {suffix}
@@ -159,6 +172,11 @@ export const HarvestNumberStepper: React.FC<StepperProps> = ({
           +
         </button>
       </div>
+      {overMax && overMaxMessage && max != null ? (
+        <span className="capture-hint money-warn" role="status" aria-live="polite">
+          {overMaxMessage(max)}
+        </span>
+      ) : null}
     </label>
   );
 };

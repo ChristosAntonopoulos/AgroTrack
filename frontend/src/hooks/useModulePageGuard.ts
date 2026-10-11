@@ -14,8 +14,11 @@ export type ModulePageGuardResult = {
   loading: boolean;
 };
 
-const moduleAllowed = (module: FieldModule, capabilities: FieldCapabilities): boolean => {
+export const moduleAllowed = (module: FieldModule, capabilities: FieldCapabilities): boolean => {
   switch (module) {
+    case 'myOil':
+      // QA-008: personal cellar, not a Money page. Collaborators need harvest or money visibility.
+      return capabilities.canViewHarvest || capabilities.canViewMoney;
     case 'tasks':
       return capabilities.canViewTasks;
     case 'money':

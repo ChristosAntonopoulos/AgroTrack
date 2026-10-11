@@ -151,6 +151,18 @@ public class OilPressingRepository
         return document is null ? null : ToEntity(document);
     }
 
+    public async Task<OilPressing?> GetByIdempotencyKeyAsync(
+        string recordedByUserId,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
+        var document = await Collection
+            .Find(x => x.RecordedByUserId == recordedByUserId && x.IdempotencyKey == idempotencyKey)
+            .FirstOrDefaultAsync(cancellationToken);
+        return document is null ? null : ToEntity(document);
+    }
+
     public async Task<IReadOnlyList<OilPressing>> GetByRecorderAsync(
         string recordedByUserId,
         int? resultYear = null,
@@ -213,6 +225,18 @@ public class OilCommitmentRepository
 
     protected override FilterDefinition<OilCommitmentDocument> BuildIdFilter(string id) =>
         Builders<OilCommitmentDocument>.Filter.Eq(x => x.Id, id);
+
+    public async Task<OilCommitment?> GetByIdempotencyKeyAsync(
+        string cellarId,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(cellarId) || string.IsNullOrWhiteSpace(idempotencyKey)) return null;
+        var document = await Collection
+            .Find(x => x.CellarId == cellarId && x.IdempotencyKey == idempotencyKey)
+            .FirstOrDefaultAsync(cancellationToken);
+        return document is null ? null : ToEntity(document);
+    }
 
     public async Task<IReadOnlyList<OilCommitment>> GetByCellarIdAsync(
         string cellarId,

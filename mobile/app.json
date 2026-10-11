@@ -88,7 +88,13 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single",
+      "name": "The Olive Lot",
+      "shortName": "Olive Lot",
+      "themeColor": "#1F2820",
+      "backgroundColor": "#F4F0E6"
     },
     "plugins": [
       [

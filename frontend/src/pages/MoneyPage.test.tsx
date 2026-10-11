@@ -9,6 +9,7 @@ const mockGetYear = jest.fn();
 const mockList = jest.fn();
 const mockGetFields = jest.fn();
 const mockSetSearchParams = jest.fn();
+const mockSetShowingCachedData = jest.fn();
 
 jest.mock(
   'react-router-dom',
@@ -16,7 +17,7 @@ jest.mock(
     useSearchParams: () => [new URLSearchParams({ year: '2026' }), mockSetSearchParams],
     useNavigate: () => jest.fn(),
     Navigate: () => null,
-    Link: ({ children }: { children?: React.ReactNode }) => children,
+    Link: ({ children }) => children,
   }),
   { virtual: true }
 );
@@ -38,6 +39,18 @@ jest.mock('../services/serviceFactory', () => ({
   }),
   getFieldWorkService: () => ({ getFieldTask: jest.fn() }),
   getHarvestService: () => ({ listByField: jest.fn() }),
+  getTaskService: () => ({ getTask: jest.fn(), list: jest.fn().mockResolvedValue([]) }),
+}));
+
+jest.mock('../services/oilStockService', () => ({
+  __esModule: true,
+  oilStockService: {
+    getSummary: jest.fn(() => Promise.resolve(null)),
+  },
+}));
+
+jest.mock('../utils/networkStatus', () => ({
+  isDeviceOnline: () => true,
 }));
 
 jest.mock('../context/AuthContext', () => ({
@@ -45,11 +58,15 @@ jest.mock('../context/AuthContext', () => ({
 }));
 
 jest.mock('../context/OfflineContext', () => ({
-  useOfflineMode: () => ({ refreshGeneration: 0, setShowingCachedData: jest.fn() }),
+  useOfflineMode: () => ({ refreshGeneration: 0, setShowingCachedData: mockSetShowingCachedData }),
 }));
 
 jest.mock('../context/CaptureContext', () => ({
   useCaptureOptional: () => ({ openCapture: jest.fn() }),
+}));
+
+jest.mock('../context/CapturePageContext', () => ({
+  useRegisterCapturePage: () => undefined,
 }));
 
 const field = {

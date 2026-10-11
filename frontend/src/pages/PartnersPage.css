@@ -471,6 +471,12 @@
   font-size: 0.92rem;
 }
 
+/* QA-018: role line under the name when two seats share a display name. */
+.partner-person-role {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
 .partner-profile-phone {
   display: grid;
   gap: 0.5rem;

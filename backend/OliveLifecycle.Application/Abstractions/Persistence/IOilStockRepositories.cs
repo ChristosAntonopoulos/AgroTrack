@@ -36,6 +36,12 @@ public interface IOilPressingRepository : IRepository<OilPressing, string>
         string batchId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>The pressing this person already created under a replay key, if any.</summary>
+    Task<OilPressing?> GetByIdempotencyKeyAsync(
+        string recordedByUserId,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<OilPressing>> GetByRecorderAsync(
         string recordedByUserId,
         int? resultYear = null,
@@ -53,6 +59,12 @@ public interface IOilPressingRepository : IRepository<OilPressing, string>
 
 public interface IOilCommitmentRepository : IRepository<OilCommitment, string>
 {
+    /// <summary>The commitment this cellar already created under a replay key, if any.</summary>
+    Task<OilCommitment?> GetByIdempotencyKeyAsync(
+        string cellarId,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<OilCommitment>> GetByCellarIdAsync(
         string cellarId,
         string? legacyOwnerUserId = null,

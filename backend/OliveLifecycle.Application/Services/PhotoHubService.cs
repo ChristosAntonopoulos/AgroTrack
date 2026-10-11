@@ -190,6 +190,8 @@ public class PhotoHubService : IPhotoHubService
 
         var photo = await GetAccessiblePhotoAsync(id, userId, userRole, cancellationToken);
         await EnsurePhotoAccessAsync(dto.FieldId, userId, userRole, cancellationToken);
+        // QA-044: attaching a photo to a view-only (free-plan) grove is a write.
+        await _fieldAccess.EnsureFieldWritableForWriteAsync(dto.FieldId.Trim(), cancellationToken);
 
         photo.FieldId = dto.FieldId.Trim();
         photo.FieldAssignment = FieldAssignmentStatus.Manual;
@@ -271,6 +273,7 @@ public class PhotoHubService : IPhotoHubService
         }
 
         await EnsurePhotoAccessAsync(photo.FieldId, userId, userRole, cancellationToken);
+        await _fieldAccess.EnsureFieldWritableForWriteAsync(photo.FieldId, cancellationToken);
 
         if (ownerType is MediaOwnerType.Note or MediaOwnerType.Task or MediaOwnerType.Harvest)
         {
@@ -543,6 +546,19 @@ public class PhotoHubService : IPhotoHubService
         }
 
         var fieldId = match.FieldId ?? string.Empty;
+        // QA-044: never auto-assign an upload to a view-only grove; leave it unassigned instead.
+        if (!string.IsNullOrWhiteSpace(fieldId))
+        {
+            var matchedField = accessibleFields.FirstOrDefault(f => string.Equals(f.Id, fieldId, StringComparison.Ordinal));
+            if (matchedField != null
+                && !await _fieldAccess.IsFieldWritableUnderSubscriptionAsync(matchedField, cancellationToken))
+            {
+                fieldId = string.Empty;
+                match = new FieldGeoMatchResult { Assignment = FieldAssignmentStatus.Unassigned, Candidates = match.Candidates };
+                assignmentReason = "fieldNotWritable";
+            }
+        }
+
         var hashMatches = new List<MediaAttachment>();
         hashMatches.AddRange(await _media.FindByContentHashAsync(identityHash, null, cancellationToken));
         if (!string.Equals(identityHash, byteHash, StringComparison.Ordinal))

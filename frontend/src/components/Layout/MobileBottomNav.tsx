@@ -62,6 +62,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick, moreOpen
     const visible = filterNavItemsForUser(navItems, userRole, isMockMode(), {
       modules: activeField.modules,
       isAdminOnActive: activeField.isAdminOnActive,
+      isCollaboratorOnActive: activeField.isCollaboratorOnActive,
       canViewHarvest,
     });
     const harvestItem = visible.find((item) => item.path === '/harvest');
@@ -70,7 +71,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onMoreClick, moreOpen
       items = [harvestItem, ...items.filter((item) => item.path !== '/chronologio' && item.path !== '/harvest')];
     }
     return items.slice(0, 3);
-  }, [userRole, activeField.modules, activeField.isAdminOnActive, canViewHarvest, harvest?.isLive]);
+  }, [userRole, activeField.modules, activeField.isAdminOnActive, activeField.isCollaboratorOnActive, canViewHarvest, harvest?.isLive]);
 
   const harvestPage = location.pathname === '/harvest' || location.pathname.startsWith('/harvest/');
   if (harvest?.isLive && harvestPage) return null;

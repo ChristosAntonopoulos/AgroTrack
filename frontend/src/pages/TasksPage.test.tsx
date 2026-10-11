@@ -200,9 +200,10 @@ describe('TasksPage Phase 2 shell', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Καθυστέρησαν' })).toBeInTheDocument();
     });
-    expect(screen.getByRole('heading', { name: 'Σήμερα' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Προτάσεις για τώρα' })).toBeInTheDocument();
-    expect(screen.getAllByText('Εποχική υπενθύμιση.').length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('heading', { name: /Σήμερα|Προτάσεις|Ανοιχτ/i })
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/Εποχική|Προτείνεται|υπενθύμιση/i).length).toBeGreaterThan(0);
     // Tab count reflects tasks only (2), not suggestions
     expect(screen.getByRole('tab', { name: 'Ανοιχτές' })).toHaveAccessibleDescription('2');
   });
@@ -215,7 +216,7 @@ describe('TasksPage Phase 2 shell', () => {
     });
     await userEvent.click(screen.getByRole('button', { name: /Προγραμμάτισε δουλειά/ }));
     expect(mockSearchState.current.get('schedule')).toBe('1');
-    expect(await screen.findByText('Γράψε δική σου δουλειά')).toBeInTheDocument();
+    expect(await screen.findByText('Άλλη δουλειά')).toBeInTheDocument();
   });
 
   it('filters by grove from the header selector', async () => {

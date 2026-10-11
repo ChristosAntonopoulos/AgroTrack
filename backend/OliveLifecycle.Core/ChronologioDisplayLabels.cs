@@ -159,7 +159,8 @@ public static class ChronologioDisplayLabels
         int people,
         double? oilKg,
         double? yieldPercent,
-        string language = "el")
+        string language = "el",
+        decimal? oilLitres = null)
     {
         var culture = Culture(language);
         var parts = new List<string>();
@@ -180,7 +181,15 @@ public static class ChronologioDisplayLabels
             parts.Add(IsEnglish(language) ? $"{people} people" : $"{people} άτομα");
         }
 
-        if (oilKg is > 0)
+        // Oil-method harvests carry no olive weight; the oil itself is the whole record, so it must
+        // always show up (litres first, as in HarvestSummary).
+        if (oilLitres is > 0)
+        {
+            parts.Add(IsEnglish(language)
+                ? $"{oilLitres.Value.ToString("0.##", culture)} L oil"
+                : $"{oilLitres.Value.ToString("0.##", culture)} L λάδι");
+        }
+        else if (oilKg is > 0)
         {
             var oil = GroveMass.RoundKg(oilKg.Value);
             parts.Add(IsEnglish(language)
@@ -195,7 +204,9 @@ public static class ChronologioDisplayLabels
                 : $"Απόδοση {yieldPercent.Value.ToString("0.#", culture)}%");
         }
 
-        return parts.Count > 0 ? string.Join(" · ", parts) : HarvestSummary(officialKg, oilKg, null, yieldPercent, language);
+        return parts.Count > 0
+            ? string.Join(" · ", parts)
+            : HarvestSummary(officialKg, oilKg, oilLitres, yieldPercent, language);
     }
 
     public static string TaskFallbackTitle(string language = "el") => Category(ChronologioCategory.Task, language);
@@ -217,6 +228,44 @@ public static class ChronologioDisplayLabels
         "partner_contact_accepted" => IsEnglish(language) ? "Partner contact accepted" : "Αποδοχή συνεργασίας",
         _ => Category(ChronologioCategory.Activity, language)
     };
+
+    /// <summary>
+    /// QA-051/QA-004: timeline title for a personal-cellar stock movement. Corrections and
+    /// reversals never read as production.
+    /// </summary>
+    public static string OilMovementTitle(
+        StockMovementKind kind,
+        decimal litresDelta,
+        bool isReversal,
+        string language = "el")
+    {
+        var en = IsEnglish(language);
+        if (isReversal)
+        {
+            return en ? "Oil movement reversed" : "Αντιλογισμός κίνησης λαδιού";
+        }
+
+        return kind switch
+        {
+            StockMovementKind.Produced => en ? "Oil added to storage" : "Λάδι προστέθηκε στην αποθήκη",
+            StockMovementKind.Packed or StockMovementKind.Repacked => en ? "Oil packed into tins" : "Συσκευασία λαδιού σε τενεκέδες",
+            StockMovementKind.Reserved => en ? "Oil reserved" : "Κράτηση λαδιού",
+            StockMovementKind.ReservationCancelled => en ? "Oil reservation cancelled" : "Ακύρωση κράτησης λαδιού",
+            StockMovementKind.Sold => en ? "Oil sold" : "Πώληση λαδιού",
+            StockMovementKind.Delivered => en ? "Oil delivered" : "Παράδοση λαδιού",
+            StockMovementKind.Gifted => en ? "Oil gifted" : "Δώρο λαδιού",
+            StockMovementKind.HomeUse => en ? "Oil for home use" : "Λάδι για το σπίτι",
+            StockMovementKind.Consumed => en ? "Oil used" : "Κατανάλωση λαδιού",
+            StockMovementKind.SharedOut => en ? "Oil shared out" : "Μοίρασμα λαδιού",
+            StockMovementKind.SharedIn => en ? "Oil shared in" : "Λάδι από μοίρασμα",
+            StockMovementKind.Returned => en ? "Oil returned" : "Επιστροφή λαδιού",
+            StockMovementKind.Correction when litresDelta < 0 =>
+                en ? "Stock correction (found less)" : "Διόρθωση αποθέματος (λιγότερο)",
+            StockMovementKind.Correction =>
+                en ? "Stock correction (found more)" : "Διόρθωση αποθέματος (περισσότερο)",
+            _ => en ? "Oil movement" : "Κίνηση λαδιού"
+        };
+    }
 
     public static string WeatherMonthTitle(int year, int month, string language = "el")
     {

@@ -61,6 +61,7 @@ public class NoteService : INoteService
         var fieldId = await NormalizeFieldIdAsync(userId, userRole, dto.FieldId, cancellationToken);
         if (!string.IsNullOrWhiteSpace(fieldId))
         {
+            await _fieldAccess.EnsureFieldWritableForWriteAsync(fieldId, cancellationToken);
             await _fieldStatusGuard.EnsureAcceptsNewRecordsAsync(fieldId, cancellationToken);
         }
         var now = _clock.UtcNow;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, usePresence, useReducedMotion } from 'motion/react';
 import { X } from 'lucide-react';
 import { useDrawerDialog } from '../../hooks/useDrawerDialog';
 import { useIsMobile } from '../../hooks/useBreakpoint';
@@ -33,6 +33,29 @@ export type RightDrawerProps = {
   'aria-label'?: string;
   onExitComplete?: () => void;
 };
+
+/**
+ * QA-007: a new `resetKey` remounts the panel, so the old one lingers while it animates out.
+ * Only the live panel may be a dialog; the leaving copy is hidden from assistive tech.
+ */
+const DrawerPanel = React.forwardRef<HTMLElement, React.ComponentProps<typeof motion.aside>>(
+  (props, ref) => {
+    const [isPresent] = usePresence();
+    return (
+      <motion.aside
+        ref={ref}
+        {...props}
+        role={isPresent ? 'dialog' : undefined}
+        aria-modal={isPresent ? 'true' : undefined}
+        aria-hidden={isPresent ? undefined : true}
+        // QA-017: a hidden/leaving panel must not keep focusable controls (aria-hidden alone is not enough).
+        inert={isPresent ? undefined : true}
+        style={isPresent ? props.style : { ...props.style, pointerEvents: 'none' }}
+      />
+    );
+  }
+);
+DrawerPanel.displayName = 'DrawerPanel';
 
 const RightDrawer: React.FC<RightDrawerProps> = ({
   open,
@@ -91,7 +114,7 @@ const RightDrawer: React.FC<RightDrawerProps> = ({
         />
       ) : null}
       {open ? (
-        <motion.aside
+        <DrawerPanel
           key={resetKey ? `oa-drawer-${resetKey}` : 'oa-drawer'}
           ref={panelRef}
           className={[
@@ -102,8 +125,6 @@ const RightDrawer: React.FC<RightDrawerProps> = ({
           ]
             .filter(Boolean)
             .join(' ')}
-          role="dialog"
-          aria-modal="true"
           aria-labelledby={ariaLabel ? undefined : titleId}
           aria-label={ariaLabel}
           initial={reduceMotion ? false : enter}
@@ -152,7 +173,7 @@ const RightDrawer: React.FC<RightDrawerProps> = ({
               {footer}
             </footer>
           ) : null}
-        </motion.aside>
+        </DrawerPanel>
       ) : null}
     </AnimatePresence>,
     document.body

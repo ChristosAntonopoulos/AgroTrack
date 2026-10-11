@@ -546,6 +546,18 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(p => p.FieldIds)
                 .Descending(p => p.PressedOn),
             new CreateIndexOptions { Name = "ix_oil_pressings_status_fields_pressed" }));
+        // Replay key: a retried create returns the first pressing instead of writing a second.
+        oilPressings.Indexes.CreateOne(new CreateIndexModel<OilPressingDocument>(
+            Builders<OilPressingDocument>.IndexKeys
+                .Ascending(p => p.RecordedByUserId)
+                .Ascending(p => p.IdempotencyKey),
+            new CreateIndexOptions<OilPressingDocument>
+            {
+                Unique = true,
+                Name = "ix_oil_pressings_recorder_idempotency",
+                PartialFilterExpression = Builders<OilPressingDocument>.Filter.Type(
+                    p => p.IdempotencyKey, BsonType.String)
+            }));
 
         var oilCommitments = _context.GetCollection<OilCommitmentDocument>("oil_commitments");
         oilCommitments.Indexes.CreateOne(new CreateIndexModel<OilCommitmentDocument>(
@@ -558,6 +570,17 @@ public class MongoIndexInitializer : IHostedService
                 .Ascending(c => c.CellarId)
                 .Descending(c => c.CreatedAt),
             new CreateIndexOptions { Sparse = true, Name = "ix_oil_commitments_cellar_created" }));
+        oilCommitments.Indexes.CreateOne(new CreateIndexModel<OilCommitmentDocument>(
+            Builders<OilCommitmentDocument>.IndexKeys
+                .Ascending(c => c.CellarId)
+                .Ascending(c => c.IdempotencyKey),
+            new CreateIndexOptions<OilCommitmentDocument>
+            {
+                Unique = true,
+                Name = "ix_oil_commitments_cellar_idempotency",
+                PartialFilterExpression = Builders<OilCommitmentDocument>.Filter.Type(
+                    c => c.IdempotencyKey, BsonType.String)
+            }));
 
         var oilShareRequests = _context.GetCollection<OilShareRequestDocument>("oil_share_requests");
         oilShareRequests.Indexes.CreateOne(new CreateIndexModel<OilShareRequestDocument>(

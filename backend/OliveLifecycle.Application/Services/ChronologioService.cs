@@ -48,6 +48,10 @@ public class ChronologioService : IChronologioService
     private readonly IFieldWeatherExtremeEventRepository _weatherExtremeRepository;
     private readonly IGeospatialStorageService _geospatialStorage;
     private readonly IPhotoContentUrlSigner _photoUrlSigner;
+    private readonly IOilCellarRepository _oilCellars;
+    private readonly IOilLotRepository _oilLots;
+    private readonly IOilCommitmentRepository _oilCommitments;
+    private readonly IStockMovementRepository _stockMovements;
     private readonly ILogger<ChronologioService> _logger;
 
     public ChronologioService(
@@ -66,8 +70,16 @@ public class ChronologioService : IChronologioService
         IFieldWeatherExtremeEventRepository weatherExtremeRepository,
         IGeospatialStorageService geospatialStorage,
         IPhotoContentUrlSigner photoUrlSigner,
+        IOilCellarRepository oilCellars,
+        IOilLotRepository oilLots,
+        IOilCommitmentRepository oilCommitments,
+        IStockMovementRepository stockMovements,
         ILogger<ChronologioService> logger)
     {
+        _oilCellars = oilCellars;
+        _oilLots = oilLots;
+        _oilCommitments = oilCommitments;
+        _stockMovements = stockMovements;
         _fieldAccessService = fieldAccessService;
         _fieldAccessScope = fieldAccessScope;
         _fieldRepository = fieldRepository;
@@ -145,7 +157,9 @@ public class ChronologioService : IChronologioService
             f => new FieldLabel(f.Name ?? string.Empty, f.Color),
             StringComparer.Ordinal);
 
-        return await BuildTimelineAsync(fieldIds, fieldLabels, userId, userRole, query, cancellationToken);
+        return await BuildTimelineAsync(
+            fieldIds, fieldLabels, userId, userRole, query, cancellationToken,
+            userScope: string.IsNullOrWhiteSpace(query.FieldId));
     }
 
     public async Task<IReadOnlyList<ChronologioPeriodSummaryDto>> GetYearSummariesForFieldAsync(
@@ -172,7 +186,9 @@ public class ChronologioService : IChronologioService
             return Array.Empty<ChronologioPeriodSummaryDto>();
         }
 
-        var entries = await LoadEntriesForSummaryAsync(fieldIds, fieldLabels, userId, userRole, query, cancellationToken);
+        var entries = await LoadEntriesForSummaryAsync(
+            fieldIds, fieldLabels, userId, userRole, query, cancellationToken,
+            userScope: string.IsNullOrWhiteSpace(query.FieldId));
         return AggregatePeriodSummaries(entries, ChronologioAxis.Normalize(query.Axis));
     }
 
@@ -199,7 +215,9 @@ public class ChronologioService : IChronologioService
             return Array.Empty<ChronologioMonthSummaryDto>();
         }
 
-        return await BuildMonthSummariesAsync(fieldIds, fieldLabels, userId, userRole, query, cancellationToken);
+        return await BuildMonthSummariesAsync(
+            fieldIds, fieldLabels, userId, userRole, query, cancellationToken,
+            userScope: string.IsNullOrWhiteSpace(query.FieldId));
     }
 
     private async Task<(IReadOnlyList<string> FieldIds, IReadOnlyDictionary<string, FieldLabel> FieldLabels)> ResolveFieldScopeAsync(
@@ -256,7 +274,8 @@ public class ChronologioService : IChronologioService
         string userId,
         string userRole,
         ChronologioSummaryQuery summaryQuery,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool userScope = false)
     {
         return await BuildTimelineAsync(
             fieldIds,
@@ -273,7 +292,8 @@ public class ChronologioService : IChronologioService
                 Offset = 0
             },
             cancellationToken,
-            pageResults: false);
+            pageResults: false,
+            userScope: userScope);
     }
 
     private async Task<IReadOnlyList<ChronologioMonthSummaryDto>> BuildMonthSummariesAsync(
@@ -282,7 +302,8 @@ public class ChronologioService : IChronologioService
         string userId,
         string userRole,
         ChronologioSummaryQuery query,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool userScope = false)
     {
         var axis = ChronologioAxis.Normalize(query.Axis);
         var periodYear = query.PeriodYear
@@ -308,8 +329,10 @@ public class ChronologioService : IChronologioService
                 Offset = 0
             },
             cancellationToken,
-            pageResults: false);
+            pageResults: false,
+            userScope: userScope);
 
+        // QA-051: month counts come from the same filtered list as the timeline (oil included).
         return AggregateMonthSummaries(entries, periodYear, axis);
     }
 
@@ -359,6 +382,7 @@ public class ChronologioService : IChronologioService
                 TaskCount = rollup.TaskCount,
                 ExpenseCount = rollup.ExpenseCount,
                 HarvestCount = rollup.HarvestCount,
+                OilCount = rollup.OilCount,
                 NoteCount = rollup.NoteCount,
                 ExpenseTotal = rollup.ExpenseTotal,
                 Currency = rollup.Currency,
@@ -400,6 +424,7 @@ public class ChronologioService : IChronologioService
             TaskCount = rollup.TaskCount,
             ExpenseCount = rollup.ExpenseCount,
             HarvestCount = rollup.HarvestCount,
+            OilCount = rollup.OilCount,
             NoteCount = rollup.NoteCount,
             ExpenseTotal = rollup.ExpenseTotal,
             Currency = rollup.Currency,
@@ -423,6 +448,7 @@ public class ChronologioService : IChronologioService
         public int TaskCount;
         public int ExpenseCount;
         public int HarvestCount;
+        public int OilCount;
         public int NoteCount;
         public decimal ExpenseTotal;
         public string Currency = "EUR";
@@ -518,6 +544,11 @@ public class ChronologioService : IChronologioService
                     stats.ExpenseTotal += e.Amount.Value;
                     stats.Currency = e.Amount.Currency;
                 }
+            }
+            else if (string.Equals(e.SourceType, ChronologioSourceTypes.OilMovement, StringComparison.Ordinal))
+            {
+                // QA-051: oil ledger events counted from the same filtered list as the timeline.
+                stats.OilCount++;
             }
             else if (string.Equals(category, ChronologioCategory.Harvest.ToApiString(), StringComparison.OrdinalIgnoreCase))
             {
@@ -622,7 +653,8 @@ public class ChronologioService : IChronologioService
         string userRole,
         ChronologioQuery query,
         CancellationToken cancellationToken,
-        bool pageResults = true)
+        bool pageResults = true,
+        bool userScope = false)
     {
         var limit = pageResults ? NormalizeLimit(query.Limit) : Math.Min(Math.Max(query.Limit, 1), SummaryMaxEntries);
         var offset = pageResults ? Math.Max(0, query.Offset) : 0;
@@ -883,6 +915,8 @@ public class ChronologioService : IChronologioService
             entries.Add(MapWeatherExtreme(extreme, fieldLabels));
         }
 
+        entries.AddRange(await BuildOilEntriesAsync(fieldIds, fieldLabels, userId, userScope, cancellationToken));
+
         foreach (var entry in entries)
         {
             if (entry.Media.Count > 0 && !photoFieldIds.Contains(entry.FieldId))
@@ -930,6 +964,140 @@ public class ChronologioService : IChronologioService
             limit);
 
         return result;
+    }
+
+    /// <summary>
+    /// QA-051: the viewer's personal-cellar movements (sold, gifted, reserved, correction,
+    /// reversal…) as timeline entries. Field-scoped views only show lots grown on that field;
+    /// lots with no field provenance appear in the user-wide view only.
+    /// Harvest-born production stays represented by the harvest entry itself.
+    /// </summary>
+    private async Task<IReadOnlyList<ChronologioEntryDto>> BuildOilEntriesAsync(
+        IReadOnlyList<string> fieldIds,
+        IReadOnlyDictionary<string, FieldLabel> fieldLabels,
+        string userId,
+        bool userScope,
+        CancellationToken cancellationToken)
+    {
+        var cellar = await _oilCellars.GetByOwnerPersonIdAsync(userId, cancellationToken);
+        if (cellar == null)
+        {
+            return Array.Empty<ChronologioEntryDto>();
+        }
+
+        var movements = await _stockMovements.GetByCellarIdAsync(cellar.Id, userId, 500, cancellationToken);
+        if (movements == null || movements.Count == 0)
+        {
+            return Array.Empty<ChronologioEntryDto>();
+        }
+
+        var lots = (await _oilLots.GetByCellarIdAsync(cellar.Id, userId, null, cancellationToken))
+            .ToDictionary(l => l.Id, StringComparer.Ordinal);
+        var commitments = (await _oilCommitments.GetByCellarIdAsync(cellar.Id, userId, cancellationToken))
+            .ToDictionary(c => c.Id, StringComparer.Ordinal);
+        var inScope = fieldIds.ToHashSet(StringComparer.Ordinal);
+
+        var result = new List<ChronologioEntryDto>();
+        foreach (var movement in movements)
+        {
+            OilLot? lot = null;
+            if (movement.OilLotId != null)
+            {
+                lots.TryGetValue(movement.OilLotId, out lot);
+            }
+
+            var lotFields = lot?.FieldIds ?? [];
+            var fieldId = lotFields.FirstOrDefault(inScope.Contains);
+            if (fieldId == null && (lotFields.Count > 0 || !userScope))
+            {
+                continue;
+            }
+
+            // Harvest-born production already shows as the harvest entry.
+            var isHarvestProduction = movement.Kind == StockMovementKind.Produced
+                && lot != null
+                && (lot.HarvestRecordIds.Count > 0 || !string.IsNullOrWhiteSpace(lot.SourcePressingId));
+            if (isHarvestProduction)
+            {
+                continue;
+            }
+
+            OilCommitment? commitment = null;
+            if (movement.OilCommitmentId != null)
+            {
+                commitments.TryGetValue(movement.OilCommitmentId, out commitment);
+            }
+
+            result.Add(MapOilMovement(movement, lot, commitment, fieldId ?? string.Empty, fieldLabels, userId));
+        }
+
+        return result;
+    }
+
+    private static ChronologioEntryDto MapOilMovement(
+        StockMovement movement,
+        OilLot? lot,
+        OilCommitment? commitment,
+        string fieldId,
+        IReadOnlyDictionary<string, FieldLabel> fieldLabels,
+        string userId)
+    {
+        var isReversal = !string.IsNullOrWhiteSpace(movement.ReversalOfMovementId);
+        var occurredAt = EnsureUtc(movement.OccurredOn);
+        var title = ChronologioDisplayLabels.OilMovementTitle(movement.Kind, movement.LitresDelta, isReversal);
+        var litres = Math.Abs(movement.LitresDelta);
+        var summaryParts = new List<string>();
+        if (litres > 0.05m)
+        {
+            summaryParts.Add($"{litres.ToString("0.#", CultureInfo.InvariantCulture)} L");
+        }
+
+        if (!string.IsNullOrWhiteSpace(commitment?.CounterpartyName))
+        {
+            summaryParts.Add(commitment.CounterpartyName);
+        }
+
+        var resultYear = lot?.ResultYear ?? AgriculturalYear.For(occurredAt);
+        var meta = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["kind"] = movement.Kind.ToString(),
+            ["litresDelta"] = movement.LitresDelta.ToString(CultureInfo.InvariantCulture)
+        };
+        if (isReversal)
+        {
+            meta["reversalOf"] = movement.ReversalOfMovementId!;
+        }
+
+        return new ChronologioEntryDto
+        {
+            Id = $"{ChronologioSourceTypes.OilMovement}:{movement.Id}",
+            FieldId = fieldId,
+            Field = FieldRef(fieldId, fieldLabels),
+            CropCycleId = null,
+            LifecycleYear = YearLabel(resultYear, occurredAt),
+            ResultYear = resultYear,
+            OccurredAt = occurredAt,
+            CreatedAt = EnsureUtc(movement.CreatedAt),
+            Category = ChronologioCategory.Activity.ToApiString(),
+            EventType = ChronologioEventTypes.OilMovementRecorded,
+            Title = title,
+            Summary = string.Join(" · ", summaryParts),
+            SourceType = ChronologioSourceTypes.OilMovement,
+            SourceId = movement.Id,
+            OccurrenceId = null,
+            IsSystemGenerated = false,
+            Actor = new ChronologioActorDto { UserId = userId },
+            Importance = ChronologioImportance.Normal.ToApiString(),
+            Details = new ChronologioDetailsDto
+            {
+                Activity = new ChronologioActivityDetailsDto
+                {
+                    ActivityType = $"oil.{movement.Kind}".ToLowerInvariant(),
+                    Message = movement.Notes,
+                    Metadata = meta
+                }
+            }
+        };
     }
 
     private ChronologioEntryDto MapTaskExecution(
@@ -1157,7 +1325,8 @@ public class ChronologioService : IChronologioService
             harvest.SackCount,
             harvest.WorkersUsed,
             harvest.OilKg,
-            harvest.OilYieldPercent);
+            harvest.OilYieldPercent,
+            oilLitres: harvest.OilLitres);
 
         var media = (attachments ?? Array.Empty<MediaAttachment>())
             .Select(a => MapMediaAttachment(a, viewerUserId))

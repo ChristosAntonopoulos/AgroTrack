@@ -8,10 +8,13 @@ import { isMockDataEnabled } from '../config/apiConfig';
 import { getApiErrorMessage } from '../utils/translateApiError';
 import Button from '../components/Common/Button';
 
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
 const ForgotPasswordPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common', 'errors']);
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [devResetToken, setDevResetToken] = useState<string | null>(null);
@@ -19,8 +22,14 @@ const ForgotPasswordPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldError(null);
     if (!email.trim()) {
-      setError(t('auth:forgot.missingEmail'));
+      setFieldError(t('auth:forgot.missingEmail'));
+      return;
+    }
+    // QA-010: custom validation (form is noValidate) so the error is inline + announced.
+    if (!isValidEmail(email)) {
+      setFieldError(t('auth:forgot.emailInvalid'));
       return;
     }
 
@@ -45,7 +54,7 @@ const ForgotPasswordPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="login-error" role="alert">
+        <div className="login-error" role="alert" aria-live="assertive">
           {error}
         </div>
       )}
@@ -65,8 +74,8 @@ const ForgotPasswordPage: React.FC = () => {
           )}
         </>
       ) : (
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="login-field">
+        <form className="login-form" onSubmit={handleSubmit} noValidate>
+          <div className={`login-field${fieldError ? ' has-error' : ''}`}>
             <label htmlFor="email">{t('common:email')}</label>
             <div className="login-input-wrap">
               <Mail size={18} className="login-input-icon" aria-hidden />
@@ -74,13 +83,29 @@ const ForgotPasswordPage: React.FC = () => {
                 type="email"
                 id="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldError) setFieldError(null);
+                }}
                 placeholder={t('auth:login.emailPlaceholder')}
                 autoComplete="email"
                 required
                 disabled={loading}
+                aria-required="true"
+                aria-invalid={Boolean(fieldError)}
+                aria-describedby={fieldError ? 'forgot-email-error' : undefined}
               />
             </div>
+            {fieldError ? (
+              <p
+                id="forgot-email-error"
+                className="login-field-error"
+                role="alert"
+                aria-live="assertive"
+              >
+                {fieldError}
+              </p>
+            ) : null}
           </div>
 
           <Button type="submit" disabled={loading} loading={loading} fullWidth className="login-submit">

@@ -165,6 +165,15 @@ public class OilCommitmentDocument
     [BsonIgnoreIfNull]
     public string? FinancialTransactionId { get; set; }
 
+    // Missing on documents written before payment tracking; the mapper derives it.
+    [BsonElement("paymentStatus")]
+    [BsonIgnoreIfNull]
+    public string? PaymentStatus { get; set; }
+
+    [BsonElement("idempotencyKey")]
+    [BsonIgnoreIfNull]
+    public string? IdempotencyKey { get; set; }
+
     [BsonElement("allocations")]
     public List<OilLotAllocationDocument> Allocations { get; set; } = [];
 
@@ -366,6 +375,10 @@ public class OilPressingDocument
     [BsonElement("notes")]
     [BsonIgnoreIfNull]
     public string? Notes { get; set; }
+
+    [BsonElement("idempotencyKey")]
+    [BsonIgnoreIfNull]
+    public string? IdempotencyKey { get; set; }
 
     [BsonElement("allocations")]
     public List<PressingAllocationDocument> Allocations { get; set; } = [];

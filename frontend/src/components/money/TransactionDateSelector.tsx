@@ -20,11 +20,12 @@ const TransactionDateSelector: React.FC<Props> = ({ value, onChange, hideLabel }
       <div className="money-form-label" id="money-when-label">
         {hideLabel ? <span className="money-sr-only">{t('money.whenDidItHappen')}</span> : t('money.whenDidItHappen')}
       </div>
-      <div className="money-choice" role="group" aria-labelledby="money-when-label">
+      <div className="money-choice" role="radiogroup" aria-labelledby="money-when-label">
         <button
           type="button"
           className={value === today && !picking ? 'is-active' : ''}
-          aria-pressed={value === today && !picking}
+          role="radio"
+          aria-checked={value === today && !picking}
           onClick={() => {
             setPicking(false);
             onChange(today);
@@ -35,7 +36,8 @@ const TransactionDateSelector: React.FC<Props> = ({ value, onChange, hideLabel }
         <button
           type="button"
           className={value === yesterday && !picking ? 'is-active' : ''}
-          aria-pressed={value === yesterday && !picking}
+          role="radio"
+          aria-checked={value === yesterday && !picking}
           onClick={() => {
             setPicking(false);
             onChange(yesterday);
@@ -46,7 +48,8 @@ const TransactionDateSelector: React.FC<Props> = ({ value, onChange, hideLabel }
         <button
           type="button"
           className={picking || isCustom ? 'is-active' : ''}
-          aria-pressed={picking || isCustom}
+          role="radio"
+          aria-checked={picking || isCustom}
           onClick={() => setPicking(true)}
         >
           {t('money.pickDate')}

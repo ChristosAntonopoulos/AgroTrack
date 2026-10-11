@@ -43,6 +43,8 @@ type Props = {
   onMore: () => void;
   /** Optional one-line hints keyed by move id (e.g. pending sacks). */
   hints?: Partial<Record<string, string>>;
+  /** QA-024: says where the grove came from, or asks the user to pick one. */
+  fieldHint?: string;
 };
 
 const CaptureQuickAdd: React.FC<Props> = ({
@@ -55,6 +57,7 @@ const CaptureQuickAdd: React.FC<Props> = ({
   onPick,
   onMore,
   hints,
+  fieldHint,
 }) => {
   const { t } = useTranslation(['capture', 'fields', 'myOil']);
 
@@ -156,6 +159,11 @@ const CaptureQuickAdd: React.FC<Props> = ({
         onFieldChange={onFieldChange}
         onOccurredAtChange={onOccurredAtChange}
       />
+      {fieldHint ? (
+        <p className="capture-hint" data-testid="capture-field-hint">
+          {fieldHint}
+        </p>
+      ) : null}
 
       {moves.length === 0 ? (
         <div className="capture-tab-empty">

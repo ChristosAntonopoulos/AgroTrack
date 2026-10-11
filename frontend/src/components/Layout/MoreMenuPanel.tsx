@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useFeedbackOptional } from '../../context/FeedbackContext';
 import { useHarvestCampaignOptional } from '../../context/HarvestCampaignContext';
-import { useActiveFieldAccess, useActiveFieldCollaboratorLabel } from '../../hooks/useActiveFieldAccess';
+import { useActiveFieldAccess, useActiveFieldRoleBadge } from '../../hooks/useActiveFieldAccess';
 import { isMockMode } from '../../services/serviceFactory';
 import BrandLogo from '../Common/BrandLogo';
 import NotificationBell from '../Notifications/NotificationBell';
@@ -64,7 +64,7 @@ const MoreMenuPanel: React.FC<MoreMenuPanelProps> = ({ onNavigate }) => {
   const feedback = useFeedbackOptional();
   const harvest = useHarvestCampaignOptional();
   const activeField = useActiveFieldAccess();
-  const collaboratorOwnerLabel = useActiveFieldCollaboratorLabel();
+  const collaboratorBadge = useActiveFieldRoleBadge();
   const location = useLocation();
   const navigate = useNavigate();
   const userRole = (user?.role || '') as AppRole;
@@ -72,17 +72,14 @@ const MoreMenuPanel: React.FC<MoreMenuPanelProps> = ({ onNavigate }) => {
 
   const displayName =
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || '';
-  const collaboratorBadge = collaboratorOwnerLabel
-    ? t('common:familyCollaboratorBadge', { owner: collaboratorOwnerLabel })
-    : null;
-
   const visible = useMemo(
     () =>
       filterNavItemsForUser(navItems, userRole, isMockMode(), {
         modules: activeField.modules,
         isAdminOnActive: activeField.isAdminOnActive,
+        isCollaboratorOnActive: activeField.isCollaboratorOnActive,
       }),
-    [userRole, activeField.modules, activeField.isAdminOnActive]
+    [userRole, activeField.modules, activeField.isAdminOnActive, activeField.isCollaboratorOnActive]
   );
 
   const sections = useMemo(() => {

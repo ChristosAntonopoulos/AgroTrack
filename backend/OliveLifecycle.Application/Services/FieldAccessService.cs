@@ -3,8 +3,14 @@ using OliveLifecycle.Application.Abstractions.Persistence;
 using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
+using OliveLifecycle.Core.Exceptions;
 
 namespace OliveLifecycle.Application.Services;
+
+public static class FieldWriteErrorCodes
+{
+    public const string FieldNotWritable = "FIELD_NOT_WRITABLE";
+}
 
 public class FieldAccessService : IFieldAccessService
 {
@@ -159,5 +165,20 @@ public class FieldAccessService : IFieldAccessService
         }
 
         return await _subscriptionService.IsOwnedFieldWritableAsync(field.OwnerId, field.Id, cancellationToken);
+    }
+
+    public async Task EnsureFieldWritableForWriteAsync(
+        string fieldId,
+        CancellationToken cancellationToken = default)
+    {
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
+            ?? throw new NotFoundException("Field not found.");
+
+        if (!await IsFieldWritableUnderSubscriptionAsync(field, cancellationToken))
+        {
+            throw new ForbiddenException(
+                "This grove is view-only on the free plan. Switch your editable grove or upgrade to Pro.",
+                FieldWriteErrorCodes.FieldNotWritable);
+        }
     }
 }

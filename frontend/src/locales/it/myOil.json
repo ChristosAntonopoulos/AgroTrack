@@ -61,7 +61,9 @@
     "fillTins": "Ho riempito latte",
     "count": "Conta in magazzino",
     "delivered": "L'hanno preso",
-    "cancelHold": "Annulla"
+    "cancelHold": "Annulla",
+    "collectPayment": "Segna come pagato",
+    "cancelSale": "Annulla la vendita"
   },
   "pendingPressings": {
     "title": "In attesa di divisione",
@@ -98,6 +100,7 @@
     "emptyDeliveredTitle": "Nessuno l'ha ancora preso",
     "emptyCta": "Dai olio",
     "paidAmount": "Pagato {{amount}} €",
+    "receivableAmount": "Non ancora pagato · {{amount}} € dovuti",
     "who": "Per chi",
     "howMuch": "Quanto",
     "status": "Stato",
@@ -119,6 +122,7 @@
     "delivered": "Consegnato"
   },
   "recent": {
+    "title": "Attività recente",
     "seeAll": "Tutti i movimenti →",
     "emptyTitle": "Nessun movimento ancora",
     "emptyBody": ""
@@ -136,8 +140,13 @@
     "sharedIn": "Condiviso (ingresso)",
     "consumed": "Consumo",
     "corrected": "Correzione",
+    "correctionFound": "Correzione · trovato di più",
+    "correctionMissing": "Correzione · trovato di meno",
+    "addedToStorage": "Aggiunto al magazzino",
+    "reversal": "Storno",
     "other": "Movimento",
-    "bulkToTins": "{{bulk}} sfusi → {{tins}} latte",
+    "bulkToTins_one": "{{bulk}} sfusi → {{count}} latta",
+    "bulkToTins_other": "{{bulk}} sfusi → {{count}} latte",
     "undo": "Annulla",
     "isUndo": "Annulla un movimento precedente",
     "wasUndone": "Annullato"
@@ -196,6 +205,7 @@
     "bulk": "Sfuso",
     "bulkShort": "Sfuso",
     "totalLitres": "{{amount}} litri",
+    "overMax": "Solo {{max}} {{unit}} di scorta libera: è il massimo che puoi inserire.",
     "intent": "Cos'è successo?",
     "intentHold": "Tieni",
     "intentHoldHint": "Resta in cantina",
@@ -223,7 +233,8 @@
     "unlinkedSubtitle": "Dalla cantina, senza partita specifica",
     "chooseSource": "Da dove?",
     "autoTitle": "Senza collegamento alla raccolta",
-    "autoBody": "Prende sfuso automaticamente dalla cantina",
+    "autoBody": "Prende lo sfuso automaticamente dalla cantina, dal più vecchio",
+    "autoPicked": "Prima l'olio più vecchio · spremuto il {{date}} · {{amount}} L disponibili",
     "fromHarvest": "Dalla raccolta",
     "otherLots": "Altre partite",
     "harvestLinked": "Collegato alla raccolta",
@@ -258,6 +269,7 @@
     "total": "{{amount}} L in magazzino",
     "note": "Nota (facoltativa)",
     "notePlaceholder": "es. olio dell'anno scorso",
+    "tooMuch": "È più di {{max}} L. Controlla la quantità.",
     "save": "Metti in magazzino"
   },
   "empty": "Non c'è ancora olio nella tua cantina.",

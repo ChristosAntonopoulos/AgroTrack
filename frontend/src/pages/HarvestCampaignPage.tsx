@@ -1005,7 +1005,21 @@ const HarvestCampaignPage: React.FC = () => {
       cellarAllocations: input.cellarAllocations,
       createdAt: new Date().toISOString(),
     };
-    const persisted = await persistOilRecord(campaign, entry, related);
+    let persisted: Awaited<ReturnType<typeof persistOilRecord>>;
+    try {
+      persisted = await persistOilRecord(campaign, entry, related);
+    } catch (error) {
+      // The server rolls back the harvest rows it created, so nothing is half-saved: keep the
+      // sheet open with the farmer's numbers and let them retry.
+      setSaving(false);
+      setOilSavedHint(
+        t('harvestCampaign.oil.saveFailed', {
+          defaultValue: 'Could not save the oil, nothing was recorded. Please try again.',
+        })
+      );
+      window.setTimeout(() => setOilSavedHint(null), 5200);
+      throw error;
+    }
     patch((current) =>
       addOil(current, {
         ...entry,
@@ -2073,7 +2087,7 @@ const HarvestCampaignPage: React.FC = () => {
               prefillMillIds={prefillMillIds}
               initial={editTarget?.kind === 'oil' ? editTarget.entry : null}
               onClose={closeSheet}
-              onSave={(input) => void saveOil(input)}
+              onSave={(input) => void saveOil(input).catch(() => undefined)}
             />
           ) : null}
           {sheet === 'people' ? (

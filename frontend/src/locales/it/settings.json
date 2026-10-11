@@ -154,7 +154,7 @@
     }
   },
   "privacy": {
-    "exportHelp": "Scarica una copia di profilo, preferenze di notifica, campi e notifiche. Foto e registri di denaro si chiedono al supporto.",
+    "exportHelp": "Scarica un file con profilo, preferenze, campi (nome, luogo, superficie, varietà, stato) e notifiche. Non include attività, raccolto, olio, registri di denaro o foto; scrivi a support@theolivelot.com per richiederli.",
     "exportButton": "Scarica i miei dati",
     "exportWorking": "Preparazione del file…",
     "exportDone": "Download avviato.",

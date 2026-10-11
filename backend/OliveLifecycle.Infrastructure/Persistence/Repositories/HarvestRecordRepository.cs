@@ -46,4 +46,15 @@ public class HarvestRecordRepository : MongoRepositoryBase<HarvestRecordDocument
         var documents = await Collection.Find(filter).ToListAsync(cancellationToken);
         return documents.Select(ToEntity);
     }
+
+    public async Task<HarvestRecord?> GetByIdempotencyKeyAsync(
+        string ownerId,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        var document = await Collection
+            .Find(h => h.OwnerId == ownerId && h.IdempotencyKey == idempotencyKey)
+            .FirstOrDefaultAsync(cancellationToken);
+        return document is null ? null : ToEntity(document);
+    }
 }

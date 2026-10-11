@@ -55,6 +55,11 @@ const PhotoHubGallery: React.FC<Props> = ({
           : null;
         const needsReview =
           photo.fieldAssignment === 'needsReview' || photo.fieldAssignment === 'unassigned';
+        // QA-014/QA-030: name the datum that is actually missing instead of a generic warning.
+        const missingInfo = [
+          !photo.fieldId || needsReview ? t('card.missingField') : null,
+          !photo.latitude ? t('card.missingLocation') : null,
+        ].filter((item): item is string => Boolean(item));
         const selected = selectedIds?.has(photo.id) ?? false;
         const aria = t('card.aria', {
           index: index + 1,
@@ -128,8 +133,14 @@ const PhotoHubGallery: React.FC<Props> = ({
                   {photo.fileName}
                 </span>
               ) : null}
-              {!photo.latitude || !photo.fieldId || photo.fieldAssignment === 'unassigned' || photo.fieldAssignment === 'needsReview' ? (
-                <span className="photo-card-needs-info">{t('card.needsInfo')}</span>
+              {missingInfo.length > 0 ? (
+                <button
+                  type="button"
+                  className="photo-card-needs-info"
+                  onClick={() => onOpenViewer(photo, index)}
+                >
+                  {missingInfo.join(' · ')} — {t('card.fixInfo')}
+                </button>
               ) : null}
             </div>
           </div>

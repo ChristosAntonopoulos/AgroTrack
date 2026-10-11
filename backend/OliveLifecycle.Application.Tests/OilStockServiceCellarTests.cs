@@ -24,6 +24,7 @@ public class OilStockServiceCellarTests
     private readonly Mock<IStockMovementRepository> _movements = new();
     private readonly Mock<IFinancialTransactionService> _finance = new();
     private readonly Mock<IFieldRepository> _fields = new();
+    private readonly Mock<IHarvestService> _harvests = new();
     private readonly Mock<IDateTimeProvider> _clock = new();
     private readonly OilStockService _service;
 
@@ -70,6 +71,7 @@ public class OilStockServiceCellarTests
             _movements.Object,
             _finance.Object,
             _fields.Object,
+            _harvests.Object,
             _clock.Object);
     }
 
@@ -839,7 +841,7 @@ public class OilStockServiceCellarTests
         _movements.Setup(r => r.GetReversalOfAsync("move-gift", It.IsAny<CancellationToken>()))
             .ReturnsAsync((StockMovement?)null);
 
-        var reversal = await _service.ReverseMovementAsync("owner-1", "move-gift");
+        var reversal = await _service.ReverseMovementAsync("owner-1", Roles.FieldOwner, "move-gift");
 
         Assert.Equal(3, lot.Packing.Tin16);
         Assert.Equal(32, reversal.LitresDelta);
@@ -864,7 +866,7 @@ public class OilStockServiceCellarTests
             .ReturnsAsync(new StockMovement { Id = "move-undo", ReversalOfMovementId = "move-gift" });
 
         await Assert.ThrowsAsync<ValidationException>(() =>
-            _service.ReverseMovementAsync("owner-1", "move-gift"));
+            _service.ReverseMovementAsync("owner-1", Roles.FieldOwner, "move-gift"));
     }
 
     [Fact]
@@ -883,11 +885,11 @@ public class OilStockServiceCellarTests
             });
 
         await Assert.ThrowsAsync<ValidationException>(() =>
-            _service.ReverseMovementAsync("owner-1", "move-prod"));
+            _service.ReverseMovementAsync("owner-1", Roles.FieldOwner, "move-prod"));
     }
 
     [Fact]
-    public async Task ReverseMovement_Undoes_A_Sale_But_Leaves_The_Income_Alone()
+    public async Task ReverseMovement_Undoes_A_Sale_And_Voids_The_Income()
     {
         var lot = new OilLot
         {
@@ -929,11 +931,19 @@ public class OilStockServiceCellarTests
         _movements.Setup(r => r.GetReversalOfAsync("move-sold", It.IsAny<CancellationToken>()))
             .ReturnsAsync((StockMovement?)null);
 
-        var reversal = await _service.ReverseMovementAsync("owner-1", "move-sold");
+        var reversal = await _service.ReverseMovementAsync("owner-1", Roles.FieldOwner, "move-sold");
 
         Assert.True(commitment.Cancelled);
         Assert.Equal(25, lot.Packing.BulkLitres);
         Assert.Equal(20, reversal.LitresDelta);
+        // The link stays for the audit trail, but the income itself is voided in Money.
         Assert.Equal("tx-1", commitment.FinancialTransactionId);
+        Assert.Equal(OilPaymentStatuses.Cancelled, commitment.PaymentStatus);
+        _finance.Verify(f => f.VoidAsync(
+            "tx-1",
+            It.IsAny<VoidFinancialTransactionDto>(),
+            "owner-1",
+            Roles.FieldOwner,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

@@ -140,6 +140,9 @@ const SavedContactSheet: React.FC<Props> = ({
 
   const remove = async () => {
     if (!existing) return;
+    // QA-046: name the contact so a mis-tap is not destructive.
+    const label = existing.displayName?.trim() || name.trim();
+    if (!window.confirm(t('partners:deleteContactConfirm', { name: label }))) return;
     try {
       setDeleting(true);
       setError(null);

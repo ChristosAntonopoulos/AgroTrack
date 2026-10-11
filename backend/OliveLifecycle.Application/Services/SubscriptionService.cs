@@ -222,19 +222,17 @@ public class SubscriptionService : ISubscriptionService
             throw new ValidationException("Writable grove selection is only needed on the free plan.");
         }
 
-        if (!profile.NeedsWritableFieldSelection &&
-            !string.IsNullOrWhiteSpace(profile.SelectedWritableFieldId) &&
-            !string.Equals(profile.SelectedWritableFieldId, fieldId, StringComparison.Ordinal))
-        {
-            throw new ConflictException(
-                "You already chose your free writable grove. Upgrade to Pro to manage more groves.",
-                "SUBSCRIPTION_WRITABLE_FIELD_LOCKED");
-        }
-
         var owned = (await _fields.GetByOwnerIdAsync(userId, cancellationToken)).ToList();
         if (!owned.Any(f => string.Equals(f.Id, fieldId, StringComparison.Ordinal)))
         {
             throw new ValidationException("You can only select a grove you own.");
+        }
+
+        // QA-043: free-plan writable selection is idempotent and reversible (A→B→A).
+        if (string.Equals(profile.SelectedWritableFieldId, fieldId, StringComparison.Ordinal)
+            && !profile.NeedsWritableFieldSelection)
+        {
+            return;
         }
 
         profile.SelectedWritableFieldId = fieldId;

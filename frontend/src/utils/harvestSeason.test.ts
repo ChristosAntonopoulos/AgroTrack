@@ -1,15 +1,25 @@
 import { formatSeasonLabel, getSeasonBounds, getSeasonStartYear, isDateInSeason } from './harvestSeason';
+import { agriculturalYearFor, agriculturalYearSlashLabel } from '../chronologio/agriculturalYear';
+import { harvestYearSpan } from '../finance/harvestYear';
 import { athensCalendarYear, parseBusinessDate } from './athensDate';
 
-describe('cultivation season', () => {
-  it('starts in September and ends in August', () => {
-    expect(getSeasonStartYear(new Date(2026, 8, 1))).toBe(2026);
-    expect(getSeasonStartYear(new Date(2026, 7, 31))).toBe(2025);
-    expect(getSeasonStartYear(new Date(2026, 0, 15))).toBe(2025);
+describe('QA_006 crop season', () => {
+  it('starts in February and ends in January (matches AgriculturalYear)', () => {
+    expect(getSeasonStartYear(new Date(2026, 1, 1, 12))).toBe(2026);
+    expect(getSeasonStartYear(new Date(2026, 0, 31, 12))).toBe(2025);
+    expect(getSeasonStartYear(new Date(2026, 8, 1, 12))).toBe(2026);
+    expect(getSeasonStartYear(new Date(2026, 0, 15, 12))).toBe(2025);
     const bounds = getSeasonBounds(2025);
-    expect(isDateInSeason(new Date(2025, 10, 2), bounds)).toBe(true);
-    expect(isDateInSeason(new Date(2026, 8, 1), bounds)).toBe(false);
-    expect(formatSeasonLabel(2025)).toBe('2025/2026');
+    expect(isDateInSeason(new Date(2025, 10, 2, 12), bounds)).toBe(true);
+    expect(isDateInSeason(new Date(2026, 0, 20, 12), bounds)).toBe(true);
+    expect(isDateInSeason(new Date(2026, 1, 3, 12), bounds)).toBe(false);
+  });
+
+  it('QA_005 uses one label helper across Harvest, My Oil and Money', () => {
+    expect(formatSeasonLabel(2025)).toBe('2025/26');
+    expect(formatSeasonLabel(2025)).toBe(harvestYearSpan(2025));
+    expect(formatSeasonLabel(2025)).toBe(agriculturalYearSlashLabel(2025));
+    expect(getSeasonStartYear(new Date(2026, 5, 1, 12))).toBe(agriculturalYearFor(new Date(2026, 5, 1, 12)));
   });
 });
 

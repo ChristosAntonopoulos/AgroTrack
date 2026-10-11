@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { getFieldService, getTaskService } from '../services/serviceFactory';
+import { subscriptionService } from '../services/subscriptionService';
 import { Field } from '../services/fieldService';
 import type { FieldTask } from '../services/fieldWorkService';
 import { taskToFieldTask } from '../utils/taskCompat';
@@ -12,6 +13,7 @@ import { isDeviceOnline } from '../utils/networkStatus';
 import { locationService } from '../services/locationService';
 import { resolveFieldCenter } from '../utils/fieldGeo';
 import { getFieldShortLocation } from '../utils/shortLocation';
+import { getFieldsEmptyKeys } from '../utils/fieldsEmptyState';
 import {
   countFieldListBuckets,
   countTasksToday,
@@ -52,6 +54,8 @@ const FieldsPage: React.FC = () => {
   // Free users at their limit see the paywall BEFORE the add-grove form opens.
   const addField = useAddFieldAction();
   const [fields, setFields] = useState<Field[]>([]);
+  /** QA-015: owned grove id → writable under the current plan. Absent = unknown (no badge). */
+  const [writableById, setWritableById] = useState<Map<string, boolean>>(new Map());
   const [fieldTasks, setFieldTasks] = useState<Map<string, FieldTask[]>>(new Map());
   const [tasksReady, setTasksReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,6 +75,21 @@ const FieldsPage: React.FC = () => {
   useEffect(() => {
     if (fields.length > 0) void loadFieldTasks();
   }, [fields]);
+
+  useEffect(() => {
+    let cancelled = false;
+    subscriptionService
+      .getOwnedFields()
+      .then((rows) => {
+        if (!cancelled) setWritableById(new Map(rows.map((row) => [row.id, row.isWritable])));
+      })
+      .catch(() => {
+        if (!cancelled) setWritableById(new Map());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshGeneration]);
 
   useEffect(() => {
     let cancelled = false;
@@ -245,6 +264,7 @@ const FieldsPage: React.FC = () => {
       onSelect={compact ? setSelectedFieldId : undefined}
       onHover={compact ? setHoveredFieldId : undefined}
       showActivityDate={sortBy === 'activity'}
+      writable={writableById.get(field.id)}
     />
   );
 
@@ -456,8 +476,8 @@ const FieldsPage: React.FC = () => {
 
                 {filteredFields.length === 0 ? (
                   <EmptyState
-                    title={t('fields:emptySearchTitle')}
-                    description={t('fields:emptySearchDescription')}
+                    title={t(getFieldsEmptyKeys(search, statusFilter).title)}
+                    description={t(getFieldsEmptyKeys(search, statusFilter).description)}
                   />
                 ) : viewMode === 'map' ? (
                   <div className="fields-split">

@@ -23,6 +23,9 @@ const round1 = (value: number) => Math.round(value * 10) / 10;
 
 const QUICK_LITRES = [10, 20, 50, 100];
 
+/** QA-034: mirrors the server cap (OilStockService.MaxOilQuantityLitres). */
+const MAX_STORED_LITRES = 50_000;
+
 /**
  * Add oil already in storage: the whole amount first, then the harvest tin split.
  */
@@ -50,7 +53,8 @@ export function AddOilSheet({ open, busy, onClose, onSave }: Props) {
   const tinCount = OIL_TIN_SIZES.reduce((sum, size) => sum + (counts[size] || 0), 0);
   const tinOver = mode === 'tins' && tinLitres > total + 0.05;
   const packBlocked = mode === 'tins' && (tinCount <= 0 || tinOver);
-  const canContinue = isPositiveAmount(litres);
+  const overMax = isPositiveAmount(litres) && litres > MAX_STORED_LITRES;
+  const canContinue = isPositiveAmount(litres) && !overMax;
   const canSave = canContinue && !packBlocked;
 
   const setTinCount = (size: number, count: number) => {
@@ -107,6 +111,8 @@ export function AddOilSheet({ open, busy, onClose, onSave }: Props) {
               suffix="L"
               autoFocus
               min={0}
+              max={MAX_STORED_LITRES}
+              error={overMax ? t('add.tooMuch', { max: MAX_STORED_LITRES.toLocaleString(locale) }) : null}
             />
             <div className="money-chips" role="group" aria-label={t('fields:harvestCampaign.oil.litres')}>
               {QUICK_LITRES.map((add) => (

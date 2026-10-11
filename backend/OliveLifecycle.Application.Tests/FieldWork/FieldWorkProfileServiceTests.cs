@@ -593,6 +593,9 @@ public class FieldWorkProfileAuthorizationTests
 
     public FieldWorkProfileAuthorizationTests()
     {
+        _fieldAccess.Setup(a => a.IsFieldWritableUnderSubscriptionAsync(
+                It.IsAny<Field>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         _service = new FieldWorkAuthorizationService(
             _fields.Object,
             _fieldAccess.Object,

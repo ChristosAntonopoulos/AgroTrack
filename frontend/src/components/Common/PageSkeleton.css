@@ -1,0 +1,47 @@
+.page-skeleton {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.page-skeleton__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.page-skeleton__bar,
+.page-skeleton__card {
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(120, 120, 120, 0.12) 25%, rgba(120, 120, 120, 0.22) 50%, rgba(120, 120, 120, 0.12) 75%);
+  background-size: 200% 100%;
+  animation: page-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.page-skeleton__bar {
+  height: 2rem;
+  width: 55%;
+}
+
+.page-skeleton__card {
+  height: 5.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-skeleton__bar,
+  .page-skeleton__card {
+    animation: none;
+  }
+}
+
+@keyframes page-skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}

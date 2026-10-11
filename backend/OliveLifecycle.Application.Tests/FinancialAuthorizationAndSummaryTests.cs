@@ -220,6 +220,14 @@ public class FinancialSummaryServiceTests
 
     public FinancialSummaryServiceTests()
     {
+        _transactions.Setup(r => r.GetForYearAsync(
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<string?>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FinancialTransaction>());
         _service = new FinancialSummaryService(
             _transactions.Object,
             _fields.Object,

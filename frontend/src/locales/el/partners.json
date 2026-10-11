@@ -61,6 +61,7 @@
   "assignOutcomeContact": "Η εργασία θα καταγραφεί με αυτόν τον υπεύθυνο. Δεν θα σταλεί ειδοποίηση από την εφαρμογή.",
   "assignOutcomeCollaborator": "Ο συνεργάτης θα δει την ανάθεση στην εφαρμογή.",
   "moreActions": "Περισσότερα",
+  "identityRef": "Κωδ. {{ref}}",
   "inviteExpiresOn": "Λήγει {{date}}",
   "inviteLifecycle": {
     "pending": "Εκκρεμεί",
@@ -86,6 +87,7 @@
   "whatTheyDo": "Τι κάνουν",
   "editContact": "Επεξεργασία επαφής",
   "deleteContact": "Διαγραφή επαφής",
+  "deleteContactConfirm": "Διαγραφή του/της {{name}} από τις επαφές σου; Δεν μπορεί να αναιρεθεί.",
   "unassignedContacts": "Επαφές χωρίς ελαιώνα",
   "unassignedContactsHint": "Τις αποθήκευσες, αλλά δεν τις έχεις συνδέσει ακόμα με ελαιώνα.",
   "call": "Κλήση",
@@ -155,7 +157,7 @@
     "cancelInviteConfirm": "Να ακυρωθεί η πρόσκληση για τον/την {{name}};",
     "checklistTitle": "Κατάσταση μέλους",
     "checklist": {
-      "hasContact": "Όνομα και email",
+      "hasContact": "Email (όνομα προαιρετικό)",
       "inviteSent": "Πρόσκληση στάλθηκε",
       "accepted": "Δέχτηκε / συνδέθηκε",
       "hasModules": "Τουλάχιστον ένα μέρος ενεργό",
@@ -490,7 +492,9 @@
     "reachPlaceholder": "69… ή name@example.com",
     "newContact": "Νέα επαφή",
     "name": "Όνομα",
+    "nameOptional": "Όνομα (προαιρετικό)",
     "email": "Email",
+    "emailRequired": "Email (υποχρεωτικό)",
     "phone": "Τηλέφωνο",
     "customize": "Προσαρμοσμένη πρόσβαση",
     "resetPreset": "Επαναφορά ρόλου",
@@ -586,7 +590,7 @@
     "searchPlaceholder": "Όνομα, email ή τηλέφωνο",
     "searchHint": "Διάλεξε υπάρχουσα επαφή ή γράψε νέο email.",
     "fromContacts": "Από επαφές",
-    "newContactHint": "Όνομα και email για την πρόσκληση.",
+    "newContactHint": "Το email είναι υποχρεωτικό για την πρόσκληση. Το όνομα είναι προαιρετικό.",
     "namePlaceholder": "Ελένη Παπαδάκη",
     "emailPlaceholder": "name@example.com",
     "phonePlaceholder": "69…",
@@ -599,6 +603,7 @@
     "willRegister": "Θα σταλεί πρόσκληση στο {{contact}}.",
     "willInvite": "Θα σταλεί πρόσκληση στο {{contact}}.",
     "registerAccount": "Θα σταλεί πρόσκληση στο {{email}}. Ο λογαριασμός δημιουργείται όταν την αποδεχτεί.",
+    "registerAccountExisting": "Το {{email}} έχει ήδη λογαριασμό. Θα δει την πρόσκληση μέσα στην εφαρμογή και μπορεί να την αποδεχτεί από εκεί.",
     "registerAccountPhone": "Θα σταλεί πρόσκληση στο {{phone}}. Ο λογαριασμός δημιουργείται όταν την αποδεχτεί.",
     "changePerson": "Αλλαγή",
     "groveSelected": "Επιλεγμένος",
@@ -644,7 +649,7 @@
     "steps": {
       "1": {
         "title": "Ποιον προσθέτεις;",
-        "hint": "Όνομα και email."
+        "hint": "Το email είναι υποχρεωτικό. Το όνομα είναι προαιρετικό."
       },
       "2": {
         "title": "Τι πρόσβαση έχει;",

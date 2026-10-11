@@ -164,6 +164,12 @@ public class TransferFieldOwnershipDto
     public string NewOwnerUserId { get; set; } = string.Empty;
 }
 
+/// <summary>QA-039: whether an invite email already belongs to an account (checked before review).</summary>
+public class InviteeLookupDto
+{
+    public bool HasAccount { get; set; }
+}
+
 public class CreateMultiFieldInviteDto
 {
     public List<string> FieldIds { get; set; } = new();

@@ -428,6 +428,28 @@ public class FieldPeopleService : IFieldPeopleService
         return created;
     }
 
+    public async Task<InviteeLookupDto> LookupInviteeAsync(
+        string actorId,
+        string email,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = email?.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized) || !EmailAddresses.IsDeliverable(normalized))
+        {
+            throw new ValidationException("Enter a valid email address.");
+        }
+
+        // Only grove owners who can send invitations may probe (limits account enumeration).
+        var owned = await _fieldRepository.GetByOwnerIdAsync(actorId, cancellationToken);
+        if (!owned.Any())
+        {
+            throw new ForbiddenException("Only grove owners can invite people.");
+        }
+
+        var existing = await _userRepository.GetByEmailAsync(normalized, cancellationToken);
+        return new InviteeLookupDto { HasAccount = existing != null };
+    }
+
     public async Task<ManagedPeopleDto> GetManagedPeopleAsync(
         string userId,
         string? publicAppBaseUrl,

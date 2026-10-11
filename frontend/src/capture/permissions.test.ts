@@ -1,5 +1,17 @@
 import { getAvailableCaptureActions } from './permissions';
 
+describe('QA_042 view-only grove capture', () => {
+  it('suppresses every write action when the grove is subscription read-only', () => {
+    const perms = getAvailableCaptureActions({ hasAnyFieldAccess: true, canOwn: true, fieldWritable: false });
+    expect(Object.values(perms).every((allowed) => allowed === false)).toBe(true);
+  });
+
+  it('keeps owner actions when the grove is writable or unknown', () => {
+    expect(getAvailableCaptureActions({ hasAnyFieldAccess: true, canOwn: true, fieldWritable: true }).canRecordHarvest).toBe(true);
+    expect(getAvailableCaptureActions({ hasAnyFieldAccess: true, canOwn: true }).canRecordHarvest).toBe(true);
+  });
+});
+
 describe('capture money permissions', () => {
   it('lets owners record income and expense', () => {
     const perms = getAvailableCaptureActions({

@@ -7,6 +7,7 @@ import { formatGroveMassKg } from '../../utils/groveTotals';
 import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import { useLocaleFormatters } from '../../hooks/useLocaleFormatters';
 import { oilAmountToKg } from '../totals';
+import { sumSacks } from '../chain';
 import { formatHarvestOilAmountLabel, readOilTinCounts } from '../utils/harvestCalculations';
 import type {
   HarvestCampaign,
@@ -396,7 +397,13 @@ export const HarvestDayActivity: React.FC<Props> = ({
     });
 
     return [
-      { key: 'sacks', label: t('harvestCampaign.actions.sacks'), rows: sackRows },
+      {
+        key: 'sacks',
+        label: t('harvestCampaign.actions.sacks'),
+        rows: sackRows,
+        // QA-026: header counts sacks, not saved batches ("1" for a batch of 12 sacks was wrong).
+        count: sumSacks(day.sacks),
+      },
       {
         key: 'mill',
         label: t('harvestCampaign.actions.millShort', {
@@ -443,7 +450,7 @@ export const HarvestDayActivity: React.FC<Props> = ({
             <section key={group.key} className="hc-day-group" aria-label={group.label}>
               <header className="hc-day-group-head">
                 <h4>{group.label}</h4>
-                <span>{group.rows.length}</span>
+                <span>{'count' in group && typeof group.count === 'number' ? group.count : group.rows.length}</span>
               </header>
               <ul className="hc-day-activity-list">
                 {group.rows.map((row) => (

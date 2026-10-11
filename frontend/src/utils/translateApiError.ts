@@ -49,6 +49,18 @@ const API_MESSAGE_KEYS: Record<string, string> = {
   'Comment must be at most 4000 characters.': 'feedbackCommentTooLong',
   'Each image must be 6 MB or smaller.': 'feedbackImageTooLarge',
   'File type is not allowed.': 'feedbackFileType',
+  'This grove is view-only on the free plan. Switch your editable grove or upgrade to Pro.': 'fieldNotWritable',
+};
+
+/** Stable backend error codes → errors namespace keys (QA-044: view-only grove writes). */
+export const API_CODE_KEYS: Record<string, string> = {
+  FIELD_NOT_WRITABLE: 'fieldNotWritable',
+  SUBSCRIPTION_WRITABLE_FIELD_LOCKED: 'writableFieldLocked',
+};
+
+export const isFieldNotWritableError = (err: unknown): boolean => {
+  const data = (err as { response?: { data?: unknown } } | null)?.response?.data;
+  return extractApiErrorPayload(data).code === 'FIELD_NOT_WRITABLE';
 };
 
 const STATUS_KEYS: Record<number, string> = {
@@ -138,7 +150,11 @@ export const getApiErrorMessage = (err: unknown, t: TFunction): string => {
   }
 
   const status = axiosErr.response?.status;
-  const { message, fieldErrors } = extractApiErrorPayload(axiosErr.response?.data);
+  const { message, code, fieldErrors } = extractApiErrorPayload(axiosErr.response?.data);
+
+  if (code && API_CODE_KEYS[code]) {
+    return t(`errors:${API_CODE_KEYS[code]}`);
+  }
 
   for (const candidate of [...(fieldErrors || []), message]) {
     const translated = translateCandidate(t, candidate);

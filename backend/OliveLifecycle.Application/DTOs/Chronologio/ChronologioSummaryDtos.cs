@@ -160,6 +160,9 @@ public class ChronologioPeriodSummaryDto
     public int TaskCount { get; set; }
     public int ExpenseCount { get; set; }
     public int HarvestCount { get; set; }
+
+    /// <summary>Oil ledger events (QA-051), counted from the same filtered list.</summary>
+    public int OilCount { get; set; }
     public int NoteCount { get; set; }
 
     public decimal ExpenseTotal { get; set; }
@@ -194,6 +197,9 @@ public class ChronologioMonthSummaryDto
     public int TaskCount { get; set; }
     public int ExpenseCount { get; set; }
     public int HarvestCount { get; set; }
+
+    /// <summary>Oil ledger events (QA-051), counted from the same filtered list.</summary>
+    public int OilCount { get; set; }
     public int NoteCount { get; set; }
 
     public decimal ExpenseTotal { get; set; }

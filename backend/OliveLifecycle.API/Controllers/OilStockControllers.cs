@@ -191,6 +191,35 @@ public class OilPressingsController : BaseApiController
         return OkResult(pressing);
     }
 
+    /// <summary>
+    /// Harvest records + the oil they produced as one unit. Harvest rows created here are voided
+    /// again if the oil step fails.
+    /// </summary>
+    [HttpPost("confirm-harvest-oil")]
+    public async Task<ActionResult<ConfirmHarvestOilResultDto>> ConfirmHarvestOil(
+        [FromBody] ConfirmHarvestOilDto dto,
+        CancellationToken cancellationToken)
+    {
+        var result = await _stock.ConfirmHarvestOilAsync(
+            UserContext.UserId,
+            UserContext.Role,
+            dto,
+            cancellationToken);
+        return OkResult(result);
+    }
+
+    /// <summary>
+    /// QA-027 repair: files harvest oil batches (grove admin only) that never reached the cellar.
+    /// Safe to repeat; batches that already have a pressing or lot are skipped.
+    /// </summary>
+    [HttpPost("reconcile-orphans")]
+    public async Task<ActionResult<ReconcileHarvestOilResultDto>> ReconcileOrphans(
+        CancellationToken cancellationToken)
+    {
+        var result = await _stock.ReconcileOrphanHarvestOilAsync(UserContext.UserId, cancellationToken);
+        return OkResult(result);
+    }
+
     [HttpPost("{id}/allocate")]
     public async Task<ActionResult<OilPressingDto>> Allocate(
         string id,
@@ -250,10 +279,27 @@ public class OilCommitmentsController : BaseApiController
         return OkResult(updated);
     }
 
+    /// <summary>Receive the money for a credit sale. Posts the income once; repeat calls are safe.</summary>
+    [HttpPost("{id}/collect-payment")]
+    public async Task<ActionResult<OilCommitmentDto>> CollectPayment(
+        string id,
+        [FromBody] CollectOilPaymentDto? dto,
+        CancellationToken cancellationToken)
+    {
+        var updated = await _stock.CollectPaymentAsync(
+            UserContext.UserId,
+            UserContext.Role,
+            id,
+            dto,
+            cancellationToken);
+        return OkResult(updated);
+    }
+
+    /// <summary>Cancels a reservation, or a sale together with its income and delivered oil.</summary>
     [HttpPost("{id}/cancel")]
     public async Task<ActionResult> Cancel(string id, CancellationToken cancellationToken)
     {
-        await _stock.CancelCommitmentAsync(UserContext.UserId, id, cancellationToken);
+        await _stock.CancelCommitmentAsync(UserContext.UserId, UserContext.Role, id, cancellationToken);
         return NoContent();
     }
 }
@@ -284,7 +330,11 @@ public class StockMovementsController : BaseApiController
         string id,
         CancellationToken cancellationToken)
     {
-        var reversal = await _stock.ReverseMovementAsync(UserContext.UserId, id, cancellationToken);
+        var reversal = await _stock.ReverseMovementAsync(
+            UserContext.UserId,
+            UserContext.Role,
+            id,
+            cancellationToken);
         return OkResult(reversal);
     }
 }

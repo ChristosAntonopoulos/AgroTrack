@@ -58,9 +58,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
       filterNavItemsForUser(navItems, userRole, isMockMode(), {
         modules: activeField.modules,
         isAdminOnActive: activeField.isAdminOnActive,
+        isCollaboratorOnActive: activeField.isCollaboratorOnActive,
         canViewHarvest,
       }),
-    [userRole, activeField.modules, activeField.isAdminOnActive, canViewHarvest]
+    [userRole, activeField.modules, activeField.isAdminOnActive, activeField.isCollaboratorOnActive, canViewHarvest]
   );
 
   const visibleSections = navSections.filter((s) => filteredItems.some((i) => i.section === s.id));

@@ -512,6 +512,9 @@ export function OilMovementSheet({
                   max={max ? (key === 'bulkLitres' ? max.bulkLitres : max[key]) : undefined}
                   step={1}
                   suffix={suffix}
+                  overMaxMessage={(limit) =>
+                    t('give.overMax', { max: formatOilNumber(limit, locale), unit: suffix || label })
+                  }
                   onChange={(next) => setCount(key, next)}
                 />
               ))}

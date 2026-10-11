@@ -18,6 +18,7 @@ public class FinancialTransactionService : IFinancialTransactionService
     private readonly IFinancialTransactionRepository _transactions;
     private readonly IFieldRepository _fields;
     private readonly IFieldAccessScopeService _fieldAccessScope;
+    private readonly IFieldAccessService _fieldAccess;
     private readonly IFieldTaskRepository _fieldTasks;
     private readonly IHarvestRecordRepository _harvests;
     private readonly IFinancialAuthorizationService _authorization;
@@ -30,6 +31,7 @@ public class FinancialTransactionService : IFinancialTransactionService
         IFinancialTransactionRepository transactions,
         IFieldRepository fields,
         IFieldAccessScopeService fieldAccessScope,
+        IFieldAccessService fieldAccess,
         IFieldTaskRepository fieldTasks,
         IHarvestRecordRepository harvests,
         IFinancialAuthorizationService authorization,
@@ -41,6 +43,7 @@ public class FinancialTransactionService : IFinancialTransactionService
         _transactions = transactions;
         _fields = fields;
         _fieldAccessScope = fieldAccessScope;
+        _fieldAccess = fieldAccess;
         _fieldTasks = fieldTasks;
         _harvests = harvests;
         _authorization = authorization;
@@ -62,6 +65,7 @@ public class FinancialTransactionService : IFinancialTransactionService
         var field = await ResolveFieldAsync(dto.FieldId, cancellationToken);
         if (!string.IsNullOrWhiteSpace(dto.FieldId))
         {
+            await _fieldAccess.EnsureFieldWritableForWriteAsync(dto.FieldId, cancellationToken);
             await _fieldStatusGuard.EnsureAcceptsNewRecordsAsync(dto.FieldId, cancellationToken);
         }
         var ownerUserId = field?.OwnerId ?? userId;
@@ -465,6 +469,15 @@ public class FinancialTransactionService : IFinancialTransactionService
         if (string.IsNullOrWhiteSpace(dto.Reason))
         {
             throw new ValidationException("A reason is required to void a transaction.");
+        }
+
+        // QA-047: oil-sale income must be cancelled with the cellar sale (stock + money together).
+        if (!dto.LinkedOilSaleCancel
+            && transaction.Category == FinancialTransactionCategory.OliveOilSale
+            && !string.IsNullOrWhiteSpace(transaction.SourceId))
+        {
+            throw new ValidationException(
+                "Cancel this oil sale from My Oil so stock and Money reverse together.");
         }
 
         var now = _clock.UtcNow;

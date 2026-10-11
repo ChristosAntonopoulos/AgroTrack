@@ -18,6 +18,16 @@ const t = ((key: string) => {
 }) as import('i18next').TFunction;
 
 describe('translateApiError', () => {
+  it('QA_044 surfaces FIELD_NOT_WRITABLE instead of a generic forbidden message', () => {
+    const err = {
+      response: {
+        status: 403,
+        data: { Error: { Message: 'This grove is view-only on the free plan.', Code: 'FIELD_NOT_WRITABLE' } },
+      },
+    };
+    expect(getApiErrorMessage(err, t)).toBe('errors:fieldNotWritable');
+  });
+
   it('reads PascalCase API error payloads', () => {
     const payload = extractApiErrorPayload({
       Success: false,

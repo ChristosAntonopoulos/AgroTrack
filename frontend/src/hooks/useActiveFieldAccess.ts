@@ -107,6 +107,20 @@ const DEMO_ADMIN_GENITIVE_EL: Record<string, string> = {
 };
 
 /**
+ * QA-040: header badge text derived from the *current effective seat* on the active field
+ * ("Partner of …" / "Family of …"), not a fixed collaborator label.
+ */
+export const useActiveFieldRoleBadge = (): string | null => {
+  const { t } = useTranslation('common');
+  const owner = useActiveFieldCollaboratorLabel();
+  const { snapshot } = useActiveFieldAccess();
+  return useMemo(() => {
+    if (!owner || !snapshot) return null;
+    return t(snapshot.role === 'Family' ? 'familyOfBadge' : 'partnerOfBadge', { owner });
+  }, [owner, snapshot, t]);
+};
+
+/**
  * Label for header badge when the user is Partner/Family on the active field.
  */
 export const useActiveFieldCollaboratorLabel = (): string | null => {

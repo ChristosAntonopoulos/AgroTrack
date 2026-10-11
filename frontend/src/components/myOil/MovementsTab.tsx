@@ -18,6 +18,7 @@ import {
   canReverseMovement,
   groupMovementsByDay,
   movementActionKey,
+  movementLabelKey,
   undoneMovementIds} from '../../myOil/commitmentCopy';
 import { OilSectionHeader } from './OilStockChrome';
 import type { OilLot, StockMovement } from '../../services/oilStockService';
@@ -99,7 +100,7 @@ export function MovementsTab({
       if (tins > 0) {
         return t('timeline.bulkToTins', {
           bulk: `${formatOilNumber(bulk || tins * 16, i18n.language)} L`,
-          tins});
+          count: tins});
       }
     }
     if (m.notes && !/oil lot|created|batch|allocation/i.test(m.notes)) return m.notes;
@@ -116,6 +117,7 @@ export function MovementsTab({
             {g.items.map((m) => {
               const action = movementActionKey(m.kind);
               const Icon = ACTION_ICON[action] ?? Activity;
+              const label = movementLabelKey(m, lots.find((l) => l.id === m.oilLotId));
               const packAbs = {
                 tin16: Math.abs(m.packDelta.tin16),
                 tin17: Math.abs(m.packDelta.tin17),
@@ -134,7 +136,7 @@ export function MovementsTab({
                   </span>
                   <div className="my-oil-timeline__body">
                     <div className="my-oil-timeline__row">
-                      <div className="my-oil-timeline__action">{t(`timeline.${action}`)}</div>
+                      <div className="my-oil-timeline__action">{t(`timeline.${label}`)}</div>
                       {delta ? (
                         <div
                           className={`my-oil-timeline__delta ${

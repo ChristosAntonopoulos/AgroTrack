@@ -10,7 +10,7 @@ import NotificationBell from '../Notifications/NotificationBell';
 import { useTheme } from '../../context/ThemeContext';
 import { useCaptureOptional } from '../../context/CaptureContext';
 import { useFeedbackOptional } from '../../context/FeedbackContext';
-import { useActiveFieldCollaboratorLabel } from '../../hooks/useActiveFieldAccess';
+import { useActiveFieldRoleBadge } from '../../hooks/useActiveFieldAccess';
 import { useOwnerActivationOptional } from '../../onboarding/OwnerActivationContext';
 import './Header.css';
 import '../Capture/Capture.css';
@@ -30,17 +30,13 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, hideMenuButton }) => {
   const feedback = useFeedbackOptional();
   const activation = useOwnerActivationOptional();
   const hideChromeExtras = Boolean(activation?.locked);
-  const collaboratorOwnerLabel = useActiveFieldCollaboratorLabel();
+  const collaboratorBadge = useActiveFieldRoleBadge();
   const logoTone = resolvedTheme === 'dark' ? 'on-dark' : 'on-light';
   const navigate = useNavigate();
   const location = useLocation();
   const role = (user?.role || '') as AppRole;
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
-
-  const collaboratorBadge = collaboratorOwnerLabel
-    ? tCommon('familyCollaboratorBadge', { owner: collaboratorOwnerLabel })
-    : null;
 
   const handleLogout = () => {
     logout();

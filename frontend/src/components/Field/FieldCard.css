@@ -92,6 +92,16 @@
   color: #7a4a12;
 }
 
+.field-card-badge--editable {
+  background: color-mix(in srgb, #3d7a3d 16%, white);
+  color: #24521f;
+}
+
+.field-card-badge--readonly {
+  background: color-mix(in srgb, #7a7a7a 16%, white);
+  color: #4a4a4a;
+}
+
 .field-card-v2--draft {
   border-style: dashed;
 }

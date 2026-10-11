@@ -5,12 +5,15 @@ import {
   MINIMAL_TASK_TEMPLATES,
   minimalTemplateTitle,
 } from '../../data/minimalTaskTemplates';
+import { friendlyFieldLabel } from '../../utils/fieldLabels';
 import TaskCategoryMark from './TaskCategoryMark';
 
 export type TemplatePickerSelection =
   | {
       kind: 'template';
       templateCode: string;
+      /** Set for "Suggested now" rows: the field the suggestion belongs to. */
+      fieldId?: string;
       title: string;
       description: string;
       checklistLines: string[];
@@ -19,6 +22,8 @@ export type TemplatePickerSelection =
 
 interface TemplatePickerProps {
   suggestions?: TaskSuggestion[];
+  /** QA-035: field id → name so suggestion cards for different fields are distinguishable. */
+  fields?: Array<{ id: string; name: string }>;
   language?: string;
   onSelect: (selection: TemplatePickerSelection) => void;
   onCancel: () => void;
@@ -26,12 +31,19 @@ interface TemplatePickerProps {
 
 const TemplatePicker: React.FC<TemplatePickerProps> = ({
   suggestions = [],
+  fields = [],
   language = 'el',
   onSelect,
   onCancel,
 }) => {
   const { t } = useTranslation('tasks');
   const lang = language.toLowerCase().startsWith('en') ? 'en' : 'el';
+  // Only label cards when the suggestions could be confused (more than one field in play).
+  const showFieldLabel = new Set(suggestions.map((item) => item.fieldId)).size > 1 || fields.length > 1;
+  const fieldLabel = (fieldId: string) => {
+    const field = fields.find((row) => row.id === fieldId);
+    return field ? friendlyFieldLabel(field.name) : '';
+  };
 
   return (
     <div className="schedule-template-picker">
@@ -55,6 +67,7 @@ const TemplatePicker: React.FC<TemplatePickerProps> = ({
                       onSelect({
                         kind: 'template',
                         templateCode: item.templateCode,
+                        fieldId: item.fieldId || undefined,
                         title,
                         description: meta?.description[lang] || '',
                         checklistLines: meta?.checklist[lang] || [],
@@ -64,6 +77,9 @@ const TemplatePicker: React.FC<TemplatePickerProps> = ({
                     <TaskCategoryMark templateCode={item.templateCode} />
                     <span className="schedule-picker-copy">
                       <span className="schedule-picker-title">{title}</span>
+                      {showFieldLabel && fieldLabel(item.fieldId) ? (
+                        <span className="schedule-picker-field">{fieldLabel(item.fieldId)}</span>
+                      ) : null}
                       {item.whyNow ? (
                         <span className="schedule-picker-why">{item.whyNow}</span>
                       ) : null}

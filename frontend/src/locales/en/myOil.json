@@ -61,7 +61,9 @@
     "fillTins": "I filled tins",
     "count": "Count what is here",
     "delivered": "They took it",
-    "cancelHold": "Cancel"
+    "cancelHold": "Cancel",
+    "collectPayment": "Mark as paid",
+    "cancelSale": "Cancel sale"
   },
   "pendingPressings": {
     "title": "Waiting to be split",
@@ -98,6 +100,7 @@
     "emptyDeliveredTitle": "Nobody has taken any yet",
     "emptyCta": "Give oil",
     "paidAmount": "Paid {{amount}} €",
+    "receivableAmount": "Not paid yet · {{amount}} € owed",
     "who": "For whom",
     "howMuch": "How much",
     "status": "Status",
@@ -119,6 +122,7 @@
     "delivered": "Delivered"
   },
   "recent": {
+    "title": "Recent activity",
     "seeAll": "All activity →",
     "emptyTitle": "No activity yet",
     "emptyBody": ""
@@ -136,8 +140,13 @@
     "sharedIn": "Shared in",
     "consumed": "Used",
     "corrected": "Correction",
+    "correctionFound": "Correction · found more",
+    "correctionMissing": "Correction · found less",
+    "addedToStorage": "Added to storage",
+    "reversal": "Reversal",
     "other": "Movement",
-    "bulkToTins": "{{bulk}} bulk → {{tins}} tins",
+    "bulkToTins_one": "{{bulk}} bulk → {{count}} tin",
+    "bulkToTins_other": "{{bulk}} bulk → {{count}} tins",
     "undo": "Undo",
     "isUndo": "Undoes an earlier movement",
     "wasUndone": "Undone"
@@ -196,6 +205,7 @@
     "bulk": "Bulk",
     "bulkShort": "Bulk",
     "totalLitres": "{{amount}} L",
+    "overMax": "Only {{max}} {{unit}} in free stock, so that is the most you can enter.",
     "intent": "What happened?",
     "intentHold": "Hold",
     "intentHoldHint": "Stays in storage",
@@ -223,7 +233,8 @@
     "unlinkedSubtitle": "From storage, no specific pressing",
     "chooseSource": "Where from?",
     "autoTitle": "No harvest link",
-    "autoBody": "Takes bulk automatically from storage",
+    "autoBody": "Takes bulk automatically from storage, oldest first",
+    "autoPicked": "Oldest oil first · pressed {{date}} · {{amount}} L available",
     "fromHarvest": "From harvest",
     "otherLots": "Other pressings",
     "harvestLinked": "Linked to harvest",
@@ -258,6 +269,7 @@
     "total": "{{amount}} L in storage",
     "note": "Note (optional)",
     "notePlaceholder": "e.g. last year's oil",
+    "tooMuch": "That is more than {{max}} L. Check the amount.",
     "save": "Put in storage"
   },
   "empty": "No oil in your storage yet.",

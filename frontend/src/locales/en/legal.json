@@ -12,7 +12,7 @@
       {
         "heading": "1. Who we are (data controller)",
         "paragraphs": [
-          "Data controller: The Olive Lot operators, trading as The Olive Lot. Country: Greece. Privacy & support: support@theolivelot.com.",
+          "Data controller: The Olive Lot / Oleachron operators, trading as The Olive Lot. Country: Greece. Privacy & support: support@theolivelot.com.",
           "When a registered Greek company is formed, this section will show that exact legal entity. Until then, privacy requests are handled by The Olive Lot operators. The Google Play developer identity for The Olive Lot / com.theolivelot.app matches this product identity."
         ]
       },
@@ -63,7 +63,7 @@
         "heading": "7. Your rights",
         "paragraphs": [
           "Access; data portability (export); correction; deletion; objection/restriction; withdraw optional device permissions; lodge a complaint with a supervisory authority — in Greece, the Hellenic Data Protection Authority (HDPA) at dpa.gr.",
-          "Use Settings for export and Delete account, or email support@theolivelot.com."
+          "Settings → Download my data exports your profile, preferences, fields, and notifications. Tasks, harvest, oil, money records, and photos are not in that file; email support@theolivelot.com to request them. You can also use Delete account, or email us."
         ]
       },
       {
@@ -100,14 +100,52 @@
   },
   "terms": {
     "title": "Terms of use",
-    "updated": "",
-    "intro": "",
-    "sections": [],
-    "points": [
-      "The Olive Lot is in active development. Features and limits may change.",
-      "You are responsible for what you record and who you invite to your field.",
-      "Do not share your account. If you lose access, contact us.",
-      "Using the service means you accept these terms and our Privacy Policy at https://theolivelot.com/privacy/."
-    ]
+      "updated": "Last updated: October 2026",
+      "intro": "These terms govern your use of The Olive Lot, a farm-record app for olive growers. By creating an account or using the service you accept them.",
+      "sections": [
+        {
+          "heading": "1. The service",
+          "paragraphs": [
+            "The Olive Lot helps you keep records for your fields: tasks, harvest, oil, money, photos and the people you work with. It is in active development, so features and limits may change."
+          ]
+        },
+        {
+          "heading": "2. Your account",
+          "paragraphs": [
+            "Give accurate details and keep your password private. Do not share your account; invite people to your field instead. If you lose access, contact us."
+          ]
+        },
+        {
+          "heading": "3. Your records and your responsibility",
+          "paragraphs": [
+            "You are responsible for what you record and for who you invite to your field. Records are a working tool and do not replace official, tax, or regulatory filings."
+          ]
+        },
+        {
+          "heading": "4. Invited people",
+          "paragraphs": [
+            "People you invite see only the fields and modules you give them. You can change or remove their access at any time."
+          ]
+        },
+        {
+          "heading": "5. Acceptable use",
+          "paragraphs": [
+            "Do not misuse the service, try to access other people's data, or upload unlawful content."
+          ]
+        },
+        {
+          "heading": "6. Data and privacy",
+          "paragraphs": [
+            "How we handle your data is described in our Privacy Policy at https://theolivelot.com/privacy/. You can export or delete your data from Settings."
+          ]
+        },
+        {
+          "heading": "7. Changes and contact",
+          "paragraphs": [
+            "We may update these terms; important changes will be shown in the app. Using the service means you accept these terms and our Privacy Policy."
+          ]
+        }
+      ],
+      "points": []
   }
 }

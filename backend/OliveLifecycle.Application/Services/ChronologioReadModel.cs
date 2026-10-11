@@ -282,7 +282,8 @@ public static class ChronologioReadModel
             sackCount,
             people,
             oilKg > 0 ? oilKg : null,
-            yieldPercent);
+            yieldPercent,
+            oilLitres: oilLitres > 0 ? oilLitres : null);
         primary.Media = media;
         if (primary.Details.Harvest != null)
         {

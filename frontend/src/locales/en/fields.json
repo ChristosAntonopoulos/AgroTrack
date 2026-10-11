@@ -353,6 +353,10 @@
   "sortAttention": "Needs attention",
   "emptySearchTitle": "No matching fields",
   "emptySearchDescription": "Try a different search term or clear the filter.",
+  "emptyArchivedTitle": "No archived fields",
+  "emptyArchivedDescription": "Fields you archive will appear here.",
+  "emptyFilterTitle": "No fields in this view",
+  "emptyFilterDescription": "Switch the filter above to see other fields.",
   "summary": {
     "fields": "fields",
     "activeTasks": "active tasks",
@@ -1450,7 +1454,7 @@
     "groveDone": "Finished",
     "home": {
       "day": "Day {{day}}",
-      "whatAdd": "Add to this day"
+      "whatAdd": "Add record"
     },
     "addMenu": {
       "start": "Start here",
@@ -1791,7 +1795,7 @@
       "unitOilLitres": "L oil",
       "days": "Days",
       "empty": "Add sacks, olive fruit, or oil to see the path.",
-      "emptyHint": "Start with + on the Day tab.",
+      "emptyHint": "Start with Add record on the Day tab.",
       "needsMill": "not weighed",
       "needsOil": "no oil yet",
       "stagePendingWeigh": "Awaiting weight",
@@ -1863,7 +1867,7 @@
       "kicker": "This day",
       "title": "What you recorded",
       "closedHint": "Reopen the day to edit or add records.",
-      "empty": "Nothing recorded for this day yet. Use Add to this day for sacks, mill kilograms, oil, or people.",
+      "empty": "Nothing recorded for this day yet. Tap Add record to add sacks, mill kilograms, oil, or people.",
       "edit": "Edit",
       "remove": "Remove",
       "rowMenu": "Entry actions",

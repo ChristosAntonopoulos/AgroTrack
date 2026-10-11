@@ -6,8 +6,8 @@ import { getFieldService, getTaskService } from '../services/serviceFactory';
 import type { Task } from '../services/taskService';
 import type { Field } from '../services/fieldService';
 import { getApiErrorMessage } from '../utils/translateApiError';
-import { taskDisplayTitle } from '../utils/taskDisplayTitle';
-import { notebookStatus } from '../utils/taskNotebook';
+import { TASK_TITLE_MAX_LENGTH, taskDisplayTitle } from '../utils/taskDisplayTitle';
+import { checklistCount, notebookStatus } from '../utils/taskNotebook';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import { formatCompactTaskPeriod } from '../utils/taskDateRange';
 import { formatLongTaskDate } from '../utils/taskFormDates';
@@ -231,7 +231,15 @@ const TaskDetailPage: React.FC = () => {
   const completedLabel = task.completedAt
     ? formatLongTaskDate(task.completedAt, i18n.language)
     : null;
-  const metaParts = [fieldName, period, statusLabel].filter(Boolean);
+  // QA-013: label which date this is — planned for open tasks, completed for closed ones.
+  const periodLabel = period
+    ? isDone && completedLabel
+      ? t('detail.doneOn', { date: completedLabel })
+      : t('detail.scheduledFor', { period })
+    : '';
+  const metaParts = [fieldName, periodLabel, statusLabel].filter(Boolean);
+  const checklistItems = [...(task.checklist || [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const { done: checklistDone, total: checklistTotal } = checklistCount(task);
 
   return (
     <PageContainer className="tasks-page-container" maxWidth="md">
@@ -240,58 +248,61 @@ const TaskDetailPage: React.FC = () => {
         <header className="task-work-head">
           <div className="task-detail-top-bar">
             <BackLink to="/tasks">{t('detail.backToTasks')}</BackLink>
-            <details
-              ref={menuRef}
-              className="task-detail-more"
-              open={menuOpen}
-              onToggle={(event) => setMenuOpen((event.target as HTMLDetailsElement).open)}
-            >
-              <summary
-                className="task-detail-more-btn"
-                aria-label={t('detail.moreMenu')}
-                aria-controls={menuId}
+            {/* QA-045: skipped tasks already expose restore/edit below — hide an empty/duplicative More menu. */}
+            {!isSkipped ? (
+              <details
+                ref={menuRef}
+                className="task-detail-more"
+                open={menuOpen}
+                onToggle={(event) => setMenuOpen((event.target as HTMLDetailsElement).open)}
               >
-                <MoreHorizontal size={20} strokeWidth={2.2} aria-hidden />
-              </summary>
-              <div id={menuId} className="task-detail-more-menu" role="menu">
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled={busy}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setEditing(true);
-                  }}
+                <summary
+                  className="task-detail-more-btn"
+                  aria-label={t('detail.moreMenu')}
+                  aria-controls={menuId}
                 >
-                  {t('detail.editTask')}
-                </button>
-                {!isClosed ? (
+                  <MoreHorizontal size={20} strokeWidth={2.2} aria-hidden />
+                </summary>
+                <div id={menuId} className="task-detail-more-menu" role="menu">
                   <button
                     type="button"
                     role="menuitem"
                     disabled={busy}
                     onClick={() => {
                       setMenuOpen(false);
-                      setRescheduleOpen(true);
+                      setEditing(true);
                     }}
                   >
-                    {t('notebook.menu.reschedule')}
+                    {t('detail.editTask')}
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="is-danger"
-                  disabled={busy}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setConfirmDelete(true);
-                  }}
-                >
-                  {t('detail.delete')}
-                </button>
-              </div>
-            </details>
+                  {!isClosed ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={busy}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setRescheduleOpen(true);
+                      }}
+                    >
+                      {t('notebook.menu.reschedule')}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="is-danger"
+                    disabled={busy}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setConfirmDelete(true);
+                    }}
+                  >
+                    {t('detail.delete')}
+                  </button>
+                </div>
+              </details>
+            ) : null}
           </div>
 
           <div className="task-work-head-row">
@@ -301,6 +312,8 @@ const TaskDetailPage: React.FC = () => {
                 <input
                   className="task-form-input"
                   value={titleDraft}
+                  maxLength={TASK_TITLE_MAX_LENGTH}
+                  aria-label={t('detail.editTask')}
                   onChange={(event) => setTitleDraft(event.target.value)}
                   onBlur={() => void saveTitle()}
                   onKeyDown={(event) => {
@@ -341,6 +354,24 @@ const TaskDetailPage: React.FC = () => {
             <Button variant="outline" size="lg" disabled={busy} onClick={() => void reopen()}>
               {t('detail.restoreToTasks')}
             </Button>
+          </section>
+        ) : null}
+
+        {checklistTotal > 0 ? (
+          <section className="task-work-card" aria-labelledby="task-checklist-title">
+            <div className="task-detail-card-head">
+              <h2 id="task-checklist-title">{t('detail.checklist')}</h2>
+              <span className="task-form-help">
+                {t('detail.checklistProgress', { done: checklistDone, total: checklistTotal })}
+              </span>
+            </div>
+            <ul className="task-detail-checklist">
+              {checklistItems.map((item) => (
+                <li key={item.key} className={item.isAnswered ? 'is-done' : undefined}>
+                  <span aria-hidden>{item.isAnswered ? '✓' : '○'}</span> {item.label}
+                </li>
+              ))}
+            </ul>
           </section>
         ) : null}
 
@@ -396,6 +427,16 @@ const TaskDetailPage: React.FC = () => {
             >
               {t('detail.editTask')}
             </Button>
+            {isSkipped ? (
+              <Button
+                variant="ghost"
+                size="lg"
+                disabled={busy}
+                onClick={() => setConfirmDelete(true)}
+              >
+                {t('detail.delete')}
+              </Button>
+            ) : null}
           </div>
         )}
 

@@ -424,6 +424,8 @@ const MoneyCaptureForm: React.FC<Props> = ({
   const exceedsAvailable =
     isOil && availableLitres != null && qtyValue != null && qtyValue > availableLitres;
 
+  // QA-032: tell the user live why Continue is disabled when they type zero or a negative number.
+  const typedNonPositive = [amountValue, qtyValue, priceValue].some((value) => value != null && value <= 0);
   const hasMeaningfulAmount = Boolean(resolvedAmount && resolvedAmount > 0);
   const canSubmit = hasMeaningfulAmount;
   const canDraft = Boolean(kind) && hasMeaningfulAmount;
@@ -969,8 +971,8 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   value={amount}
                   onChange={setAmount}
                   inputRef={amountRef}
-                  invalid={Boolean(error)}
-                  describedBy={error ? 'money-capture-error' : undefined}
+                  invalid={Boolean(error) || typedNonPositive}
+                  describedBy={error ? 'money-capture-error' : 'money-capture-amount-hint'}
                   hideLabel
                 />
               </div>
@@ -979,9 +981,11 @@ const MoneyCaptureForm: React.FC<Props> = ({
           {step === 'field' ? (
             <>
               {allowSeries && usableFields.length > 1 ? (
-                <div className="money-split-toggle" role="group" aria-label={t('capture:money.splitAcross')}>
+                <div className="money-split-toggle" role="radiogroup" aria-label={t('capture:money.splitAcross')}>
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={splitMode === 'single'}
                     className={splitMode === 'single' ? 'is-on' : ''}
                     onClick={() => setSplitMode('single')}
                   >
@@ -989,6 +993,8 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   </button>
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={splitMode !== 'single'}
                     className={splitMode !== 'single' ? 'is-on' : ''}
                     onClick={() => setSplitMode((current) => (current === 'single' ? 'equal' : current))}
                   >
@@ -998,9 +1004,11 @@ const MoneyCaptureForm: React.FC<Props> = ({
               ) : null}
               {splitMode !== 'single' && allowSeries ? (
                 <>
-                  <div className="money-split-toggle" role="group" aria-label={t('capture:money.splitByArea')}>
+                  <div className="money-split-toggle" role="radiogroup" aria-label={t('capture:money.splitByArea')}>
                     <button
                       type="button"
+                      role="radio"
+                      aria-checked={splitMode === 'equal'}
                       className={splitMode === 'equal' ? 'is-on' : ''}
                       onClick={() => setSplitMode('equal')}
                     >
@@ -1008,6 +1016,8 @@ const MoneyCaptureForm: React.FC<Props> = ({
                     </button>
                     <button
                       type="button"
+                      role="radio"
+                      aria-checked={splitMode === 'area'}
                       className={splitMode === 'area' ? 'is-on' : ''}
                       onClick={() => setSplitMode('area')}
                     >
@@ -1098,9 +1108,11 @@ const MoneyCaptureForm: React.FC<Props> = ({
                 <p className="capture-hint">{t('chronologio:captureDateUsesToday')}</p>
               ) : null}
               {allowSeries ? (
-                <div className="money-split-toggle" role="group" aria-label={t('capture:money.repeatMonthly')}>
+                <div className="money-split-toggle" role="radiogroup" aria-label={t('capture:money.repeatMonthly')}>
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={repeat === 'once'}
                     className={repeat === 'once' ? 'is-on' : ''}
                     onClick={() => setRepeat('once')}
                   >
@@ -1108,6 +1120,8 @@ const MoneyCaptureForm: React.FC<Props> = ({
                   </button>
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={repeat === 'monthly'}
                     className={repeat === 'monthly' ? 'is-on' : ''}
                     onClick={() => setRepeat('monthly')}
                   >
@@ -1200,6 +1214,11 @@ const MoneyCaptureForm: React.FC<Props> = ({
                 )}
               </TransactionAdvancedDetails>
             </>
+          ) : null}
+          {step === 'amount' ? (
+            <p id="money-capture-amount-hint" className="capture-error" role="status" aria-live="polite">
+              {typedNonPositive && !error ? t('capture:money.needPositiveAmount') : ''}
+            </p>
           ) : null}
           {error && (step === 'amount' || step === 'when') ? (
             <p id="money-capture-error" className="capture-error" role="alert">

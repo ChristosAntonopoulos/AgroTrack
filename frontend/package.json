@@ -46,8 +46,14 @@
     "start:mock": "cross-env REACT_APP_USE_MOCK_DATA=true react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:e2e": "playwright test --config=e2e/playwright.config.ts",
     "eject": "react-scripts eject",
     "i18n:extract": "i18next \"src/**/*.{ts,tsx}\" -c i18next-parser.config.js"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js"
+    }
   },
   "eslintConfig": {
     "extends": [
@@ -68,6 +74,7 @@
     ]
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
     "@types/jspdf": "^1.3.3",
     "@types/leaflet": "^1.9.21",
     "cross-env": "^10.1.0",

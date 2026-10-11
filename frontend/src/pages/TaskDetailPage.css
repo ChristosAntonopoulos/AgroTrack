@@ -415,3 +415,16 @@
     flex: 1 1 8rem;
   }
 }
+
+.task-detail-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.task-detail-checklist li.is-done {
+  color: var(--color-text-muted, #6b6b6b);
+  text-decoration: line-through;
+}

@@ -93,6 +93,8 @@ const TasksPage: React.FC = () => {
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [assigneeOptions, setAssigneeOptions] = useState<AssigneeOption[]>([]);
+  // QA-049: field picked inside the schedule wizard drives which people can be assigned.
+  const [wizardFieldId, setWizardFieldId] = useState('');
 
   const fieldNames = useMemo(
     () => Object.fromEntries(fields.map((field) => [field.id, field.name])),
@@ -322,7 +324,8 @@ const TasksPage: React.FC = () => {
   }, [peopleFieldKey]);
 
   useEffect(() => {
-    const targetField = fieldFilter || fields[0]?.id;
+    const targetField =
+      (scheduleOpen && wizardFieldId) || fieldFilter || fields[0]?.id;
     if (!targetField) {
       setAssigneeOptions([
         {
@@ -350,7 +353,8 @@ const TasksPage: React.FC = () => {
         },
       ];
       (Array.isArray(people) ? people : []).forEach((person) => {
-        if (person.userId === user?.userId || person.role === 'Admin') return;
+        // QA-049: only assignable field members (AssignedUserId). Skip self, owner, and pending seats.
+        if (!person.userId || person.userId === user?.userId || person.role === 'Admin') return;
         options.push({
           key: `user:${person.userId}`,
           label: person.displayName || person.email || t('fieldWork.form.collaborator'),
@@ -370,7 +374,7 @@ const TasksPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [fieldFilter, fields, user?.userId, t]);
+  }, [fieldFilter, fields, user?.userId, t, scheduleOpen, wizardFieldId]);
 
   useEffect(() => {
     if (!selectedTaskId) return;
@@ -705,6 +709,7 @@ const TasksPage: React.FC = () => {
         fields={fields}
         assigneeOptions={assigneeOptions}
         suggestions={suggestions}
+        onFieldChange={setWizardFieldId}
         prefill={schedulePrefill}
         busy={scheduleBusy}
         error={scheduleError}

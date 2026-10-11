@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: olive-lifecycle-mobile-web
+  namespace: oleachron-mobile
+  labels:
+    app: olive-lifecycle-mobile-web
+    app.kubernetes.io/part-of: oleachron
+    app.kubernetes.io/instance: oleachron-prod
+    app.kubernetes.io/component: mobile-web
+  annotations:
+    control-panel.kubernetes.io/display-name: "The Olive Lot mobile"
+    control-panel.kubernetes.io/description: "Browser build of the Olive Lot mobile app for testing."
+    control-panel.kubernetes.io/environment: "Production"
+    control-panel.kubernetes.io/icon: "🫒"
+    control-panel.kubernetes.io/accent-color: "#1F2820"
+    control-panel.kubernetes.io/tags: "mobile, expo, web, agriculture, olive"
+    control-panel.kubernetes.io/owner: "CaptainBot"
+spec:
+  replicas: 1
+  progressDeadlineSeconds: 600
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: olive-lifecycle-mobile-web
+  template:
+    metadata:
+      labels:
+        app: olive-lifecycle-mobile-web
+        app.kubernetes.io/part-of: oleachron
+        app.kubernetes.io/instance: oleachron-prod
+        app.kubernetes.io/component: mobile-web
+    spec:
+      terminationGracePeriodSeconds: 20
+      containers:
+      - name: web
+        image: PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 80
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 24
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3

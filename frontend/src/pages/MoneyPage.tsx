@@ -5,7 +5,7 @@ import PageContainer from '../components/Common/PageContainer';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 import EmptyState from '../components/Common/EmptyState';
 import Button from '../components/Common/Button';
-import LoadingSpinner from '../components/Common/LoadingSpinner';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineMode } from '../context/OfflineContext';
 import { useCaptureOptional } from '../context/CaptureContext';
@@ -156,9 +156,9 @@ const MoneyPage: React.FC = () => {
             ...listParams(),
             page: 1,
           }),
-          oilStockService
-            .getSummary(summaryFieldId ? { fieldId: summaryFieldId } : undefined)
-            .catch(() => null),
+          Promise.resolve(
+            oilStockService.getSummary(summaryFieldId ? { fieldId: summaryFieldId } : undefined)
+          ).catch(() => null),
         ]);
         if (cancelled) return;
         setSummaryForbidden(!yearSummary.ok);
@@ -380,7 +380,7 @@ const MoneyPage: React.FC = () => {
   if (pageGuard.loading) {
     return (
       <PageContainer>
-        <LoadingSpinner />
+        <PageSkeleton />
       </PageContainer>
     );
   }

@@ -27,8 +27,18 @@ type Props = {
   formatDate: (iso: string) => string;
   onDeliver: (c: OilCommitment) => void;
   onCancel: (c: OilCommitment) => void;
+  /** QA-053: receive the money for a credit sale (posts income once). */
+  onCollectPayment?: (c: OilCommitment) => void;
   onGive: () => void;
 };
+
+/** Sale on credit: oil may have left but no cash income exists yet. */
+const isReceivable = (c: OilCommitment) =>
+  c.isSale && !c.cancelled && c.paymentStatus === 'receivable';
+
+/** QA-047: a delivered sale is cancelled as one command (income + stock restored). */
+const canCancelSale = (c: OilCommitment) =>
+  c.isSale && !c.cancelled && c.derivedStatus === 'delivered';
 
 export function CommitmentsTab({
   open,
@@ -40,6 +50,7 @@ export function CommitmentsTab({
   formatDate,
   onDeliver,
   onCancel,
+  onCollectPayment,
   onGive}: Props) {
   const { t } = useTranslation(['myOil', 'common']);
   const [filter, setFilter] = useState<CommitmentFilter>('all');
@@ -126,7 +137,9 @@ export function CommitmentsTab({
               </div>
               {c.isSale && c.amount != null ? (
                 <p className="my-oil-hold__meta">
-                  {t('commitments.paidAmount', { amount: c.amount })}
+                  {isReceivable(c)
+                    ? t('commitments.receivableAmount', { amount: c.amount })
+                    : t('commitments.paidAmount', { amount: c.amount })}
                 </p>
               ) : c.createdAt && !c.promisedFor ? (
                 <p className="my-oil-hold__meta">
@@ -143,6 +156,16 @@ export function CommitmentsTab({
                       {t('actions.cancelHold')}
                     </Button>
                   </>
+                ) : null}
+                {onCollectPayment && isReceivable(c) ? (
+                  <Button variant="primary" size="sm" disabled={busy} onClick={() => onCollectPayment(c)}>
+                    {t('actions.collectPayment')}
+                  </Button>
+                ) : null}
+                {canCancelSale(c) ? (
+                  <Button variant="secondary" size="sm" disabled={busy} onClick={() => onCancel(c)}>
+                    {t('actions.cancelSale')}
+                  </Button>
                 ) : null}
                 <Button variant="ghost" size="sm" onClick={() => setDetail(c)}>
                   {t('commitments.details')}
@@ -211,7 +234,9 @@ export function CommitmentsTab({
                 <div>
                   <dt>{t('commitments.payment')}</dt>
                   <dd>
-                    {t('commitments.paidAmount', { amount: active.amount })}
+                    {isReceivable(active)
+                      ? t('commitments.receivableAmount', { amount: active.amount })
+                      : t('commitments.paidAmount', { amount: active.amount })}
                     {active.financialTransactionId ? (
                       <>
                         {' · '}

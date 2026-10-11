@@ -61,6 +61,24 @@ public interface IOilStockService
         CreateOilPressingDto dto,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Save harvest records and the oil they produced as one unit. If the oil step fails after
+    /// harvest rows were created, those rows are voided again and the error is rethrown.
+    /// </summary>
+    Task<ConfirmHarvestOilResultDto> ConfirmHarvestOilAsync(
+        string userId,
+        string userRole,
+        ConfirmHarvestOilDto dto,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// QA-027 repair: finds posted harvest oil batches (in groves this person administers) that
+    /// have neither a pressing nor a cellar lot, and files them. Idempotent by batch id.
+    /// </summary>
+    Task<ReconcileHarvestOilResultDto> ReconcileOrphanHarvestOilAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Split a pending pressing into cellars, creating one lot per slice.</summary>
     Task<OilPressingDto> AllocatePressingAsync(
         string userId,
@@ -85,9 +103,35 @@ public interface IOilStockService
         DeliverOilCommitmentDto dto,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Cancel a commitment. A sale goes through <see cref="CancelSaleAsync"/> so the money and the
+    /// stock are reversed together; a plain promise only releases its reservation.
+    /// </summary>
     Task CancelCommitmentAsync(
         string userId,
+        string userRole,
         string commitmentId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Cancel a sale as one unit: void the linked income, put delivered oil back, mark the
+    /// commitment cancelled and write the reversal movement. Fails untouched if already cancelled.
+    /// </summary>
+    Task<OilCommitmentDto> CancelSaleAsync(
+        string userId,
+        string userRole,
+        string commitmentId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Receive the money for a credit sale: posts the income exactly once and marks it paid.
+    /// Calling it again for a paid sale returns the commitment without posting.
+    /// </summary>
+    Task<OilCommitmentDto> CollectPaymentAsync(
+        string userId,
+        string userRole,
+        string commitmentId,
+        CollectOilPaymentDto? dto,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<StockMovementDto>> ListMovementsAsync(
@@ -96,11 +140,12 @@ public interface IOilStockService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Undo one stock movement by writing its mirror image. Money posted alongside a sale is left
-    /// alone; only the oil moves back.
+    /// Undo one stock movement by writing its mirror image. Undoing a sale takes the same path as
+    /// <see cref="CancelSaleAsync"/>: the oil moves back and the linked income is voided.
     /// </summary>
     Task<StockMovementDto> ReverseMovementAsync(
         string userId,
+        string userRole,
         string movementId,
         CancellationToken cancellationToken = default);
 

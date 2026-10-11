@@ -34,6 +34,9 @@ public class OilPressing : BaseEntity
     public List<string> HarvestRecordIds { get; set; } = [];
     public string? Notes { get; set; }
 
+    /// <summary>Client-supplied replay key so a retried create returns the original pressing.</summary>
+    public string? IdempotencyKey { get; set; }
+
     /// <summary>Who takes home how much of this pressing.</summary>
     public List<PressingAllocation> Allocations { get; set; } = [];
 }

@@ -67,7 +67,10 @@ const TaskNotebookCard: React.FC<TaskNotebookCardProps> = ({
             : period || '';
 
   const where = fieldName(task.fieldId);
-  const who = personName || t('notebook.unassigned');
+  // QA-029: a task keeps its assignee when completed; if the name cannot be resolved (person left
+  // the grove, list still loading) say "Assigned" rather than wrongly showing "Unassigned".
+  const hasAssignee = Boolean(task.assignedUserId || task.assigneeId || task.assignedCollaboratorId);
+  const who = personName || (hasAssignee ? t('notebook.assignedElsewhere') : t('notebook.unassigned'));
   const metaParts = [where, when, who].filter(Boolean);
   const color = resolveFieldColor(fieldColor?.(task.fieldId), task.fieldId);
 

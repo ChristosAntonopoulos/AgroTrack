@@ -1,6 +1,8 @@
 using OliveLifecycle.Application.Abstractions.Persistence;
+using OliveLifecycle.Common.Constants;
 using OliveLifecycle.Application.Abstractions.Services;
 using OliveLifecycle.Application.DTOs.Financial;
+using OliveLifecycle.Application.DTOs.Harvest;
 using OliveLifecycle.Application.DTOs.OilStock;
 using OliveLifecycle.Core;
 using OliveLifecycle.Core.Entities;
@@ -21,6 +23,7 @@ public class OilStockService : IOilStockService
     private readonly IStockMovementRepository _movements;
     private readonly IFinancialTransactionService _finance;
     private readonly IFieldRepository _fields;
+    private readonly IHarvestService _harvests;
     private readonly IDateTimeProvider _clock;
 
     public OilStockService(
@@ -32,8 +35,10 @@ public class OilStockService : IOilStockService
         IStockMovementRepository movements,
         IFinancialTransactionService finance,
         IFieldRepository fields,
+        IHarvestService harvests,
         IDateTimeProvider clock)
     {
+        _harvests = harvests;
         _cellars = cellars;
         _lots = lots;
         _pressings = pressings;
@@ -129,6 +134,12 @@ public class OilStockService : IOilStockService
             unit,
             Math.Max(0, dto.MillKept),
             dto.ConversionFactor);
+
+        if (farmerLitres > MaxOilQuantityLitres)
+        {
+            throw new ValidationException(
+                $"An oil lot cannot exceed {MaxOilQuantityLitres:N0} litres.");
+        }
 
         var packing = dto.Packing is null || OilPackMath.IsEmpty(OilStockDtoMapper.FromDto(dto.Packing))
             ? OilPackMath.DefaultPackingFromFarmerLitres(farmerLitres)
@@ -367,6 +378,17 @@ public class OilStockService : IOilStockService
             throw new ValidationException("totalAmount must be >= 0.");
         }
 
+        // Replay: a retried request must hand back the first result, not file the oil twice.
+        var idempotencyKey = NullIfEmpty(dto.IdempotencyKey);
+        if (idempotencyKey is not null)
+        {
+            var replay = await _pressings.GetByIdempotencyKeyAsync(userId, idempotencyKey, cancellationToken);
+            if (replay is not null)
+            {
+                return await ToPressingDtoAsync(replay, userId, cancellationToken);
+            }
+        }
+
         var provenance = ResolveProvenance(dto.Provenance, dto.FieldIds);
         var fieldIds = OilProvenance.FieldIds(provenance);
         var unit = NormalizeUnit(dto.Unit);
@@ -395,6 +417,7 @@ public class OilStockService : IOilStockService
                     Status = OilPressingStatuses.Confirmed,
                     HarvestRecordIds = Distinct(dto.HarvestRecordIds),
                     Notes = NullIfEmpty(dto.Notes),
+                    IdempotencyKey = idempotencyKey,
                     CreatedAt = now,
                     UpdatedAt = now
                 },
@@ -402,6 +425,7 @@ public class OilStockService : IOilStockService
         }
         else
         {
+            pressing.IdempotencyKey ??= idempotencyKey;
             pressing.CampaignId = NullIfEmpty(dto.CampaignId) ?? pressing.CampaignId;
             pressing.PressedOn = pressedOn;
             pressing.ResultYear = dto.ResultYear ?? AgriculturalYear.For(pressedOn);
@@ -465,6 +489,169 @@ public class OilStockService : IOilStockService
             fieldIds,
             farmerLitres,
             cancellationToken);
+    }
+
+    public async Task<ConfirmHarvestOilResultDto> ConfirmHarvestOilAsync(
+        string userId,
+        string userRole,
+        ConfirmHarvestOilDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if ((dto.Pressing is null) == (dto.Lot is null))
+        {
+            throw new ValidationException("Send either a pressing or a lot for the oil.");
+        }
+
+        var toCreate = dto.HarvestRecords ?? [];
+        var existingIds = Distinct(dto.HarvestRecordIds);
+        if (toCreate.Count == 0 && existingIds.Count == 0)
+        {
+            throw new ValidationException("At least one harvest record is required.");
+        }
+
+        var idempotencyKey = NullIfEmpty(dto.IdempotencyKey);
+        if (idempotencyKey is not null && dto.Pressing is not null)
+        {
+            // Replay: the pressing already exists, so its harvest rows are the answer — create nothing.
+            var replay = await _pressings.GetByIdempotencyKeyAsync(userId, idempotencyKey, cancellationToken);
+            if (replay is not null)
+            {
+                return new ConfirmHarvestOilResultDto
+                {
+                    HarvestRecordIds = replay.HarvestRecordIds,
+                    Pressing = await ToPressingDtoAsync(replay, userId, cancellationToken)
+                };
+            }
+        }
+
+        var createdIds = new List<string>();
+        try
+        {
+            foreach (var record in toCreate)
+            {
+                var row = await _harvests.CreateAsync(record, userId, userRole, cancellationToken);
+                createdIds.Add(row.Id);
+            }
+
+            var harvestIds = existingIds.Concat(createdIds).Distinct().ToList();
+            if (dto.Pressing is not null)
+            {
+                dto.Pressing.HarvestRecordIds = harvestIds;
+                dto.Pressing.IdempotencyKey = NullIfEmpty(dto.Pressing.IdempotencyKey) ?? idempotencyKey;
+                var pressing = await CreatePressingAsync(userId, dto.Pressing, cancellationToken);
+                return new ConfirmHarvestOilResultDto { HarvestRecordIds = harvestIds, Pressing = pressing };
+            }
+
+            dto.Lot!.HarvestRecordIds = harvestIds;
+            var lot = await UpsertLotAsync(userId, dto.Lot, cancellationToken);
+            return new ConfirmHarvestOilResultDto { HarvestRecordIds = harvestIds, Lot = lot };
+        }
+        catch
+        {
+            // Compensate: harvest rows without their oil would double-count in totals and
+            // leave "My Oil" empty. Only rows created by this call are voided.
+            await VoidHarvestRowsAsync(createdIds, userId, userRole);
+            throw;
+        }
+    }
+
+    /// <summary>Best effort rollback; a failure here must not hide the error that triggered it.</summary>
+    private async Task VoidHarvestRowsAsync(IEnumerable<string> harvestIds, string userId, string userRole)
+    {
+        foreach (var id in harvestIds)
+        {
+            try
+            {
+                await _harvests.VoidAsync(
+                    id,
+                    new VoidHarvestRecordDto { Reason = "Oil confirmation failed; harvest rolled back" },
+                    userId,
+                    userRole,
+                    CancellationToken.None);
+            }
+            catch
+            {
+                // Left for the farmer to void from the harvest list.
+            }
+        }
+    }
+
+    public async Task<ReconcileHarvestOilResultDto> ReconcileOrphanHarvestOilAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var cellar = await EnsureCellarForPersonAsync(userId, cancellationToken);
+        var reconciled = new List<string>();
+        var failed = new List<string>();
+        var adminFieldIds = await AdminFieldIdsAsync(userId, cancellationToken);
+
+        // Posted oil harvest rows that belong to a mill/oil batch, gathered per batch across groves.
+        var rows = new List<HarvestRecordDetailDto>();
+        foreach (var fieldId in adminFieldIds)
+        {
+            rows.AddRange(await _harvests.GetByFieldIdAsync(fieldId, userId, Roles.FieldOwner, cancellationToken));
+        }
+
+        var batches = rows
+            .Where(r => !string.IsNullOrWhiteSpace(r.BatchId)
+                && string.Equals(r.Status, "posted", StringComparison.OrdinalIgnoreCase)
+                && r.OilLitres is > 0)
+            .GroupBy(r => r.BatchId!.Trim(), StringComparer.Ordinal);
+
+        foreach (var batch in batches)
+        {
+            var batchId = batch.Key;
+            try
+            {
+                var hasPressing = await _pressings.GetByBatchIdAsync(userId, batchId, cancellationToken) is not null;
+                var hasLot = await _lots.GetByCellarAndBatchIdAsync(
+                    cellar.Id, batchId, cellar.OwnerPersonId, cancellationToken) is not null;
+                if (hasPressing || hasLot)
+                {
+                    continue;
+                }
+
+                var records = batch.ToList();
+                var weights = records
+                    .GroupBy(r => r.FieldId, StringComparer.Ordinal)
+                    .Select(g => new OilProvenanceEntryDto
+                    {
+                        FieldId = g.Key,
+                        Share = (decimal)Math.Max(0.0001, g.Sum(r => r.AllocationWeight ?? Math.Max(1, r.SackCount)))
+                    })
+                    .ToList();
+                var weightTotal = weights.Sum(w => w.Share);
+                foreach (var w in weights)
+                {
+                    w.Share = Math.Round(w.Share / weightTotal, 6);
+                }
+
+                await CreatePressingAsync(
+                    userId,
+                    new CreateOilPressingDto
+                    {
+                        BatchId = batchId,
+                        PressedOn = records.Max(r => r.HarvestDate),
+                        TotalAmount = records.Sum(r => r.OilLitres ?? 0),
+                        Unit = "litres",
+                        ConversionFactor = records.Select(r => r.ConversionFactor).FirstOrDefault(c => c is > 0),
+                        FieldIds = weights.Select(w => w.FieldId).ToList(),
+                        Provenance = weights,
+                        HarvestRecordIds = records.Select(r => r.Id).ToList(),
+                        Notes = "Reconciled from harvest records",
+                        // Same key the harvest flow uses, so a late retry of the original save lands here.
+                        IdempotencyKey = $"harvest-oil:{batchId}"
+                    },
+                    cancellationToken);
+                reconciled.Add(batchId);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                failed.Add(batchId);
+            }
+        }
+
+        return new ReconcileHarvestOilResultDto { ReconciledBatchIds = reconciled, FailedBatchIds = failed };
     }
 
     public async Task<OilPressingDto> AllocatePressingAsync(
@@ -543,7 +730,33 @@ public class OilStockService : IOilStockService
             throw new ValidationException("Requested oil quantity is required.");
         }
 
+        var onCredit = dto.IsSale && dto.IsPaid == false;
+        if (onCredit)
+        {
+            if (!string.IsNullOrWhiteSpace(dto.FinancialTransactionId))
+            {
+                throw new ValidationException("A sale on credit cannot already be linked to an income.");
+            }
+
+            if (dto.Amount is not > 0)
+            {
+                throw new ValidationException("An amount is required for a sale on credit.");
+            }
+        }
+
         var cellar = await EnsureCellarForPersonAsync(userId, cancellationToken);
+
+        // Replay: a retried request must hand back the first commitment, not reserve the oil twice.
+        var idempotencyKey = NullIfEmpty(dto.IdempotencyKey);
+        if (idempotencyKey is not null)
+        {
+            var replay = await _commitments.GetByIdempotencyKeyAsync(cellar.Id, idempotencyKey, cancellationToken);
+            if (replay is not null)
+            {
+                return ToCommitmentDto(replay);
+            }
+        }
+
         var lots = (await LoadLotsAsync(cellar, null, null, cancellationToken))
             .OrderBy(l => l.PressedOn)
             .ThenBy(l => l.CreatedAt)
@@ -589,6 +802,8 @@ public class OilStockService : IOilStockService
             Amount = dto.IsSale ? dto.Amount : null,
             Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "EUR" : dto.Currency.Trim().ToUpperInvariant(),
             FinancialTransactionId = NullIfEmpty(dto.FinancialTransactionId),
+            PaymentStatus = InitialPaymentStatus(dto, onCredit),
+            IdempotencyKey = idempotencyKey,
             Allocations = allocations,
             PromisedFor = dto.PromisedFor,
             Notes = NullIfEmpty(dto.Notes),
@@ -610,40 +825,20 @@ public class OilStockService : IOilStockService
             cancellationToken);
 
         // Capture/Money already posted income — do not create a second transaction.
-        if (dto.IsSale && dto.Amount is > 0 && string.IsNullOrEmpty(commitment.FinancialTransactionId))
+        // A credit sale (IsPaid == false) posts nothing until the buyer pays.
+        if (dto.IsSale && !onCredit && dto.Amount is > 0 && string.IsNullOrEmpty(commitment.FinancialTransactionId))
         {
-            var litres = OilPackMath.PackLitres(requested);
-            var fieldId = ResolveFieldId(lots, allocations);
             try
             {
-                var tx = await _finance.CreateAsync(
-                    new CreateFinancialTransactionDto
-                    {
-                        Type = "income",
-                        Amount = dto.Amount,
-                        Currency = commitment.Currency,
-                        OccurredOn = now,
-                        FieldId = fieldId,
-                        Category = "olive_oil_sale",
-                        ProductKind = "olive_oil",
-                        Quantity = litres,
-                        QuantityUnit = "litre",
-                        CalculationMode = "quantity_and_total",
-                        Description = $"Olive oil — {name}",
-                        CounterpartyName = name,
-                        SourceType = "manual",
-                        SourceId = commitment.Id,
-                        SaveAsDraft = false
-                    },
-                    userId,
-                    userRole,
-                    cancellationToken);
-                commitment.FinancialTransactionId = tx.Id;
+                var txId = await PostSaleIncomeAsync(commitment, lots, userId, userRole, now, cancellationToken);
+                commitment.FinancialTransactionId = txId;
+                commitment.PaymentStatus = OilPaymentStatuses.Paid;
                 commitment = await _commitments.UpdateAsync(commitment, cancellationToken);
             }
             catch
             {
-                // Stock commitment still stands if money posting fails; farmer can fix in Money.
+                // Stock commitment still stands if money posting fails. It stays "unpaid" so the
+                // farmer can retry through collect-payment instead of the sale silently having no money.
             }
         }
 
@@ -725,13 +920,168 @@ public class OilStockService : IOilStockService
         return ToCommitmentDto(commitment);
     }
 
-    public async Task CancelCommitmentAsync(
+    public async Task<OilCommitmentDto> CollectPaymentAsync(
         string userId,
+        string userRole,
+        string commitmentId,
+        CollectOilPaymentDto? dto,
+        CancellationToken cancellationToken = default)
+    {
+        var cellar = await EnsureCellarForPersonAsync(userId, cancellationToken);
+        var commitment = await RequireCommitmentAsync(cellar, commitmentId, cancellationToken);
+
+        if (commitment.Cancelled)
+        {
+            throw new ValidationException("Commitment is cancelled.");
+        }
+
+        if (!commitment.IsSale)
+        {
+            throw new ValidationException("Only a sale can be collected.");
+        }
+
+        // Income already exists: never post twice, just make the status truthful.
+        if (!string.IsNullOrEmpty(commitment.FinancialTransactionId))
+        {
+            if (!string.Equals(commitment.PaymentStatus, OilPaymentStatuses.Paid, StringComparison.Ordinal))
+            {
+                commitment.PaymentStatus = OilPaymentStatuses.Paid;
+                commitment.UpdatedAt = _clock.UtcNow;
+                commitment = await _commitments.UpdateAsync(commitment, cancellationToken);
+            }
+
+            return ToCommitmentDto(commitment);
+        }
+
+        if (commitment.Amount is not > 0)
+        {
+            throw new ValidationException("This sale has no amount to collect.");
+        }
+
+        var lots = await LoadLotsAsync(cellar, null, null, cancellationToken);
+        var now = _clock.UtcNow;
+        // The commitment-scoped idempotency key makes a double click or concurrent call land on one income.
+        var txId = await PostSaleIncomeAsync(commitment, lots, userId, userRole, dto?.PaidOn ?? now, cancellationToken);
+        commitment.FinancialTransactionId = txId;
+        commitment.PaymentStatus = OilPaymentStatuses.Paid;
+        commitment.UpdatedAt = now;
+        commitment = await _commitments.UpdateAsync(commitment, cancellationToken);
+        return ToCommitmentDto(commitment);
+    }
+
+    /// <summary>Posts the sale's income in Money. Keyed by commitment so it can only exist once.</summary>
+    private async Task<string> PostSaleIncomeAsync(
+        OilCommitment commitment,
+        IReadOnlyList<OilLot> lots,
+        string userId,
+        string userRole,
+        DateTime occurredOn,
+        CancellationToken cancellationToken)
+    {
+        var tx = await _finance.CreateAsync(
+            new CreateFinancialTransactionDto
+            {
+                Type = "income",
+                Amount = commitment.Amount,
+                Currency = commitment.Currency,
+                OccurredOn = occurredOn,
+                FieldId = ResolveFieldId(lots, commitment.Allocations),
+                Category = "olive_oil_sale",
+                ProductKind = "olive_oil",
+                Quantity = OilPackMath.PackLitres(commitment.Requested),
+                QuantityUnit = "litre",
+                CalculationMode = "quantity_and_total",
+                Description = $"Olive oil — {commitment.CounterpartyName}",
+                CounterpartyName = commitment.CounterpartyName,
+                SourceType = "manual",
+                SourceId = commitment.Id,
+                IdempotencyKey = $"oil-commitment-income:{commitment.Id}",
+                SaveAsDraft = false
+            },
+            userId,
+            userRole,
+            cancellationToken);
+        return tx.Id;
+    }
+
+    /// <summary>Starting payment state of a new commitment (see <see cref="OilPaymentStatuses"/>).</summary>
+    private static string InitialPaymentStatus(CreateOilCommitmentDto dto, bool onCredit)
+    {
+        if (!dto.IsSale) return OilPaymentStatuses.Paid;
+        if (onCredit) return OilPaymentStatuses.Receivable;
+        if (!string.IsNullOrWhiteSpace(dto.FinancialTransactionId)) return OilPaymentStatuses.Paid;
+        // Becomes paid once the income posts; stays unpaid if Money posting fails.
+        return dto.Amount is > 0 ? OilPaymentStatuses.Unpaid : OilPaymentStatuses.Paid;
+    }
+
+    public async Task<OilCommitmentDto> CancelSaleAsync(
+        string userId,
+        string userRole,
         string commitmentId,
         CancellationToken cancellationToken = default)
     {
         var cellar = await EnsureCellarForPersonAsync(userId, cancellationToken);
         var commitment = await RequireCommitmentAsync(cellar, commitmentId, cancellationToken);
+        if (!commitment.IsSale)
+        {
+            throw new ValidationException("This commitment is not a sale.");
+        }
+
+        return await CancelSaleInternalAsync(cellar, commitment, userId, userRole, cancellationToken);
+    }
+
+    private async Task<OilCommitmentDto> CancelSaleInternalAsync(
+        OilCellar cellar,
+        OilCommitment commitment,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken)
+    {
+        var now = _clock.UtcNow;
+        // Find the original sale movement first so the reversal can point at it (and Undo cannot repeat it).
+        var original = (await _movements.GetByCellarIdAsync(
+                cellar.Id, cellar.OwnerPersonId, limit: 500, cancellationToken))
+            .FirstOrDefault(m => m.OilCommitmentId == commitment.Id
+                && m.Kind == StockMovementKind.Sold
+                && string.IsNullOrWhiteSpace(m.ReversalOfMovementId));
+        var requested = commitment.Requested.Clone();
+
+        var note = await CancelSaleCoreAsync(cellar, commitment, userId, userRole, now, cancellationToken);
+        await RecordMovementAsync(
+            cellar,
+            null,
+            commitment.Id,
+            StockMovementKind.Sold,
+            requested,
+            OilPackMath.PackLitres(requested),
+            note,
+            now,
+            cancellationToken,
+            transferId: null,
+            reversalOfMovementId: original?.Id);
+        return ToCommitmentDto(commitment);
+    }
+
+    public async Task CancelCommitmentAsync(
+        string userId,
+        string userRole,
+        string commitmentId,
+        CancellationToken cancellationToken = default)
+    {
+        var cellar = await EnsureCellarForPersonAsync(userId, cancellationToken);
+        var commitment = await RequireCommitmentAsync(cellar, commitmentId, cancellationToken);
+
+        if (commitment.IsSale)
+        {
+            // A sale carries money and possibly delivered oil: reverse both together.
+            await CancelSaleInternalAsync(cellar, commitment, userId, userRole, cancellationToken);
+            return;
+        }
+
+        if (commitment.Cancelled)
+        {
+            throw new ValidationException("This commitment is already cancelled.");
+        }
 
         if (!OilPackMath.IsEmpty(commitment.Delivered))
         {
@@ -765,6 +1115,7 @@ public class OilStockService : IOilStockService
 
     public async Task<StockMovementDto> ReverseMovementAsync(
         string userId,
+        string userRole,
         string movementId,
         CancellationToken cancellationToken = default)
     {
@@ -803,7 +1154,7 @@ public class OilStockService : IOilStockService
                 transferId = await ReverseShareAsync(cellar, movement, pack, now, cancellationToken);
                 break;
             case StockMovementKind.Sold:
-                note = await ReverseSaleAsync(cellar, movement, now, cancellationToken);
+                note = await ReverseSaleAsync(cellar, movement, userId, userRole, now, cancellationToken);
                 break;
             default:
                 if (!string.IsNullOrWhiteSpace(movement.OilLotId))
@@ -908,12 +1259,14 @@ public class OilStockService : IOilStockService
     }
 
     /// <summary>
-    /// Undoing a sale puts the oil back and closes the promise. Money already posted in Money
-    /// stays where it is — the farmer decides there whether a refund happened.
+    /// Undoing a sold movement is the same operation as cancelling the sale: the oil goes back,
+    /// the linked income is voided and the commitment closes. The caller writes the movement.
     /// </summary>
     private async Task<string> ReverseSaleAsync(
         OilCellar cellar,
         StockMovement sold,
+        string userId,
+        string userRole,
         DateTime now,
         CancellationToken cancellationToken)
     {
@@ -923,49 +1276,128 @@ public class OilStockService : IOilStockService
         }
 
         var commitment = await RequireCommitmentAsync(cellar, sold.OilCommitmentId!, cancellationToken);
+        return await CancelSaleCoreAsync(cellar, commitment, userId, userRole, now, cancellationToken);
+    }
+
+    /// <summary>
+    /// Everything a sale cancellation changes, ordered so it fails before touching anything:
+    /// validate state and lots first, void the income next (the step most likely to be refused),
+    /// and only then move oil and close the commitment. Returns the movement note.
+    /// </summary>
+    private async Task<string> CancelSaleCoreAsync(
+        OilCellar cellar,
+        OilCommitment commitment,
+        string userId,
+        string userRole,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
         if (commitment.Cancelled)
         {
             throw new ValidationException("This sale was already cancelled.");
         }
 
+        // Plan the restock without mutating, so a missing lot aborts the whole cancellation.
+        var restock = new List<(OilLot Lot, OilPack Give)>();
         var left = commitment.Delivered.Clone();
         foreach (var allocation in commitment.Allocations)
         {
             if (OilPackMath.IsEmpty(left)) break;
-            var lot = await RequireLotAsync(cellar, allocation.OilLotId, cancellationToken);
             var give = OilPackMath.Min(allocation.Pack, left);
             if (OilPackMath.IsEmpty(give)) continue;
+            var lot = await RequireLotAsync(cellar, allocation.OilLotId, cancellationToken);
+            restock.Add((lot, give));
+            left = OilPackMath.Subtract(left, give);
+        }
+
+        var voidedMoney = false;
+        if (!string.IsNullOrWhiteSpace(commitment.FinancialTransactionId))
+        {
+            voidedMoney = await VoidSaleIncomeAsync(
+                commitment.FinancialTransactionId!, userId, userRole, cancellationToken);
+        }
+
+        foreach (var (lot, give) in restock)
+        {
             lot.Packing = OilPackMath.Add(lot.Packing, give);
             lot.UpdatedAt = now;
             await _lots.UpdateAsync(lot, cancellationToken);
-            left = OilPackMath.Subtract(left, give);
         }
 
         commitment.Delivered = OilPack.Empty();
         commitment.Cancelled = true;
+        commitment.PaymentStatus = OilPaymentStatuses.Cancelled;
         commitment.UpdatedAt = now;
         await _commitments.UpdateAsync(commitment, cancellationToken);
 
-        return string.IsNullOrWhiteSpace(commitment.FinancialTransactionId)
-            ? "Sale undone"
-            : "Sale undone — the income in Money was left untouched";
+        return voidedMoney ? "Sale undone, income voided in Money" : "Sale undone";
     }
+
+    /// <summary>Voids the sale's income. Returns false when it was already void (nothing to do).</summary>
+    private async Task<bool> VoidSaleIncomeAsync(
+        string financialTransactionId,
+        string userId,
+        string userRole,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _finance.GetByIdAsync(financialTransactionId, userId, userRole, cancellationToken);
+        if (existing is not null
+            && string.Equals(existing.Status, "void", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        await _finance.VoidAsync(
+            financialTransactionId,
+            new VoidFinancialTransactionDto
+            {
+                Reason = "Oil sale cancelled",
+                LinkedOilSaleCancel = true
+            },
+            userId,
+            userRole,
+            cancellationToken);
+        return true;
+    }
+
+    /// <summary>QA-034: server-side ceiling for one lot / one stock adjustment.</summary>
+    public const decimal MaxOilQuantityLitres = 50_000m;
 
     public async Task AdjustStockAsync(
         string userId,
         AdjustStockDto dto,
         CancellationToken cancellationToken = default)
     {
+        // Check the raw values: FromDto clamps negatives to zero, which would hide a bad request.
+        if (dto.Pack is null || dto.Pack.Tin16 < 0 || dto.Pack.Tin17 < 0 || dto.Pack.BulkLitres < 0)
+        {
+            throw new ValidationException("Pack quantities cannot be negative.");
+        }
+
         var cellar = await EnsureCellarForPersonAsync(userId, cancellationToken);
         var lot = await RequireLotAsync(cellar, dto.OilLotId, cancellationToken);
         var pack = OilStockDtoMapper.FromDto(dto.Pack);
-        if (OilPackMath.IsEmpty(pack))
+        if (OilPackMath.IsEmpty(pack) || OilPackMath.PackLitres(pack) <= 0m)
         {
             throw new ValidationException("Pack adjustment is required.");
         }
 
+        // QA-034: a single adjustment above the cap is almost certainly a typo (e.g. an extra zero).
+        if (OilPackMath.PackLitres(pack) > MaxOilQuantityLitres)
+        {
+            throw new ValidationException(
+                $"An adjustment cannot exceed {MaxOilQuantityLitres:N0} litres.");
+        }
+
         var kind = ParseAdjustKind(dto.Kind);
+        var reason = NullIfEmpty(dto.Notes);
+        if (kind == StockMovementKind.Correction && reason is null)
+        {
+            throw new ValidationException("Say why the stock differs (notes are required for a correction).");
+        }
+
         var now = _clock.UtcNow;
+        var before = lot.Packing.Clone();
         // Corrections go both ways: a stock count can find more oil than the books, or less.
         var additive = kind is StockMovementKind.Correction or StockMovementKind.Returned && !dto.Remove;
 
@@ -993,10 +1425,14 @@ public class OilStockService : IOilStockService
             kind,
             pack,
             litres,
-            NullIfEmpty(dto.Notes) ?? dto.Kind,
+            // Before/after live in the note so a stock count discrepancy can be audited later.
+            $"{reason ?? dto.Kind} [before: {DescribePack(before)}; after: {DescribePack(lot.Packing)}]",
             now,
             cancellationToken);
     }
+
+    private static string DescribePack(OilPack pack) =>
+        FormattableString.Invariant($"tin16 x{pack.Tin16}, tin17 x{pack.Tin17}, bulk {pack.BulkLitres:0.#} L");
 
     public async Task<OilShareSourceDto?> GetShareSourceAsync(
         string userId,
@@ -2095,6 +2531,7 @@ public class OilStockService : IOilStockService
             Amount = c.Amount,
             Currency = c.Currency,
             FinancialTransactionId = c.FinancialTransactionId,
+            PaymentStatus = string.IsNullOrWhiteSpace(c.PaymentStatus) ? OilPaymentStatuses.Paid : c.PaymentStatus,
             Allocations = c.Allocations
                 .Select(a => new OilLotAllocationDto
                 {

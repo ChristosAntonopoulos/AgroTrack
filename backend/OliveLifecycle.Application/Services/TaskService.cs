@@ -93,6 +93,8 @@ public class TaskService : ITaskService
 {
     private const int MaxChecklistItems = ChecklistSnapshotFactory.WorkingCheckLimit;
     private const int MaxChecklistLabelLength = 200;
+    /// <summary>QA-048: keeps task cards and notifications readable; the web form enforces the same cap.</summary>
+    public const int MaxTitleLength = 120;
 
     private readonly IFieldTaskRepository _tasks;
     private readonly ITaskExecutionRepository _workRecords;
@@ -213,6 +215,11 @@ public class TaskService : ITaskService
         if (string.IsNullOrWhiteSpace(title))
         {
             throw new ValidationException("Title is required to schedule a task.");
+        }
+
+        if (title.Length > MaxTitleLength)
+        {
+            throw new ValidationException($"Title is too long (max {MaxTitleLength} characters).");
         }
 
         var idempotencyKey = NormalizeIdempotencyKey(dto.IdempotencyKey);
@@ -389,7 +396,13 @@ public class TaskService : ITaskService
 
         if (!string.IsNullOrWhiteSpace(dto.Title))
         {
-            task.Title = dto.Title.Trim();
+            var nextTitle = dto.Title.Trim();
+            if (nextTitle.Length > MaxTitleLength && nextTitle != task.Title)
+            {
+                throw new ValidationException($"Title is too long (max {MaxTitleLength} characters).");
+            }
+
+            task.Title = nextTitle;
         }
 
         if (dto.Description != null)

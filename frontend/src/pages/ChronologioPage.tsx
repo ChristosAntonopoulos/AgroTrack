@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import PageContainer from '../components/Common/PageContainer';
 import ChronologioLiving from '../components/Chronologio/ChronologioLiving';
 import { useModulePageGuard } from '../hooks/useModulePageGuard';
-import LoadingSpinner from '../components/Common/LoadingSpinner';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import Breadcrumbs from '../components/Layout/Breadcrumbs';
 
 const ChronologioPage: React.FC = () => {
@@ -14,7 +14,7 @@ const ChronologioPage: React.FC = () => {
     return (
       <PageContainer>
         <Breadcrumbs />
-        <LoadingSpinner />
+        <PageSkeleton />
       </PageContainer>
     );
   }

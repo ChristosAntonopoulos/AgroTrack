@@ -79,8 +79,28 @@ describe('TaskDetailPage slim detail', () => {
 
     expect(await screen.findByRole('heading', { name: 'Λίπανση' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Σήμανε έτοιμη' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Αλλαγή ημερομηνίας' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "Βάλ’ το για αργότερα" })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Έναρξη|Συνέχισε|Παύση/i })).not.toBeInTheDocument();
+  });
+
+  it('QA_025_shows_template_checklist_with_completion', async () => {
+    mockGetTask.mockResolvedValue({
+      ...planned,
+      checklist: [
+        { key: 'c1', label: 'Έλεγχος καιρού', sortOrder: 1, isAnswered: true },
+        { key: 'c2', label: 'Καθάρισμα ψεκαστήρα', sortOrder: 2, isAnswered: false },
+      ],
+    });
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <TaskDetailPage />
+      </I18nextProvider>
+    );
+
+    expect(await screen.findByText('Έλεγχος καιρού')).toBeInTheDocument();
+    expect(screen.getByText('Καθάρισμα ψεκαστήρα')).toBeInTheDocument();
+    expect(screen.getByText('1 από 2 ολοκληρώθηκαν')).toBeInTheDocument();
   });
 
   it('shows done outcome with restore and overflow edit/delete', async () => {

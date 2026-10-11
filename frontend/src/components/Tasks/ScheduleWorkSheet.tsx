@@ -9,6 +9,7 @@ import type { AssigneeOption } from './form/AssigneeSelector';
 import AssigneeSelector from './form/AssigneeSelector';
 import TemplatePicker, { type TemplatePickerSelection } from './TemplatePicker';
 import { resolveFieldColor } from '../../utils/fieldColors';
+import { TASK_TITLE_MAX_LENGTH } from '../../utils/taskDisplayTitle';
 import TaskCategoryMark from './TaskCategoryMark';
 import {
   getMinimalTemplate,
@@ -37,6 +38,8 @@ interface ScheduleWorkSheetProps {
   fields: Field[];
   assigneeOptions: AssigneeOption[];
   suggestions?: TaskSuggestion[];
+  /** QA-049: lets the parent load the people (assignee picker) of the field chosen in the wizard. */
+  onFieldChange?: (fieldId: string) => void;
   prefill?: ScheduleWorkPrefill | null;
   /** schedule = open backlog; alreadyDone = create Done instantly */
   mode?: ScheduleWorkMode;
@@ -82,6 +85,7 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
   fields,
   assigneeOptions,
   suggestions = [],
+  onFieldChange,
   prefill,
   mode = 'schedule',
   busy,
@@ -150,6 +154,21 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
   }, [open, prefill, fields, usableFields, selfKey, i18n.language, mode]);
 
   useEffect(() => {
+    if (open && fieldId) onFieldChange?.(fieldId);
+  }, [open, fieldId, onFieldChange]);
+
+  // A previously picked member may not belong to the newly chosen field.
+  useEffect(() => {
+    if (
+      assigneeOptions.length > 0 &&
+      assigneeKey !== 'later' &&
+      !assigneeOptions.some((option) => option.key === assigneeKey)
+    ) {
+      setAssigneeKey(selfKey);
+    }
+  }, [assigneeOptions, assigneeKey, selfKey]);
+
+  useEffect(() => {
     if (!open || pickingTemplate || step !== 'what') return;
     const timer = window.setTimeout(() => titleRef.current?.focus(), 40);
     return () => window.clearTimeout(timer);
@@ -197,6 +216,9 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
       setChecklistText('');
     } else {
       setTemplateCode(selection.templateCode);
+      if (selection.fieldId && usableFields.some((field) => field.id === selection.fieldId)) {
+        setFieldId(selection.fieldId);
+      }
       setTitle(selection.title);
       setDescription(selection.description);
       setChecklistText(selection.checklistLines.join('\n'));
@@ -286,6 +308,7 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
       {pickingTemplate ? (
         <TemplatePicker
           suggestions={suggestions}
+          fields={usableFields}
           language={i18n.language}
           onSelect={applyTemplate}
           onCancel={() => {
@@ -343,6 +366,8 @@ const ScheduleWorkSheet: React.FC<ScheduleWorkSheetProps> = ({
                     className="schedule-title-input"
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
+                    maxLength={TASK_TITLE_MAX_LENGTH}
+                    aria-label={tx('whatPlaceholder')}
                     placeholder={tx('whatPlaceholder')}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {

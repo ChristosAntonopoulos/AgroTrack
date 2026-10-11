@@ -35,6 +35,7 @@ public class FinancialTransactionServiceTests
             _transactions.Object,
             _fields.Object,
             _fieldAccessScope.Object,
+            Mock.Of<IFieldAccessService>(),
             _fieldTasks.Object,
             _harvests.Object,
             _auth.Object,

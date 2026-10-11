@@ -154,7 +154,7 @@
     }
   },
   "privacy": {
-    "exportHelp": "Download a copy of your profile, notification choices, fields, and notifications. Photos and money records can be requested from support.",
+    "exportHelp": "Download a file with your profile, preferences, fields (name, place, area, variety, status), and notifications. It does not include tasks, harvest, oil, money records, or photos; email support@theolivelot.com to request those.",
     "exportButton": "Download my data",
     "exportWorking": "Preparing your file…",
     "exportDone": "Download started.",

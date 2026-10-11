@@ -13,7 +13,7 @@ const PUBLIC_PRIVACY_URL = 'https://theolivelot.com/privacy/';
 const PUBLIC_DELETE_ACCOUNT_URL = 'https://theolivelot.com/delete-account/';
 
 const LegalPage: React.FC<{ kind: Kind }> = ({ kind }) => {
-  const { t } = useTranslation('legal');
+  const { t, i18n } = useTranslation('legal');
   const disclaimer = t('disclaimer');
   const updated = t(`${kind}.updated`, { defaultValue: '' });
   const intro = t(`${kind}.intro`, { defaultValue: '' });
@@ -21,9 +21,10 @@ const LegalPage: React.FC<{ kind: Kind }> = ({ kind }) => {
   const sections = Array.isArray(sectionsRaw) ? (sectionsRaw as LegalSection[]) : [];
   const pointsRaw = t(`${kind}.points`, { returnObjects: true, defaultValue: [] });
   const points = Array.isArray(pointsRaw) ? (pointsRaw as string[]) : [];
+  const pageLang = (i18n.resolvedLanguage || i18n.language || 'en').split('-')[0];
 
   return (
-    <main className="legal-page">
+    <main className="legal-page" lang={pageLang}>
       <header className="legal-header">
         <Link to="/" className="legal-brand">
           <BrandLogo variant="horizontal" tone="on-light" size="md" alt="The Olive Lot" />

@@ -37,4 +37,6 @@ public class HarvestRecord : BaseEntity
     public string? VoidReason { get; set; }
     public DateTime? VoidedAt { get; set; }
     public string? VoidedBy { get; set; }
+    /// <summary>Optional client key so double-submit create returns the same row.</summary>
+    public string? IdempotencyKey { get; set; }
 }

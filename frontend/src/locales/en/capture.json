@@ -6,6 +6,10 @@
   "allRecords": "All records",
   "moreRecords": "More records",
   "loadingContext": "Loading…",
+  "viewOnlyGrove": "This grove is view-only on the free plan, so you cannot record here.",
+  "groveChoose": "Choose a grove below before you record.",
+  "groveInherited": "Recording in {{name}}. Change the grove below if needed.",
+  "switchEditableGrove": "Switch your editable grove",
   "whatToRecord": "What do you want to record?",
   "alsoRecord": "Also",
   "recentSection": "Recent",
@@ -51,7 +55,7 @@
   "types": {
     "observation": {
       "title": "Observation",
-      "description": "A text note from the grove"
+      "description": "A written observation from the grove"
     },
     "photo": {
       "title": "Photo",
@@ -115,7 +119,7 @@
   "observation": {
     "placeholder": "What did you notice?",
     "addPhoto": "Add photo",
-    "saved": "Note recorded."
+    "saved": "Observation recorded."
   },
   "photo": {
     "saved": "{{count}} photo(s) uploaded.",

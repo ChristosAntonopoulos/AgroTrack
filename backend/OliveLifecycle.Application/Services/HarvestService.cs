@@ -62,11 +62,25 @@ public class HarvestService : IHarvestService
             throw new ForbiddenException("You do not have access to harvest for this field.");
         }
 
+        await _fieldAccessService.EnsureFieldWritableForWriteAsync(dto.FieldId, cancellationToken);
         await EnsureHarvestModuleAsync(dto.FieldId, userId, userRole, write: true, cancellationToken);
         await _fieldStatusGuard.EnsureAcceptsNewRecordsAsync(dto.FieldId, cancellationToken);
 
         var field = await _fieldRepository.GetByIdAsync(dto.FieldId, cancellationToken)
             ?? throw new NotFoundException("Field not found.");
+
+        var idempotencyKey = string.IsNullOrWhiteSpace(dto.IdempotencyKey)
+            ? null
+            : dto.IdempotencyKey.Trim();
+        if (idempotencyKey is { Length: > 0 })
+        {
+            var existing = await _harvestRecordRepository.GetByIdempotencyKeyAsync(
+                field.OwnerId, idempotencyKey, cancellationToken);
+            if (existing is not null)
+            {
+                return ToDto(existing);
+            }
+        }
 
         var now = _dateTimeProvider.UtcNow;
         var harvestDate = dto.HarvestDate?.ToUniversalTime() ?? now;
@@ -98,6 +112,7 @@ public class HarvestService : IHarvestService
             BatchId = string.IsNullOrWhiteSpace(dto.BatchId) ? null : dto.BatchId.Trim(),
             AllocationWeight = dto.AllocationWeight is > 0 ? dto.AllocationWeight : null,
             Status = FinancialEntryStatus.Posted,
+            IdempotencyKey = idempotencyKey,
             CreatedAt = now,
             UpdatedAt = now
         };

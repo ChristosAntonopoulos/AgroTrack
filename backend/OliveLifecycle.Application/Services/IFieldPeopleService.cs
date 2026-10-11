@@ -12,6 +12,8 @@ public interface IFieldPeopleService
     Task RevokePersonAsync(string fieldId, string actorId, string targetUserId, CancellationToken cancellationToken = default);
     Task<FieldInviteDto> CreateInviteAsync(string fieldId, string actorId, CreateFieldInviteDto dto, string? publicAppBaseUrl, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FieldInviteDto>> CreateInvitesAsync(string actorId, CreateMultiFieldInviteDto dto, string? publicAppBaseUrl, CancellationToken cancellationToken = default);
+    /// <summary>QA-039: lets a grove owner see, before sending, whether the invitee already has an account.</summary>
+    Task<InviteeLookupDto> LookupInviteeAsync(string actorId, string email, CancellationToken cancellationToken = default);
     Task<ManagedPeopleDto> GetManagedPeopleAsync(string userId, string? publicAppBaseUrl, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<FieldInviteDto>> GetInvitesAsync(string fieldId, string actorId, string? publicAppBaseUrl, CancellationToken cancellationToken = default);
     Task<FieldInviteDto> ResendInviteAsync(string fieldId, string actorId, string inviteId, string? publicAppBaseUrl, CancellationToken cancellationToken = default);

@@ -86,6 +86,35 @@ describe('field-scoped visibility navigation', () => {
     }
   });
 
+  it('QA_008 hides harvest, money and my-oil on a collaborator seat that lacks them', () => {
+    const paths = filterNavItemsForUser(navItems, 'Producer', false, {
+      modules: new Set(['chronologio', 'tasks']),
+      isAdminOnActive: false,
+      isCollaboratorOnActive: true,
+    }).map((item) => item.path);
+    expect(paths).not.toContain('/harvest');
+    expect(paths).not.toContain('/money');
+    expect(paths).not.toContain('/my-oil');
+    expect(paths).toContain('/tasks');
+  });
+
+  it('QA_008 shows money and my-oil when the seat grants money; owners see everything', () => {
+    const collaborator = filterNavItemsForUser(navItems, 'Producer', false, {
+      modules: new Set(['money']),
+      isAdminOnActive: false,
+      isCollaboratorOnActive: true,
+    }).map((item) => item.path);
+    expect(collaborator).toContain('/money');
+    expect(collaborator).toContain('/my-oil');
+
+    const owner = filterNavItemsForUser(navItems, 'FieldOwner', false, {
+      modules: null,
+      isAdminOnActive: true,
+      isCollaboratorOnActive: false,
+    }).map((item) => item.path);
+    expect(owner).toEqual(expect.arrayContaining(['/harvest', '/money', '/my-oil']));
+  });
+
   it('still hides ministry and reports from the sidebar', () => {
     const paths = filterNavItemsForUser(navItems, 'FieldOwner', false, {
       modules: null,

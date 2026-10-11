@@ -52,6 +52,16 @@ public class MeManagedPeopleController : BaseApiController
         return OkResult(invites);
     }
 
+    /// <summary>QA-039: does this invite email already have an account? Used before the review step.</summary>
+    [HttpGet("invitee-lookup")]
+    public async Task<ActionResult<InviteeLookupDto>> LookupInvitee(
+        [FromQuery] string email,
+        CancellationToken cancellationToken)
+    {
+        var result = await _people.LookupInviteeAsync(UserContext.UserId, email, cancellationToken);
+        return OkResult(result);
+    }
+
     /// <summary>Pending field invites for the signed-in user’s email / account.</summary>
     [HttpGet("invites/pending")]
     public async Task<ActionResult<IReadOnlyList<FieldInviteDto>>> GetPendingInvites(CancellationToken cancellationToken)

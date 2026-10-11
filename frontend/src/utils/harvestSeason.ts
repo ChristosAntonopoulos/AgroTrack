@@ -1,8 +1,21 @@
-/** Olive cultivation season: 1 Sep Y → 31 Aug Y+1 in Europe/Athens. */
+/**
+ * CropSeason (QA-005/QA-006): 1 Feb Y → 31 Jan Y+1 in Europe/Athens.
+ *
+ * Decision: Harvest, My Oil, Money and Chronologio share ONE season definition — the backend
+ * `AgriculturalYear` mirrored in chronologio/agriculturalYear.ts. The previous Sep–Aug window
+ * disagreed with Money/Chronologio totals, so it was removed. "Picking months" (Oct–Jan) remain a
+ * separate UX concept (`isOliveHarvestSeason`) and never define season totals.
+ */
 
+import {
+  AGRICULTURAL_YEAR_START_MONTH,
+  agriculturalYearBounds,
+  agriculturalYearFor,
+  agriculturalYearSlashLabel,
+} from '../chronologio/agriculturalYear';
 import { athensParts, parseBusinessDate } from './athensDate';
 
-export const SEASON_START_MONTH = 9; // September
+export const SEASON_START_MONTH = AGRICULTURAL_YEAR_START_MONTH;
 
 export interface SeasonBounds {
   seasonStartYear: number;
@@ -10,11 +23,9 @@ export interface SeasonBounds {
   to: Date;
 }
 
-/** Season start year for a date (Sep–Dec → same year; Jan–Aug → previous year). */
-export const getSeasonStartYear = (now: Date | string | number = new Date()): number => {
-  const p = athensParts(parseBusinessDate(now));
-  return p.month >= SEASON_START_MONTH ? p.year : p.year - 1;
-};
+/** Season start year for a date (Feb–Dec → same year; Jan → previous year). */
+export const getSeasonStartYear = (now: Date | string | number = new Date()): number =>
+  agriculturalYearFor(now);
 
 export const currentHarvestSeason = (now = new Date()): string => String(getSeasonStartYear(now));
 
@@ -24,19 +35,19 @@ export const isOliveHarvestSeason = (now: Date | string | number = new Date()): 
   return month >= 10 || month === 1;
 };
 
-export const getSeasonBounds = (seasonStartYear: number): SeasonBounds => {
-  const from = new Date(seasonStartYear, SEASON_START_MONTH - 1, 1, 0, 0, 0, 0);
-  const to = new Date(seasonStartYear + 1, SEASON_START_MONTH - 1, 1, 0, 0, 0, 0);
-  to.setMilliseconds(to.getMilliseconds() - 1);
-  return { seasonStartYear, from, to };
-};
+export const getSeasonBounds = (seasonStartYear: number): SeasonBounds => ({
+  seasonStartYear,
+  ...agriculturalYearBounds(seasonStartYear),
+});
 
+/** Shared label for every surface that names a season, e.g. 2025 → "2025/26". */
 export const formatSeasonLabel = (seasonStartYear: number): string =>
-  `${seasonStartYear}/${seasonStartYear + 1}`;
+  agriculturalYearSlashLabel(seasonStartYear);
 
 export const formatSeasonRange = (seasonStartYear: number, locale = 'el-GR'): string => {
-  const { from, to } = getSeasonBounds(seasonStartYear);
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+  const from = new Date(seasonStartYear, SEASON_START_MONTH - 1, 1);
+  const to = new Date(seasonStartYear + 1, 0, 31);
   return `${from.toLocaleDateString(locale, opts)} – ${to.toLocaleDateString(locale, opts)}`;
 };
 
