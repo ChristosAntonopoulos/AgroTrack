@@ -8,6 +8,7 @@ import { formatOilPack } from '../../myOil/formatOilPack';
 import {
   commitmentStoryKey,
   deliverButtonKey,
+  saleMoneySettled,
   type CommitmentView,
 } from '../../myOil/commitmentCopy';
 import { commitmentFieldLabel } from '../../myOil/fieldPools';
@@ -35,8 +36,7 @@ type Pill = 'waiting' | 'paid' | 'delivered' | 'held' | 'unpaid';
 const isOpen = (c: OilCommitment) =>
   !c.cancelled && c.derivedStatus !== 'delivered' && c.derivedStatus !== 'cancelled';
 
-const isPaid = (c: OilCommitment) =>
-  c.isSale && ((c.amount != null && c.amount > 0) || Boolean(c.financialTransactionId));
+const isPaid = (c: OilCommitment) => saleMoneySettled(c);
 
 const pillFor = (c: OilCommitment): Pill => {
   if (isOpen(c) && c.derivedStatus === 'pending_delivery') return 'waiting';

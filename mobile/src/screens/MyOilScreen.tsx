@@ -275,8 +275,10 @@ const MyOilScreen = () => {
   const saveGive = async (input: GiveOilSaveInput) => {
     const pool = fieldPools.find((item) => item.key === input.poolKey);
     const lots = pool?.lots || summary?.lots || [];
-    if (!drainCovers(lots, input.requested)) return;
     await run(async () => {
+      if (!drainCovers(lots, input.requested)) {
+        throw new Error('TOO_MUCH');
+      }
       if (input.forHome && input.alreadyDelivered) {
         for (const slice of planFieldDrain(lots, input.requested)) {
           await oilStockService.adjust({
@@ -292,7 +294,7 @@ const MyOilScreen = () => {
           isSale: input.isSale,
           amount: input.isSale ? input.amount : undefined,
           alreadyDelivered: input.alreadyDelivered,
-          notes: input.isSale && !input.alreadyPaid ? 'owed' : undefined,
+          isPaid: input.isSale ? input.alreadyPaid : undefined,
           allocations: planFieldDrain(lots, input.requested).map((slice) => ({
             oilLotId: slice.oilLotId,
             pack: slice.pack,

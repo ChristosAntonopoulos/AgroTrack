@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import ScreenLayout from '../components/layout/ScreenLayout';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -9,10 +10,10 @@ import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { getFieldService, getTaskService } from '../services/serviceFactory';
-import type { Task } from '../services/taskService';
+import type { Task, TaskChecklistItem } from '../services/taskService';
 import type { Field } from '../services/fieldService';
 import { taskDisplayTitle } from '../utils/taskDisplayTitle';
-import { notebookStatus } from '../utils/taskNotebook';
+import { checklistCount, notebookStatus } from '../utils/taskNotebook';
 import { friendlyFieldLabel } from '../utils/fieldLabels';
 import { formatCompactTaskPeriod } from '../utils/taskDateRange';
 import type { RootStackParamList } from '../navigation/types';
@@ -23,6 +24,13 @@ import RescheduleTaskSheet from '../components/tasks/RescheduleTaskSheet';
 
 type Route = RouteProp<RootStackParamList, 'TaskDetail'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'TaskDetail'>;
+
+const checklistLabel = (item: TaskChecklistItem, language: string): string => {
+  const lang = language.toLowerCase();
+  if ((lang.startsWith('en') || lang.startsWith('it')) && item.englishLabel) return item.englishLabel;
+  if (lang.startsWith('el') && item.greekLabel) return item.greekLabel;
+  return item.label || item.greekLabel || item.englishLabel || item.key;
+};
 
 const TaskDetailScreen = () => {
   const { t, i18n } = useTranslation(['tasks', 'common']);
@@ -123,6 +131,19 @@ const TaskDetailScreen = () => {
     }
   };
 
+  const toggleCheck = async (key: string, completed: boolean) => {
+    if (!task || notebookStatus(task.status) !== 'planned') return;
+    setBusy(true);
+    try {
+      setError(null);
+      setTask(await getTaskService().setChecklistItem(taskId, key, completed));
+    } catch {
+      setError(t('detail.failedStatus', { defaultValue: t('complete.failed') }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const reschedule = async (plannedStart: string, plannedEnd?: string) => {
     setBusy(true);
     try {
@@ -171,6 +192,10 @@ const TaskDetailScreen = () => {
   const statusLabel = t(`notebook.status.${status}`, { defaultValue: status });
   const metaParts = [fieldName, period, statusLabel].filter(Boolean);
   const accent = resolveTaskCategoryAccent(task.templateCode);
+  const checklistItems = [...(task.checklist || [])].sort(
+    (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+  );
+  const { done: checklistDone, total: checklistTotal } = checklistCount(task);
 
   return (
     <ScreenLayout style={styles.screen} scroll>
@@ -214,6 +239,50 @@ const TaskDetailScreen = () => {
         </View>
 
         {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+
+        {checklistTotal > 0 ? (
+          <View
+            style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
+            accessibilityLabel={t('detail.checklist')}
+          >
+            <View style={styles.cardHead}>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{t('detail.checklist')}</Text>
+              <Text style={{ color: colors.textSecondary }}>
+                {t('detail.checklistProgress', { done: checklistDone, total: checklistTotal })}
+              </Text>
+            </View>
+            {checklistItems.map((item) => {
+              const label = checklistLabel(item, i18n.language);
+              const answered = Boolean(item.isAnswered);
+              return (
+                <Pressable
+                  key={item.key}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: answered, disabled: locked || busy }}
+                  accessibilityLabel={label}
+                  disabled={locked || busy}
+                  onPress={() => void toggleCheck(item.key, !answered)}
+                  style={styles.checkRow}
+                >
+                  <Ionicons
+                    name={answered ? 'checkbox' : 'square-outline'}
+                    size={22}
+                    color={answered ? colors.primary : colors.textSecondary}
+                  />
+                  <Text
+                    style={{
+                      flex: 1,
+                      color: answered ? colors.textSecondary : colors.textPrimary,
+                      textDecorationLine: answered ? 'line-through' : 'none',
+                    }}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{t('detail.note')}</Text>
@@ -313,7 +382,14 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.sm,
   },
+  cardHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
   cardTitle: { fontSize: 13, fontWeight: '700' },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   note: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,

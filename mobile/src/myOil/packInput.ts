@@ -11,6 +11,16 @@ export const emptyOilPackInput = (): OilPackInput => ({ tin16: 0, tin17: 0, bulk
 export const packLitresOf = (pack: OilPackInput): number =>
   Math.round((pack.tin16 * 16 + pack.tin17 * 17 + pack.bulkLitres) * 10) / 10;
 
+/** True when a typed quantity is above the stock that can be taken. */
+export const packExceedsAvailable = (pack: OilPackInput, max?: OilPack | null): boolean => {
+  if (!max) return false;
+  return (
+    pack.tin16 > Math.max(0, max.tin16) ||
+    pack.tin17 > Math.max(0, max.tin17) ||
+    pack.bulkLitres > Math.max(0, max.bulkLitres) + 0.05
+  );
+};
+
 export const clampPackInput = (pack: OilPackInput, max?: OilPack): OilPackInput => {
   if (!max) {
     return {

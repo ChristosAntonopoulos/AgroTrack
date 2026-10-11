@@ -4,7 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import Sheet from '../ui/Sheet';
 import { useTheme } from '../../context/ThemeContext';
-import { clampPackInput, emptyOilPackInput, packLitresOf, type OilPackInput } from '../../myOil/packInput';
+import {
+  clampPackInput,
+  emptyOilPackInput,
+  packExceedsAvailable,
+  packLitresOf,
+  type OilPackInput,
+} from '../../myOil/packInput';
 import { formatOilNumber } from '../../myOil/formatOilPack';
 import { poolHasFreeOil, poolLabel, type FieldOilPool } from '../../myOil/fieldPools';
 import type { OilPack } from '../../services/oilStockService';
@@ -42,7 +48,6 @@ const countFromDraft = (text: string): number | null => {
 
 function PackStepperInput({
   value,
-  max,
   decimal,
   label,
   display,
@@ -51,7 +56,6 @@ function PackStepperInput({
   color,
 }: {
   value: number;
-  max?: number;
   decimal: boolean;
   label: string;
   display: string;
@@ -77,8 +81,7 @@ function PackStepperInput({
   const commit = (text: string) => {
     const parsed = countFromDraft(text);
     const next = parsed == null ? 0 : decimal ? Math.round(parsed * 10) / 10 : Math.round(parsed);
-    const capped = max == null ? Math.max(0, next) : Math.min(max, Math.max(0, next));
-    onChange(capped);
+    onChange(Math.max(0, next));
     writeDraft(null);
   };
 
@@ -102,7 +105,7 @@ function PackStepperInput({
           return;
         }
         const next = decimal ? Math.round(parsed * 10) / 10 : Math.round(parsed);
-        onChange(max == null ? Math.max(0, next) : Math.min(max, Math.max(0, next)));
+        onChange(Math.max(0, next));
       }}
       keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
       inputMode={decimal ? 'decimal' : 'numeric'}
@@ -189,20 +192,25 @@ export function OilMovementSheet({
       } else {
         next[key] = Math.max(0, prev[key] + delta);
       }
+      const stepped = clampPackInput(next);
+      // Stay on the typed number while it is above stock. Snapping to the maximum would hide what they asked for.
+      if (delta < 0 && packExceedsAvailable(prev, max)) return stepped;
       return clampPackInput(next, max);
     });
   };
 
   const setCount = (key: keyof OilPackInput, raw: number) => {
-    setPack((prev) => clampPackInput({ ...prev, [key]: raw }, max));
+    // Keep the number they typed. Stock is checked before save, not rewritten underneath them.
+    setPack((prev) => clampPackInput({ ...prev, [key]: raw }));
   };
 
   const nameOk = whoMode === 'home' || name.trim().length > 0;
   const isSale = intent === 'sell' && whoMode !== 'home';
   const alreadyDelivered = intent === 'give' || (isSale && sellTaken);
+  const overAvailable = packExceedsAvailable(pack, max);
   const canContinueWho = nameOk;
-  const canContinueHowMuch = totalLitres > 0.05;
-  const canSave = nameOk && totalLitres > 0.05 && (!isSale || Number(amount) > 0);
+  const canContinueHowMuch = totalLitres > 0.05 && !overAvailable;
+  const canSave = nameOk && totalLitres > 0.05 && !overAvailable && (!isSale || Number(amount) > 0);
 
   const resolvedName = useMemo(() => {
     if (whoMode === 'home') return t('give.homeName');
@@ -219,8 +227,16 @@ export function OilMovementSheet({
     if (!busy) onClose();
   };
 
+  const quantityError = overAvailable
+    ? t('give.tooMuch', { max: formatOilNumber(max?.litres || 0, locale) })
+    : null;
+
   const submit = () => {
     if (busy) return;
+    if (quantityError) {
+      setSaveError(quantityError);
+      return;
+    }
     setSaveError(null);
     void onSave({
       counterpartyName: resolvedName,
@@ -231,7 +247,10 @@ export function OilMovementSheet({
       alreadyPaid: isSale ? alreadyPaid : false,
       forHome: whoMode === 'home',
       poolKey: selectedPool?.key,
-    }).catch(() => setSaveError(t('error')));
+    }).catch((err: unknown) => {
+      const tooMuch = err instanceof Error && err.message === 'TOO_MUCH';
+      setSaveError(tooMuch ? t('give.tooMuch', { max: formatOilNumber(max?.litres || 0, locale) }) : t('error'));
+    });
   };
 
   const goBack = () => {
@@ -368,7 +387,6 @@ export function OilMovementSheet({
                       </Pressable>
                       <PackStepperInput
                         value={pack[key]}
-                        max={max ? (key === 'bulkLitres' ? max.bulkLitres : max[key]) : undefined}
                         decimal={key === 'bulkLitres'}
                         label={label}
                         display={
@@ -396,6 +414,11 @@ export function OilMovementSheet({
             {totalLitres > 0.05 ? (
               <Text style={styles.flowTotal}>
                 {t('give.totalLitres', { amount: formatOilNumber(totalLitres, locale) })}
+              </Text>
+            ) : null}
+            {quantityError ? (
+              <Text style={styles.giveError} accessibilityRole="alert">
+                {quantityError}
               </Text>
             ) : null}
 

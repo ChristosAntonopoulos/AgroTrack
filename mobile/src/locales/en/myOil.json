@@ -397,6 +397,7 @@
     "stillHere": "Still here",
     "paid": "Paid",
     "notPaid": "Not yet",
+    "tooMuch": "That is more than {{max}} L. Check the amount.",
     "saveHold": "Hold",
     "saveGive": "Give",
     "saveSell": "Sell oil",

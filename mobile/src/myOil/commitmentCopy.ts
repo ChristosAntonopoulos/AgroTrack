@@ -232,11 +232,27 @@ export const undoneMovementIds = (movements: StockMovement[]): Set<string> =>
       .filter((id): id is string => Boolean(id))
   );
 
+/**
+ * A sale whose money has been received.
+ * Credit sales (`receivable` / `unpaid`) stay open even when a price was entered.
+ * Older rows without a payment status count as settled once income was posted or a price exists.
+ */
+export const saleMoneySettled = (commitment: OilCommitment): boolean => {
+  if (!commitment.isSale || commitment.cancelled) return false;
+  const status = String(commitment.paymentStatus || '').toLowerCase();
+  if (status === 'receivable' || status === 'unpaid' || status === 'cancelled') return false;
+  if (status === 'paid') return true;
+  return (
+    Boolean(commitment.financialTransactionId) ||
+    (commitment.amount != null && commitment.amount > 0)
+  );
+};
+
 /** Needs-now: waiting pickup or unpaid sale holds (not household). */
 export const needsNowCommitments = (open: OilCommitment[]): OilCommitment[] =>
   open.filter((c) => {
     if (isHouseholdCommitment(c) || c.cancelled) return false;
     if (c.derivedStatus === 'pending_delivery') return true;
-    if (c.isSale && (c.amount == null || c.amount <= 0) && !c.financialTransactionId) return true;
+    if (c.isSale && !saleMoneySettled(c)) return true;
     return false;
   });

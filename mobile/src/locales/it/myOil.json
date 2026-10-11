@@ -390,6 +390,7 @@
     "stillHere": "Resta qui",
     "paid": "Pagato",
     "notPaid": "Non ancora",
+    "tooMuch": "È più di {{max}} L. Controlla la quantità.",
     "saveHold": "Tieni",
     "saveGive": "Dai",
     "saveSell": "Vendi olio",

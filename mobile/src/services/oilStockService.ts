@@ -56,6 +56,8 @@ export type OilCommitment = {
   amount?: number | null;
   currency: string;
   financialTransactionId?: string | null;
+  /** Sales only. `receivable` / `unpaid` means the buyer still owes the money. */
+  paymentStatus?: 'unpaid' | 'receivable' | 'paid' | 'cancelled' | string;
   allocations: OilLotAllocation[];
   promisedFor?: string | null;
   notes?: string | null;
@@ -203,6 +205,8 @@ export type CreateOilCommitmentInput = {
   notes?: string;
   financialTransactionId?: string;
   allocations?: { oilLotId: string; pack: { tin16: number; tin17: number; bulkLitres: number } }[];
+  /** Sales only. false = sold on credit: no income is posted until the buyer pays. */
+  isPaid?: boolean;
 };
 
 const emptyPack = (): OilPack => ({ tin16: 0, tin17: 0, bulkLitres: 0, litres: 0 });

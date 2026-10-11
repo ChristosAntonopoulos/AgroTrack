@@ -170,6 +170,8 @@
     "editTask": "Επεξεργασία",
     "note": "Σημείωση",
     "notePlaceholder": "Σημειώσεις για την εργασία",
+    "checklist": "Λίστα ελέγχου",
+    "checklistProgress": "{{done}} από {{total}} ολοκληρώθηκαν",
     "skipReason": "Γιατί να παραλειφθεί;",
     "skipReasonPlaceholder": "Προαιρετικός λόγος",
     "confirmSkip": "Παράλειψη",

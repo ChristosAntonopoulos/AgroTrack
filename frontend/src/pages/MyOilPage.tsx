@@ -239,7 +239,8 @@ const MyOilPage: React.FC = () => {
           isSale: input.isSale,
           amount: input.isSale ? input.amount : undefined,
           alreadyDelivered: input.alreadyDelivered,
-          notes: input.isSale && !input.alreadyPaid ? 'owed' : undefined});
+          isPaid: input.isSale ? input.alreadyPaid : undefined,
+        });
       }
       setShowGive(false);
     });

@@ -84,6 +84,24 @@ describe('cellarFlow', () => {
     assert.equal(flow.soldLitres, 690);
     assert.equal(flow.givenLitres, 20);
     assert.equal(flow.revenue, 4250);
+    assert.equal(flow.unpaid, 0);
+  });
+
+  it('keeps a credit sale out of income and in unpaid', () => {
+    const flow = cellarFlow([
+      commitment({
+        isSale: true,
+        remaining: pack(0, 0, 0),
+        requested: pack(0, 0, 1),
+        delivered: pack(0, 0, 1),
+        derivedStatus: 'delivered',
+        amount: 7,
+        paymentStatus: 'receivable',
+      }),
+    ]);
+    assert.equal(flow.revenue, 0);
+    assert.equal(flow.unpaid, 7);
+    assert.equal(flow.soldLitres, 1);
   });
 });
 

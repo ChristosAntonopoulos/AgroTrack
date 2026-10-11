@@ -142,6 +142,18 @@ export const mockTaskService = {
     return { ...task };
   },
 
+  setChecklistItem: async (id: string, key: string, completed: boolean): Promise<Task> => {
+    const index = mockTasks.findIndex((task) => task.id === id);
+    if (index < 0) throw new Error('not found');
+    const task = mockTasks[index];
+    const checklist = (task.checklist || []).map((item) =>
+      item.key === key ? { ...item, isAnswered: completed, boolValue: completed } : item
+    );
+    const next = { ...task, checklist, updatedAt: nowIso() };
+    mockTasks[index] = next;
+    return { ...next, checklist: checklist.map((item) => ({ ...item })) };
+  },
+
   patchTask: async (id: string, input: PatchTaskInput): Promise<Task> => {
     const index = mockTasks.findIndex((item) => item.id === id);
     if (index < 0) throw new Error('Task not found');

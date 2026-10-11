@@ -172,6 +172,13 @@ export const taskService = {
     return response.data;
   },
 
+  /** Mark one checklist line done or not. Reloads the task so the detail stays in sync. */
+  setChecklistItem: async (id: string, key: string, completed: boolean): Promise<Task> => {
+    await api.post(`/api/v1/field-tasks/${id}/checklist/${encodeURIComponent(key)}`, { completed });
+    const response = await api.get<Task>(`/api/v1/tasks/${id}`);
+    return response.data;
+  },
+
   completeTask: async (id: string): Promise<Task> => {
     const response = await api.post<Task>(`/api/v1/tasks/${id}/complete`);
     return response.data;

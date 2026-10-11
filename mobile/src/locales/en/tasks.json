@@ -170,6 +170,8 @@
     "editTask": "Edit",
     "note": "Note",
     "notePlaceholder": "Notes for this task",
+    "checklist": "Checklist",
+    "checklistProgress": "{{done}} of {{total}} done",
     "skipReason": "Why skip?",
     "skipReasonPlaceholder": "Optional reason",
     "confirmSkip": "Skip",

@@ -1,4 +1,5 @@
 import type { OilCommitment, OilPack, OilStockSummary } from '../services/oilStockService';
+import { saleMoneySettled } from './commitmentCopy';
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -86,15 +87,14 @@ export const cellarFlow = (commitments: OilCommitment[]): CellarFlow => {
     const sold =
       commitment.isSale &&
       (commitment.derivedStatus === 'pending_delivery' || commitment.derivedStatus === 'delivered');
-    const paid =
-      (commitment.amount != null && commitment.amount > 0) || Boolean(commitment.financialTransactionId);
+    const paid = saleMoneySettled(commitment);
     if (sold) {
       const litres =
         commitment.derivedStatus === 'delivered'
           ? packLitres(commitment.delivered) || packLitres(commitment.requested)
           : packLitres(commitment.requested) || packLitres(commitment.remaining);
       soldLitres += litres;
-      if (commitment.amount != null && commitment.amount > 0) revenue += commitment.amount;
+      if (paid && commitment.amount != null && commitment.amount > 0) revenue += commitment.amount;
     } else if (
       !commitment.isSale &&
       commitment.derivedStatus === 'delivered' &&

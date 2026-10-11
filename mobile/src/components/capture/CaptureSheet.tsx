@@ -150,6 +150,7 @@ const CaptureSheet: React.FC<Props> = ({
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [lastCaptureFieldId, setLastCaptureFieldId] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const openSessionRef = useRef('');
@@ -217,6 +218,7 @@ const CaptureSheet: React.FC<Props> = ({
         : context.description || ''
     );
     setPhotos([]);
+    setFormError(null);
     setOliveKg('');
     setOilKg('');
     setHarvestNotes('');
@@ -311,7 +313,10 @@ const CaptureSheet: React.FC<Props> = ({
       }),
       permissionDeniedMessage: t('common:errors.generic', { defaultValue: 'Permission required' }),
     });
-    if (uris.length) setPhotos((prev) => [...prev, ...uris]);
+    if (uris.length) {
+      setPhotos((prev) => [...prev, ...uris]);
+      setFormError(null);
+    }
   };
 
   const uploadPhotos = async () => uploadCapturePhotoUris(photos);
@@ -400,9 +405,14 @@ const CaptureSheet: React.FC<Props> = ({
 
   const save = async () => {
     if (!fieldId) {
-      Alert.alert('', t('capture:errors.fieldRequired'));
+      setFormError(t('capture:errors.fieldRequired'));
       return;
     }
+    if (step === 'observation' && !body.trim() && photos.length === 0) {
+      setFormError(t('capture:errors.observationEmpty'));
+      return;
+    }
+    setFormError(null);
     setSubmitting(true);
     try {
       const reopenQuick = (): CaptureContext => ({
@@ -416,11 +426,6 @@ const CaptureSheet: React.FC<Props> = ({
       });
 
       if (step === 'observation') {
-        if (!body.trim() && photos.length === 0) {
-          Alert.alert('', t('capture:errors.observationEmpty'));
-          setSubmitting(false);
-          return;
-        }
         const mediaUrls = await uploadPhotos();
         const note = await getNoteService().createNote({
           body: body.trim(),
@@ -714,6 +719,7 @@ const CaptureSheet: React.FC<Props> = ({
   };
 
   const goBack = () => {
+    setFormError(null);
     if (step === 'quick') {
       onClose();
       return;
@@ -753,6 +759,11 @@ const CaptureSheet: React.FC<Props> = ({
                   {t('onboarding:coach.saveObservation.cue')}
                 </Text>
               </View>
+            ) : null}
+            {formError ? (
+              <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color: colors.error, marginBottom: 8 }}>
+                {formError}
+              </Text>
             ) : null}
             <Button
               title={submitting ? t('capture:saving') : t('capture:save')}
@@ -891,7 +902,7 @@ const CaptureSheet: React.FC<Props> = ({
                       styles.obsTextarea,
                       {
                         color: colors.textPrimary,
-                        borderColor: colors.eventObservation,
+                        borderColor: formError ? colors.error : colors.eventObservation,
                         backgroundColor: colors.eventObservationSoft,
                       },
                     ]}
@@ -900,8 +911,17 @@ const CaptureSheet: React.FC<Props> = ({
                     multiline
                     maxLength={4000}
                     value={body}
-                    onChangeText={setBody}
+                    accessibilityLabel={t('capture:types.observation.title')}
+                    onChangeText={(text) => {
+                      setBody(text);
+                      if (text.trim()) setFormError(null);
+                    }}
                   />
+                  {formError ? (
+                    <Text accessibilityRole="alert" style={[styles.hint, { color: colors.error }]}>
+                      {formError}
+                    </Text>
+                  ) : null}
                 </>
               ) : null}
 
