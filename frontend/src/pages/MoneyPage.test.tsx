@@ -17,7 +17,7 @@ jest.mock(
     useSearchParams: () => [new URLSearchParams({ year: '2026' }), mockSetSearchParams],
     useNavigate: () => jest.fn(),
     Navigate: () => null,
-    Link: ({ children }) => children,
+    Link: ({ children }: { children?: React.ReactNode }) => children,
   }),
   { virtual: true }
 );

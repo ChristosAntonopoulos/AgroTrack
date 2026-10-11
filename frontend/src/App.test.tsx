@@ -5,3 +5,5 @@
 test('frontend test harness is alive', () => {
   expect(typeof document.createElement).toBe('function');
 });
+
+export {};
