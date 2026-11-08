@@ -4,7 +4,8 @@ public enum PhotoKind
 {
     General,
     Before,
-    After
+    After,
+    BoundaryVertex
 }
 
 public static class PhotoKindExtensions
@@ -13,6 +14,7 @@ public static class PhotoKindExtensions
     {
         PhotoKind.Before => "before",
         PhotoKind.After => "after",
+        PhotoKind.BoundaryVertex => "boundaryVertex",
         _ => "general"
     };
 
@@ -21,6 +23,7 @@ public static class PhotoKindExtensions
         {
             "before" => PhotoKind.Before,
             "after" => PhotoKind.After,
+            "boundaryvertex" or "boundary_vertex" or "boundary-vertex" => PhotoKind.BoundaryVertex,
             _ => PhotoKind.General
         };
 }

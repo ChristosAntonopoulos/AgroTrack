@@ -210,7 +210,7 @@ const FieldFormScreen = () => {
       const id = await ensureDraftField();
       await getFieldService().updateField(id, fieldPayload());
       activation?.markFieldsDirty({ groveCreatedFieldId: id });
-      navigation.replace('FieldMapBoundary', { fieldId: id });
+      navigation.replace('FieldPlace', { fieldId: id });
     } catch (e: unknown) {
       handleSaveError(e);
     } finally {

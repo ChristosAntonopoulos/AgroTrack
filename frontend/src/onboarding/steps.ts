@@ -98,7 +98,7 @@ export const stepPath = (step: OwnerActivationStepId, fieldId: string | null): s
     case 'createGrove':
       return fieldId ? `/fields/${fieldId}/edit` : '/fields/new';
     case 'drawBoundary':
-      return fieldId ? `/fields/${fieldId}/edit?focus=boundary` : '/fields/new';
+      return fieldId ? `/fields/${fieldId}/edit?focus=place` : '/fields/new';
     case 'loadData':
       return fieldId ? `/fields/${fieldId}?tab=map&activation=spatial` : '/fields';
     case 'firstObservation':

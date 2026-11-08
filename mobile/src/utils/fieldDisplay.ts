@@ -81,15 +81,30 @@ export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
   return Boolean(ring && ring.length >= 4);
 };
 
+/** Pin / center is enough to place the grove on the map. */
+export const fieldHasLocation = (
+  field: Pick<Field, 'latitude' | 'longitude' | 'centerPoint'>
+): boolean => {
+  if (field.centerPoint?.coordinates?.length === 2) {
+    const [lng, lat] = field.centerPoint.coordinates;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return true;
+  }
+  return (
+    typeof field.latitude === 'number' &&
+    typeof field.longitude === 'number' &&
+    Number.isFinite(field.latitude) &&
+    Number.isFinite(field.longitude)
+  );
+};
+
 /** Best wizard step when resuming an incomplete field. */
 export const getFieldSetupResumeStep = (
-  field: Pick<Field, 'name' | 'status' | 'boundary'>
-): 'basics' | 'boundary' | 'review' => {
+  field: Pick<Field, 'name' | 'status' | 'boundary' | 'latitude' | 'longitude' | 'centerPoint'>
+): 'basics' | 'place' | 'boundary' | 'review' => {
   const hasName = Boolean(field.name?.trim());
-  const hasBoundary = fieldHasBoundary(field);
-
   if (!hasName) return 'basics';
-  if (!hasBoundary || field.status === 'NeedsBoundaryConfirmation') return 'boundary';
+  if (!fieldHasLocation(field)) return 'place';
+  if (!fieldHasBoundary(field) && field.status === 'NeedsBoundaryConfirmation') return 'boundary';
   return 'review';
 };
 

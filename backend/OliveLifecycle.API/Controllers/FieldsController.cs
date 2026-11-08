@@ -11,11 +11,16 @@ namespace OliveLifecycle.API.Controllers;
 public class FieldsController : BaseApiController
 {
     private readonly IFieldService _fieldService;
+    private readonly IBoundaryVertexPhotoService _boundaryVertexPhotos;
 
-    public FieldsController(IFieldService fieldService, ICurrentUserContext currentUser)
+    public FieldsController(
+        IFieldService fieldService,
+        IBoundaryVertexPhotoService boundaryVertexPhotos,
+        ICurrentUserContext currentUser)
         : base(currentUser)
     {
         _fieldService = fieldService;
+        _boundaryVertexPhotos = boundaryVertexPhotos;
     }
 
     [HttpGet]
@@ -112,7 +117,46 @@ public class FieldsController : BaseApiController
         CancellationToken cancellationToken)
     {
         var field = await _fieldService.UpdateBoundaryAsync(id, UserContext.UserId, request, cancellationToken);
+        await _boundaryVertexPhotos.RemapAfterBoundaryUpdateAsync(id, null, cancellationToken);
         return OkResult(field);
+    }
+
+    [HttpGet("{id}/boundary/vertex-photos")]
+    public async Task<ActionResult<IReadOnlyList<BoundaryVertexPhotoDto>>> ListVertexPhotos(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        var photos = await _boundaryVertexPhotos.ListAsync(
+            id, UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(photos);
+    }
+
+    [HttpPut("{id}/boundary/vertices/{index:int}/photo")]
+    public async Task<ActionResult<BoundaryVertexPhotoDto>> AssignVertexPhoto(
+        string id,
+        int index,
+        [FromBody] AssignBoundaryVertexPhotoRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.PhotoId))
+        {
+            return BadRequest(new { message = "photoId is required." });
+        }
+
+        var photo = await _boundaryVertexPhotos.AssignAsync(
+            id, index, request.PhotoId.Trim(), UserContext.UserId, UserContext.Role, cancellationToken);
+        return OkResult(photo);
+    }
+
+    [HttpDelete("{id}/boundary/vertices/{index:int}/photo")]
+    public async Task<IActionResult> ClearVertexPhoto(
+        string id,
+        int index,
+        CancellationToken cancellationToken)
+    {
+        await _boundaryVertexPhotos.ClearAsync(
+            id, index, UserContext.UserId, UserContext.Role, cancellationToken);
+        return NoContent();
     }
 
     [HttpPost("{id}/validate-area")]

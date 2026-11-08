@@ -109,19 +109,50 @@ export const countFieldListBuckets = (
   return { active, draft, shared, total: visible.length };
 };
 
-/** Route when tapping a field from the list or map. */
-export const getFieldOpenPath = (field: Pick<Field, 'id' | 'status'>): string =>
-  isFieldSetupIncomplete(field.status) ? `/fields/${field.id}/edit` : `/fields/${field.id}`;
-
 export const fieldHasBoundary = (field: Pick<Field, 'boundary'>): boolean => {
   const ring = field.boundary?.coordinates?.[0];
   return Boolean(ring && ring.length >= 4);
 };
 
-/** Resume incomplete setup on the name screen — never force the map. */
+/** Pin / center is enough to place the grove on the map. */
+export const fieldHasLocation = (
+  field: Pick<Field, 'latitude' | 'longitude' | 'centerPoint'>
+): boolean => {
+  if (field.centerPoint?.coordinates?.length === 2) {
+    const [lng, lat] = field.centerPoint.coordinates;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return true;
+  }
+  return (
+    typeof field.latitude === 'number' &&
+    typeof field.longitude === 'number' &&
+    Number.isFinite(field.latitude) &&
+    Number.isFinite(field.longitude)
+  );
+};
+
+/**
+ * Resume incomplete setup: name → place pin → optional boundary.
+ * Active groves without a boundary open the live page (maps prompt), not the wizard.
+ */
 export const getFieldSetupResumeStep = (
-  _field: Pick<Field, 'name' | 'status' | 'boundary'>
-): 'basics-edit' | 'boundary' | 'review' => 'basics-edit';
+  field: Pick<Field, 'name' | 'status' | 'boundary' | 'latitude' | 'longitude' | 'centerPoint'>
+): 'basics-edit' | 'place' | 'boundary' | 'review' => {
+  if (!field.name?.trim()) return 'basics-edit';
+  if (!fieldHasLocation(field)) return 'place';
+  if (!fieldHasBoundary(field) && field.status === 'NeedsBoundaryConfirmation') return 'boundary';
+  return 'basics-edit';
+};
+
+/** Route when tapping a field — drafts without a pin resume place step. */
+export const getFieldOpenPath = (
+  field: Pick<Field, 'id' | 'status' | 'name' | 'boundary' | 'latitude' | 'longitude' | 'centerPoint'>
+): string => {
+  if (!isFieldSetupIncomplete(field.status)) return `/fields/${field.id}`;
+  const step = getFieldSetupResumeStep(field);
+  if (step === 'place') return `/fields/${field.id}/edit?focus=place`;
+  if (step === 'boundary') return `/fields/${field.id}/edit?focus=boundary`;
+  return `/fields/${field.id}/edit`;
+};
 
 const startOfLocalDay = (d: Date): Date =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate());

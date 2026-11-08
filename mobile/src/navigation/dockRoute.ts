@@ -10,6 +10,7 @@ type NavState = NavigationState | PartialState<NavigationState>;
 const HIDDEN_ROUTES = new Set([
   'Auth',
   'FieldForm',
+  'FieldPlace',
   'FieldMapBoundary',
   'CreateTask',
   'FieldWorkSetup',

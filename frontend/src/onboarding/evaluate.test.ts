@@ -2,6 +2,7 @@ import { Field } from '../services/fieldService';
 import {
   evaluateStepCompletion,
   ownerHasAnyBoundary,
+  ownerHasAnyLocation,
   ownerHasEstablishedFarm,
   shouldRunOwnerActivation,
 } from './evaluate';
@@ -72,5 +73,36 @@ describe('owner activation evaluate', () => {
     });
     expect(completion.createGrove).toBe(true);
     expect(completion.drawBoundary).toBe(true);
+  });
+
+  it('unlocks browse when a grove has a pin without boundary', () => {
+    const pinOnly = namedActive({
+      status: 'Active',
+      area: 1.2,
+      latitude: 37.1,
+      longitude: 21.5,
+      boundary: undefined,
+    });
+    expect(ownerHasAnyLocation([pinOnly], ownerId)).toBe(true);
+    expect(ownerHasAnyBoundary([pinOnly], ownerId)).toBe(false);
+    const completion = evaluateStepCompletion([pinOnly], pinOnly, 'idle', { userId: ownerId });
+    expect(completion.drawBoundary).toBe(true);
+    expect(completion.loadData).toBe(false);
+  });
+
+  it('keeps loadData gated until boundary + spatial ready', () => {
+    const pinOnly = namedActive({
+      boundary: undefined,
+      area: 2,
+    });
+    expect(evaluateStepCompletion([pinOnly], pinOnly, 'ready', { userId: ownerId }).loadData).toBe(
+      false
+    );
+    const withBoundary = namedActive({
+      boundary: { type: 'Polygon', coordinates: [ring] },
+    });
+    expect(
+      evaluateStepCompletion([withBoundary], withBoundary, 'ready', { userId: ownerId }).loadData
+    ).toBe(true);
   });
 });

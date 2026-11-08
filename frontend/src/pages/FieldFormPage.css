@@ -1199,6 +1199,26 @@
   padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
 }
 
+.grove-create-nav-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.approximate-area-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.approximate-area-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.approximate-area-row select {
+  flex: 0 0 auto;
+}
+
 .grove-create-nav .field-form-nav-actions,
 .grove-create-nav > button,
 .grove-create-nav > a {

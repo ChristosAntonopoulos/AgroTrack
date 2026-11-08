@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react';
 
-export type SetupLevelKey = 'name' | 'color' | 'boundary' | 'details';
+export type SetupLevelKey = 'name' | 'color' | 'place' | 'area' | 'boundary' | 'details' | 'location';
 export type SetupLevelState = 'current' | 'done' | 'skipped' | 'upcoming';
 
 type Props = {

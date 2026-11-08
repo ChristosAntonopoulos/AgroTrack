@@ -922,6 +922,7 @@ public class PhotoHubService : IPhotoHubService
             AssignmentReason = entity.AssignmentReason,
             Caption = entity.Caption,
             Kind = entity.Kind.ToApiString(),
+            BoundaryVertexIndex = entity.BoundaryVertexIndex,
             ContentHash = entity.ContentHash,
             Width = entity.Width,
             Height = entity.Height,

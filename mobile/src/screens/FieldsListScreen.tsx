@@ -30,7 +30,6 @@ import { getDockMetrics } from '../navigation/dockMetrics';
 import { RootStackParamList } from '../navigation/types';
 import { Field } from '../services/fieldService';
 import {
-  fieldHasBoundary,
   fieldSearchHaystack,
   getFieldSetupResumeStep,
   groupFieldsByViewerRole,
@@ -173,9 +172,7 @@ const FieldsListScreen = () => {
   const draftToResume = useMemo(
     () =>
       fields.find(
-        (field) =>
-          field.status !== 'Archived' &&
-          (isFieldSetupIncomplete(field.status) || !fieldHasBoundary(field))
+        (field) => field.status !== 'Archived' && isFieldSetupIncomplete(field.status)
       ) ?? null,
     [fields]
   );
@@ -202,8 +199,12 @@ const FieldsListScreen = () => {
   }, [draftToResume, t]);
 
   const openField = (field: Field) => {
-    if (isFieldSetupIncomplete(field.status) || !fieldHasBoundary(field)) {
+    if (isFieldSetupIncomplete(field.status)) {
       const step = getFieldSetupResumeStep(field);
+      if (step === 'place') {
+        navigation.navigate('FieldPlace', { fieldId: field.id });
+        return;
+      }
       if (step === 'boundary') {
         navigation.navigate('FieldMapBoundary', { fieldId: field.id });
         return;

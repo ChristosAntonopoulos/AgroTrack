@@ -26,6 +26,7 @@ import FieldWorkSetupScreen from '../screens/FieldWorkSetupScreen';
 import FieldWorkProfileScreen from '../screens/FieldWorkProfileScreen';
 import LegalScreen from '../screens/LegalScreen';
 import FieldMapBoundaryScreen from '../screens/FieldMapBoundaryScreen';
+import FieldPlaceScreen from '../screens/FieldPlaceScreen';
 import CreateTaskScreen from '../screens/CreateTaskScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import HarvestCampaignRedirect from '../screens/HarvestCampaignRedirect';
@@ -291,6 +292,11 @@ const RootNavigator = () => {
                 name="FieldWorkProfile"
                 component={FieldWorkProfileScreen}
                 options={{ title: t('tasks:fieldWork.profile.title') }}
+              />
+              <Stack.Screen
+                name="FieldPlace"
+                component={FieldPlaceScreen}
+                options={{ title: '', presentation: 'modal' }}
               />
               <Stack.Screen
                 name="FieldMapBoundary"

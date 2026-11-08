@@ -54,6 +54,9 @@ public class MediaAttachmentDocument
     [BsonElement("kind")]
     public string Kind { get; set; } = "general";
 
+    [BsonElement("boundaryVertexIndex")]
+    public int? BoundaryVertexIndex { get; set; }
+
     [BsonElement("contentHash")]
     public string? ContentHash { get; set; }
 

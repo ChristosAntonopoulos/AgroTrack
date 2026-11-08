@@ -626,6 +626,10 @@
     "boundaryRedraw": "Redraw",
     "boundarySavedHint": "Shape saved. Continue when you are ready.",
     "boundaryCornerCount": "{{count}} corners marked",
+    "boundaryOptionalHint": "The boundary is optional. You can skip it and finish later.",
+    "skipBoundary": "Skip for now",
+    "skipBoundaryConfirm": "Continue without boundary",
+    "skipBoundaryConsequence": "Without a boundary, satellite data, soil, slope and calculated area stay unavailable. A location/point is enough to place the field on the map.",
     "oliveVariety": "Olive variety",
     "treeCount": "Tree count",
     "irrigationType": "Irrigation",
@@ -1413,9 +1417,11 @@
   "createGrove": {
     "title": "Add grove",
     "firstTitle": "Put your first grove in The Olive Lot",
-    "subtitle": "A name first. Then where it is, and its boundary.",
+    "subtitle": "A name first. Then a pin on the map and an approximate area. Boundary can wait.",
     "placeHeading": "Where is it?",
     "continueToPlace": "Continue",
+    "continueToArea": "Continue",
+    "addBoundaryNow": "Add boundary now",
     "readyTitle": "This grove has a place now",
     "readyBody": "The shape is on the map. A short note is the first page of its story.",
     "nameHeading": "What shall we call it?",
@@ -1444,8 +1450,28 @@
       "name": "Name",
       "color": "Colour",
       "location": "Place on the map",
+      "place": "Pin",
+      "area": "Area",
       "details": "Details",
       "boundary": "Boundary"
+    },
+    "area": {
+      "title": "About how big is it?",
+      "subtitle": "An approximate size is enough for money and density. Drawing the boundary later will measure it precisely.",
+      "label": "Approximate area",
+      "placeholder": "e.g. 12",
+      "hint": "You can refine this later by drawing the boundary.",
+      "unitAria": "Area unit",
+      "stremmata": "Stremmata",
+      "hectares": "Hectares",
+      "required": "Enter an approximate area to continue."
+    },
+    "mapPrompt": {
+      "title": "Add the grove boundary",
+      "body": "Mark the corners on the map to unlock satellite, soil and slope for this grove.",
+      "action": "Add boundary",
+      "later": "Later",
+      "satelliteLocked": "Satellite and vegetation layers are available after you draw the boundary."
     },
     "shared": {
       "boundaryHint": "Find the grove on the map and tap the corners."
@@ -1466,10 +1492,11 @@
     },
     "place": {
       "title": "Place on the map",
-      "subtitle": "Type a village, area or address so we can find it faster on the map.",
+      "subtitle": "Search for a village or tap the map to drop one pin on the grove.",
       "placeholder": "e.g. Gargalianoi, Messinia",
-      "hint": "You can leave this for later.",
-      "canWait": "You can leave this for later.",
+      "hint": "One pin is enough to start.",
+      "canWait": "One pin marks the grove. You can draw the boundary later.",
+      "pinRequired": "Drop a pin on the map to continue.",
       "mapAria": "Grove place map",
       "tapHint": "Tap the map to set the point.",
       "confirm": "Yes, this is the place",

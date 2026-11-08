@@ -284,6 +284,28 @@ export const fieldService = {
     return response.data;
   },
 
+  listBoundaryVertexPhotos: async (
+    id: string
+  ): Promise<Array<{ photoId: string; vertexIndex: number; url: string; thumbnailUrl?: string }>> => {
+    const response = await api.get(`/api/v1/fields/${id}/boundary/vertex-photos`);
+    return response.data;
+  },
+
+  assignBoundaryVertexPhoto: async (
+    id: string,
+    vertexIndex: number,
+    photoId: string
+  ): Promise<{ photoId: string; vertexIndex: number; url: string; thumbnailUrl?: string }> => {
+    const response = await api.put(`/api/v1/fields/${id}/boundary/vertices/${vertexIndex}/photo`, {
+      photoId,
+    });
+    return response.data;
+  },
+
+  clearBoundaryVertexPhoto: async (id: string, vertexIndex: number): Promise<void> => {
+    await api.delete(`/api/v1/fields/${id}/boundary/vertices/${vertexIndex}/photo`);
+  },
+
   validateArea: async (id: string): Promise<FieldAreaValidationResponse> => {
     const response = await api.post<FieldAreaValidationResponse>(`/api/v1/fields/${id}/validate-area`);
     return response.data;

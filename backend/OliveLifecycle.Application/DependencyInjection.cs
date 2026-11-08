@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IFieldService, FieldService>();
+        services.AddScoped<IBoundaryVertexPhotoService, BoundaryVertexPhotoService>();
         services.AddScoped<IFieldDeletionGuard, FieldDeletionGuard>();
         services.AddScoped<IFieldStatusGuard, FieldStatusGuard>();
         services.AddScoped<IFieldPeopleService, FieldPeopleService>();

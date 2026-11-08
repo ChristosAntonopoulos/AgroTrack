@@ -1580,9 +1580,11 @@
   "createGrove": {
     "title": "Aggiungi oliveto",
     "firstTitle": "Metti il tuo primo oliveto in The Olive Lot",
-    "subtitle": "Prima il nome. Poi dov’è e il suo confine.",
+    "subtitle": "Prima il nome. Poi un punto sulla mappa e un’area approssimativa. Il confine può aspettare.",
     "placeHeading": "Dov’è?",
     "continueToPlace": "Continua",
+    "continueToArea": "Continua",
+    "addBoundaryNow": "Aggiungi confine ora",
     "readyTitle": "Il tuo oliveto è pronto",
     "readyBody": "Il confine è salvato. La prima registrazione avvia la Cronologia.",
     "nameHeading": "Come lo chiamiamo?",
@@ -1611,8 +1613,33 @@
       "name": "Nome",
       "color": "Colore",
       "location": "Posizione sulla mappa",
+      "place": "Punto",
+      "area": "Area",
       "details": "Dettagli",
       "boundary": "Confine"
+    },
+    "area": {
+      "title": "Circa quanto è grande?",
+      "subtitle": "Un’area approssimativa basta per soldi e densità. Disegnando il confine dopo la misureremo con precisione.",
+      "label": "Area approssimativa",
+      "placeholder": "es. 12",
+      "hint": "Potrai raffinarla dopo disegnando il confine.",
+      "unitAria": "Unità di area",
+      "stremmata": "Stremmata",
+      "hectares": "Ettari",
+      "required": "Inserisci un’area approssimativa per continuare."
+    },
+    "mapPrompt": {
+      "title": "Aggiungi il confine dell’oliveto",
+      "body": "Segna gli angoli sulla mappa per sbloccare satellite, suolo e pendenza per questo oliveto.",
+      "action": "Aggiungi confine",
+      "later": "Più tardi",
+      "satelliteLocked": "I layer satellitari e della vegetazione sono disponibili dopo aver disegnato il confine."
+    },
+    "vertexPhoto": {
+      "hint": "Tocca un angolo numerato per allegare la foto di quel palo o punto di riferimento.",
+      "uploading": "Caricamento foto dell’angolo…",
+      "cornerTitle": "Angolo {{n}} — tocca per aggiungere foto"
     },
     "shared": {
       "boundaryHint": "Trova l'oliveto sulla mappa e tocca gli angoli."
@@ -1633,10 +1660,11 @@
     },
     "place": {
       "title": "Posizione sulla mappa",
-      "subtitle": "Scrivi un paese, una zona o un indirizzo per trovarlo più in fretta sulla mappa.",
+      "subtitle": "Cerca un paese o tocca la mappa per mettere un punto sull’oliveto.",
       "placeholder": "es. Gargalianoi, Messenia",
-      "hint": "Puoi lasciarlo per dopo.",
-      "canWait": "Puoi lasciarlo per dopo.",
+      "hint": "Un punto basta per iniziare.",
+      "canWait": "Un punto segna l’oliveto. Il confine può aspettare.",
+      "pinRequired": "Metti un punto sulla mappa per continuare.",
       "mapAria": "Mappa posizione oliveto",
       "tapHint": "Tocca la mappa per impostare il punto.",
       "confirm": "Sì, questo è il posto",

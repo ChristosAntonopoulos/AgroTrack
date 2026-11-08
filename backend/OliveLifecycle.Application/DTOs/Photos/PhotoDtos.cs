@@ -24,6 +24,7 @@ public class PhotoDto
     public string? AssignmentReason { get; set; }
     public string? Caption { get; set; }
     public string Kind { get; set; } = "general";
+    public int? BoundaryVertexIndex { get; set; }
     public string? ContentHash { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }

@@ -6,7 +6,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Crosshair, LocateFixed, Undo2, Trash2, Check, MapPin } from 'lucide-react';
-import { GeoJsonPolygon, GreekCadastreInfo } from '../../services/fieldService';
+import { fieldService, GeoJsonPolygon, GreekCadastreInfo } from '../../services/fieldService';
+import { photoService } from '../../services/photoService';
 import AreaComparisonCard from './AreaComparisonCard';
 import LocationSearchField from './LocationSearchField';
 import { locationService } from '../../services/locationService';
@@ -37,6 +38,7 @@ import { formatAreaFromSqm } from '../../utils/area';
 import { normalizeLocale } from '../../i18n/config';
 
 interface Props {
+  fieldId?: string;
   boundary?: GeoJsonPolygon;
   cadastre?: GreekCadastreInfo;
   measuredAreaSqm?: number;
@@ -60,10 +62,10 @@ type DrawPhase = 'locate' | 'drawing' | 'done';
 
 type Corner = { lat: number; lng: number };
 
-const cornerIcon = (index: number) =>
+const cornerIcon = (index: number, hasPhoto?: boolean) =>
   L.divIcon({
-    className: 'boundary-corner-pin',
-    html: `<span class="boundary-corner-pin-dot" aria-hidden="true">${index + 1}</span>`,
+    className: `boundary-corner-pin${hasPhoto ? ' has-photo' : ''}`,
+    html: `<span class="boundary-corner-pin-dot" aria-hidden="true">${index + 1}${hasPhoto ? '<i class="boundary-corner-photo-badge"></i>' : ''}</span>`,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
   });
@@ -150,6 +152,7 @@ const hasCoords = (lat?: number, lng?: number) =>
   lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);
 
 const FieldBoundaryMapStep: React.FC<Props> = ({
+  fieldId,
   boundary,
   cadastre,
   measuredAreaSqm,
@@ -181,6 +184,61 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
   const [localMeasured, setLocalMeasured] = useState<number | undefined>(measuredAreaSqm);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'found' | 'missing'>('idle');
   const [drawError, setDrawError] = useState<string | null>(null);
+  const [vertexPhotos, setVertexPhotos] = useState<Record<number, string>>({});
+  const [photoBusyIndex, setPhotoBusyIndex] = useState<number | null>(null);
+  const vertexFileRef = React.useRef<HTMLInputElement | null>(null);
+  const pendingVertexRef = React.useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!fieldId) return;
+    let cancelled = false;
+    void fieldService
+      .listBoundaryVertexPhotos(fieldId)
+      .then((list) => {
+        if (cancelled) return;
+        const next: Record<number, string> = {};
+        for (const item of list) {
+          next[item.vertexIndex] = item.thumbnailUrl || item.url;
+        }
+        setVertexPhotos(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [fieldId]);
+
+  const attachVertexPhoto = useCallback(
+    async (index: number, file: File) => {
+      if (!fieldId) return;
+      setPhotoBusyIndex(index);
+      try {
+        const { result } = await photoService.uploadResumable(file);
+        const photoId = result.photo?.id;
+        if (!photoId) throw new Error('upload failed');
+        await photoService.confirmField(photoId, fieldId);
+        const assigned = await fieldService.assignBoundaryVertexPhoto(fieldId, index, photoId);
+        setVertexPhotos((prev) => ({
+          ...prev,
+          [index]: assigned.thumbnailUrl || assigned.url,
+        }));
+      } catch {
+        /* keep prior thumbnails */
+      } finally {
+        setPhotoBusyIndex(null);
+      }
+    },
+    [fieldId]
+  );
+
+  const onCornerPhotoClick = useCallback(
+    (index: number) => {
+      if (!fieldId || phase === 'drawing') return;
+      pendingVertexRef.current = index;
+      vertexFileRef.current?.click();
+    },
+    [fieldId, phase]
+  );
 
   const zoomTooLow = liveZoom < MIN_DRAW_ZOOM;
 
@@ -489,21 +547,50 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
             <Marker
               key={`corner-${index}`}
               position={[corner.lat, corner.lng]}
-              icon={cornerIcon(index)}
+              icon={cornerIcon(index, Boolean(vertexPhotos[index]))}
               draggable={canDragCorners}
               eventHandlers={{
                 click(e) {
                   L.DomEvent.stopPropagation(e.originalEvent);
+                  onCornerPhotoClick(index);
                 },
                 dragend(e) {
                   const { lat, lng } = e.target.getLatLng();
                   moveCorner(index, { lat, lng });
                 },
               }}
-              title={`${index + 1}`}
+              title={
+                fieldId
+                  ? t('createGrove.vertexPhoto.cornerTitle', { n: index + 1 })
+                  : `${index + 1}`
+              }
             />
           ))}
         </MapContainer>
+        {fieldId ? (
+          <input
+            ref={vertexFileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            aria-hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              const index = pendingVertexRef.current;
+              e.target.value = '';
+              if (file && index != null) void attachVertexPhoto(index, file);
+            }}
+          />
+        ) : null}
+        {photoBusyIndex != null ? (
+          <p className="boundary-vertex-photo-busy" role="status">
+            {t('createGrove.vertexPhoto.uploading')}
+          </p>
+        ) : null}
+        {fieldId && phase === 'done' ? (
+          <p className="boundary-vertex-photo-hint">{t('createGrove.vertexPhoto.hint')}</p>
+        ) : null}
 
         <div className="boundary-stage-top">
           {onBack ? (
@@ -742,18 +829,23 @@ const FieldBoundaryMapStep: React.FC<Props> = ({
             <Marker
               key={`corner-${index}`}
               position={[corner.lat, corner.lng]}
-              icon={cornerIcon(index)}
+              icon={cornerIcon(index, Boolean(vertexPhotos[index]))}
               draggable={canDragCorners}
               eventHandlers={{
                 click(e) {
                   L.DomEvent.stopPropagation(e.originalEvent);
+                  onCornerPhotoClick(index);
                 },
                 dragend(e) {
                   const { lat, lng } = e.target.getLatLng();
                   moveCorner(index, { lat, lng });
                 },
               }}
-              title={`${index + 1}`}
+              title={
+                fieldId
+                  ? t('createGrove.vertexPhoto.cornerTitle', { n: index + 1 })
+                  : `${index + 1}`
+              }
             />
           ))}
         </MapContainer>

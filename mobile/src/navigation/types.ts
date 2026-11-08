@@ -81,6 +81,7 @@ export type RootStackParamList = {
   FieldForm: { fieldId?: string; focus?: 'details' | 'settings' | 'appearance' };
   FieldWorkSetup: { fieldId: string; edit?: boolean };
   FieldWorkProfile: { fieldId: string };
+  FieldPlace: { fieldId: string };
   FieldMapBoundary: { fieldId: string };
   CreateTask: {
     fieldId?: string;

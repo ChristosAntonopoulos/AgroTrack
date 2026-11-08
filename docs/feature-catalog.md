@@ -331,16 +331,16 @@ Dedicated gallery for field photos with EXIF-based placement.
 
 ## Feature: Field create and edit
 
-Wizard to add or edit a field, including cadastre and boundary.
+Wizard to add or edit a field: pin-first location, optional boundary, cadastre import still available on dedicated paths.
 
 ### Website
 
 - **New field** — `/fields/new`
 - **Edit field** — `/fields/:id/edit`
-- Purpose: Create a draft field and confirm boundary/crop details, or edit an existing field.
+- Purpose: Create a grove with a name, one map pin, and approximate area; boundary is optional enrichment (satellite/soil).
 - Who: Protected app users. Add button hidden for Producer. Edit actions on detail require `canOwn`.
 - Modes: Both. **Website always starts at `method` for create** (no Everyday skip).
-- Wizard steps (create): `method` → (`cadastre` if cadastre method) → `basics` → `boundary` → `crop` → `review`. Edit: `basics-edit` → `boundary` → `crop` → `review`.
+- Wizard steps (create): `name` → `place` (single pin) → `area` (approximate) → activate; optional `boundary` now or later from Maps tab. Edit: settings / place / area / boundary / details / appearance via `?focus=`.
 - Cadastre step inputs: `kdFile` (.pdf), `kfFile` (.pdf).
 - Actions: Back, Next, Activate, Save draft (not on method/last), Delete field (edit only).
 - **Method** (`AddFieldMethod`): `draw` | `cadastre` | `kaek`
@@ -355,9 +355,8 @@ Wizard to add or edit a field, including cadastre and boundary.
 
 - **FieldForm** — stack modal `FieldForm` (`fieldId?`)
 - Purpose: Same wizard. Everyday and Full use different step lists.
-- Everyday new: `basics` → `method` (`draw` | `later` only) → `boundary`. No crop/review. `later` saves `Draft` without a boundary. Basics show `name` and conditional KAEK (cropType and locationText hidden).
-- Full new: `method` (`draw` | `cadastre` | `kaek`) → (cadastre if needed) → `basics` → `boundary` → `crop` → `review`.
-- Edit: `basics` → `boundary` → `crop` → `review`.
+- Create: name → pin → approximate area → activate (Active without polygon). Optional boundary editor (`FieldMapBoundary` / `?focus=boundary`). Maps tab shows add-boundary prompt when pin exists without polygon. Corner photos optional on boundary vertices.
+- Mobile create continues to `FieldPlace` then optional `FieldMapBoundary`.
 - **FieldMapBoundary** — stack modal `FieldMapBoundary` (`fieldId`)
 - Purpose: Dedicated map to draw/edit the field polygon (tap vertices, satellite/street toggle, clear, save; min 3 points).
 

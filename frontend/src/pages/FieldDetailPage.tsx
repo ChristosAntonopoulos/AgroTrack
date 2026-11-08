@@ -449,7 +449,12 @@ const FieldDetailPage: React.FC = () => {
             aria-labelledby="field-tab-map"
           >
             {canViewMap ? (
-              <FieldMapDataTab field={field} year={year} weather={weather} />
+              <FieldMapDataTab
+                field={field}
+                year={year}
+                weather={weather}
+                canEdit={Boolean(canOwn)}
+              />
             ) : (
               <FieldTabStatus kind="unavailable" description={t('fields:page.mapUnavailable')} />
             )}

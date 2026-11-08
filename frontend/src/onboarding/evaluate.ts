@@ -1,6 +1,10 @@
 import type { Field } from '../services/fieldService';
 import type { FieldIntelligenceSummary, FieldSpatialProfile, SpatialProcessingStatus } from '../services/geospatialService';
-import { fieldHasBoundary, isFieldSetupIncomplete } from '../utils/fieldDisplay';
+import {
+  fieldHasBoundary,
+  fieldHasLocation,
+  isFieldSetupIncomplete,
+} from '../utils/fieldDisplay';
 import { OWNER_ACTIVATION_STEPS, type OwnerActivationStepId } from './steps';
 
 export type SpatialReadiness = 'idle' | 'waiting' | 'ready' | 'failed';
@@ -29,7 +33,13 @@ const isOwnedNamed = (f: Field, userId: string | undefined | null): boolean => {
   return true;
 };
 
-/** Browse unlock: any owned grove already has όρια. */
+/** Browse unlock: any owned grove has a map pin (boundary optional). */
+export const ownerHasAnyLocation = (
+  fields: Field[],
+  userId: string | undefined | null
+): boolean => fields.some((f) => isOwnedNamed(f, userId) && fieldHasLocation(f));
+
+/** Any owned grove already has όρια — enrichment / satellite path. */
 export const ownerHasAnyBoundary = (
   fields: Field[],
   userId: string | undefined | null
@@ -47,10 +57,10 @@ export const ownerHasEstablishedFarm = (
     if (!isOwnedNamed(f, userId) || f.status !== 'Active') return false;
     if (fieldHasBoundary(f)) return true;
     const area = f.appMeasuredAreaSqm || f.area || 0;
-    return area > 0 && f.latitude != null && f.longitude != null;
+    return area > 0 && fieldHasLocation(f);
   });
 
-/** Pick the grove we guide on: prefer one needing boundary, else first live, else first named. */
+/** Pick the grove we guide on: prefer one needing a pin, else missing boundary, else first live. */
 export const pickActivationField = (
   fields: Field[],
   userId: string | undefined | null
@@ -58,8 +68,9 @@ export const pickActivationField = (
   const owned = fields.filter((f) => isOwnedNamed(f, userId));
   if (owned.length === 0) return null;
 
-  // Prefer guiding a grove that still needs όρια — but never when the farm is already live.
   if (!ownerHasEstablishedFarm(fields, userId)) {
+    const needsPin = owned.find((f) => !fieldHasLocation(f));
+    if (needsPin) return needsPin;
     const needsBoundary = owned.find((f) => !fieldHasBoundary(f));
     if (needsBoundary) return needsBoundary;
   }
@@ -78,6 +89,8 @@ export const evaluateStepCompletion = (
   opts?: {
     firstObservationDone?: boolean;
     knownBoundaryFieldId?: string | null;
+    /** Pin placed before fields list has refetched. */
+    knownLocationFieldId?: string | null;
     /** Draft grove just saved on the name step, before the fields list has refetched. */
     knownGroveFieldId?: string | null;
     userId?: string | null;
@@ -86,6 +99,13 @@ export const evaluateStepCompletion = (
   const hasGrove =
     Boolean(opts?.knownGroveFieldId) ||
     fields.some((f) => f.status !== 'Archived' && Boolean(f.name?.trim()));
+  const hasLocation =
+    ownerHasAnyLocation(fields, opts?.userId) ||
+    Boolean(primary && fieldHasLocation(primary)) ||
+    Boolean(
+      opts?.knownLocationFieldId &&
+        (!primary || primary.id === opts.knownLocationFieldId)
+    );
   const hasBoundary =
     ownerHasAnyBoundary(fields, opts?.userId) ||
     Boolean(primary && fieldHasBoundary(primary)) ||
@@ -96,7 +116,8 @@ export const evaluateStepCompletion = (
 
   return {
     createGrove: hasGrove,
-    drawBoundary: hasBoundary,
+    // Pin unlocks core app; drawBoundary stays optional enrichment (complete when pin OR boundary).
+    drawBoundary: hasLocation || hasBoundary,
     loadData: hasBoundary && spatial === 'ready',
     firstObservation: Boolean(opts?.firstObservationDone),
   };

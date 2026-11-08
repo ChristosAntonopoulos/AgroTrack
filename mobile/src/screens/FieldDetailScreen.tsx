@@ -46,6 +46,7 @@ import FieldMoreMenu from '../components/fields/FieldMoreMenu';
 import FieldWeatherSection from '../components/fields/FieldWeatherSection';
 import FieldFacts from '../components/fields/FieldFacts';
 import GroveEnrichmentCards from '../components/fields/GroveEnrichmentCards';
+import MissingBoundaryPrompt from '../components/fields/MissingBoundaryPrompt';
 import FieldDetailMap from '../components/domain/FieldDetailMap';
 import FieldIntelligenceCard from '../components/domain/FieldIntelligenceCard';
 import FieldWeatherVegetationCharts from '../components/fields/FieldWeatherVegetationCharts';
@@ -450,9 +451,10 @@ const FieldDetailScreen = () => {
 
       {tab === 'weather' ? (
         <View style={styles.panel}>
+          <MissingBoundaryPrompt field={field} canEdit={gates.canOwn} />
           {gates.canViewMap ? (
             <FieldPageErrorBoundary label="Map">
-              <FieldDetailMap field={field} height={320} showDataLayers />
+              <FieldDetailMap field={field} height={320} showDataLayers={Boolean(field.boundary)} />
             </FieldPageErrorBoundary>
           ) : null}
 

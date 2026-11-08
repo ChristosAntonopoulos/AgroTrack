@@ -25,6 +25,10 @@ public class MediaAttachment : BaseEntity
     public FieldAssignmentStatus FieldAssignment { get; set; } = FieldAssignmentStatus.Unassigned;
     public double? FieldMatchScore { get; set; }
     public PhotoKind Kind { get; set; } = PhotoKind.General;
+
+    /// <summary>When <see cref="Kind"/> is BoundaryVertex, index into the outer ring (excluding closing point).</summary>
+    public int? BoundaryVertexIndex { get; set; }
+
     public string? ContentHash { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }

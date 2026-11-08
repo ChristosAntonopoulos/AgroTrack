@@ -18,6 +18,7 @@ import {
   canVisitActivationStep,
   evaluateStepCompletion,
   ownerHasAnyBoundary,
+  ownerHasAnyLocation,
   ownerHasEstablishedFarm,
   pickActivationField,
   shouldRunOwnerActivation,
@@ -40,7 +41,7 @@ export type SpotlightRoute = 'create' | 'boundary' | 'spatial' | 'observe' | nul
 type OwnerActivationContextValue = {
   eligible: boolean;
   visible: boolean;
-  /** True until first όρια — hard-locks non-setup routes unless Later. */
+  /** True until first map pin — hard-locks non-setup routes unless Later. */
   setupUnlocked: boolean;
   locked: boolean;
   laterSnoozed: boolean;
@@ -76,7 +77,11 @@ type OwnerActivationContextValue = {
   setCollapsed: (collapsed: boolean) => void;
   goToStep: (step: OwnerActivationStepId) => void;
   clearCelebration: () => void;
-  markFieldsDirty: (opts?: { boundarySavedFieldId?: string; groveCreatedFieldId?: string }) => void;
+  markFieldsDirty: (opts?: {
+    boundarySavedFieldId?: string;
+    locationSavedFieldId?: string;
+    groveCreatedFieldId?: string;
+  }) => void;
   /** After spatial welcome — land on details and guide first observation. */
   beginFirstObservationGuide: () => void;
   /** After observation posted/skipped — ends activation. */
@@ -103,6 +108,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
   const [fieldsEpoch, setFieldsEpoch] = useState(0);
   const [fieldsHydrated, setFieldsHydrated] = useState(false);
   const [optimisticBoundaryFieldId, setOptimisticBoundaryFieldId] = useState<string | null>(null);
+  const [optimisticLocationFieldId, setOptimisticLocationFieldId] = useState<string | null>(null);
   /** Draft grove saved on the name step — bridges the gap until the fields list refetches. */
   const [optimisticGroveFieldId, setOptimisticGroveFieldId] = useState<string | null>(null);
   const wasUnlocked = useRef(false);
@@ -115,6 +121,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       setPersisted(emptyPersisted());
       setFieldsHydrated(false);
       setOptimisticBoundaryFieldId(null);
+      setOptimisticLocationFieldId(null);
       setOptimisticGroveFieldId(null);
       return;
     }
@@ -172,6 +179,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
           Boolean(persisted.firstObservationDoneAt) ||
           persisted.skippedSteps.includes('firstObservation'),
         knownBoundaryFieldId: optimisticBoundaryFieldId,
+        knownLocationFieldId: optimisticLocationFieldId,
         knownGroveFieldId: optimisticGroveFieldId,
         userId,
       }),
@@ -182,6 +190,7 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       persisted.firstObservationDoneAt,
       persisted.skippedSteps,
       optimisticBoundaryFieldId,
+      optimisticLocationFieldId,
       optimisticGroveFieldId,
       userId,
     ]
@@ -189,10 +198,11 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
 
   const doneCount = OWNER_ACTIVATION_STEPS.filter((s) => completion[s]).length;
   const allComplete = doneCount === OWNER_ACTIVATION_STEPS.length;
-  /** Browse unlock = any owned grove has όρια (or an already-live seeded farm). */
+  /** Browse unlock = any owned grove has a map pin (or an already-live seeded farm). */
   const setupUnlocked =
-    ownerHasAnyBoundary(fields, userId) ||
+    ownerHasAnyLocation(fields, userId) ||
     ownerHasEstablishedFarm(fields, userId) ||
+    Boolean(optimisticLocationFieldId) ||
     Boolean(optimisticBoundaryFieldId);
   const laterSnoozed = Boolean(persisted.laterSnoozedAt) && !setupUnlocked;
 
@@ -208,14 +218,19 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
   /** Never hard-lock until the first fields fetch finishes (avoids kicking existing owners). */
   const locked = eligible && fieldsHydrated && !setupUnlocked && !laterSnoozed;
 
-    // Poll spatial when boundary exists and data not ready.
+  const primaryHasBoundary = Boolean(
+    (primaryField && ownerHasAnyBoundary([primaryField], userId)) ||
+      Boolean(optimisticBoundaryFieldId)
+  );
+
+  // Poll spatial when boundary exists and data not ready (pin-only does not unlock satellite).
   useEffect(() => {
     if (pollRef.current) {
       window.clearTimeout(pollRef.current);
       pollRef.current = undefined;
     }
-    if (!eligible || !primaryField || !completion.drawBoundary) {
-      if (!completion.drawBoundary) setSpatialStatus('idle');
+    if (!eligible || !primaryField || !primaryHasBoundary) {
+      if (!primaryHasBoundary) setSpatialStatus('idle');
       return;
     }
 
@@ -260,9 +275,9 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       cancelled = true;
       if (pollRef.current) window.clearTimeout(pollRef.current);
     };
-  }, [eligible, primaryField?.id, completion.drawBoundary, fieldsEpoch]);
+  }, [eligible, primaryField?.id, primaryHasBoundary, fieldsEpoch]);
 
-  // Unlock browse at όρια — spatial welcome is separate (field map), not a lock.
+  // Unlock browse at pin — spatial welcome stays tied to boundary save.
   useEffect(() => {
     if (setupUnlocked && !wasUnlocked.current && eligible) {
       wasUnlocked.current = true;
@@ -283,6 +298,12 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
       setOptimisticBoundaryFieldId(null);
     }
   }, [fields, userId, optimisticBoundaryFieldId]);
+
+  useEffect(() => {
+    if (ownerHasAnyLocation(fields, userId) && optimisticLocationFieldId) {
+      setOptimisticLocationFieldId(null);
+    }
+  }, [fields, userId, optimisticLocationFieldId]);
 
   useEffect(() => {
     if (optimisticGroveFieldId && fields.some((f) => f.id === optimisticGroveFieldId)) {
@@ -557,15 +578,25 @@ export const OwnerActivationProvider: React.FC<{ children: ReactNode }> = ({ chi
     setCelebrating(false);
   }, [persist, persisted]);
 
-  const markFieldsDirty = useCallback((opts?: { boundarySavedFieldId?: string; groveCreatedFieldId?: string }) => {
-    if (opts?.boundarySavedFieldId) {
-      setOptimisticBoundaryFieldId(opts.boundarySavedFieldId);
-    }
-    if (opts?.groveCreatedFieldId) {
-      setOptimisticGroveFieldId(opts.groveCreatedFieldId);
-    }
-    setFieldsEpoch((n) => n + 1);
-  }, []);
+  const markFieldsDirty = useCallback(
+    (opts?: {
+      boundarySavedFieldId?: string;
+      locationSavedFieldId?: string;
+      groveCreatedFieldId?: string;
+    }) => {
+      if (opts?.boundarySavedFieldId) {
+        setOptimisticBoundaryFieldId(opts.boundarySavedFieldId);
+      }
+      if (opts?.locationSavedFieldId) {
+        setOptimisticLocationFieldId(opts.locationSavedFieldId);
+      }
+      if (opts?.groveCreatedFieldId) {
+        setOptimisticGroveFieldId(opts.groveCreatedFieldId);
+      }
+      setFieldsEpoch((n) => n + 1);
+    },
+    []
+  );
 
   const value = useMemo<OwnerActivationContextValue>(
     () => ({

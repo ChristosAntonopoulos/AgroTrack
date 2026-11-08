@@ -4,7 +4,11 @@ import type {
   FieldSpatialProfile,
   SpatialProcessingStatus,
 } from '../services/geospatialService';
-import { fieldHasBoundary, isFieldSetupIncomplete } from '../utils/fieldDisplay';
+import {
+  fieldHasBoundary,
+  fieldHasLocation,
+  isFieldSetupIncomplete,
+} from '../utils/fieldDisplay';
 import { OWNER_ACTIVATION_STEPS, type OwnerActivationStepId } from './steps';
 
 export type SpatialReadiness = 'idle' | 'waiting' | 'ready' | 'failed';
@@ -33,7 +37,13 @@ const isOwnedNamed = (f: Field, userId: string | undefined | null): boolean => {
   return true;
 };
 
-/** Browse unlock: any owned grove already has όρια. */
+/** Browse unlock: any owned grove has a map pin (boundary optional). */
+export const ownerHasAnyLocation = (
+  fields: Field[],
+  userId: string | undefined | null
+): boolean => fields.some((f) => isOwnedNamed(f, userId) && fieldHasLocation(f));
+
+/** Any owned grove already has όρια — enrichment / satellite path. */
 export const ownerHasAnyBoundary = (
   fields: Field[],
   userId: string | undefined | null
@@ -45,6 +55,9 @@ export const pickActivationField = (
 ): Field | null => {
   const owned = fields.filter((f) => isOwnedNamed(f, userId));
   if (owned.length === 0) return null;
+
+  const needsPin = owned.find((f) => !fieldHasLocation(f));
+  if (needsPin) return needsPin;
 
   const needsBoundary = owned.find((f) => !fieldHasBoundary(f));
   if (needsBoundary) return needsBoundary;
@@ -62,18 +75,34 @@ export const evaluateStepCompletion = (
   spatial: SpatialReadiness,
   opts?: {
     firstObservationDone?: boolean;
+    knownBoundaryFieldId?: string | null;
+    knownLocationFieldId?: string | null;
     /** Draft grove just saved on the name step, before the fields list has refetched. */
     knownGroveFieldId?: string | null;
+    userId?: string | null;
   }
 ): Record<OwnerActivationStepId, boolean> => {
   const hasGrove =
     Boolean(opts?.knownGroveFieldId) ||
     fields.some((f) => f.status !== 'Archived' && Boolean(f.name?.trim()));
-  const hasBoundary = primary ? fieldHasBoundary(primary) : false;
+  const hasLocation =
+    ownerHasAnyLocation(fields, opts?.userId) ||
+    Boolean(primary && fieldHasLocation(primary)) ||
+    Boolean(
+      opts?.knownLocationFieldId &&
+        (!primary || primary.id === opts.knownLocationFieldId)
+    );
+  const hasBoundary =
+    ownerHasAnyBoundary(fields, opts?.userId) ||
+    Boolean(primary && fieldHasBoundary(primary)) ||
+    Boolean(
+      opts?.knownBoundaryFieldId &&
+        (!primary || primary.id === opts.knownBoundaryFieldId)
+    );
 
   return {
     createGrove: hasGrove,
-    drawBoundary: hasBoundary,
+    drawBoundary: hasLocation || hasBoundary,
     loadData: hasBoundary && spatial === 'ready',
     firstObservation: Boolean(opts?.firstObservationDone),
   };

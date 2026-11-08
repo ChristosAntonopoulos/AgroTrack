@@ -15,6 +15,10 @@ import BackLink from '../components/Common/BackLink';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import BasicFieldDetailsStep from '../components/fields/BasicFieldDetailsStep';
 import FieldBoundaryMapStep from '../components/fields/FieldBoundaryMapStep';
+import PlaceLocationStep from '../components/fields/PlaceLocationStep';
+import ApproximateAreaStep, {
+  type AreaUnit,
+} from '../components/fields/ApproximateAreaStep';
 import CropDetailsStep from '../components/fields/CropDetailsStep';
 import GroveSetupLevel, {
   SetupLevelKey,
@@ -22,8 +26,8 @@ import GroveSetupLevel, {
 } from '../components/fields/GroveSetupLevel';
 import { Check } from 'lucide-react';
 import { getApiErrorMessage } from '../utils/translateApiError';
-import { resolveFieldAreaSqm, hectaresFromSqm } from '../utils/area';
-import { fieldHasBoundary, isListedGrove } from '../utils/fieldDisplay';
+import { resolveFieldAreaSqm, SQM_PER_STREMMA, SQM_PER_HECTARE } from '../utils/area';
+import { fieldHasBoundary, fieldHasLocation, isListedGrove } from '../utils/fieldDisplay';
 import { resolveFieldColor } from '../utils/fieldColors';
 import { validateBoundaryPolygon } from '../utils/boundaryValidation';
 import { useOwnerActivationOptional } from '../onboarding/OwnerActivationContext';
@@ -34,9 +38,16 @@ import { trackBillingEvent } from '../billing/billingAnalytics';
 import './FieldFormPage.css';
 import '../components/fields/AddFieldWizard.css';
 
-type CreateScreen = 'name' | 'boundary';
+type CreateScreen = 'name' | 'place' | 'area' | 'boundary';
 
-type EditFocus = 'settings' | 'boundary' | 'details' | 'appearance';
+type EditFocus = 'settings' | 'boundary' | 'details' | 'appearance' | 'place' | 'area';
+
+const estimatedHectaresFromInput = (raw: string, unit: AreaUnit): number | null => {
+  const n = Number.parseFloat(raw.replace(',', '.'));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (unit === 'hectares') return n;
+  return (n * SQM_PER_STREMMA) / SQM_PER_HECTARE;
+};
 
 const FieldFormPage: React.FC = () => {
   const { t } = useTranslation(['fields', 'common']);
@@ -50,7 +61,11 @@ const FieldFormPage: React.FC = () => {
 
   const focusParam = searchParams.get('focus');
   const editFocus: EditFocus =
-    focusParam === 'boundary' || focusParam === 'details' || focusParam === 'appearance'
+    focusParam === 'boundary' ||
+    focusParam === 'details' ||
+    focusParam === 'appearance' ||
+    focusParam === 'place' ||
+    focusParam === 'area'
       ? focusParam
       : 'settings';
 
@@ -71,6 +86,10 @@ const FieldFormPage: React.FC = () => {
   });
   const [boundary, setBoundary] = useState<GeoJsonPolygon | undefined>();
   const [boundaryConfirmed, setBoundaryConfirmed] = useState(false);
+  const [estimatedAreaInput, setEstimatedAreaInput] = useState('');
+  const [estimatedAreaUnit, setEstimatedAreaUnit] = useState<AreaUnit>(
+    () => (typeof navigator !== 'undefined' && navigator.language?.startsWith('el') ? 'stremmata' : 'hectares')
+  );
   const [loading, setLoading] = useState(isEdit);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -80,6 +99,12 @@ const FieldFormPage: React.FC = () => {
   const nameValid = formData.name.trim().length >= 2;
   const hasDetails = Boolean(formData.variety?.trim()) || formData.treeCount != null;
   const hasBoundary = fieldHasBoundary({ boundary });
+  const hasLocation = fieldHasLocation({
+    latitude: formData.latitude,
+    longitude: formData.longitude,
+  });
+  const estimatedHectares = estimatedHectaresFromInput(estimatedAreaInput, estimatedAreaUnit);
+  const areaValid = estimatedHectares != null && estimatedHectares > 0;
 
   useEffect(() => {
     if (isEdit && id) void loadField();
@@ -194,10 +219,29 @@ const FieldFormPage: React.FC = () => {
       setFieldStatus(field.status);
       if (field.status === 'Active') {
         setBoundaryConfirmed(true);
-      } else if (searchParams.get('focus') === 'boundary') {
+      } else if (focusParam === 'boundary') {
         setCreateScreen('boundary');
+      } else if (focusParam === 'place') {
+        setCreateScreen('place');
+      } else if (focusParam === 'area') {
+        setCreateScreen('area');
+      } else if (!fieldHasLocation(field)) {
+        setCreateScreen('place');
+      } else if (!fieldHasBoundary(field) && field.area <= 0 && !field.appMeasuredAreaSqm) {
+        setCreateScreen('area');
       } else {
         setCreateScreen('name');
+      }
+      if (field.area > 0 && !fieldHasBoundary(field) && !field.appMeasuredAreaSqm) {
+        const preferStremmata =
+          typeof navigator !== 'undefined' && navigator.language?.startsWith('el');
+        if (preferStremmata) {
+          setEstimatedAreaUnit('stremmata');
+          setEstimatedAreaInput(String(Math.round(field.area * 10 * 10) / 10));
+        } else {
+          setEstimatedAreaUnit('hectares');
+          setEstimatedAreaInput(String(field.area));
+        }
       }
       setDirty(false);
     } catch {
@@ -234,8 +278,9 @@ const FieldFormPage: React.FC = () => {
     const created = await getFieldService().createField({
       ...formData,
       color,
-      appMeasuredAreaSqm: formData.area || undefined,
-      area: formData.area ? hectaresFromSqm(formData.area) : 0,
+      // Estimated area is hectares on `area` only — never appMeasuredAreaSqm.
+      area: 0,
+      appMeasuredAreaSqm: undefined,
       status: 'Draft',
       worksThisFieldMyself: true,
     });
@@ -300,7 +345,7 @@ const FieldFormPage: React.FC = () => {
     allowLeaveRef.current = false;
   }, [location.pathname, location.search]);
 
-  const continueToBoundary = async () => {
+  const continueToPlace = async () => {
     if (!nameValid) {
       setError(t('fields:form.errors.nameRequired'));
       return;
@@ -314,10 +359,79 @@ const FieldFormPage: React.FC = () => {
       activation?.markFieldsDirty({ groveCreatedFieldId: fieldId });
       allowLeaveRef.current = true;
       setDirty(false);
-      setCreateScreen('boundary');
-      navigate(`/fields/${fieldId}/edit?focus=boundary`, { replace: true });
+      setCreateScreen('place');
+      navigate(`/fields/${fieldId}/edit?focus=place`, { replace: true });
     } catch (err: unknown) {
       if (handleFieldLimitError(err)) return;
+      setError(getApiErrorMessage(err, t) || t('fields:form.failedSave'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const continueToArea = async () => {
+    if (!hasLocation) {
+      setError(t('fields:createGrove.place.pinRequired'));
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const fieldId = draftFieldId || id!;
+      await getFieldService().updateField(fieldId, fieldPayload());
+      activation?.markFieldsDirty({
+        groveCreatedFieldId: fieldId,
+        locationSavedFieldId: fieldId,
+      });
+      allowLeaveRef.current = true;
+      setDirty(false);
+      setCreateScreen('area');
+      navigate(`/fields/${fieldId}/edit?focus=area`, { replace: true });
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, t) || t('fields:form.failedSave'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const activateFromPin = async (thenBoundary: boolean) => {
+    if (!hasLocation) {
+      setError(t('fields:createGrove.place.pinRequired'));
+      return;
+    }
+    if (!areaValid || estimatedHectares == null) {
+      setError(t('fields:createGrove.area.required'));
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const fieldId = draftFieldId || id!;
+      await getFieldService().updateField(fieldId, {
+        ...fieldPayload(),
+        area: estimatedHectares,
+      });
+      if (fieldStatus !== 'Active') {
+        await getFieldService().activateField(fieldId, {
+          boundaryConfirmed: false,
+          cadastreReferenceAcknowledged: true,
+        });
+        setFieldStatus('Active');
+      }
+      activation?.markFieldsDirty({
+        groveCreatedFieldId: fieldId,
+        locationSavedFieldId: fieldId,
+      });
+      const groveName = formData.name.trim();
+      if (thenBoundary) {
+        allowLeaveRef.current = true;
+        setDirty(false);
+        setCreateScreen('boundary');
+        navigate(`/fields/${fieldId}/edit?focus=boundary`, { replace: true });
+        return;
+      }
+      leaveClean(`/fields/${fieldId}?tab=map`, { groveName });
+    } catch (err: unknown) {
       setError(getApiErrorMessage(err, t) || t('fields:form.failedSave'));
     } finally {
       setLoading(false);
@@ -352,7 +466,10 @@ const FieldFormPage: React.FC = () => {
         setFieldStatus('Active');
       }
       setBoundaryConfirmed(true);
-      activation?.markFieldsDirty({ boundarySavedFieldId: fieldId });
+      activation?.markFieldsDirty({
+        boundarySavedFieldId: fieldId,
+        locationSavedFieldId: fieldId,
+      });
       const groveName = formData.name.trim();
       const showSpatialWelcome = Boolean(activation?.eligible);
       leaveClean(
@@ -405,20 +522,40 @@ const FieldFormPage: React.FC = () => {
     }
   };
 
+  const onPlaceStep = createScreen === 'place' || editFocus === 'place';
+  const onAreaStep = createScreen === 'area' || editFocus === 'area';
   const onBoundaryStep = createScreen === 'boundary' || editFocus === 'boundary';
   const finishingFirstBoundary = !fieldHasBoundary({ boundary: initialBoundary });
 
   const setupLevels = (): Array<{ key: SetupLevelKey; state: SetupLevelState }> => {
     const nameState: SetupLevelState =
-      !onBoundaryStep && createScreen === 'name' ? 'current' : nameValid ? 'done' : 'upcoming';
+      createScreen === 'name' && !onPlaceStep && !onAreaStep && !onBoundaryStep
+        ? 'current'
+        : nameValid
+          ? 'done'
+          : 'upcoming';
+    const placeState: SetupLevelState = hasLocation
+      ? 'done'
+      : onPlaceStep
+        ? 'current'
+        : 'upcoming';
+    const areaState: SetupLevelState = areaValid || (isActiveEdit && (formData.area ?? 0) > 0)
+      ? 'done'
+      : onAreaStep
+        ? 'current'
+        : 'upcoming';
     const boundaryState: SetupLevelState = hasBoundary
       ? 'done'
       : onBoundaryStep
         ? 'current'
-        : 'upcoming';
+        : fieldStatus === 'Active'
+          ? 'skipped'
+          : 'upcoming';
     const detailsState: SetupLevelState = hasDetails ? 'done' : 'upcoming';
     return [
       { key: 'name', state: nameState },
+      { key: 'place', state: placeState },
+      { key: 'area', state: areaState },
       { key: 'boundary', state: boundaryState },
       { key: 'details', state: detailsState },
     ];
@@ -438,7 +575,12 @@ const FieldFormPage: React.FC = () => {
     return <LoadingSpinner fullScreen />;
   }
 
-  const onNameStep = !isActiveEdit && createScreen === 'name' && editFocus !== 'boundary';
+  const onNameStep =
+    !isActiveEdit &&
+    createScreen === 'name' &&
+    editFocus !== 'boundary' &&
+    editFocus !== 'place' &&
+    editFocus !== 'area';
 
   const pageTitle = isActiveEdit
     ? t('fields:form.editTitle')
@@ -446,27 +588,36 @@ const FieldFormPage: React.FC = () => {
       ? t('fields:form.editTitle')
       : onNameStep
         ? t('fields:createGrove.nameHeading')
-        : isFirstGrove
-          ? t('fields:createGrove.firstTitle')
-          : t('fields:createGrove.title');
+        : onPlaceStep
+          ? t('fields:createGrove.placeHeading')
+          : onAreaStep
+            ? t('fields:createGrove.area.title')
+            : isFirstGrove
+              ? t('fields:createGrove.firstTitle')
+              : t('fields:createGrove.title');
 
   const pageSubtitle = isActiveEdit
     ? t('fields:form.editSubtitle')
-    : onNameStep
+    : onNameStep || onPlaceStep || onAreaStep
       ? null
       : t('fields:createGrove.subtitle');
 
-  const showCreateChrome = !isActiveEdit;
-  const showNameStep = !isActiveEdit && createScreen === 'name' && editFocus !== 'boundary';
+  const showCreateChrome = !isActiveEdit || onBoundaryStep || onPlaceStep || onAreaStep;
+  const showNameStep = onNameStep;
+  const showPlaceStep =
+    (!isActiveEdit && createScreen === 'place') || editFocus === 'place';
+  const showAreaStep = (!isActiveEdit && createScreen === 'area') || editFocus === 'area';
   const showBoundaryEditor = editFocus === 'boundary' || (!isActiveEdit && createScreen === 'boundary');
   const boundaryStage = showBoundaryEditor && finishingFirstBoundary;
 
-  const setupLevel = showCreateChrome ? (
+  const setupLevel = showCreateChrome && !isActiveEdit ? (
     <GroveSetupLevel
       levels={setupLevels()}
       canSelect={(key) => {
         if (key === 'name') return true;
-        if (key === 'boundary') return Boolean(draftFieldId) && nameValid;
+        if (key === 'place') return Boolean(draftFieldId) && nameValid;
+        if (key === 'area') return Boolean(draftFieldId) && hasLocation;
+        if (key === 'boundary') return Boolean(draftFieldId) && nameValid && hasLocation;
         if (key === 'details') return Boolean(draftFieldId && fieldStatus === 'Active');
         return false;
       }}
@@ -474,6 +625,14 @@ const FieldFormPage: React.FC = () => {
         if (key === 'name') {
           setCreateScreen('name');
           if (draftFieldId) leaveClean(`/fields/${draftFieldId}/edit`);
+          return;
+        }
+        if (key === 'place' && draftFieldId) {
+          leaveClean(`/fields/${draftFieldId}/edit?focus=place`);
+          return;
+        }
+        if (key === 'area' && draftFieldId) {
+          leaveClean(`/fields/${draftFieldId}/edit?focus=area`);
           return;
         }
         if (key === 'boundary' && draftFieldId && nameValid) {
@@ -516,12 +675,84 @@ const FieldFormPage: React.FC = () => {
                 <Button
                   type="button"
                   variant="primary"
-                  onClick={() => void continueToBoundary()}
+                  onClick={() => void continueToPlace()}
                   loading={loading}
                   disabled={!nameValid}
                 >
                   {t('fields:createGrove.continueToPlace')}
                 </Button>
+              </div>
+            </>
+          ) : null}
+
+          {showPlaceStep ? (
+            <>
+              <PlaceLocationStep
+                locationText={formData.locationText || ''}
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                mode="search"
+                onChange={(next) => {
+                  markDirty();
+                  setFormData((prev) => ({ ...prev, ...next }));
+                }}
+              />
+              <div className="field-form-nav grove-create-nav">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setCreateScreen('name');
+                    if (draftFieldId) leaveClean(`/fields/${draftFieldId}/edit`);
+                  }}
+                >
+                  {t('common:back')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => void continueToArea()}
+                  loading={loading}
+                  disabled={!hasLocation}
+                >
+                  {t('fields:createGrove.continueToArea')}
+                </Button>
+              </div>
+            </>
+          ) : null}
+
+          {showAreaStep ? (
+            <>
+              <ApproximateAreaStep
+                value={estimatedAreaInput}
+                unit={estimatedAreaUnit}
+                onChange={({ value, unit }) => {
+                  markDirty();
+                  setEstimatedAreaInput(value);
+                  setEstimatedAreaUnit(unit);
+                }}
+              />
+              <p className="field-form-hint">{t('fields:addField.boundaryOptionalHint')}</p>
+              <div className="field-form-nav grove-create-nav grove-create-nav-stack">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => void activateFromPin(false)}
+                  loading={loading}
+                  disabled={!areaValid}
+                >
+                  {t('fields:addField.skipBoundaryConfirm')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void activateFromPin(true)}
+                  loading={loading}
+                  disabled={!areaValid}
+                >
+                  {t('fields:createGrove.addBoundaryNow')}
+                </Button>
+                <p className="field-form-hint">{t('fields:addField.skipBoundaryConsequence')}</p>
               </div>
             </>
           ) : null}
@@ -568,6 +799,7 @@ const FieldFormPage: React.FC = () => {
           {showBoundaryEditor ? (
             <>
               <FieldBoundaryMapStep
+                fieldId={draftFieldId || id}
                 boundary={boundary}
                 measuredAreaSqm={formData.area}
                 locationQuery={formData.locationText}
@@ -583,7 +815,7 @@ const FieldFormPage: React.FC = () => {
                 }
                 continueLoading={loading}
                 activationGuide={Boolean(
-                  activation?.eligible && !activation.completion.drawBoundary
+                  activation?.eligible && finishingFirstBoundary
                 )}
                 setupRail={boundaryStage ? setupLevel : undefined}
                 onBack={boundaryStage ? exitBoundaryDraw : undefined}

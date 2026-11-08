@@ -8,6 +8,7 @@ type NavRef = React.RefObject<NavigationContainerRef<RootStackParamList> | null>
 const ALLOWED_WHILE_LOCKED = new Set([
   'Launcher',
   'FieldForm',
+  'FieldPlace',
   'FieldMapBoundary',
   'FieldDetail',
   'FieldsHome',
@@ -43,7 +44,7 @@ const ActivationGate: React.FC<{ navRef: NavRef }> = ({ navRef }) => {
         return;
       }
       if (activation.primaryField) {
-        nav.navigate('FieldMapBoundary', { fieldId: activation.primaryField.id });
+        nav.navigate('FieldPlace', { fieldId: activation.primaryField.id });
       } else {
         nav.navigate('FieldForm', {});
       }
