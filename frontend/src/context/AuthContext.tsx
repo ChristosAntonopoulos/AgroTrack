@@ -13,6 +13,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName?: string, lastName?: string, inviteCode?: string) => Promise<void>;
+  loginWithGoogle: (idToken: string, inviteCode?: string) => Promise<AuthResponse>;
   logout: () => void;
   updateSession: (patch: Partial<AuthResponse>) => void;
   loading: boolean;
@@ -64,6 +65,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(response);
   };
 
+  const loginWithGoogle = async (idToken: string, inviteCode?: string) => {
+    const response = await authService.google({
+      idToken,
+      inviteCode: inviteCode?.trim() || undefined,
+    });
+    clearSessionCaches();
+    persistAuthSession(response);
+    setUser(response);
+    return response;
+  };
+
   const logout = useCallback(() => {
     clearSessionCaches();
     clearAuthSession();
@@ -89,7 +101,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout, updateSession, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        login,
+        register,
+        loginWithGoogle,
+        logout,
+        updateSession,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

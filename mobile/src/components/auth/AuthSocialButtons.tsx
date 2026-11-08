@@ -1,31 +1,125 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import { useTranslation } from 'react-i18next';
-import GoogleGIcon from './GoogleGIcon';
+import { useAuth } from '../../context/AuthContext';
+import { readInviteIntent } from '../../utils/inviteIntent';
 import { loginTheme } from '../../theme/loginTheme';
-import { typography, spacing, radii } from '../../theme';
+import GoogleGIcon from './GoogleGIcon';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type Props = {
   onBeforeContinue?: () => void;
 };
 
+const webClientId = (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '').trim();
+const iosClientId = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '').trim();
+const androidClientId = (process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '').trim();
+const googleConfigured = Boolean(webClientId || iosClientId || androidClientId);
+
 const AuthSocialButtons: React.FC<Props> = ({ onBeforeContinue }) => {
   const { t } = useTranslation('auth');
+  const { loginWithGoogle } = useAuth();
   const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const handledResponse = useRef<string | null>(null);
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: webClientId || undefined,
+    iosClientId: iosClientId || undefined,
+    androidClientId: androidClientId || undefined,
+    webClientId: webClientId || undefined,
+  });
+
+  useEffect(() => {
+    if (!response) return;
+
+    if (response.type === 'error') {
+      setNotice(t('register.googleFailed'));
+      setBusy(false);
+      return;
+    }
+
+    if (response.type === 'dismiss' || response.type === 'cancel') {
+      setBusy(false);
+      return;
+    }
+
+    if (response.type !== 'success') return;
+
+    const idToken =
+      response.params.id_token ||
+      (response as { authentication?: { idToken?: string | null } }).authentication?.idToken ||
+      undefined;
+
+    const responseKey = idToken || JSON.stringify(response.params);
+    if (handledResponse.current === responseKey) return;
+    handledResponse.current = responseKey;
+
+    if (!idToken) {
+      setNotice(t('register.googleFailed'));
+      setBusy(false);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const invite = await readInviteIntent();
+        await loginWithGoogle(idToken, invite?.code);
+      } catch (error: unknown) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : t('register.googleFailed');
+          setNotice(message || t('register.googleFailed'));
+        }
+      } finally {
+        if (!cancelled) setBusy(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [response, loginWithGoogle, t]);
+
+  const handlePress = async () => {
+    onBeforeContinue?.();
+    setNotice(null);
+
+    if (!googleConfigured) {
+      setNotice(t('register.googleNotConfigured'));
+      return;
+    }
+
+    handledResponse.current = null;
+    setBusy(true);
+    try {
+      await promptAsync();
+    } catch {
+      setNotice(t('register.googleFailed'));
+      setBusy(false);
+    }
+  };
 
   return (
     <View style={styles.wrap}>
-      <Pressable
-        style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
-        onPress={() => {
-          onBeforeContinue?.();
-          setNotice(t('register.socialComingSoon', { provider: 'Google' }));
-        }}
+      <TouchableOpacity
+        style={[styles.button, busy && styles.buttonBusy]}
+        onPress={() => void handlePress()}
+        disabled={busy || (googleConfigured && !request)}
         accessibilityRole="button"
       >
-        <GoogleGIcon size={20} />
-        <Text style={styles.label}>{t('register.continueGoogle')}</Text>
-      </Pressable>
+        {busy ? (
+          <ActivityIndicator color={loginTheme.textPrimary} />
+        ) : (
+          <>
+            <GoogleGIcon size={20} />
+            <Text style={styles.label}>{t('register.continueGoogle')}</Text>
+          </>
+        )}
+      </TouchableOpacity>
       {notice ? (
         <Text style={styles.note} accessibilityRole="text">
           {notice}
@@ -37,39 +131,38 @@ const AuthSocialButtons: React.FC<Props> = ({ onBeforeContinue }) => {
 
 const styles = StyleSheet.create({
   wrap: {
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
+    gap: 8,
   },
-  btn: {
-    minHeight: 52,
-    borderRadius: radii.lg,
+  button: {
+    minHeight: 48,
+    borderRadius: 13,
     borderWidth: 1,
     borderColor: loginTheme.googleBorder,
     backgroundColor: loginTheme.googleBg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
+    gap: 10,
+    paddingHorizontal: 16,
     shadowColor: loginTheme.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
-  btnPressed: {
-    opacity: 0.92,
-    backgroundColor: '#FAFAF8',
+  buttonBusy: {
+    opacity: 0.7,
   },
   label: {
-    ...typography.styles.bodySmall,
+    fontSize: 15,
+    fontWeight: '600',
     color: loginTheme.textPrimary,
-    fontWeight: typography.fontWeight.semibold,
   },
   note: {
-    ...typography.styles.caption,
-    color: loginTheme.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
     textAlign: 'center',
+    color: loginTheme.textSecondary,
   },
 });
 

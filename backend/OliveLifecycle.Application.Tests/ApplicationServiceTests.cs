@@ -131,6 +131,27 @@ public class FieldAccessServiceTests
 public class AuthServiceTests
 {
     [Fact]
+    public async Task GoogleAsync_RejectsWhenClientIdNotConfigured()
+    {
+        var userRepository = new Mock<IUserRepository>();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JWT:SecretKey"] = "test-secret-key-at-least-32-characters-long",
+                ["JWT:Issuer"] = "test",
+                ["JWT:Audience"] = "test"
+            })
+            .Build();
+
+        var service = new AuthService(userRepository.Object, configuration, new SystemDateTimeProvider());
+
+        await Assert.ThrowsAsync<ValidationException>(() => service.GoogleAsync(new GoogleAuthDto
+        {
+            IdToken = "not-a-real-token"
+        }));
+    }
+
+    [Fact]
     public async Task RegisterAsync_RejectsAdministratorRole()
     {
         var userRepository = new Mock<IUserRepository>();

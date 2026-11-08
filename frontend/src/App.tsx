@@ -9,6 +9,7 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LocaleProvider } from './context/LocaleProvider';
@@ -178,9 +179,10 @@ const router = createBrowserRouter(
   )
 );
 
-function App() {
+const googleClientId = (process.env.REACT_APP_GOOGLE_CLIENT_ID || '').trim();
+
+function AppTree() {
   return (
-    <AppErrorBoundary>
     <ThemeProvider>
       <LocaleProvider>
         <AuthProvider>
@@ -198,6 +200,19 @@ function App() {
         </AuthProvider>
       </LocaleProvider>
     </ThemeProvider>
+  );
+}
+
+function App() {
+  return (
+    <AppErrorBoundary>
+      {googleClientId ? (
+        <GoogleOAuthProvider clientId={googleClientId}>
+          <AppTree />
+        </GoogleOAuthProvider>
+      ) : (
+        <AppTree />
+      )}
     </AppErrorBoundary>
   );
 }

@@ -15,6 +15,11 @@ export interface LoginDto {
   password: string;
 }
 
+export interface GoogleAuthDto {
+  idToken: string;
+  inviteCode?: string;
+}
+
 export interface ForgotPasswordDto {
   email: string;
 }
@@ -76,6 +81,19 @@ export const authService = {
       return response.data;
     } catch (error) {
       throw new Error(getApiErrorMessage(error, 'Login failed'));
+    }
+  },
+
+  google: async (data: GoogleAuthDto): Promise<AuthResponse> => {
+    try {
+      const response = await api.post<AuthResponse>('/api/v1/auth/google', {
+        idToken: data.idToken,
+        inviteCode: data.inviteCode?.trim() || undefined,
+      });
+      await persistSession(response.data);
+      return response.data;
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Google sign-in failed'));
     }
   },
 

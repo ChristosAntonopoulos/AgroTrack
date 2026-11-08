@@ -16,6 +16,11 @@ export interface LoginDto {
   password: string;
 }
 
+export interface GoogleAuthDto {
+  idToken: string;
+  inviteCode?: string;
+}
+
 export interface AuthResponse {
   token: string;
   refreshToken?: string | null;
@@ -74,6 +79,14 @@ export const authService = {
 
   login: async (data: LoginDto): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>('/api/v1/auth/login', data);
+    return response.data;
+  },
+
+  google: async (data: GoogleAuthDto): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/api/v1/auth/google', {
+      idToken: data.idToken,
+      inviteCode: data.inviteCode?.trim() || undefined,
+    });
     return response.data;
   },
 

@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Google.Apis.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using OliveLifecycle.Application.Abstractions.Persistence;
@@ -126,6 +127,113 @@ public class AuthService : IAuthService
         await _userRepository.UpdateAsync(user, cancellationToken);
 
         return await GenerateAuthResponseAsync(user, cancellationToken);
+    }
+
+    public async Task<AuthResponseDto> GoogleAsync(GoogleAuthDto dto, CancellationToken cancellationToken = default)
+    {
+        var idToken = dto.IdToken?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(idToken))
+        {
+            throw new ValidationException("Google sign-in token is required.");
+        }
+
+        var audiences = ResolveGoogleAudiences();
+        if (audiences.Count == 0)
+        {
+            throw new ValidationException("Google sign-in is not configured.");
+        }
+
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await GoogleJsonWebSignature.ValidateAsync(
+                idToken,
+                new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = audiences
+                });
+        }
+        catch (Exception)
+        {
+            throw new ForbiddenException("Google sign-in failed. Try again.");
+        }
+
+        if (!payload.EmailVerified || string.IsNullOrWhiteSpace(payload.Email))
+        {
+            throw new ValidationException("Your Google account email must be verified.");
+        }
+
+        var email = NormalizeEmail(payload.Email);
+        var subject = payload.Subject?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(subject))
+        {
+            throw new ForbiddenException("Google sign-in failed. Try again.");
+        }
+
+        var inviteCode = dto.InviteCode?.Trim();
+        await EnsureInviteAllowsEmailAsync(inviteCode, email, cancellationToken);
+
+        var user = await _userRepository.GetByGoogleSubjectIdAsync(subject, cancellationToken);
+        if (user == null || user.DeletedAt != null)
+        {
+            user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+        }
+
+        var now = _dateTimeProvider.UtcNow;
+        if (user != null && user.DeletedAt == null)
+        {
+            if (string.IsNullOrWhiteSpace(user.GoogleSubjectId))
+            {
+                user.GoogleSubjectId = subject;
+            }
+            else if (!string.Equals(user.GoogleSubjectId, subject, StringComparison.Ordinal))
+            {
+                throw new ConflictException("This email is already linked to a different Google account.");
+            }
+
+            if (string.IsNullOrWhiteSpace(user.FirstName) && !string.IsNullOrWhiteSpace(payload.GivenName))
+            {
+                user.FirstName = payload.GivenName.Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(user.LastName) && !string.IsNullOrWhiteSpace(payload.FamilyName))
+            {
+                user.LastName = payload.FamilyName.Trim();
+            }
+
+            user.LastLoginAt = now;
+            user.LastSeenAt = now;
+            user.UpdatedAt = now;
+            await _userRepository.UpdateAsync(user, cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(inviteCode) && _fieldPeople != null)
+            {
+                await _fieldPeople.AcceptInviteAsync(inviteCode, user.Id, cancellationToken);
+            }
+
+            return await GenerateAuthResponseAsync(user, cancellationToken);
+        }
+
+        var created = await _userRepository.CreateAsync(new User
+        {
+            Email = email,
+            PasswordHash = string.Empty,
+            GoogleSubjectId = subject,
+            Role = UserRole.FieldOwner,
+            FirstName = string.IsNullOrWhiteSpace(payload.GivenName) ? null : payload.GivenName.Trim(),
+            LastName = string.IsNullOrWhiteSpace(payload.FamilyName) ? null : payload.FamilyName.Trim(),
+            LastLoginAt = now,
+            LastSeenAt = now,
+            CreatedAt = now,
+            UpdatedAt = now
+        }, cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(inviteCode) && _fieldPeople != null)
+        {
+            await _fieldPeople.AcceptInviteAsync(inviteCode, created.Id, cancellationToken);
+        }
+
+        return await GenerateAuthResponseAsync(created, cancellationToken);
     }
 
     public async Task<AuthResponseDto> RefreshAsync(RefreshTokenDto dto, CancellationToken cancellationToken = default)
@@ -259,6 +367,61 @@ public class AuthService : IAuthService
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private IReadOnlyList<string> ResolveGoogleAudiences()
+    {
+        var configured = new List<string>();
+        var section = _configuration.GetSection("Auth:Google:ClientIds");
+        foreach (var child in section.GetChildren())
+        {
+            if (!string.IsNullOrWhiteSpace(child.Value))
+            {
+                configured.Add(child.Value.Trim());
+            }
+        }
+
+        var single = _configuration["Auth:Google:ClientId"]
+            ?? _configuration["Auth__Google__ClientId"];
+        if (!string.IsNullOrWhiteSpace(single))
+        {
+            configured.Add(single.Trim());
+        }
+
+        return configured
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private async Task EnsureInviteAllowsEmailAsync(
+        string? inviteCode,
+        string email,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(inviteCode))
+        {
+            return;
+        }
+
+        if (_fieldPeople == null)
+        {
+            throw new ValidationException("Invitation codes are not available.");
+        }
+
+        var invite = await _fieldPeople.GetInviteAsync(inviteCode, cancellationToken);
+        if (invite == null
+            || !string.Equals(invite.Status, FamilyInviteStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ValidationException("This invitation code is not valid.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(invite.Email)
+            && !string.Equals(invite.Email.Trim(), email, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ForbiddenException(
+                "Register with the email this invitation was sent to.",
+                FieldPeopleService.InviteEmailMismatchCode);
+        }
+    }
 
     private static string CreateOpaqueToken()
     {

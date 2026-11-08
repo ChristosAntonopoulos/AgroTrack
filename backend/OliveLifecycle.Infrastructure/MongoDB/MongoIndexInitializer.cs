@@ -31,6 +31,10 @@ public class MongoIndexInitializer : IHostedService
                     new CreateIndexOptions { Unique = true }));
             users.Indexes.CreateOne(
                 new CreateIndexModel<UserDocument>(
+                    Builders<UserDocument>.IndexKeys.Ascending(u => u.GoogleSubjectId),
+                    new CreateIndexOptions { Unique = true, Sparse = true, Name = "ix_users_googleSubjectId" }));
+            users.Indexes.CreateOne(
+                new CreateIndexModel<UserDocument>(
                     Builders<UserDocument>.IndexKeys.Ascending(u => u.PasswordResetTokenHash),
                     new CreateIndexOptions { Sparse = true, Name = "ix_users_passwordResetTokenHash" }));
             users.Indexes.CreateOne(

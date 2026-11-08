@@ -6,7 +6,13 @@ namespace OliveLifecycle.Core.Entities;
 public class User : BaseEntity
 {
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>Empty for Google-only accounts that have never set a password.</summary>
     public string PasswordHash { get; set; } = string.Empty;
+
+    /// <summary>Google account subject (`sub`) when linked via Sign in with Google.</summary>
+    public string? GoogleSubjectId { get; set; }
+
     public UserRole Role { get; set; } = UserRole.Producer;
     public string? FirstName { get; set; }
     public string? LastName { get; set; }

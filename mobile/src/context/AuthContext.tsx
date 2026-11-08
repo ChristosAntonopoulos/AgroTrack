@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mockUsers } from '../services/mockDataService';
 import { getAuthService, isMockMode } from '../services/serviceFactory';
@@ -20,6 +20,7 @@ interface AuthContextType {
     lastName?: string;
     inviteCode?: string;
   }) => Promise<AuthResponse>;
+  loginWithGoogle: (idToken: string, inviteCode?: string) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   isLoading: boolean;
   isFieldOwner: () => boolean;
@@ -130,7 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return authResponse;
   };
 
-  const applyAuthState = async (authResponse: AuthResponse) => {
+  const applyAuthState = useCallback(async (authResponse: AuthResponse) => {
     if (isMockMode()) {
       const mockUser = mockUsers.find(u => u.id === authResponse.userId);
       if (mockUser) setUser(mockUser);
@@ -143,7 +144,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch {
       /* push optional */
     }
-  };
+  }, []);
+
+  const loginWithGoogle = useCallback(
+    async (idToken: string, inviteCode?: string): Promise<AuthResponse> => {
+      if (isMockMode()) {
+        throw new Error('Google sign-in is not available in mock mode');
+      }
+      const authResponse = await authService.google({
+        idToken,
+        inviteCode: inviteCode?.trim() || undefined,
+      });
+      await applyAuthState(authResponse);
+      return authResponse;
+    },
+    [applyAuthState]
+  );
 
   const logout = async () => {
     try {
@@ -176,6 +192,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: Boolean(user),
     login,
     register,
+    loginWithGoogle,
     logout,
     isLoading: Boolean(isLoading),
     isFieldOwner,

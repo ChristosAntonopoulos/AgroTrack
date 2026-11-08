@@ -16,6 +16,7 @@
 
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
 
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
 

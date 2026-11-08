@@ -313,7 +313,13 @@ const RegisterPage: React.FC = () => {
         </p>
       ) : null}
 
-      <AuthSocialButtons onBeforeContinue={persistInvite} />
+      <AuthSocialButtons
+        onBeforeContinue={persistInvite}
+        onAuthenticated={async (response) => {
+          const code = inviteCode.trim();
+          await navigateAfterRegister(response.role || 'FieldOwner', Boolean(code), code);
+        }}
+      />
       {legalLinks}
 
       {!showEmailForm ? (

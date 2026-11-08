@@ -184,6 +184,9 @@ stages:
         BUILD_ID: $(Build.BuildId)
         BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory)
         APK_FILENAME: $(apkFilename)
+        GOOGLE_WEB_CLIENT_ID: $(GOOGLE_WEB_CLIENT_ID)
+        GOOGLE_ANDROID_CLIENT_ID: $(GOOGLE_ANDROID_CLIENT_ID)
+        GOOGLE_IOS_CLIENT_ID: $(GOOGLE_IOS_CLIENT_ID)
       continueOnError: false
       timeoutInMinutes: 90
 
@@ -274,12 +277,17 @@ stages:
     - script: |
         set -euo pipefail
         IMAGE="$(fullFrontendImageName):$(imageTag)"
+        GOOGLE_WEB_CLIENT_ID_VALUE="${GOOGLE_WEB_CLIENT_ID:-}"
+        if [ "${GOOGLE_WEB_CLIENT_ID_VALUE}" = '$(GOOGLE_WEB_CLIENT_ID)' ]; then
+          GOOGLE_WEB_CLIENT_ID_VALUE=
+        fi
         echo "Building $IMAGE ..."
         docker build \
           -t "$IMAGE" \
           -t $(fullFrontendImageName):latest \
           --build-arg REACT_APP_API_URL=$(backendApiUrl) \
           --build-arg REACT_APP_SHOW_DEMO_LOGIN=true \
+          --build-arg REACT_APP_GOOGLE_CLIENT_ID="${GOOGLE_WEB_CLIENT_ID_VALUE}" \
           -f $(frontendDockerfilePath) $(frontendDockerContext)
         docker push "$IMAGE"
         docker push $(fullFrontendImageName):latest
@@ -287,6 +295,7 @@ stages:
       displayName: 'Build and push frontend image'
       env:
         DOCKER_BUILDKIT: '0'
+        GOOGLE_WEB_CLIENT_ID: $(GOOGLE_WEB_CLIENT_ID)
 
     - script: |
         set -euo pipefail
@@ -337,12 +346,26 @@ stages:
     - script: |
         set -euo pipefail
         IMAGE="$(fullMobileWebImageName):$(imageTag)"
+        sanitize() {
+          local value="${1:-}"
+          local literal="$2"
+          if [ "${value}" = "${literal}" ]; then
+            value=
+          fi
+          printf '%s' "${value}"
+        }
+        GOOGLE_WEB_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_WEB_CLIENT_ID:-}" '$(GOOGLE_WEB_CLIENT_ID)')"
+        GOOGLE_ANDROID_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_ANDROID_CLIENT_ID:-}" '$(GOOGLE_ANDROID_CLIENT_ID)')"
+        GOOGLE_IOS_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_IOS_CLIENT_ID:-}" '$(GOOGLE_IOS_CLIENT_ID)')"
         echo "Building $IMAGE ..."
         docker build \
           -t "$IMAGE" \
           -t $(fullMobileWebImageName):latest \
           --build-arg EXPO_PUBLIC_API_URL=$(backendApiUrl) \
           --build-arg EXPO_PUBLIC_SHOW_DEMO_LOGIN=true \
+          --build-arg EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID="${GOOGLE_WEB_CLIENT_ID_VALUE}" \
+          --build-arg EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID="${GOOGLE_ANDROID_CLIENT_ID_VALUE}" \
+          --build-arg EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID="${GOOGLE_IOS_CLIENT_ID_VALUE}" \
           -f $(mobileWebDockerfilePath) $(mobileWebDockerContext)
         docker push "$IMAGE"
         docker push $(fullMobileWebImageName):latest
@@ -350,6 +373,9 @@ stages:
       displayName: 'Build and push mobile web image'
       env:
         DOCKER_BUILDKIT: '0'
+        GOOGLE_WEB_CLIENT_ID: $(GOOGLE_WEB_CLIENT_ID)
+        GOOGLE_ANDROID_CLIENT_ID: $(GOOGLE_ANDROID_CLIENT_ID)
+        GOOGLE_IOS_CLIENT_ID: $(GOOGLE_IOS_CLIENT_ID)
 
     - script: |
         set -euo pipefail
@@ -572,6 +598,22 @@ stages:
                 if [ -n "${EMAIL_SMTP_PASSWORD:-}" ] && [ "${EMAIL_SMTP_PASSWORD}" != '$(EMAIL_SMTP_PASSWORD)' ]; then
                   SECRET_ARGS+=(--from-literal=Email__SmtpPassword="${EMAIL_SMTP_PASSWORD}")
                 fi
+                if [ -n "${GOOGLE_WEB_CLIENT_ID:-}" ] && [ "${GOOGLE_WEB_CLIENT_ID}" != '$(GOOGLE_WEB_CLIENT_ID)' ]; then
+                  SECRET_ARGS+=(--from-literal=Auth__Google__ClientId="${GOOGLE_WEB_CLIENT_ID}")
+                fi
+                # Extra Google client IDs (Android / iOS) accepted as ID-token audiences.
+                GOOGLE_EXTRA_IDS=()
+                if [ -n "${GOOGLE_ANDROID_CLIENT_ID:-}" ] && [ "${GOOGLE_ANDROID_CLIENT_ID}" != '$(GOOGLE_ANDROID_CLIENT_ID)' ]; then
+                  GOOGLE_EXTRA_IDS+=("${GOOGLE_ANDROID_CLIENT_ID}")
+                fi
+                if [ -n "${GOOGLE_IOS_CLIENT_ID:-}" ] && [ "${GOOGLE_IOS_CLIENT_ID}" != '$(GOOGLE_IOS_CLIENT_ID)' ]; then
+                  GOOGLE_EXTRA_IDS+=("${GOOGLE_IOS_CLIENT_ID}")
+                fi
+                idx=0
+                for cid in "${GOOGLE_EXTRA_IDS[@]}"; do
+                  SECRET_ARGS+=(--from-literal="Auth__Google__ClientIds__${idx}=${cid}")
+                  idx=$((idx + 1))
+                done
 
                 echo "Creating Kubernetes secret 'backend-secrets' from Library group 'Agrotrack-Secrets'..."
                 kubectl create secret generic backend-secrets \
@@ -592,6 +634,9 @@ stages:
               JWT_SECRET_KEY: $(JWT_SECRET_KEY)
               FIRMS_MAP_KEY: $(FIRMS_MAP_KEY)
               EMAIL_SMTP_PASSWORD: $(EMAIL_SMTP_PASSWORD)
+              GOOGLE_WEB_CLIENT_ID: $(GOOGLE_WEB_CLIENT_ID)
+              GOOGLE_ANDROID_CLIENT_ID: $(GOOGLE_ANDROID_CLIENT_ID)
+              GOOGLE_IOS_CLIENT_ID: $(GOOGLE_IOS_CLIENT_ID)
 
           - script: |
               sed -i "s|PLACEHOLDER_IMAGE_NAME:PLACEHOLDER_IMAGE_TAG|$(fullImageName):$(imageTag)|g" backend/k8s/deployment.yaml

@@ -39,6 +39,21 @@ public class UserRepository : MongoRepositoryBase<UserDocument, User>, IUserRepo
         return document == null ? null : ToEntity(document);
     }
 
+    public async Task<User?> GetByGoogleSubjectIdAsync(
+        string googleSubjectId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(googleSubjectId))
+        {
+            return null;
+        }
+
+        var document = await Collection
+            .Find(u => u.GoogleSubjectId == googleSubjectId.Trim())
+            .FirstOrDefaultAsync(cancellationToken);
+        return document == null ? null : ToEntity(document);
+    }
+
     public async Task<User?> GetByPasswordResetTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(tokenHash))

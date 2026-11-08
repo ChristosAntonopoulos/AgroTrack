@@ -33,6 +33,14 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("google")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponseDto>> Google([FromBody] GoogleAuthDto dto, CancellationToken cancellationToken)
+    {
+        var response = await _authService.GoogleAsync(dto, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost("refresh")]
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> Refresh([FromBody] RefreshTokenDto dto, CancellationToken cancellationToken)

@@ -140,6 +140,7 @@
       "expo-contacts",
       "expo-localization",
       "expo-font",
+      "expo-web-browser",
       "expo-dev-client",
       "@maplibre/maplibre-react-native",
       "@react-native-community/datetimepicker"

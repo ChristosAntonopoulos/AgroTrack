@@ -155,7 +155,12 @@ const LoginPage: React.FC = () => {
         </div>
       ) : null}
 
-      <AuthSocialButtons onBeforeContinue={() => rememberInviteIntent(intentFromSearch(searchParams))} />
+      <AuthSocialButtons
+        onBeforeContinue={() => rememberInviteIntent(intentFromSearch(searchParams))}
+        onAuthenticated={async (response) => {
+          await navigateAfterLogin(response.role || 'FieldOwner');
+        }}
+      />
 
       <div className="login-divider">
         <span>{t('auth:login.orEmail')}</span>

@@ -15,6 +15,9 @@ public class UserDocument
     [BsonElement("passwordHash")]
     public string PasswordHash { get; set; } = string.Empty;
 
+    [BsonElement("googleSubjectId")]
+    public string? GoogleSubjectId { get; set; }
+
     [BsonElement("role")]
     public string Role { get; set; } = "Producer";
 
