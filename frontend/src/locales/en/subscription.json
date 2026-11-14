@@ -166,6 +166,8 @@
       "pro": {
         "name": "Pro",
         "tagline": "Up to {{count}} groves, each with its own history.",
+        "amount": "€6.99",
+        "period": "per month",
         "badge": "For more groves",
         "items": [
           "Up to {{count}} groves in the same account",
@@ -174,7 +176,7 @@
           "The whole year, in order"
         ]
       },
-      "priceNote": "The price is shown inside the app before you confirm anything.",
+      "priceNote": "Monthly price. You see it again in the app, before you confirm.",
       "trust": "No card needed to start · Cancel any time",
       "cta": "Start free"
     },
@@ -203,7 +205,7 @@
         },
         {
           "q": "How much does Pro cost?",
-          "a": "The price is shown inside the app, monthly or yearly, before you confirm anything."
+          "a": "€6.99 per month. You see it again in the app, before you confirm."
         }
       ]
     }

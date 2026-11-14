@@ -167,14 +167,16 @@
       "pro": {
         "name": "Pro",
         "tagline": "Fino a {{count}} oliveti, ciascuno con il proprio storico.",
+        "amount": "6,99 €",
+        "period": "al mese",
         "badge": "Più oliveti",
         "items": [
           "Fino a {{count}} oliveti nello stesso account",
           "Uno storico separato per ciascuno",
-          "Abbonamento mensile o annuale"
+          "Abbonamento mensile"
         ]
       },
-      "priceNote": "Il prezzo viene mostrato nell'app, prima di confermare qualsiasi cosa.",
+      "priceNote": "Prezzo mensile. Lo rivedi nell'app, prima di confermare.",
       "trust": "Nessuna carta per iniziare · Annulli quando vuoi",
       "cta": "Inizia gratis"
     },
@@ -199,7 +201,7 @@
         },
         {
           "q": "Quanto costa Pro?",
-          "a": "Il prezzo viene mostrato nell'app, mensile o annuale, prima di confermare qualsiasi cosa."
+          "a": "6,99 € al mese. Lo rivedi nell'app, prima di confermare."
         }
       ]
     }

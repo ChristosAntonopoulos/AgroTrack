@@ -11,8 +11,8 @@ interface FaqItem {
 }
 
 /**
- * Landing pricing + FAQ. No euro amounts here: they come from the store
- * (RevenueCat Offerings) inside the app. The grove cap is ProOwnedFieldLimit.
+ * Landing pricing + FAQ. Monthly Pro is €6.99. No yearly price is published.
+ * The grove cap is ProOwnedFieldLimit.
  */
 export const LandingPricing: React.FC = () => {
   const { t } = useTranslation('subscription');
@@ -47,6 +47,10 @@ export const LandingPricing: React.FC = () => {
           <article className="lp-plan lp-plan--pro">
             <span className="lp-plan-badge">{t('landing.pricing.pro.badge', plan)}</span>
             <h3>{t('landing.pricing.pro.name')}</h3>
+            <p className="lp-plan-price">
+              <strong>{t('landing.pricing.pro.amount')}</strong>
+              <span>{t('landing.pricing.pro.period')}</span>
+            </p>
             <p className="lp-plan-tagline">{t('landing.pricing.pro.tagline', plan)}</p>
             <ul>
               {list('landing.pricing.pro.items').map((item) => (

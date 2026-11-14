@@ -1437,6 +1437,11 @@
   font-size: 0.925rem;
 }
 
+.landing-footer-team {
+  margin-top: 0.65rem;
+  font-weight: 650;
+}
+
 .landing-footer h4 {
   margin: 0 0 0.65rem;
   color: var(--lp-text-light);

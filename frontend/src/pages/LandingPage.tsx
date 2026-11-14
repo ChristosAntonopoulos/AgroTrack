@@ -384,6 +384,7 @@ const LandingPage: React.FC = () => {
               <span className="landing-alpha-pill">{t('footer.version')}</span>
             </div>
             <p>{t('footer.description')}</p>
+            <p className="landing-footer-team">{t('footer.team')}</p>
           </div>
           <div>
             <h4>{t('footer.product')}</h4>
