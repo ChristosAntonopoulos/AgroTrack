@@ -62,7 +62,14 @@ const LandingPage: React.FC = () => {
 
   const scrollTo = useCallback((id: string) => {
     setMobileMenuOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(id);
+      if (!target) return;
+      const header = document.querySelector('.landing-header');
+      const headerH = header instanceof HTMLElement ? header.offsetHeight : 0;
+      const top = target.getBoundingClientRect().top + window.scrollY - headerH - 12;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    });
   }, []);
 
   useEffect(() => {
@@ -110,7 +117,7 @@ const LandingPage: React.FC = () => {
             />
           </a>
 
-          <nav className="landing-nav" aria-label="Main">
+          <nav className="landing-nav" aria-label={t('header.mainNav')}>
             {LANDING_NAV.map(({ id, key }) => (
               <button key={id} type="button" onClick={() => scrollTo(id)}>
                 {t(`header.${key}`)}
@@ -121,7 +128,7 @@ const LandingPage: React.FC = () => {
           <div className="landing-header-actions">
             <div className="landing-chrome-prefs landing-chrome-prefs--desktop">
               <ThemeModeToggle surface="landing-scrolled" />
-              <div className="landing-lang" role="group" aria-label="Language">
+              <div className="landing-lang" role="group" aria-label={t('header.language')}>
                 {(['el', 'en'] as SupportedLocale[]).map((code) => (
                   <button
                     key={code}
@@ -141,59 +148,59 @@ const LandingPage: React.FC = () => {
               className="landing-menu-btn"
               aria-expanded={mobileMenuOpen}
               aria-controls="landing-mobile-menu"
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-label={mobileMenuOpen ? t('header.closeMenu') : t('header.openMenu')}
               onClick={() => setMobileMenuOpen((open) => !open)}
             >
               {mobileMenuOpen ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
             </button>
           </div>
         </div>
-
-        {mobileMenuOpen ? (
-          <div id="landing-mobile-menu" className="landing-mobile-menu" role="dialog" aria-modal="true">
-            <nav className="landing-mobile-nav" aria-label="Mobile">
-              {LANDING_NAV.map(({ id, key }) => (
-                <button key={id} type="button" onClick={() => scrollTo(id)}>
-                  {t(`header.${key}`)}
-                </button>
-              ))}
-            </nav>
-            <div className="landing-mobile-menu-actions">
-              <div className="landing-chrome-prefs">
-                <ThemeModeToggle surface="landing-scrolled" />
-                <div className="landing-lang" role="group" aria-label="Language">
-                  {(['el', 'en'] as SupportedLocale[]).map((code) => (
-                    <button
-                      key={code}
-                      type="button"
-                      className={locale === code ? 'active' : ''}
-                      onClick={() => setLocale(code)}
-                      aria-pressed={locale === code}
-                    >
-                      {code.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Link
-                to="/login"
-                className="landing-btn landing-btn--outline landing-btn--block"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <LogIn size={18} aria-hidden />
-                {t('header.signIn')}
-              </Link>
-              <Link
-                to="/register"
-                className="landing-btn landing-btn--primary landing-btn--block"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t('header.startFree')}
-              </Link>
-            </div>
-          </div>
-        ) : null}
       </header>
+
+      {mobileMenuOpen ? (
+        <div id="landing-mobile-menu" className="landing-mobile-menu" role="dialog" aria-modal="true">
+          <nav className="landing-mobile-nav" aria-label={t('header.mobileNav')}>
+            {LANDING_NAV.map(({ id, key }) => (
+              <button key={id} type="button" onClick={() => scrollTo(id)}>
+                {t(`header.${key}`)}
+              </button>
+            ))}
+          </nav>
+          <div className="landing-mobile-menu-actions">
+            <div className="landing-chrome-prefs">
+              <ThemeModeToggle surface="landing-scrolled" />
+              <div className="landing-lang" role="group" aria-label={t('header.language')}>
+                {(['el', 'en'] as SupportedLocale[]).map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    className={locale === code ? 'active' : ''}
+                    onClick={() => setLocale(code)}
+                    aria-pressed={locale === code}
+                  >
+                    {code.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Link
+              to="/login"
+              className="landing-btn landing-btn--outline landing-btn--block"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <LogIn size={18} aria-hidden />
+              {t('header.signIn')}
+            </Link>
+            <Link
+              to="/register"
+              className="landing-btn landing-btn--primary landing-btn--block"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {t('header.startFree')}
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <main id="top">
         <section className="lp-hero" aria-labelledby="hero-title">

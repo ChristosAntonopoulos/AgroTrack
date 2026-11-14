@@ -337,6 +337,32 @@
   color: var(--login-text-muted);
 }
 
+.login-promise {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.85rem 0 0;
+  text-align: center;
+}
+
+.login-promise strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--login-text);
+}
+
+.login-promise span {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--login-text-muted);
+}
+
+.login-promise-line {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--login-text);
+  font-weight: 650;
+}
+
 .login-error {
   margin-bottom: var(--spacing-md);
   padding: var(--spacing-sm) var(--spacing-md);

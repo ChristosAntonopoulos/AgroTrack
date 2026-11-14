@@ -6,7 +6,12 @@
     "forWhom": "Who it’s for",
     "pricing": "Pricing",
     "signIn": "Sign in",
-    "startFree": "Start free"
+    "startFree": "Start free",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "mainNav": "Main",
+    "mobileNav": "Menu",
+    "language": "Language"
   },
   "hero": {
     "eyebrow": "",
@@ -16,6 +21,7 @@
     "ctaPrimary": "Add your first grove",
     "ctaSecondary": "See how it works ↓",
     "trust": "1 grove free · No card required · On phone and computer",
+    "example": "Example",
     "field": "Kato Alonia",
     "year": "2026",
     "status": "Last record · Spraying · 2 days ago",
