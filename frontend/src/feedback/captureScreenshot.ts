@@ -37,7 +37,7 @@ const toFile = (canvas: HTMLCanvasElement) =>
     canvas.toBlob(
       (blob) =>
         blob
-          ? resolve(new File([blob], `oleachron-screen-${Date.now()}.png`, { type: 'image/png' }))
+          ? resolve(new File([blob], `the-olive-lot-screen-${Date.now()}.png`, { type: 'image/png' }))
           : reject(new Error('screenshot')),
       'image/png',
       0.88
