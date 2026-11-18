@@ -277,10 +277,19 @@ stages:
     - script: |
         set -euo pipefail
         IMAGE="$(fullFrontendImageName):$(imageTag)"
-        GOOGLE_WEB_CLIENT_ID_VALUE="${GOOGLE_WEB_CLIENT_ID:-}"
-        if [ "${GOOGLE_WEB_CLIENT_ID_VALUE}" = '$(GOOGLE_WEB_CLIENT_ID)' ]; then
-          GOOGLE_WEB_CLIENT_ID_VALUE=
-        fi
+        # Blank a value that still looks like an unexpanded pipeline macro.
+        # Do not compare against a macro token here: the preprocessor replaces
+        # those before bash runs, and a real secret would be wiped.
+        sanitize() {
+          local value="${1:-}"
+          case "$value" in
+            '$('*')')
+              value=
+              ;;
+          esac
+          printf '%s' "${value}"
+        }
+        GOOGLE_WEB_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_WEB_CLIENT_ID:-}")"
         echo "Building $IMAGE ..."
         docker build \
           -t "$IMAGE" \
@@ -346,17 +355,21 @@ stages:
     - script: |
         set -euo pipefail
         IMAGE="$(fullMobileWebImageName):$(imageTag)"
+        # Blank a value that still looks like an unexpanded pipeline macro.
+        # Do not compare against a macro token here: the preprocessor replaces
+        # those before bash runs, and a real secret would be wiped.
         sanitize() {
           local value="${1:-}"
-          local literal="$2"
-          if [ "${value}" = "${literal}" ]; then
-            value=
-          fi
+          case "$value" in
+            '$('*')')
+              value=
+              ;;
+          esac
           printf '%s' "${value}"
         }
-        GOOGLE_WEB_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_WEB_CLIENT_ID:-}" '$(GOOGLE_WEB_CLIENT_ID)')"
-        GOOGLE_ANDROID_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_ANDROID_CLIENT_ID:-}" '$(GOOGLE_ANDROID_CLIENT_ID)')"
-        GOOGLE_IOS_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_IOS_CLIENT_ID:-}" '$(GOOGLE_IOS_CLIENT_ID)')"
+        GOOGLE_WEB_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_WEB_CLIENT_ID:-}")"
+        GOOGLE_ANDROID_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_ANDROID_CLIENT_ID:-}")"
+        GOOGLE_IOS_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_IOS_CLIENT_ID:-}")"
         echo "Building $IMAGE ..."
         docker build \
           -t "$IMAGE" \
@@ -588,26 +601,44 @@ stages:
                   echo "WARNING: MONGODB_CONNECTION_STRING may be malformed"
                 fi
 
+                # Blank a value that still looks like an unexpanded pipeline macro.
+                # Do not compare against a macro token here: the preprocessor replaces
+                # those before bash runs, and a real secret would be skipped.
+                sanitize() {
+                  local value="${1:-}"
+                  case "$value" in
+                    '$('*')')
+                      value=
+                      ;;
+                  esac
+                  printf '%s' "${value}"
+                }
+                FIRMS_MAP_KEY_VALUE="$(sanitize "${FIRMS_MAP_KEY:-}")"
+                EMAIL_SMTP_PASSWORD_VALUE="$(sanitize "${EMAIL_SMTP_PASSWORD:-}")"
+                GOOGLE_WEB_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_WEB_CLIENT_ID:-}")"
+                GOOGLE_ANDROID_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_ANDROID_CLIENT_ID:-}")"
+                GOOGLE_IOS_CLIENT_ID_VALUE="$(sanitize "${GOOGLE_IOS_CLIENT_ID:-}")"
+
                 SECRET_ARGS=(
                   --from-literal=MongoDB__ConnectionString="${MONGODB_CONNECTION_STRING}"
                   --from-literal=JWT__SecretKey="${JWT_SECRET_KEY}"
                 )
-                if [ -n "${FIRMS_MAP_KEY:-}" ] && [ "${FIRMS_MAP_KEY}" != '$(FIRMS_MAP_KEY)' ]; then
-                  SECRET_ARGS+=(--from-literal=Geospatial__Fires__MapKey="${FIRMS_MAP_KEY}")
+                if [ -n "${FIRMS_MAP_KEY_VALUE}" ]; then
+                  SECRET_ARGS+=(--from-literal=Geospatial__Fires__MapKey="${FIRMS_MAP_KEY_VALUE}")
                 fi
-                if [ -n "${EMAIL_SMTP_PASSWORD:-}" ] && [ "${EMAIL_SMTP_PASSWORD}" != '$(EMAIL_SMTP_PASSWORD)' ]; then
-                  SECRET_ARGS+=(--from-literal=Email__SmtpPassword="${EMAIL_SMTP_PASSWORD}")
+                if [ -n "${EMAIL_SMTP_PASSWORD_VALUE}" ]; then
+                  SECRET_ARGS+=(--from-literal=Email__SmtpPassword="${EMAIL_SMTP_PASSWORD_VALUE}")
                 fi
-                if [ -n "${GOOGLE_WEB_CLIENT_ID:-}" ] && [ "${GOOGLE_WEB_CLIENT_ID}" != '$(GOOGLE_WEB_CLIENT_ID)' ]; then
-                  SECRET_ARGS+=(--from-literal=Auth__Google__ClientId="${GOOGLE_WEB_CLIENT_ID}")
+                if [ -n "${GOOGLE_WEB_CLIENT_ID_VALUE}" ]; then
+                  SECRET_ARGS+=(--from-literal=Auth__Google__ClientId="${GOOGLE_WEB_CLIENT_ID_VALUE}")
                 fi
                 # Extra Google client IDs (Android / iOS) accepted as ID-token audiences.
                 GOOGLE_EXTRA_IDS=()
-                if [ -n "${GOOGLE_ANDROID_CLIENT_ID:-}" ] && [ "${GOOGLE_ANDROID_CLIENT_ID}" != '$(GOOGLE_ANDROID_CLIENT_ID)' ]; then
-                  GOOGLE_EXTRA_IDS+=("${GOOGLE_ANDROID_CLIENT_ID}")
+                if [ -n "${GOOGLE_ANDROID_CLIENT_ID_VALUE}" ]; then
+                  GOOGLE_EXTRA_IDS+=("${GOOGLE_ANDROID_CLIENT_ID_VALUE}")
                 fi
-                if [ -n "${GOOGLE_IOS_CLIENT_ID:-}" ] && [ "${GOOGLE_IOS_CLIENT_ID}" != '$(GOOGLE_IOS_CLIENT_ID)' ]; then
-                  GOOGLE_EXTRA_IDS+=("${GOOGLE_IOS_CLIENT_ID}")
+                if [ -n "${GOOGLE_IOS_CLIENT_ID_VALUE}" ]; then
+                  GOOGLE_EXTRA_IDS+=("${GOOGLE_IOS_CLIENT_ID_VALUE}")
                 fi
                 idx=0
                 for cid in "${GOOGLE_EXTRA_IDS[@]}"; do

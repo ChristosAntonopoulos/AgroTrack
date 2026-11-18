@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useTranslation } from 'react-i18next';
@@ -17,9 +17,54 @@ type Props = {
 const webClientId = (process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '').trim();
 const iosClientId = (process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '').trim();
 const androidClientId = (process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '').trim();
-const googleConfigured = Boolean(webClientId || iosClientId || androidClientId);
 
-const AuthSocialButtons: React.FC<Props> = ({ onBeforeContinue }) => {
+// Same resolution as expo-auth-session: the platform id, then the web id passed as clientId.
+function platformGoogleClientId(): string {
+  return (
+    Platform.select({
+      ios: iosClientId || webClientId,
+      android: androidClientId || webClientId,
+      default: webClientId,
+    }) ?? ''
+  );
+}
+
+type ButtonShellProps = {
+  busy: boolean;
+  disabled: boolean;
+  notice: string | null;
+  label: string;
+  onPress: () => void;
+};
+
+const GoogleButtonShell: React.FC<ButtonShellProps> = ({ busy, disabled, notice, label, onPress }) => (
+  <View style={styles.wrap}>
+    <TouchableOpacity
+      style={[styles.button, busy && styles.buttonBusy]}
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+    >
+      {busy ? (
+        <ActivityIndicator color={loginTheme.textPrimary} />
+      ) : (
+        <>
+          <GoogleGIcon size={20} />
+          <Text style={styles.label}>{label}</Text>
+        </>
+      )}
+    </TouchableOpacity>
+    {notice ? (
+      <Text style={styles.note} accessibilityRole="text">
+        {notice}
+      </Text>
+    ) : null}
+  </View>
+);
+
+// useIdTokenAuthRequest throws during render when this platform's client id is missing.
+// Mount it only after that id is present so login still renders.
+const ConfiguredGoogleAuth: React.FC<Props> = ({ onBeforeContinue }) => {
   const { t } = useTranslation('auth');
   const { loginWithGoogle } = useAuth();
   const [notice, setNotice] = useState<string | null>(null);
@@ -87,12 +132,6 @@ const AuthSocialButtons: React.FC<Props> = ({ onBeforeContinue }) => {
   const handlePress = async () => {
     onBeforeContinue?.();
     setNotice(null);
-
-    if (!googleConfigured) {
-      setNotice(t('register.googleNotConfigured'));
-      return;
-    }
-
     handledResponse.current = null;
     setBusy(true);
     try {
@@ -104,29 +143,39 @@ const AuthSocialButtons: React.FC<Props> = ({ onBeforeContinue }) => {
   };
 
   return (
-    <View style={styles.wrap}>
-      <TouchableOpacity
-        style={[styles.button, busy && styles.buttonBusy]}
-        onPress={() => void handlePress()}
-        disabled={busy || (googleConfigured && !request)}
-        accessibilityRole="button"
-      >
-        {busy ? (
-          <ActivityIndicator color={loginTheme.textPrimary} />
-        ) : (
-          <>
-            <GoogleGIcon size={20} />
-            <Text style={styles.label}>{t('register.continueGoogle')}</Text>
-          </>
-        )}
-      </TouchableOpacity>
-      {notice ? (
-        <Text style={styles.note} accessibilityRole="text">
-          {notice}
-        </Text>
-      ) : null}
-    </View>
+    <GoogleButtonShell
+      busy={busy}
+      disabled={busy || !request}
+      notice={notice}
+      label={t('register.continueGoogle')}
+      onPress={() => void handlePress()}
+    />
   );
+};
+
+const UnconfiguredGoogleAuth: React.FC<Props> = ({ onBeforeContinue }) => {
+  const { t } = useTranslation('auth');
+  const [notice, setNotice] = useState<string | null>(null);
+
+  return (
+    <GoogleButtonShell
+      busy={false}
+      disabled={false}
+      notice={notice}
+      label={t('register.continueGoogle')}
+      onPress={() => {
+        onBeforeContinue?.();
+        setNotice(t('register.googleNotConfigured'));
+      }}
+    />
+  );
+};
+
+const AuthSocialButtons: React.FC<Props> = (props) => {
+  if (!platformGoogleClientId()) {
+    return <UnconfiguredGoogleAuth {...props} />;
+  }
+  return <ConfiguredGoogleAuth {...props} />;
 };
 
 const styles = StyleSheet.create({
