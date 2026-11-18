@@ -150,27 +150,33 @@
   "landing": {
     "pricing": {
       "title": "Start free. Grow when you need to.",
-      "sub": "One grove free. When you add more, choose Pro.",
+      "sub": "The first grove stays free. Pro keeps up to {{count}} on the same account.",
       "free": {
         "name": "Free",
-        "tagline": "To start with your first grove",
+        "tagline": "For your first grove.",
         "items": [
           "1 grove",
-          "Work, costs, harvest and oil",
-          "From phone and computer"
+          "Records and history",
+          "Income and expenses",
+          "Harvest and oil",
+          "Photos",
+          "Phone and computer"
         ]
       },
       "pro": {
         "name": "Pro",
-        "tagline": "For anyone with more than one grove",
-        "badge": "More groves",
+        "tagline": "Up to {{count}} groves, each with its own history.",
+        "amount": "€6.99",
+        "period": "per month",
+        "badge": "For more groves",
         "items": [
-          "More groves in the same account",
-          "A separate history for each one",
-          "Monthly or yearly subscription"
+          "Up to {{count}} groves in the same account",
+          "Everything in the free plan",
+          "A separate history for each grove",
+          "The whole year, in order"
         ]
       },
-      "priceNote": "The price is shown inside the app before you confirm anything.",
+      "priceNote": "Monthly price. You see it again in the app, before you confirm.",
       "trust": "No card needed to start · Cancel any time",
       "cta": "Start free"
     },
@@ -182,8 +188,12 @@
           "a": "Yes. You start with 1 grove free, no card needed."
         },
         {
-          "q": "What if I have more than one grove?",
-          "a": "With Pro you add more groves to the same account, each with its own history."
+          "q": "What does Pro include?",
+          "a": "Up to {{count}} groves on the same account, everything in the free plan, and a separate history for each grove."
+        },
+        {
+          "q": "Can I use the same subscription on phone and computer?",
+          "a": "Yes. The subscription follows your account."
         },
         {
           "q": "Do I lose my data if I stop Pro?",
@@ -191,11 +201,11 @@
         },
         {
           "q": "How do I cancel?",
-          "a": "From subscription management: in Google Play, the App Store or your web account — depending on where you subscribed."
+          "a": "From subscription management, where you started it: in Google Play, or in your account on the web."
         },
         {
           "q": "How much does Pro cost?",
-          "a": "The price is shown inside the app, monthly or yearly, before you confirm anything."
+          "a": "€6.99 per month. You see it again in the app, before you confirm."
         }
       ]
     }

@@ -68,7 +68,8 @@
 .lp-years,
 .lp-killer,
 .lp-pricing,
-.lp-close {
+.lp-close,
+#pricing {
   scroll-margin-top: calc(var(--lp-header-h) + 0.75rem);
 }
 
@@ -521,6 +522,7 @@
 
 .lp-example {
   margin: 0;
+  padding: 0.85rem 1.2rem 0;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;

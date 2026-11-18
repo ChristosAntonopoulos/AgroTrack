@@ -228,7 +228,7 @@ export const accountService = {
       }
       accountOverrides.upsert(user.userId, {
         deleted: true,
-        email: `deleted.${user.userId}@deleted.oleachron.invalid`,
+        email: `deleted.${user.userId}@deleted.theolivelot.invalid`,
         firstName: undefined,
         lastName: undefined,
         pendingEmail: undefined,
@@ -246,7 +246,7 @@ export const downloadAccountExport = (data: AccountExport) => {
   const link = document.createElement('a');
   const day = data.exportedAt.slice(0, 10);
   link.href = url;
-  link.download = `oleachron-export-${day}.json`;
+  link.download = `the-olive-lot-export-${day}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();

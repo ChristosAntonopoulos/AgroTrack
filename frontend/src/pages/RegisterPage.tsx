@@ -260,8 +260,8 @@ const RegisterPage: React.FC = () => {
   const legalLinks = (
     <p className="register-legal">
       {t('auth:register.legalPrefix')}{' '}
-      <Link to="/terms">{t('auth:login.terms')}</Link> {t('auth:register.legalAnd')}{' '}
-      <Link to="/privacy">{t('auth:login.privacy')}</Link>.
+      <Link to="/terms">{t('auth:register.legalTerms')}</Link> {t('auth:register.legalAnd')}{' '}
+      <Link to="/privacy">{t('auth:register.legalPrivacy')}</Link>.
     </p>
   );
 
@@ -272,6 +272,12 @@ const RegisterPage: React.FC = () => {
         <p className="login-card-subtitle">
           {t(hasInviteIntent ? 'auth:register.inviteSubtitle' : 'auth:register.subtitle')}
         </p>
+        {!hasInviteIntent ? (
+          <p className="login-promise">
+            <strong>{t('auth:register.promise')}</strong>
+            <span>{t('auth:register.next')}</span>
+          </p>
+        ) : null}
       </div>
 
       {summaryMessage ? (

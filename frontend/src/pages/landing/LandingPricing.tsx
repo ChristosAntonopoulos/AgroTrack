@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react';
+import { PRO_OWNED_FIELD_LIMIT } from '../../config/landingConfig';
 import './LandingPricing.css';
 
 interface FaqItem {
@@ -10,28 +11,29 @@ interface FaqItem {
 }
 
 /**
- * Landing pricing + FAQ. Deliberately shows NO prices: they come from the store
- * (RevenueCat Offerings) inside the app, so marketing copy can never drift from billing.
+ * Landing pricing + FAQ. Monthly Pro is €6.99. No yearly price is published.
+ * The grove cap is ProOwnedFieldLimit.
  */
 export const LandingPricing: React.FC = () => {
   const { t } = useTranslation('subscription');
+  const plan = { count: PRO_OWNED_FIELD_LIMIT };
   const list = (key: string) => {
-    const value = t(key, { returnObjects: true });
+    const value = t(key, { ...plan, returnObjects: true });
     return Array.isArray(value) ? (value as string[]) : [];
   };
 
   return (
-    <section id="pricing" className="lp-section lp-section--ivory lp-pricing" aria-labelledby="pricing-title">
+    <section className="lp-section lp-section--ivory lp-pricing" aria-labelledby="pricing-title">
       <div className="landing-container">
         <div className="lp-section-copy">
-          <h2 id="pricing-title">{t('landing.pricing.title')}</h2>
-          <p>{t('landing.pricing.sub')}</p>
+          <h2 id="pricing-title">{t('landing.pricing.title', plan)}</h2>
+          <p>{t('landing.pricing.sub', plan)}</p>
         </div>
 
-        <div className="lp-pricing-grid">
+        <div className="lp-pricing-grid" id="pricing">
           <article className="lp-plan">
             <h3>{t('landing.pricing.free.name')}</h3>
-            <p className="lp-plan-tagline">{t('landing.pricing.free.tagline')}</p>
+            <p className="lp-plan-tagline">{t('landing.pricing.free.tagline', plan)}</p>
             <ul>
               {list('landing.pricing.free.items').map((item) => (
                 <li key={item}>
@@ -43,9 +45,13 @@ export const LandingPricing: React.FC = () => {
           </article>
 
           <article className="lp-plan lp-plan--pro">
-            <span className="lp-plan-badge">{t('landing.pricing.pro.badge')}</span>
+            <span className="lp-plan-badge">{t('landing.pricing.pro.badge', plan)}</span>
             <h3>{t('landing.pricing.pro.name')}</h3>
-            <p className="lp-plan-tagline">{t('landing.pricing.pro.tagline')}</p>
+            <p className="lp-plan-price">
+              <strong>{t('landing.pricing.pro.amount')}</strong>
+              <span>{t('landing.pricing.pro.period')}</span>
+            </p>
+            <p className="lp-plan-tagline">{t('landing.pricing.pro.tagline', plan)}</p>
             <ul>
               {list('landing.pricing.pro.items').map((item) => (
                 <li key={item}>
@@ -71,7 +77,7 @@ export const LandingPricing: React.FC = () => {
 
 export const LandingFaq: React.FC = () => {
   const { t } = useTranslation('subscription');
-  const items = t('landing.faq.items', { returnObjects: true });
+  const items = t('landing.faq.items', { count: PRO_OWNED_FIELD_LIMIT, returnObjects: true });
   const faqs: FaqItem[] = Array.isArray(items) ? (items as FaqItem[]) : [];
 
   return (

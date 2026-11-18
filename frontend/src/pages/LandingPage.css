@@ -70,6 +70,8 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  width: 100%;
+  max-width: 100%;
   height: var(--lp-header-h);
   background: rgba(26, 38, 18, 0.35);
   backdrop-filter: blur(14px);
@@ -137,11 +139,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
   height: 100%;
   width: min(100%, 1320px);
+  max-width: 100%;
+  min-width: 0;
   margin-inline: auto;
-  padding-inline: clamp(1.25rem, 5vw, 2.25rem);
+  padding-inline: clamp(0.75rem, 4vw, 2.25rem);
 }
 
 .landing-brand {
@@ -152,7 +156,8 @@
   color: var(--lp-primary);
   font-weight: 700;
   font-size: 1.125rem;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .landing-brand span:not(.landing-alpha-pill) {
@@ -164,9 +169,13 @@
 
 .landing-brand .landing-brand-lockup,
 .landing-brand .brand-logo {
-  height: 48px;
+  display: block;
+  height: auto;
+  max-height: 44px;
   width: auto;
-  max-width: min(300px, 55vw);
+  max-width: min(220px, 46vw);
+  object-fit: contain;
+  object-position: left center;
 }
 
 .landing-app-icon {
@@ -221,7 +230,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .landing-chrome-prefs {
@@ -238,6 +248,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 44px;
   width: 44px;
   height: 44px;
   padding: 0;
@@ -255,15 +266,17 @@
 }
 
 .landing-mobile-menu {
-  position: absolute;
-  top: 100%;
+  position: fixed;
+  z-index: 90;
+  top: var(--lp-header-h);
   left: 0;
   right: 0;
-  background: var(--lp-cream);
-  border-bottom: 1px solid var(--lp-border);
-  box-shadow: 0 16px 40px rgba(26, 38, 18, 0.12);
-  padding: 1rem min(1.25rem, 5vw) 1.25rem;
-  max-height: calc(100dvh - var(--lp-header-h));
+  bottom: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: #f4f0e6;
+  padding: 0.5rem min(1.25rem, 5vw) 1.5rem;
   overflow-y: auto;
 }
 
@@ -1424,6 +1437,11 @@
   font-size: 0.925rem;
 }
 
+.landing-footer-team {
+  margin-top: 0.65rem;
+  font-weight: 650;
+}
+
 .landing-footer h4 {
   margin: 0 0 0.65rem;
   color: var(--lp-text-light);
@@ -1684,6 +1702,22 @@
 @media (max-width: 420px) {
   .landing-header-signin {
     display: none;
+  }
+
+  .landing-header-inner {
+    padding-inline: 0.7rem;
+    gap: 0.35rem;
+  }
+
+  .landing-brand .landing-brand-lockup,
+  .landing-brand .brand-logo {
+    max-height: 36px;
+    max-width: min(148px, 40vw);
+  }
+
+  .landing-header-start {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.72rem;
   }
 }
 

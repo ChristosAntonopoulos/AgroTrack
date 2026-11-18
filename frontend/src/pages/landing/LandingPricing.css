@@ -26,6 +26,28 @@
   color: var(--lp-ink, var(--lp-text));
 }
 
+.lp-plan-price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.lp-plan-price strong {
+  font-size: clamp(1.8rem, 3vw, 2.15rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--lp-ink, var(--lp-text));
+}
+
+.lp-plan-price span {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--lp-muted, var(--lp-text-muted));
+}
+
 .lp-plan-tagline {
   margin: 0 0 0.4rem;
   font-size: 0.98rem;

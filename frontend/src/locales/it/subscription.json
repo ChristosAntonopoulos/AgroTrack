@@ -154,7 +154,7 @@
   "landing": {
     "pricing": {
       "title": "Inizia gratis. Cresci quando serve.",
-      "sub": "Un oliveto gratis. Quando ne aggiungi altri, scegli Pro.",
+      "sub": "Il primo oliveto resta gratis. Pro ne tiene fino a {{count}} nello stesso account.",
       "free": {
         "name": "Gratuito",
         "tagline": "Per iniziare con il tuo primo oliveto",
@@ -166,15 +166,17 @@
       },
       "pro": {
         "name": "Pro",
-        "tagline": "Per chi ha più di un oliveto",
+        "tagline": "Fino a {{count}} oliveti, ciascuno con il proprio storico.",
+        "amount": "6,99 €",
+        "period": "al mese",
         "badge": "Più oliveti",
         "items": [
-          "Più oliveti nello stesso account",
+          "Fino a {{count}} oliveti nello stesso account",
           "Uno storico separato per ciascuno",
-          "Abbonamento mensile o annuale"
+          "Abbonamento mensile"
         ]
       },
-      "priceNote": "Il prezzo viene mostrato nell'app, prima di confermare qualsiasi cosa.",
+      "priceNote": "Prezzo mensile. Lo rivedi nell'app, prima di confermare.",
       "trust": "Nessuna carta per iniziare · Annulli quando vuoi",
       "cta": "Inizia gratis"
     },
@@ -187,7 +189,7 @@
         },
         {
           "q": "E se ho più di un oliveto?",
-          "a": "Con Pro aggiungi più oliveti allo stesso account, ciascuno con il proprio storico."
+          "a": "Fino a {{count}} oliveti nello stesso account, tutto quello del piano gratuito, e uno storico per ciascuno."
         },
         {
           "q": "Perdo i miei dati se smetto Pro?",
@@ -195,11 +197,11 @@
         },
         {
           "q": "Come annullo l'abbonamento?",
-          "a": "Dalla gestione dell'abbonamento: su Google Play, App Store o nel tuo account web — a seconda di dove ti sei abbonato."
+          "a": "Dalla gestione dell'abbonamento, dove l'hai avviato: su Google Play o nel tuo account sul web."
         },
         {
           "q": "Quanto costa Pro?",
-          "a": "Il prezzo viene mostrato nell'app, mensile o annuale, prima di confermare qualsiasi cosa."
+          "a": "6,99 € al mese. Lo rivedi nell'app, prima di confermare."
         }
       ]
     }

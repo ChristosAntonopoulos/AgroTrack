@@ -239,6 +239,7 @@ const LoginPage: React.FC = () => {
       </form>
 
       <p className="login-register">
+        <span className="login-promise-line">{t('auth:login.newHere')}</span>
         {t('auth:login.noAccount')}{' '}
         <Link to={registerHref}>{t('auth:login.registerLink')}</Link>
       </p>

@@ -1,6 +1,14 @@
 /** Official alpha APK path (bundled in frontend/public/downloads/ at build time). */
 export const ALPHA_APK_URL = '/downloads/theolivelot.apk';
 export const ALPHA_APK_FILENAME = 'theolivelot.apk';
+
+/**
+ * Owned-grove caps. Same numbers as backend appsettings `Subscription`
+ * (`FreeOwnedFieldLimit` / `ProOwnedFieldLimit`). The public page cannot
+ * read that file, so the marketing copy stays next to this constant.
+ */
+export const FREE_OWNED_FIELD_LIMIT = 1;
+export const PRO_OWNED_FIELD_LIMIT = 5;
 /** Official contact for privacy, support, and landing mailto links. */
 export const LANDING_SUPPORT_EMAIL = 'support@theolivelot.com';
 export const LANDING_CONTACT_EMAIL = LANDING_SUPPORT_EMAIL;

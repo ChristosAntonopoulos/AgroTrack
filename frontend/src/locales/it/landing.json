@@ -6,7 +6,12 @@
     "forWhom": "Per chi è",
     "pricing": "Prezzi",
     "signIn": "Accedi",
-    "startFree": "Inizia gratis"
+    "startFree": "Inizia gratis",
+    "openMenu": "Apri menu",
+    "closeMenu": "Chiudi menu",
+    "mainNav": "Principale",
+    "mobileNav": "Menu",
+    "language": "Lingua"
   },
   "hero": {
     "eyebrow": "",
@@ -16,6 +21,7 @@
     "ctaPrimary": "Aggiungi il tuo primo oliveto",
     "ctaSecondary": "Scopri come funziona ↓",
     "trust": "1 oliveto gratis · Nessuna carta · Su telefono e computer",
+    "example": "Esempio",
     "field": "Kato Alonia",
     "year": "2026",
     "status": "Ultima registrazione · Trattamento · 2 giorni fa",
@@ -275,6 +281,7 @@
   },
   "footer": {
     "description": "Dal campo alla latta.",
+    "team": "Dal team di The Olive Lot",
     "product": "Prodotto",
     "contact": "Contatti",
     "privacy": "Privacy",

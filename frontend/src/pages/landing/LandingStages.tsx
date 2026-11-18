@@ -49,6 +49,7 @@ export const GroveDashboard: React.FC = () => {
 
   return (
     <article className="lp-dash">
+      <p className="lp-example">{t('hero.example')}</p>
       <p className="lp-dash-head">
         <span className="lp-field-dot" aria-hidden />
         {t('hero.field')}
@@ -119,6 +120,7 @@ export const ChronologioCentre: React.FC = () => {
         <p>{t('chronologio.text')}</p>
       </div>
       <div className="lp-years-card">
+        <p className="lp-example">{t('hero.example')}</p>
         <p className="lp-years-field">{t('chronologio.field')}</p>
         <div className="lp-rail lp-rail--years" role="group" aria-label={t('chronologio.railLabel')}>
           {years.map((item) => (
@@ -155,6 +157,7 @@ export const MapStage: React.FC = () => {
 
   return (
     <figure className="lp-map">
+      <p className="lp-example">{t('hero.example')}</p>
       <div className="lp-compare">
         <FieldShape tone="patchy" labeled={t('chronologio.field')} />
         <div className="lp-compare-top" style={{ width: `${june}%` }}>
@@ -344,6 +347,7 @@ export const FamilyBoard: React.FC = () => {
 
   return (
     <div className="lp-family-board">
+      <p className="lp-example">{t('hero.example')}</p>
       <p className="lp-family-field">{t('family.field')}</p>
       <ul className="lp-activity">
         {people.map((person) => (
